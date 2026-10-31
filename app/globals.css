@@ -234,6 +234,10 @@
 /* AI entry points hide when /api/ask reports 503 (components/ask/availability.ts). */
 html[data-ask="off"] [data-ask-entry] { display: none !important; }
 
+/* Pages that must never show the floating Ask button (the qualifier, also served
+   at kubera.loans/ through a rewrite) render a [data-ask-floating-hidden] marker. */
+body:has([data-ask-floating-hidden]) [data-ask-floating] { display: none !important; }
+
 /* Accent text and focus rings on dark surfaces. */
 .bg-ink .text-accent,
 .bg-pro .text-accent,

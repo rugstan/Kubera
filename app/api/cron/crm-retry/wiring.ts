@@ -1,14 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decideWithRules } from "@/lib/ai/jev";
-import { pushLead, pushPartner } from "@/lib/crm/twenty";
+import { pushLead, pushPartner, type CrmProgress } from "@/lib/crm/twenty";
 import type { Benchmarks } from "@/lib/rates";
 import { MAX_ATTEMPTS, type CrmPusher, type FailedLeadRow, type FailedPartnerRow, type RetryDeps, type RetryStore, type RowPatch } from "./retry";
 
-const LEAD_COLUMNS = "id, contact, intake, decision, rationale, engine, latency_ms, crm_attempts, crm_last_attempt_at";
-const PARTNER_COLUMNS = "id, profile, crm_attempts, crm_last_attempt_at";
+const LEAD_COLUMNS = "id, contact, intake, decision, rationale, engine, latency_ms, crm_attempts, crm_last_attempt_at, crm_progress";
+const PARTNER_COLUMNS = "id, profile, crm_attempts, crm_last_attempt_at, crm_progress";
 
 export function supabaseRetryStore(db: SupabaseClient): RetryStore {
-  const update = async (table: "leads" | "partners", id: string, patch: RowPatch) => {
+  const update = async (table: "leads" | "partners", id: string, patch: RowPatch | { crm_progress: CrmProgress }) => {
     const { error } = await db.from(table).update(patch).eq("id", id);
     if (error) throw new Error(`${table} update failed: ${error.message}`);
   };
@@ -39,6 +39,8 @@ export function supabaseRetryStore(db: SupabaseClient): RetryStore {
     },
     updateLead: (id, patch) => update("leads", id, patch),
     updatePartner: (id, patch) => update("partners", id, patch),
+    saveLeadProgress: (id, progress) => update("leads", id, { crm_progress: progress }),
+    savePartnerProgress: (id, progress) => update("partners", id, { crm_progress: progress }),
   };
 }
 

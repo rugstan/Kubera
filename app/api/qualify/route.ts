@@ -39,18 +39,22 @@ export async function POST(req: Request) {
     leadId = data?.id ?? null;
   }
 
-  // The consent record is evidence, so it is written before we respond.
-  await recordConsent(
-    buildConsentEvent({
-      text: resolveConsentText("qualifier", meta.textVersion),
-      email: contact.email,
-      phone: contact.phone,
-      ip: guard.ip,
-      userAgent: req.headers.get("user-agent"),
-      page: consentPage(req, meta.page, "/express"),
-      leadId,
-    }),
-  );
+  // The consent record is evidence, so it is written before we respond. It is
+  // written only when the box was ticked: consent is optional, and no row means
+  // no phone, text or automated outreach (email replies about this request only).
+  if (contact.consent) {
+    await recordConsent(
+      buildConsentEvent({
+        text: resolveConsentText("qualifier", meta.textVersion),
+        email: contact.email,
+        phone: contact.phone,
+        ip: guard.ip,
+        userAgent: req.headers.get("user-agent"),
+        page: consentPage(req, meta.page, "/express"),
+        leadId,
+      }),
+    );
+  }
 
   // CRM sync runs after the response so the borrower never waits on Twenty.
   after(async () => {
@@ -59,7 +63,13 @@ export async function POST(req: Request) {
       return;
     }
     try {
-      const refs = await pushLead(intake, contact, jev);
+      // Checkpoint each Twenty id as it is created so the retry cron resumes
+      // instead of creating a second company and opportunity.
+      const refs = await pushLead(intake, contact, jev, {
+        onProgress: async (progress) => {
+          if (db && leadId) await db.from("leads").update({ crm_progress: progress }).eq("id", leadId);
+        },
+      });
       if (db && leadId) await db.from("leads").update({ twenty_person_id: refs.personId, twenty_opportunity_id: refs.opportunityId }).eq("id", leadId);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

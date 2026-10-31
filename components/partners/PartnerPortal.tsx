@@ -266,7 +266,7 @@ export function PartnerPortal() {
             )}
 
             <label className="flex items-start gap-3 text-[12px] leading-relaxed text-titanium">
-              <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={contact.consent} onChange={(e) => setContact((p) => ({ ...p, consent: e.target.checked }))} required />
+              <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={contact.consent} onChange={(e) => setContact((p) => ({ ...p, consent: e.target.checked }))} />
               <span>{CONSENT.text}</span>
             </label>
 

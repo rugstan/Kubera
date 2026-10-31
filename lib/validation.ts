@@ -9,8 +9,13 @@ export const contactSchema = z.object({
   email: z.email().trim().max(200),
   phone: z.string().trim().max(40).optional().default(""),
   company: z.string().trim().max(160).optional().default(""),
-  /** Express consent to be contacted, captured for TCPA purposes. */
-  consent: z.literal(true),
+  /**
+   * Optional express consent to phone, text and automated contact (TCPA). The
+   * consent wording says it is not a condition of any service, so a submission
+   * without it is accepted; the routes write a consent_events row only when it
+   * is true, and without one we reply by email about the request only.
+   */
+  consent: z.boolean().default(false),
 });
 
 export const intakeSchema = z.object({

@@ -10,9 +10,17 @@ Rules: axe-core 4.14.0, tags wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa.
 | / (desktop) | 0 | 0 |
 | /express (desktop) | 0 | 0 |
 | /partners (desktop) | 0 | 0 |
+| /privacy (desktop) | 0 | 0 |
+| /terms (desktop) | 0 | 0 |
+| /licensing (desktop) | 0 | 0 |
+| /accessibility (desktop) | 0 | 0 |
 | / (mobile 390px) | 0 | 0 |
 | /express (mobile 390px) | 0 | 0 |
 | /partners (mobile 390px) | 0 | 0 |
+| /privacy (mobile 390px) | 0 | 0 |
+| /terms (mobile 390px) | 0 | 0 |
+| /licensing (mobile 390px) | 0 | 0 |
+| /accessibility (mobile 390px) | 0 | 0 |
 | / sizer tab: Hospitality & Hotels | 0 | 0 |
 | / sizer tab: Multifamily & CRE | 0 | 0 |
 | /partners tab: /Referral brokers/i | 0 | 0 |

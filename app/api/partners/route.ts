@@ -35,22 +35,29 @@ export async function POST(req: Request) {
     partnerId = data?.id ?? null;
   }
 
-  await recordConsent(
-    buildConsentEvent({
-      text: resolveConsentText("partner", meta.textVersion),
-      email: reg.contact.email,
-      phone: reg.contact.phone,
-      ip: guard.ip,
-      userAgent: req.headers.get("user-agent"),
-      page: consentPage(req, meta.page, "/partners"),
-      partnerId,
-    }),
-  );
+  // Consent is optional; a row is written only when the box was ticked.
+  if (reg.contact.consent) {
+    await recordConsent(
+      buildConsentEvent({
+        text: resolveConsentText("partner", meta.textVersion),
+        email: reg.contact.email,
+        phone: reg.contact.phone,
+        ip: guard.ip,
+        userAgent: req.headers.get("user-agent"),
+        page: consentPage(req, meta.page, "/partners"),
+        partnerId,
+      }),
+    );
+  }
 
   after(async () => {
     if (!twentyConfigured()) return;
     try {
-      const refs = await pushPartner(reg);
+      const refs = await pushPartner(reg, {
+        onProgress: async (progress) => {
+          if (db && partnerId) await db.from("partners").update({ crm_progress: progress }).eq("id", partnerId);
+        },
+      });
       if (db && partnerId) await db.from("partners").update({ twenty_company_id: refs.companyId }).eq("id", partnerId);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

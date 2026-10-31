@@ -68,9 +68,62 @@ async function upsertPerson(contact: Contact, companyId?: string): Promise<strin
   });
 }
 
-async function attachNote(title: string, markdown: string, targets: Json): Promise<void> {
-  const noteId = await create("notes", { title, bodyV2: { markdown } });
-  await create("noteTargets", { noteId, ...targets });
+/**
+ * Ids of the Twenty records a push has created so far. A push is a chain of
+ * creates; when a later step fails, the caller persists this checkpoint and the
+ * next attempt resumes from it, so a retry never creates a second company,
+ * person, opportunity or note for the same submission.
+ */
+export type CrmProgress = {
+  companyId?: string;
+  personId?: string;
+  opportunityId?: string;
+  noteId?: string;
+  noteTargetId?: string;
+};
+
+export type PushOptions = {
+  /** Checkpoint from an earlier, partly failed attempt. Steps with an id are skipped. */
+  progress?: CrmProgress | null;
+  /** Called after each step that created a record, with the checkpoint so far. */
+  onProgress?: (progress: CrmProgress) => Promise<void> | void;
+};
+
+/** Accepts only string ids from a stored (untyped) checkpoint. */
+export function parseCrmProgress(raw: unknown): CrmProgress {
+  if (!raw || typeof raw !== "object") return {};
+  const out: CrmProgress = {};
+  for (const key of ["companyId", "personId", "opportunityId", "noteId", "noteTargetId"] as const) {
+    const v = (raw as Record<string, unknown>)[key];
+    if (typeof v === "string" && v) out[key] = v;
+  }
+  return out;
+}
+
+/** Runs each create once per submission, recording its id before moving on. */
+function checkpoint(opts: PushOptions = {}) {
+  const progress: CrmProgress = { ...parseCrmProgress(opts.progress) };
+  return {
+    progress,
+    async step(key: keyof CrmProgress, run: () => Promise<string>): Promise<string> {
+      const existing = progress[key];
+      if (existing) return existing;
+      const id = await run();
+      progress[key] = id;
+      try {
+        await opts.onProgress?.({ ...progress });
+      } catch (err) {
+        // Losing a checkpoint only risks a duplicate on retry; never fail the push for it.
+        console.error("Twenty push: saving progress failed", err instanceof Error ? err.message : err);
+      }
+      return id;
+    },
+  };
+}
+
+async function attachNote(cp: ReturnType<typeof checkpoint>, title: string, markdown: string, targets: Json): Promise<void> {
+  const noteId = await cp.step("noteId", () => create("notes", { title, bodyV2: { markdown } }));
+  await cp.step("noteTargetId", () => create("noteTargets", { noteId, ...targets }));
 }
 
 const PROBABILITY: Record<JevResult["decision"]["leadUrgencyTier"], number> = {
@@ -82,13 +135,14 @@ const PROBABILITY: Record<JevResult["decision"]["leadUrgencyTier"], number> = {
 
 export type CrmRefs = { personId: string; companyId?: string; opportunityId?: string };
 
-export async function pushLead(intake: Intake, contact: Contact, jev: JevResult): Promise<CrmRefs> {
-  const companyId = contact.company ? await create("companies", { name: contact.company }) : undefined;
-  const personId = await upsertPerson(contact, companyId);
+export async function pushLead(intake: Intake, contact: Contact, jev: JevResult, opts?: PushOptions): Promise<CrmRefs> {
+  const cp = checkpoint(opts);
+  const companyId = contact.company ? await cp.step("companyId", () => create("companies", { name: contact.company })) : undefined;
+  const personId = await cp.step("personId", () => upsertPerson(contact, companyId));
   const d = jev.decision;
   const q = jev.primaryQuote;
 
-  const opportunityId = await create("opportunities", {
+  const opportunityId = await cp.step("opportunityId", () => create("opportunities", {
     name: `${programLabel(d.primaryProgramFit)} · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
     amount: { amountMicros: Math.round(intake.loanAmount * 1_000_000), currencyCode: "USD" },
     expectedRevenue: { amountMicros: Math.round(d.estimatedBrokerCommissionUsd * 1_000_000), currencyCode: "USD" },
@@ -99,7 +153,7 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult)
     closeDate: new Date(Date.now() + Math.max(intake.timelineDays, 30) * 86_400_000).toISOString(),
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
-  });
+  }));
 
   const md = [
     `## Jev decision (${jev.engine}, ${jev.latencyMs}ms)`,
@@ -114,18 +168,20 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult)
     JSON.stringify(intake, null, 2),
     "```",
   ].join("\n");
-  await attachNote(`Jev intake — ${d.leadUrgencyTier}`, md, { targetOpportunityId: opportunityId });
+  await attachNote(cp, `Jev intake — ${d.leadUrgencyTier}`, md, { targetOpportunityId: opportunityId });
 
   return { personId, companyId, opportunityId };
 }
 
-export async function pushPartner(reg: PartnerRegistration): Promise<CrmRefs> {
+export async function pushPartner(reg: PartnerRegistration, opts?: PushOptions): Promise<CrmRefs> {
+  const cp = checkpoint(opts);
   const orgName = "organization" in reg && reg.organization ? reg.organization : `${reg.contact.firstName} ${reg.contact.lastName}`;
   const website = reg.partnerType === "LENDER" && reg.website ? { domainName: { primaryLinkUrl: reg.website } } : {};
-  const companyId = await create("companies", { name: orgName, ...website });
-  const personId = await upsertPerson(reg.contact, companyId);
+  const companyId = await cp.step("companyId", () => create("companies", { name: orgName, ...website }));
+  const personId = await cp.step("personId", () => upsertPerson(reg.contact, companyId));
   const { contact: _contact, ...profile } = reg;
   await attachNote(
+    cp,
     `Partner registration — ${humanize(reg.partnerType)}`,
     ["## Partner profile", "```json", JSON.stringify(profile, null, 2), "```"].join("\n"),
     { targetCompanyId: companyId },

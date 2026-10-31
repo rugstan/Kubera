@@ -41,7 +41,8 @@ export default defineConfig({
       SENTRY_DSN: "",
       NEXT_PUBLIC_SENTRY_DSN: "",
       JEV_API_URL: "",
-      EXPRESS_HOSTS: "kubera.loans,www.kubera.loans",
+      // 127.0.0.1 stands in for kubera.loans in e2e/express-host.spec.ts.
+      EXPRESS_HOSTS: "kubera.loans,www.kubera.loans,127.0.0.1",
       // next start runs with NODE_ENV=production, so the API Origin allowlist
       // must name the e2e host or real (unmocked) POSTs get 403.
       ALLOWED_ORIGINS: baseURL,

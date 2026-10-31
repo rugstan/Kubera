@@ -55,7 +55,7 @@ export default function PrivacyPage() {
               <tr key={c.id}>
                 <th scope="row">
                   {c.label}
-                  <span className="mt-1 block text-[12px] font-normal text-ink/60">CCPA: {c.ccpa}</span>
+                  <span className="mt-1 block text-[12px] font-normal text-titanium">CCPA: {c.ccpa}</span>
                 </th>
                 <td>{c.examples}</td>
                 <td>{c.sensitive ? "Yes" : "No"}</td>

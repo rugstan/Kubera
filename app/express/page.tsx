@@ -27,6 +27,8 @@ const EXPRESS_LEGAL_LINKS = LEGAL_PAGES.filter((page) => !page.href.includes("#"
 export default function ExpressPage() {
   return (
     <div className="flex min-h-dvh flex-col">
+      {/* Hides the floating Ask button here and on the express host's rewritten `/` (globals.css). */}
+      <div data-ask-floating-hidden hidden />
       <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-6">
         <Logo />
         <span className="flex items-center gap-1.5 text-[13px] text-titanium">

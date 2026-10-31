@@ -30,6 +30,18 @@ function subscribeOnline(cb: () => void) {
     window.removeEventListener("offline", cb);
   };
 }
+// False during SSR and hydration, true afterwards. The floating button renders
+// only after mount: on kubera.loans the proxy rewrites `/` to `/express`, so the
+// server sees `/express` while usePathname() on the client reports `/`. Gating
+// on mount keeps the server and first client render identical.
+const noopSubscribe = () => () => {};
+const useMounted = () =>
+  useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+
 const useOnline = () =>
   useSyncExternalStore(
     subscribeOnline,
@@ -65,6 +77,7 @@ export function CommandBar() {
   const [dealContext, setDealContext] = useState<string | undefined>();
   const askAvailable = useAskAvailable();
   const pathname = usePathname();
+  const mounted = useMounted();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -185,8 +198,11 @@ export function CommandBar() {
 
   useEffect(() => releaseBackground, []);
 
+  // Route rule for the main site; pages served under a rewritten URL (the
+  // express host) also render a [data-ask-floating-hidden] marker that a CSS
+  // rule in globals.css honors regardless of the client pathname.
   const hiddenRoute = isAskButtonRouteHidden(pathname);
-  const showFloating = askAvailable && !hiddenRoute;
+  const showFloating = mounted && askAvailable && !hiddenRoute;
   const retryable = error ? ASK_ERROR_COPY[error.kind].retryable : false;
 
   return (

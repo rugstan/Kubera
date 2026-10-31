@@ -150,8 +150,23 @@ describe("POST /api/qualify", () => {
   });
 
   it("does not write consent for an invalid submission", async () => {
-    const res = await qualify.POST(request("/api/qualify", { ...leadBody, contact: { ...leadBody.contact, consent: false } }, { "x-turnstile-token": turnstile.issue("ok2", "qualify") }));
+    const res = await qualify.POST(request("/api/qualify", { ...leadBody, contact: { ...leadBody.contact, email: "not-an-email" } }, { "x-turnstile-token": turnstile.issue("ok2", "qualify") }));
     expect(res.status).toBe(400);
+    expect(ledger.events).toHaveLength(0);
+  });
+
+  it("accepts a submission without consent and records no phone, sms or autodialer consent", async () => {
+    // Consent is "not a condition of any service", so it cannot gate the form.
+    const { consent: _omitted, ...contactWithoutConsent } = leadBody.contact;
+    for (const [i, contact] of [{ ...leadBody.contact, consent: false }, contactWithoutConsent].entries()) {
+      const res = await qualify.POST(request("/api/qualify", { ...leadBody, contact }, { "x-turnstile-token": turnstile.issue(`nc${i}`, "qualify") }));
+      expect(res.status).toBe(200);
+      expect((await res.json()).result).toBeTruthy();
+    }
+    const channels = ledger.events.flatMap((e) => e.channels);
+    expect(channels).not.toContain("sms");
+    expect(channels).not.toContain("autodialer");
+    expect(channels).not.toContain("phone");
     expect(ledger.events).toHaveLength(0);
   });
 
@@ -172,6 +187,12 @@ describe("POST /api/partners", () => {
     expect(res.status).toBe(200);
     // A version for a different form is ignored; the partner text is recorded.
     expect(ledger.events[0]).toMatchObject({ form: "partner", textVersion: CURRENT_CONSENT.partner, email: "sam@example.com", phone: null, page: "/partners" });
+  });
+
+  it("accepts a registration without consent and writes no consent event", async () => {
+    const res = await partners.POST(request("/api/partners", { ...partnerBody, contact: { ...partnerBody.contact, consent: false } }, { "x-turnstile-token": turnstile.issue("p-nc", "partners") }));
+    expect(res.status).toBe(200);
+    expect(ledger.events).toHaveLength(0);
   });
 });
 

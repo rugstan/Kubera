@@ -131,7 +131,8 @@ export function Qualifier() {
 
   if (done) return <Done r={done} firstName={contact.firstName} />;
 
-  const contactValid = contact.firstName && contact.lastName && /.+@.+\..+/.test(contact.email) && contact.consent;
+  // Consent is optional ("not a condition of any service"), so it never gates submit.
+  const contactValid = contact.firstName && contact.lastName && /.+@.+\..+/.test(contact.email);
 
   return (
     <div>

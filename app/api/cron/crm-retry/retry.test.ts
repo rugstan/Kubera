@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { decideWithRules } from "@/lib/ai/jev";
+import { pushLead, pushPartner, type CrmProgress } from "@/lib/crm/twenty";
 import { FALLBACK_BENCHMARKS } from "@/lib/sizing/assumptions";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
 import {
@@ -71,17 +72,53 @@ class FakeStore implements RetryStore {
     private partners: FailedPartnerRow[] = [],
   ) {}
   async failedLeads(limit: number) {
-    return this.leads.slice(0, limit);
+    // Mirrors the Supabase query: unresolved rows only, as currently stored.
+    return this.leads.filter((r) => r.crm_attempts < MAX_ATTEMPTS && !(r as { done?: boolean }).done).slice(0, limit).map((r) => ({ ...r }));
   }
   async failedPartners(limit: number) {
-    return this.partners.slice(0, limit);
+    return this.partners.filter((r) => r.crm_attempts < MAX_ATTEMPTS && !(r as { done?: boolean }).done).slice(0, limit).map((r) => ({ ...r }));
   }
   async updateLead(id: string, patch: RowPatch) {
     this.leadUpdates.push({ id, patch });
+    const row = this.leads.find((r) => r.id === id);
+    if (row) Object.assign(row, { crm_attempts: patch.crm_attempts, crm_last_attempt_at: patch.crm_last_attempt_at, done: patch.crm_error === null });
   }
   async updatePartner(id: string, patch: RowPatch) {
     this.partnerUpdates.push({ id, patch });
+    const row = this.partners.find((r) => r.id === id);
+    if (row) Object.assign(row, { crm_attempts: patch.crm_attempts, crm_last_attempt_at: patch.crm_last_attempt_at, done: patch.crm_error === null });
   }
+  async saveLeadProgress(id: string, progress: CrmProgress) {
+    const row = this.leads.find((r) => r.id === id);
+    if (row) row.crm_progress = progress;
+  }
+  async savePartnerProgress(id: string, progress: CrmProgress) {
+    const row = this.partners.find((r) => r.id === id);
+    if (row) row.crm_progress = progress;
+  }
+}
+
+/**
+ * Stands in for the Twenty REST API behind the real client: counts creates per
+ * object and can fail a given object a set number of times.
+ */
+function fakeTwenty() {
+  const creates: Record<string, number> = {};
+  const failures: Record<string, number> = {};
+  let seq = 0;
+  const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+    const object = url.pathname.replace(/^\/rest\//, "");
+    const method = init?.method ?? "GET";
+    if (method === "GET") return Response.json({ data: { [object]: [] } });
+    if ((failures[object] ?? 0) > 0) {
+      failures[object]!--;
+      return new Response("upstream timeout", { status: 504 });
+    }
+    creates[object] = (creates[object] ?? 0) + 1;
+    return Response.json({ data: { [`create${object}`]: { id: `${object}-${++seq}` } } });
+  });
+  return { creates, failures, fetchImpl };
 }
 
 class FakeCrm implements CrmPusher {
@@ -102,6 +139,7 @@ class FakeCrm implements CrmPusher {
 }
 
 const rebuildJev = rebuildJevFactory(FALLBACK_BENCHMARKS);
+const realTwenty: CrmPusher = { pushLead, pushPartner };
 const run = (store: RetryStore, crm: CrmPusher, extra: Partial<Parameters<typeof runCrmRetry>[0]> = {}) =>
   runCrmRetry({ store, crm, rebuildJev, now: () => NOW, ...extra });
 
@@ -234,6 +272,65 @@ describe("runCrmRetry", () => {
       partners: { candidates: 0, attempted: 0, succeeded: 0, failed: 0, exhausted: 0, deferred: 0 },
       stoppedEarly: false,
     });
+  });
+});
+
+describe("resumable pushes against the Twenty client", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  function stubTwenty() {
+    const twenty = fakeTwenty();
+    vi.stubEnv("TWENTY_API_URL", "https://twenty.test");
+    vi.stubEnv("TWENTY_API_KEY", "test-key");
+    vi.stubGlobal("fetch", twenty.fetchImpl);
+    return twenty;
+  }
+
+  it("does not create a second company or opportunity when the push failed after the opportunity", async () => {
+    const twenty = stubTwenty();
+    // attachNote fails on the first run, after company, person and opportunity exist.
+    twenty.failures.notes = 1;
+    const store = new FakeStore([leadRow({ contact: { ...contact, company: "Sunrise Care LLC" } })]);
+
+    const first = await run(store, realTwenty);
+    expect(first.leads).toMatchObject({ attempted: 1, failed: 1 });
+    expect(twenty.creates).toMatchObject({ companies: 1, people: 1, opportunities: 1 });
+    expect(twenty.creates.notes).toBeUndefined();
+    expect(store.leadUpdates[0]!.patch.crm_error).toMatch(/504/);
+
+    // Second run after the backoff window: resumes from the checkpoint.
+    const later = NOW + BASE_BACKOFF_MS;
+    const second = await run(store, realTwenty, { now: () => later });
+    expect(second.leads).toMatchObject({ attempted: 1, succeeded: 1 });
+    expect(twenty.creates).toEqual({ companies: 1, people: 1, opportunities: 1, notes: 1, noteTargets: 1 });
+    const done = store.leadUpdates.at(-1)!.patch;
+    expect(done).toMatchObject({ crm_error: null, crm_attempts: 2, twenty_person_id: "people-2", twenty_opportunity_id: "opportunities-3" });
+
+    // Nothing left to retry, so a third run creates nothing.
+    await run(store, realTwenty, { now: () => later + MAX_BACKOFF_MS });
+    expect(twenty.creates).toEqual({ companies: 1, people: 1, opportunities: 1, notes: 1, noteTargets: 1 });
+  });
+
+  it("resumes a partner push from its checkpoint without a second company", async () => {
+    const twenty = stubTwenty();
+    twenty.failures.noteTargets = 1;
+    const store = new FakeStore([], [partnerRow()]);
+
+    await run(store, realTwenty);
+    expect(twenty.creates).toMatchObject({ companies: 1, people: 1, notes: 1 });
+    await run(store, realTwenty, { now: () => NOW + BASE_BACKOFF_MS });
+    expect(twenty.creates).toEqual({ companies: 1, people: 1, notes: 1, noteTargets: 1 });
+    expect(store.partnerUpdates.at(-1)!.patch).toMatchObject({ crm_error: null, twenty_company_id: "companies-1" });
+  });
+
+  it("ignores malformed checkpoint values from the database", async () => {
+    const twenty = stubTwenty();
+    const store = new FakeStore([leadRow({ crm_progress: { personId: 42, opportunityId: "" } })]);
+    await run(store, realTwenty);
+    expect(twenty.creates).toEqual({ people: 1, opportunities: 1, notes: 1, noteTargets: 1 });
   });
 });
 

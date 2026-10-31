@@ -53,6 +53,8 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const PORT = 4102;
 const BASE = process.env.AXE_BASE_URL ?? `http://localhost:${PORT}`;
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+/** Every page scanned at desktop and mobile widths, legal pages included. */
+const SCAN_ROUTES = ["/", "/express", "/partners", "/privacy", "/terms", "/licensing", "/accessibility"] as const;
 
 function loadPlaywright(): Playwright {
   const req = createRequire(import.meta.url);
@@ -152,7 +154,7 @@ async function main() {
     );
     const page = await ctx.newPage();
 
-    for (const route of ["/", "/express", "/partners"]) {
+    for (const route of SCAN_ROUTES) {
       await go(page, `${BASE}${route}`);
       scans.push(await scan(page, axeSource, `${route} (desktop)`));
     }
@@ -160,7 +162,7 @@ async function main() {
     // Mobile layout.
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const mpage = await mobile.newPage();
-    for (const route of ["/", "/express", "/partners"]) {
+    for (const route of SCAN_ROUTES) {
       await go(mpage, `${BASE}${route}`);
       scans.push(await scan(mpage, axeSource, `${route} (mobile 390px)`));
     }

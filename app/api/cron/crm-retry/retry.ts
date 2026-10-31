@@ -6,8 +6,14 @@
 // fails they record `crm_error` and move on. This job re-pushes those rows with
 // exponential backoff and stops after MAX_ATTEMPTS so one poisoned row can't
 // loop forever. Rows that hit the cap keep their last error for staff to triage.
+//
+// Pushes are resumable: each Twenty record id is checkpointed into
+// `crm_progress` as soon as it is created, and a retry passes that checkpoint
+// back so steps that already succeeded are skipped. A failure after the
+// opportunity was created therefore never yields a second company or deal.
 
 import type { JevResult } from "@/lib/ai/jev";
+import type { CrmProgress, PushOptions } from "@/lib/crm/twenty";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
 import { leadSchema, partnerSchema } from "@/lib/validation";
 
@@ -30,6 +36,8 @@ export type FailedLeadRow = {
   latency_ms: number;
   crm_attempts: number;
   crm_last_attempt_at: string | null;
+  /** Twenty ids created by earlier attempts (jsonb; may be missing on old rows). */
+  crm_progress?: unknown;
 };
 
 export type FailedPartnerRow = {
@@ -37,6 +45,7 @@ export type FailedPartnerRow = {
   profile: unknown;
   crm_attempts: number;
   crm_last_attempt_at: string | null;
+  crm_progress?: unknown;
 };
 
 export type RowPatch = {
@@ -52,11 +61,14 @@ export interface RetryStore {
   failedPartners(limit: number): Promise<FailedPartnerRow[]>;
   updateLead(id: string, patch: RowPatch): Promise<void>;
   updatePartner(id: string, patch: RowPatch): Promise<void>;
+  /** Checkpoints the Twenty ids created so far (written after every step). */
+  saveLeadProgress(id: string, progress: CrmProgress): Promise<void>;
+  savePartnerProgress(id: string, progress: CrmProgress): Promise<void>;
 }
 
 export interface CrmPusher {
-  pushLead(intake: Intake, contact: Contact, jev: JevResult): Promise<{ personId: string; opportunityId?: string }>;
-  pushPartner(reg: PartnerRegistration): Promise<{ companyId?: string }>;
+  pushLead(intake: Intake, contact: Contact, jev: JevResult, opts?: PushOptions): Promise<{ personId: string; opportunityId?: string }>;
+  pushPartner(reg: PartnerRegistration, opts?: PushOptions): Promise<{ companyId?: string }>;
 }
 
 export type RetryDeps = {
@@ -125,7 +137,10 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
     }
     try {
       const { intake, contact } = parsed.data;
-      const refs = await deps.crm.pushLead(intake, contact, deps.rebuildJev(intake, row));
+      const refs = await deps.crm.pushLead(intake, contact, deps.rebuildJev(intake, row), {
+        progress: row.crm_progress as CrmProgress | null | undefined,
+        onProgress: (progress) => deps.store.saveLeadProgress(row.id, progress),
+      });
       await deps.store.updateLead(row.id, {
         crm_error: null,
         crm_attempts: attempts,
@@ -164,7 +179,10 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
       continue;
     }
     try {
-      const refs = await deps.crm.pushPartner(parsed.data);
+      const refs = await deps.crm.pushPartner(parsed.data, {
+        progress: row.crm_progress as CrmProgress | null | undefined,
+        onProgress: (progress) => deps.store.savePartnerProgress(row.id, progress),
+      });
       await deps.store.updatePartner(row.id, {
         crm_error: null,
         crm_attempts: attempts,

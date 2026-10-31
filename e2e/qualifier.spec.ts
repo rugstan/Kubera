@@ -40,7 +40,6 @@ test.describe("express qualifier", () => {
     await fillThroughToContact(page);
 
     const submit = page.getByRole("button", { name: /see my indicative structure/i });
-    await expect(submit).toBeDisabled();
     await page.getByRole("checkbox").check();
     await expect(submit).toBeEnabled();
     await submit.click();
@@ -59,7 +58,21 @@ test.describe("express qualifier", () => {
     });
   });
 
-  test("shows the server's error message and keeps the form usable", async ({ page }) => {
+  test("submits without the optional contact consent", async ({ page }) => {
+    // The consent text says consent is not a condition of any service, so it must not gate submit.
+    const calls = await mockJsonApi(page, "/api/qualify", { body: RESULT });
+    await gotoHydrated(page, "/express");
+    await fillThroughToContact(page);
+    await expect(page.getByRole("checkbox")).not.toBeChecked();
+    const submit = page.getByRole("button", { name: /see my indicative structure/i });
+    await expect(submit).toBeEnabled();
+    await submit.click();
+    await expect(page.getByText("HUD 232/223(f) Refinance")).toBeVisible();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body).toMatchObject({ contact: { email: "pat.lee@example.com", consent: false } });
+  });
+
+    test("shows the server's error message and keeps the form usable", async ({ page }) => {
     await mockJsonApi(page, "/api/qualify", { status: 429, body: { error: "Too many submissions. Please call us directly." } });
     await gotoHydrated(page, "/express");
     await fillThroughToContact(page);
