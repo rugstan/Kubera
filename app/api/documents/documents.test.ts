@@ -1,5 +1,7 @@
 // Route tests for the document vault: mint -> upload -> finalize -> scan -> staff download,
-// with the in-memory store, storage, scanner, rate limiter and Turnstile.
+// with the in-memory store, storage, scanner, rate limiter and Turnstile. Staff
+// routes run through the real staff session check (lib/auth/dal) against
+// injected fake auth services and a cookie jar.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -8,6 +10,18 @@ const afterCallbacks: (() => Promise<void> | void)[] = [];
 vi.mock("next/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/server")>()),
   after: (fn: () => Promise<void> | void) => void afterCallbacks.push(fn),
+  connection: async () => undefined,
+}));
+const jar = new Map<string, string>();
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) => (jar.has(name) ? { name, value: jar.get(name)! } : undefined),
+    set: (name: string, value: string, opts: { maxAge: number }) => {
+      if (opts.maxAge === 0) jar.delete(name);
+      else jar.set(name, value);
+    },
+  }),
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.9", "user-agent": "vitest" }),
 }));
 
 const { MemoryRateLimiter, setRateLimiter } = await import("@/lib/ratelimit");
@@ -17,6 +31,13 @@ const { signLeadToken } = await import("@/lib/security");
 const { setDocumentServices } = await import("@/lib/documents/server");
 const { LEAD_ID, PDF_BYTES, PNG_BYTES, makeVault } = await import("@/lib/documents/testing");
 const { QUARANTINE_BUCKET, VAULT_BUCKET } = await import("@/lib/documents/types");
+const { MemoryAuditSink } = await import("@/lib/auth/audit");
+const { MemoryDirectory } = await import("@/lib/auth/directory");
+const { FakeAuthProvider } = await import("@/lib/auth/fake-provider");
+const { setAuthServices, sessionSigningKey } = await import("@/lib/auth/server");
+const { SESSION_COOKIE, encodeSession, toStored } = await import("@/lib/auth/session");
+const { totp } = await import("@/lib/auth/totp");
+type Role = import("@/lib/auth/types").Role;
 
 const mintRoute = await import("./route");
 const finalizeRoute = await import("./finalize/route");
@@ -25,7 +46,33 @@ const downloadRoute = await import("./[id]/download/route");
 const deleteRoute = await import("./[id]/route");
 
 const ORIGIN = "https://kuberacommercial.com";
-const STAFF_TOKEN = "s".repeat(40);
+const TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
+
+let provider: InstanceType<typeof FakeAuthProvider>;
+let directory: InstanceType<typeof MemoryDirectory>;
+const people = new Map<string, string>();
+
+function addPerson(email: string, roles: Role[], opts: { totp?: boolean } = {}) {
+  const u = provider.addUser({ email, totpSecret: opts.totp ? TOTP_SECRET : undefined });
+  directory.set(
+    { id: u.id, email, fullName: email.split("@")[0]!, title: null, active: true, dreLicenseNumber: null, dreLicenseType: null, dreLicenseExpiresOn: null, dreLicenseVerifiedAt: null },
+    roles,
+  );
+  people.set(email, u.id);
+}
+
+/** Signs a person in (with TOTP when `mfa`) and stores their session cookie; null signs out. */
+async function signInAs(email: string | null, mfa = true) {
+  jar.clear();
+  if (!email) return;
+  await provider.sendEmailOtp(email, { redirectTo: `${ORIGIN}/auth/confirm` });
+  let s = await provider.verifyEmailOtp(email, provider.lastEmailFor(email)!.code);
+  if (mfa) {
+    const [factor] = await provider.listTotpFactors(s);
+    s = await provider.verifyTotp(s, factor!.id, totp(TOTP_SECRET, Date.now()));
+  }
+  jar.set(SESSION_COOKIE, encodeSession(toStored(s, Math.floor(Date.now() / 1000)), sessionSigningKey()));
+}
 
 let turnstile: InstanceType<typeof FakeTurnstileVerifier>;
 let vault: ReturnType<typeof makeVault>;
@@ -60,8 +107,15 @@ async function mint(over: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.stubEnv("LEAD_TOKEN_SECRET", "test-secret-test-secret");
   vi.stubEnv("CRON_SECRET", "cron-secret-cron-secret");
-  vi.stubEnv("DOCUMENT_STAFF_TOKEN", STAFF_TOKEN);
   vi.stubEnv("SCANNER_PROVIDER", "fake");
+  jar.clear();
+  people.clear();
+  provider = new FakeAuthProvider();
+  directory = new MemoryDirectory();
+  setAuthServices({ mode: "fake", provider, directory, audit: new MemoryAuditSink(), userClient: () => null });
+  addPerson("pat@kubera.test", ["broker"], { totp: true });
+  addPerson("alex@kubera.test", ["analyst"], { totp: true });
+  addPerson("bo@borrower.test", ["borrower"]);
   setRateLimiter(new MemoryRateLimiter());
   turnstile = new FakeTurnstileVerifier();
   setTurnstileVerifier(turnstile);
@@ -78,6 +132,7 @@ afterEach(() => {
   setRateLimiter(undefined);
   setTurnstileVerifier(undefined);
   setDocumentServices(undefined);
+  setAuthServices(undefined);
 });
 
 describe("POST /api/documents (mint)", () => {
@@ -125,17 +180,24 @@ describe("full upload flow", () => {
     expect(afterCallbacks).toHaveLength(1);
 
     // Quarantined: staff cannot download yet.
-    const early = await downloadRoute.GET(new Request(`${ORIGIN}/x`, { headers: { authorization: `Bearer ${STAFF_TOKEN}`, "x-staff-actor": "pat@kubera" } }), { params: Promise.resolve({ id: String(body.documentId) }) });
+    await signInAs("alex@kubera.test");
+    const early = await downloadRoute.GET(new Request(`${ORIGIN}/x`), { params: Promise.resolve({ id: String(body.documentId) }) });
     expect(early.status).toBe(409);
 
     // The post-response scan runs.
     await afterCallbacks[0]!();
     expect((await vault.store.get(String(body.documentId)))!.status).toBe("clean");
 
-    const ok = await downloadRoute.GET(new Request(`${ORIGIN}/x?purpose=underwriting`, { headers: { authorization: `Bearer ${STAFF_TOKEN}`, "x-staff-actor": "pat@kubera" } }), { params: Promise.resolve({ id: String(body.documentId) }) });
+    // A forged actor header is ignored: the audit names the signed-in staff member.
+    const ok = await downloadRoute.GET(new Request(`${ORIGIN}/x?purpose=underwriting`, { headers: { "x-staff-actor": "someone-else" } }), {
+      params: Promise.resolve({ id: String(body.documentId) }),
+    });
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ fileName: "t12.pdf", expiresInSeconds: 60, url: expect.stringContaining(VAULT_BUCKET) });
-    expect(vault.events.events.find((e) => e.event === "download")).toMatchObject({ actor: "staff:pat@kubera", detail: { purpose: "underwriting" } });
+    expect(vault.events.events.find((e) => e.event === "download")).toMatchObject({
+      actor: `staff:${people.get("alex@kubera.test")}:alex@kubera.test`,
+      detail: { purpose: "underwriting" },
+    });
     expect(vault.events.events.find((e) => e.event === "download")?.ip_hash).toMatch(/^[0-9a-f]{32}$/);
   });
 });
@@ -183,38 +245,74 @@ describe("POST /api/documents/finalize", () => {
 
 describe("staff routes", () => {
   const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
-  const staff = (extra: Record<string, string> = {}) => ({ authorization: `Bearer ${STAFF_TOKEN}`, ...extra });
+  const del = (path = "/x", headers: Record<string, string> = {}) => new Request(`${ORIGIN}${path}`, { method: "DELETE", headers });
   const id = "6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a11";
 
-  it("refuses anonymous, wrong-token and unconfigured callers", async () => {
+  it("refuses signed-out callers and the retired shared bearer token", async () => {
+    vi.stubEnv("DOCUMENT_STAFF_TOKEN", "s".repeat(40));
     expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id))).status).toBe(401);
-    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`, { headers: { authorization: "Bearer wrong" } }), ctx(id))).status).toBe(401);
-    expect((await deleteRoute.DELETE(new Request(`${ORIGIN}/x`, { method: "DELETE" }), ctx(id))).status).toBe(401);
-    vi.stubEnv("DOCUMENT_STAFF_TOKEN", "too-short");
-    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`, { headers: { authorization: "Bearer too-short" } }), ctx(id))).status).toBe(503);
+    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`, { headers: { authorization: `Bearer ${"s".repeat(40)}`, "x-staff-actor": "pat" } }), ctx(id))).status).toBe(401);
+    expect((await deleteRoute.DELETE(del("/x", { authorization: `Bearer ${"s".repeat(40)}` }), ctx(id))).status).toBe(401);
+  });
+
+  it("requires MFA and a staff role", async () => {
+    await signInAs("pat@kubera.test", false);
+    const noMfa = await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id));
+    expect(noMfa.status).toBe(403);
+    expect((await noMfa.json()).code).toBe("mfa_required");
+    expect((await deleteRoute.DELETE(del(), ctx(id))).status).toBe(403);
+    await signInAs("bo@borrower.test", false);
+    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id))).status).toBe(403);
+    expect((await deleteRoute.DELETE(del(), ctx(id))).status).toBe(403);
+  });
+
+  it("answers 503 when staff sign-in is not configured", async () => {
+    setAuthServices(null);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id))).status).toBe(503);
+    expect((await deleteRoute.DELETE(del(), ctx(id))).status).toBe(503);
   });
 
   it("answers 404 for unknown or malformed ids and audits nothing sensitive", async () => {
-    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`, { headers: staff() }), ctx("not-a-uuid"))).status).toBe(404);
-    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`, { headers: staff() }), ctx(id))).status).toBe(404);
+    await signInAs("alex@kubera.test");
+    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx("not-a-uuid"))).status).toBe(404);
+    expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id))).status).toBe(404);
+  });
+
+  it("lets only brokers and admins delete, and refuses cross-site requests", async () => {
+    const { body } = await mint();
+    vault.storage.upload(QUARANTINE_BUCKET, String(body.path), PDF_BYTES);
+    const docId = String(body.documentId);
+    await signInAs("alex@kubera.test");
+    const analyst = await deleteRoute.DELETE(del(), ctx(docId));
+    expect(analyst.status).toBe(403);
+    expect((await analyst.json()).code).toBe("forbidden");
+    await signInAs("pat@kubera.test");
+    expect((await deleteRoute.DELETE(del("/x", { origin: "https://evil.example" }), ctx(docId))).status).toBe(403);
+    expect(vault.store.rows.size).toBe(1);
+    expect(vault.events.events.some((e) => e.event === "deleted")).toBe(false);
   });
 
   it("deletes a document with its file, refuses one on legal hold, and audits both", async () => {
     const { body } = await mint();
     vault.storage.upload(QUARANTINE_BUCKET, String(body.path), PDF_BYTES);
     const docId = String(body.documentId);
+    await signInAs("pat@kubera.test");
 
     vault.store.rows.get(docId)!.legal_hold = true;
-    const held = await deleteRoute.DELETE(new Request(`${ORIGIN}/x`, { method: "DELETE", headers: staff() }), ctx(docId));
+    const held = await deleteRoute.DELETE(del("/x", { origin: ORIGIN }), ctx(docId));
     expect(held.status).toBe(423);
     expect(vault.storage.has(QUARANTINE_BUCKET, String(body.path))).toBe(true);
 
     vault.store.rows.get(docId)!.legal_hold = false;
-    const gone = await deleteRoute.DELETE(new Request(`${ORIGIN}/x?reason=borrower%20request`, { method: "DELETE", headers: staff({ "x-staff-actor": "pat" }) }), ctx(docId));
+    const gone = await deleteRoute.DELETE(del("/x?reason=borrower%20request", { "x-staff-actor": "someone-else" }), ctx(docId));
     expect(gone.status).toBe(200);
     expect(vault.storage.paths(QUARANTINE_BUCKET)).toEqual([]);
     expect(vault.store.rows.size).toBe(0);
-    expect(vault.events.events.find((e) => e.event === "deleted")).toMatchObject({ actor: "staff:pat", detail: { reason: "borrower request" } });
+    expect(vault.events.events.find((e) => e.event === "deleted")).toMatchObject({
+      actor: `staff:${people.get("pat@kubera.test")}:pat@kubera.test`,
+      detail: { reason: "borrower request" },
+    });
   });
 });
 

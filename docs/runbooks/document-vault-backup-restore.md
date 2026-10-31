@@ -25,7 +25,6 @@ Code: `lib/documents/*` (rules), `workers/scan/*` (scanner), `app/api/documents/
 | `LEAD_TOKEN_SECRET` / `DOCUMENT_TOKEN_SECRET` | Signs the expiring upload tokens (15 minutes by default, `DOCUMENT_UPLOAD_TTL_SECONDS`). |
 | `CLAMAV_REST_URL` (+ `CLAMAV_REST_API_KEY`, `CLAMAV_REST_SCAN_PATH`) | The malware scanner. **Without a scanner nothing ever leaves quarantine**: uploads succeed, downloads stay refused, and `/api/documents/scan` reports `skipped: scanner-not-configured`. |
 | `CRON_SECRET` | Authorizes the scan trigger `GET /api/documents/scan`. |
-| `DOCUMENT_STAFF_TOKEN` | Interim staff credential for download and delete until staff sessions (WS-I) replace it. 32+ characters. |
 | `VAULT_BACKUP_KEY` | AES-256 key for file backups (`openssl rand -base64 32`). |
 
 ### Running the scanner
@@ -59,7 +58,7 @@ If the file can never be scanned (for example above the scanner's size limit), d
 
 ### Downloads and the audit trail
 
-Staff get files with `GET /api/documents/<id>/download` (`Authorization: Bearer $DOCUMENT_STAFF_TOKEN`, optional `x-staff-actor` and `?purpose=`). The response is a signed URL valid for 60 seconds; the `download` event is written first, and no event means no URL. `document_events` is append-only (a trigger refuses update, delete and truncate) and survives deletion of the document. Only `purge_document_events(cutoff)` can remove rows, and only those older than three years (**VERIFY** the horizon with counsel).
+Staff open files from `/documents/<id>` in the staff app, or with `GET /api/documents/<id>/download` (optional `?purpose=`). Both need a signed-in staff session with two-step verification (MFA); the audit event names that staff member (user id and email), never a caller-supplied header. Deleting (`DELETE /api/documents/<id>`) is limited to brokers and admins. The download response is a signed URL valid for 60 seconds; the `download` event is written first, and no event means no URL. `document_events` is append-only (a trigger refuses update, delete and truncate) and survives deletion of the document. Only `purge_document_events(cutoff)` can remove rows, and only those older than three years (**VERIFY** the horizon with counsel).
 
 ## Backups
 
