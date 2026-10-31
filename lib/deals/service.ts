@@ -4,7 +4,7 @@
 // edit deal fields subject to the term lock.
 
 import { dealClosingGate, type ChecklistDeps } from "@/lib/checklists/service";
-import { evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
+import { BROKER_OF_RECORD_FILE_MISSING, evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
 import type { DisclosureStore } from "@/lib/disclosures/store";
 import { form159Satisfied } from "./form159";
 import { stageChangeOf, type DealStageEventSink } from "./stage-events";
@@ -37,6 +37,10 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
   const loan = await deps.store.getLoanBrokerOfRecord(deal.id);
   const mods = (await deps.store.listModifications(deal.id)).filter((m) => m.status !== "withdrawn");
   const realProperty = Boolean(deal.collateralRealProperty);
+  // Gate H elements are recorded on every loan. Without the broker-of-record
+  // row the closing gate fails closed (evaluateDealCompliance blocks closing
+  // when no usury facts are supplied) and the missing record is reported.
+  if (!loan) missing.push("Record the loan's broker-of-record file (lender, category, note rate, elements) before closing.");
   const compliance = evaluateDealCompliance({
     mlds: {
       facts: {
@@ -58,7 +62,7 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
           transactionDate: loan.transactionDate,
         }
       : undefined,
-    modifications: loan ? mods.map((m) => m.facts) : undefined,
+    modifications: mods.map((m) => m.facts),
     now: deps.now(),
   });
   return { compliance, missing };
@@ -108,7 +112,8 @@ export async function advanceDeal(deps: DealDeskDeps, input: { dealId: string; e
   const { complianceMissing, ...context } = await stageContext(deps, deal);
   const result = applyStageEvent({ deal, event: input.event, context, terms: input.terms, now: deps.now() });
   if (!result.ok) {
-    const reasons = result.reasons.some((r) => r.startsWith("Run the compliance evaluation")) ? [...result.reasons, ...complianceMissing] : result.reasons;
+    const needsRecords = result.reasons.some((r) => r.startsWith("Run the compliance evaluation") || r === BROKER_OF_RECORD_FILE_MISSING);
+    const reasons = needsRecords ? [...new Set([...result.reasons, ...complianceMissing])] : result.reasons;
     return { ...result, reasons, deal };
   }
   const updated = await deps.store.updateDeal(deal.id, deal.recordVersion, { ...result.patch, updatedBy: input.actor }, input.actor, deps.now());

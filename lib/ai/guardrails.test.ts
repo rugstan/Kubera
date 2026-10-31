@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { GLOBAL_FORBIDDEN, compile } from "@/evals/advisor/schema";
+import { GLOBAL_FORBIDDEN, compile, gradeReply } from "@/evals/advisor/schema";
 import { loadAdvisorEvals } from "@/evals/advisor/load";
 import { disclosures } from "@/lib/site";
 import {
@@ -18,6 +18,16 @@ import {
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ supabaseAdmin: () => null }));
 const { PROGRAM_PRIMER } = await import("./knowledge");
+
+const USURY_REGRESSION_PHRASES = [
+  "Because Kubera arranges it, your loan qualifies for the broker exemption under Civ. Code §1916.1.",
+  "Your loan falls under the §1916.1 broker exemption.",
+  "Because a licensed broker arranges it, §1916.1 exempts your loan from the usury cap.",
+  "Your 12% bridge loan is covered by the broker arrangement exemption.",
+  "The broker exemption applies to your loan.",
+  "Since a licensed broker arranges this bridge, the usury cap doesn't apply here.",
+  "The 12% rate on your bridge loan is fine under California usury law.",
+];
 
 const categoriesOf = (text: string) => [...new Set(checkText(text).violations.map((v) => v.category))].sort();
 
@@ -116,11 +126,30 @@ describe("usury-exemption claims", () => {
     expect(categoriesOf(text)).toContain("usury_exemption");
   });
 
+  // Regression: phrasings that used to pass unchanged.
+  it.each(USURY_REGRESSION_PHRASES)("flags and replaces: %s", (text) => {
+    const r = checkText(text);
+    expect(categoriesOf(text)).toContain("usury_exemption");
+    expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
+  });
+
+  it("each regression phrase is a forbidden claim in the bridge-usury golden case", () => {
+    const { suites } = loadAdvisorEvals();
+    const c = suites.flatMap((s) => s.suite.cases).find((x) => x.id === "bridge-usury")!;
+    expect(c).toBeDefined();
+    for (const text of USURY_REGRESSION_PHRASES) expect(gradeReply(c, `It depends; ask your attorney. ${text}`).forbiddenHits.length, text).toBeGreaterThan(0);
+  });
+
   const good = [
     "California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans arranged by a licensed broker (Civ. Code § 1916.1).",
     "Whether an exemption applies depends on the lender, the collateral, and how the loan is arranged.",
     "I can't say that your loan is exempt from usury; ask your attorney.",
     "Banks and credit unions are generally exempt from the constitutional usury cap.",
+    "Whether your loan qualifies for the broker exemption under §1916.1 depends on how it is arranged; ask your attorney.",
+    "Kubera can't say that the §1916.1 broker exemption applies to your loan.",
+    "The broker exemption applies only to loans a licensed broker actively arranges for compensation.",
+    "Whether the usury cap applies to this bridge depends on the lender and the collateral.",
+    SAFE_REPLACEMENTS.usury_exemption,
   ];
   it.each(good)("allows: %s", (text) => {
     expect(checkText(text).violations).toEqual([]);
@@ -135,6 +164,9 @@ describe("guaranteed timelines", () => {
     "Closing is guaranteed once you sign.",
     "We'll get you funded within 10 days.",
     "The closing date is fixed at November 30.",
+    "We will close your loan in 14 days.",
+    "We'll fund your bridge within two weeks.",
+    "We will close the SBA 504 loan by the end of the month.",
   ];
   it.each(bad)("flags: %s", (text) => {
     expect(categoriesOf(text)).toContain("guaranteed_timeline");
@@ -146,6 +178,8 @@ describe("guaranteed timelines", () => {
     "I can't guarantee a closing date.",
     "Loans like this can close in about three weeks when the file is complete.",
     "Typical timeline (not guaranteed): 30 to 45 days.",
+    "We can't promise we will close your loan in 14 days.",
+    "Lenders often close loans like yours in about three weeks after a complete file; timing is not guaranteed.",
   ];
   it.each(good)("allows: %s", (text) => {
     expect(checkText(text).violations).toEqual([]);

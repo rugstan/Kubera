@@ -2,7 +2,7 @@ import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { consentState } from "../consent";
 import { DAYTIME, makeHarness, type Harness } from "../testing";
-import { parseKeyword } from "./keywords";
+import { classifyInbound, parseKeyword } from "./keywords";
 import { verifyTelnyxSignature } from "./signature";
 import { handleTelnyxWebhook, type TelnyxWebhookDeps } from "./webhook";
 
@@ -92,7 +92,26 @@ describe("keyword parsing", () => {
     ["unstop", "start"],
   ])("%s -> %s", (text, expected) => expect(parseKeyword(text)).toBe(expected));
 
-  it.each(["", "Thanks, got it", "cancel the appraisal", "end of month works", "yes", "please help me with the T-12", "start Monday?"])('"%s" is not a keyword', (text) =>
+  // FCC revocation rule: a STOP-class word anywhere, or a plain request to stop texting, revokes consent.
+  it.each([
+    "Please stop texting me",
+    "No more texts, unsubscribe",
+    "cancel these texts",
+    "cancel my texts",
+    "Don't text me again",
+    "please do not contact me",
+    "Remove me from your list",
+    "I want to opt out",
+    "wrong number",
+    "cancel the appraisal",
+    "end of month works",
+  ])('"%s" is a revocation inside a longer message', (text) => expect(classifyInbound(text)).toEqual({ keyword: "stop", embeddedRevocation: true }));
+
+  it("a leading or whole-message STOP keyword is not marked embedded", () => {
+    for (const t of ["STOP", "STOP calling me", "CANCEL", "opt-out"]) expect(classifyInbound(t)).toEqual({ keyword: "stop", embeddedRevocation: false });
+  });
+
+  it.each(["", "Thanks, got it", "yes", "please help me with the T-12", "start Monday?", "Can you send the term sheet?", "The weekend works"])('"%s" is not a keyword', (text) =>
     expect(parseKeyword(text)).toBeNull(),
   );
 });
@@ -213,6 +232,32 @@ describe("STOP", () => {
     const res = await handleTelnyxWebhook(signed(inbound("STOP")), deps(h, { optOut: null }));
     expect(res.status).toBe(200);
     expect(h.ledger.events.at(-1)?.eventType).toBe("revoked");
+  });
+});
+
+describe("free-form opt-outs (FCC revocation rule)", () => {
+  it.each([
+    ["Please stop texting me", "m_ff1"],
+    ["cancel my texts", "m_ff2"],
+  ])('"%s" writes a revoked ledger row, flips smsOptOut, alerts staff and blocks the next text', async (text, id) => {
+    const h = makeHarness({ preApproved: ["milestone_update_sms@1"] });
+    h.grant({ phone: PHONE, leadId: "11111111-1111-4111-8111-111111111111", at: new Date(NOW.getTime() - 86_400_000) });
+    expect((await h.notifier.send({ templateId: "milestone_update_sms", to: { audience: "borrower", phone: PHONE }, data: { label: "Lender outreach" }, idempotencyKey: `pre-${id}` })).status).toBe("sent");
+
+    const res = await handleTelnyxWebhook(signed(inbound(text, id)), deps(h));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, keyword: "stop" });
+
+    expect(h.ledger.events.at(-1)).toMatchObject({ eventType: "revoked", form: "sms", phone: PHONE, leadId: "11111111-1111-4111-8111-111111111111" });
+    expect(h.optOut.calls).toEqual([{ phone: PHONE, optOut: true }]);
+    expect(h.store.sms.find((s) => s.direction === "inbound")).toMatchObject({ keyword: "stop", body: text });
+    // Staff still see the text.
+    expect(h.email.sent.some((e) => e.to === "deals@kuberacommercial.com" && e.text.includes(text))).toBe(true);
+
+    expect(consentState(await h.consent.history("sms", { phone: PHONE }), "sms").state).toBe("revoked");
+    const after = await h.notifier.send({ templateId: "milestone_update_sms", to: { audience: "borrower", phone: PHONE }, data: { label: "Closing coordination" }, idempotencyKey: `post-${id}` });
+    expect(after.status).toBe("skipped_no_consent");
+    expect(h.sms.sent.filter((s) => s.text.includes("Closing coordination"))).toHaveLength(0);
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DealCompliance } from "@/lib/compliance/gates";
 import { MemoryDisclosureStore } from "@/lib/disclosures/store";
-import { advanceDeal, editDeal } from "./service";
+import { advanceDeal, editDeal, stageContext } from "./service";
 import { LockedFieldError, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest } from "./stages";
 import { dealPrograms, type Deal } from "./types";
 import { checklistDesk, docs, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
@@ -160,12 +160,72 @@ describe("advanceDeal (end to end with the records)", () => {
     expect(r.reasons.join(" ")).toMatch(/disclosure store/);
   });
 
+  it("refuses closing with a signed MLDS but no broker-of-record file (gate H fails closed)", async () => {
+    const { store, now } = setup();
+    const disclosures = new MemoryDisclosureStore();
+    const deal = await newDeal(store, now);
+    await store.updateDeal(deal.id, deal.recordVersion, { stage: "firm_commitment" }, "a", now());
+    await disclosures.insert({ kind: "MLDS_RE882", status: "signed", dealId: deal.id, signedAt: now().toISOString() }, now());
+    const { deps: checklist } = await checklistDesk(deal.id, now);
+    const deps = { store, disclosures, now, checklist };
+    const r = await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.reasons.join(" ")).toMatch(/broker-of-record file/);
+    expect((await store.getDeal(deal.id))!.stage).toBe("firm_commitment");
+
+    // A 12.5% private non-exempt loan with an incomplete file stays blocked once the row exists.
+    store.seedLoanBrokerOfRecord(loanRecord(deal.id));
+    const stillBlocked = await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(stillBlocked.ok).toBe(false);
+    if (!stillBlocked.ok) expect(stillBlocked.reasons.join(" ")).toMatch(/Designated-officer approval/);
+  });
+
+  it("evaluates modifications even without the loan row and blocks closing on them", async () => {
+    const { store, now } = setup();
+    const disclosures = new MemoryDisclosureStore();
+    const deal = await newDeal(store, now);
+    await store.updateDeal(deal.id, deal.recordVersion, { stage: "firm_commitment" }, "a", now());
+    await disclosures.insert({ kind: "MLDS_RE882", status: "signed", dealId: deal.id, signedAt: now().toISOString() }, now());
+    // An orphaned modification (its parent loan row is gone) is still evaluated as blocking.
+    await store.insertModification(
+      {
+        dealId: deal.id,
+        kind: "extension",
+        status: "incomplete",
+        parentBrokerOfRecordId: "11111111-1111-4111-8111-111111111111",
+        brokerOfRecordId: null,
+        facts: { kind: "extension", effectiveDate: "2026-10-01", arrangedBy: "kubera", noteRatePct: 12.5 },
+        evaluation: { status: "incomplete", brokerArrangementDocumented: false, lenderNoticeRequired: false, missing: [], blocking: true, flags: [] },
+        flags: [],
+        lenderNoticeApprovalKey: null,
+        lenderNoticeApprovalId: null,
+        lenderNoticeApprovedAt: null,
+        lenderNoticeSentAt: null,
+        officerApprovedBy: null,
+        officerApprovedAt: null,
+        feeEntryId: null,
+        termsAppliedAt: null,
+      },
+      "a",
+      now(),
+    );
+    const { deps: checklist } = await checklistDesk(deal.id, now);
+    const ctx = await stageContext({ store, disclosures, now, checklist }, deal);
+    expect(ctx.compliance?.gates.closing.allowed).toBe(false);
+    expect(ctx.compliance?.gates.closing.reasons.join(" ")).toMatch(/1 recorded modification\(s\) cannot be evaluated/);
+    expect(ctx.complianceMissing.join(" ")).toMatch(/broker-of-record file/);
+  });
+
   it("an SBA deal with Kubera compensation needs a signed Form 159 to close", async () => {
     const { store, now } = setup();
     const disclosures = new MemoryDisclosureStore();
     const deal = await newDeal(store, now, { program: "SBA_7A", collateralRealProperty: false });
     await store.updateDeal(deal.id, deal.recordVersion, { stage: "sba_authorization" }, "a", now());
     await store.insertFeeEntry(sbaPackagingFee({ dealId: deal.id, flatCents: 100_000 }), "a", now());
+    store.seedLoanBrokerOfRecord(
+      loanRecord(deal.id, { lender: { name: "Live Oak", category: "STATE_BANK", evidenceRef: "DFPI 2" }, noteRatePct: 9.5, collateral: { realPropertyLien: false, equityPledgeOrUccOnly: true } }),
+    );
     const { deps: checklist } = await checklistDesk(deal.id, now);
     const r = await advanceDeal({ store, disclosures, now, checklist }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
     expect(r).toMatchObject({ ok: false, reasons: [expect.stringMatching(/Form 159/)] });

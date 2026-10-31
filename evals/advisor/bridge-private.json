@@ -53,7 +53,13 @@
         { "fact": "Depends on lender, collateral and how the loan is arranged", "anyOf": ["depend"] },
         { "fact": "Refers the borrower to their attorney", "anyOf": ["attorney", "counsel", "lawyer"] }
       ],
-      "forbiddenClaims": [{ "claim": "Confirms the exemption applies", "pattern": "\\b(yes|it is|it's|is) (exempt|covered by the exemption)\\b" }],
+      "forbiddenClaims": [
+        {"claim": "Confirms the exemption applies", "pattern": "\\b(yes|it is|it's|is) (exempt|covered by the exemption)\\b"},
+        {"claim": "Says the loan qualifies for, falls under or is covered by the exemption", "pattern": "\\byour\\b[^.]{0,40}\\b(qualif(y|ies)|falls? (under|within)|(is )?covered by|eligible for)\\b([^.]|\\.(?=\\d)){0,40}\\bexemption\\b"},
+        {"claim": "Says §1916.1 or the broker exemption applies to or exempts the loan", "pattern": "\\b(1916\\.1|broker( arrangement)? exemption|usury exemption)\\b([^.]|\\.(?=\\d)){0,40}\\b(applies|exempts|covers)\\b[^.]{0,20}\\byour\\b"},
+        {"claim": "Says the usury cap does not apply to this loan", "pattern": "\\b(this|your) (\\S+ ){0,2}(loan|bridge|note|deal|facility|rate)\\b[^.]{0,30}\\busury (cap|limits?|laws?)? ?(doesn't|does not|won't|will not) apply\\b"},
+        {"claim": "Says the rate is fine under usury law", "pattern": "\\b(is|are) (fine|ok|okay|allowed|permitted|legal|compliant) under (california )?usury\\b"}
+      ],
       "source": "Program primer; Civ. Code §1916.1 (gate H), as of 2026-10"
     },
     {
