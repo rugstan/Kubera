@@ -1,4 +1,5 @@
 import "server-only";
+import { embedQuery, toPgVector } from "@/lib/ai/embeddings";
 import { ASSUMPTIONS_REVIEWED, HUD } from "@/lib/sizing/assumptions";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
@@ -54,11 +55,21 @@ export const PROGRAM_PRIMER = `
 
 export type KbChunk = { source: string; section: string | null; content: string };
 
-/** Full-text retrieval over kb_chunks. Returns [] when Supabase isn't configured. */
-export async function retrieve(query: string, count = 5): Promise<KbChunk[]> {
+/**
+ * Hybrid retrieval over kb_chunks: full-text ranking fused with vector
+ * similarity when an embedding provider is configured (lib/ai/embeddings.ts;
+ * the query is checked by the routing guard first), full-text alone otherwise.
+ * Returns [] when Supabase isn't configured.
+ */
+export async function retrieve(query: string, count = 5, subject?: { aiProcessingOptOut?: boolean }): Promise<KbChunk[]> {
   const db = supabaseAdmin();
   if (!db || !query.trim()) return [];
-  const { data, error } = await db.rpc("match_kb_chunks", { query_text: query.slice(0, 500), match_count: count });
+  const embedding = await embedQuery(query, subject ? { subject } : {});
+  const { data, error } = await db.rpc("match_kb_chunks", {
+    query_text: query.slice(0, 500),
+    match_count: count,
+    ...(embedding ? { query_embedding: toPgVector(embedding) } : {}),
+  });
   if (error) {
     console.error("kb retrieve failed", error.message);
     return [];

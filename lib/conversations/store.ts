@@ -23,6 +23,8 @@ export type StoredAssistantMessage = {
   content: string;
   stopReason: string;
   model?: string;
+  /** Set when the output guardrails (lib/ai/guardrails.ts) caught something in this reply. */
+  guardrail?: { mode: "enforce" | "monitor"; categories: string[]; count: number };
   at: string;
 };
 
