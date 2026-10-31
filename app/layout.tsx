@@ -1,6 +1,7 @@
 import "@fontsource-variable/inter";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@/components/analytics/Analytics";
 import { CommandBar } from "@/components/ask/CommandBar";
 import { MotionProvider } from "@/components/ui/MotionProvider";
 import { SkipLink } from "@/components/ui/SkipLink";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <CommandBar />
         </MotionProvider>
+        <Analytics />
       </body>
     </html>
   );

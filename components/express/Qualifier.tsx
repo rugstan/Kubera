@@ -7,6 +7,7 @@ import type { FieldErrors } from "react-hook-form";
 import { Analytics } from "@/components/analytics/Analytics";
 import { CheckboxField, ChoiceField, Form, FormAlert, NumericField, RequiredLegend, SelectField, Stepper, TextAreaField, TextField, postJson, useStepHeadingFocus, useZodForm, type FormFailure } from "@/components/forms";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
+import { AiUseNotice } from "@/components/privacy/AiUseNotice";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { track } from "@/lib/analytics/client";
 import { CONSENT_TEXTS, CURRENT_CONSENT } from "@/lib/consent/texts";
@@ -284,6 +285,7 @@ function ContactStep({ headingRef, turnstile }: HeadingProps & { turnstile: Retu
       </div>
       <CheckboxField name="consent" label={CONSENT.text} />
       <NoticeAtCollection point="qualifier" />
+      <AiUseNotice context="qualifier" />
       <TurnstileSlot turnstile={turnstile} />
     </>
   );

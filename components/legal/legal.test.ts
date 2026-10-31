@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import AccessibilityPage from "@/app/(site)/(legal)/accessibility/page";
 import LicensingPage from "@/app/(site)/(legal)/licensing/page";
+import PrivacyAiPage from "@/app/(site)/(legal)/privacy/ai/page";
 import PrivacyPage from "@/app/(site)/(legal)/privacy/page";
 import TermsPage from "@/app/(site)/(legal)/terms/page";
 import { DraftNotice } from "./DraftNotice";
@@ -72,7 +73,7 @@ describe("NoticeAtCollection", () => {
 });
 
 describe("legal pages", () => {
-  const pages = { privacy: PrivacyPage, terms: TermsPage, licensing: LicensingPage, accessibility: AccessibilityPage };
+  const pages = { privacy: PrivacyPage, "privacy/ai": PrivacyAiPage, terms: TermsPage, licensing: LicensingPage, accessibility: AccessibilityPage };
   const rendered = Object.fromEntries(Object.entries(pages).map(([k, P]) => [k, html(createElement(P))])) as Record<keyof typeof pages, string>;
 
   it("every page shows the draft banner while NEXT_PUBLIC_LEGAL_APPROVED is unset", () => {

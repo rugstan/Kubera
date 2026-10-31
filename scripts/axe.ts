@@ -23,6 +23,7 @@ type Locator = {
   focus(): Promise<void>;
   count(): Promise<number>;
   first(): Locator;
+  last(): Locator;
   isVisible(): Promise<boolean>;
   getAttribute(name: string): Promise<string | null>;
   boundingBox(): Promise<{ width: number; height: number } | null>;
@@ -54,7 +55,25 @@ const PORT = 4102;
 const BASE = process.env.AXE_BASE_URL ?? `http://localhost:${PORT}`;
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 /** Every page scanned at desktop and mobile widths, legal pages included. */
-const SCAN_ROUTES = ["/", "/express", "/partners", "/privacy", "/terms", "/licensing", "/accessibility"] as const;
+const SCAN_ROUTES = [
+  "/",
+  "/express",
+  "/partners",
+  "/privacy",
+  "/privacy/ai",
+  "/terms",
+  "/licensing",
+  "/accessibility",
+  "/about",
+  "/team",
+  "/contact",
+  "/track-record",
+  "/structures",
+  "/structures/memory-care-bridge-to-hud",
+  "/financing",
+  "/financing/senior-living",
+  "/financing/hud-232",
+] as const;
 
 function loadPlaywright(): Playwright {
   const req = createRequire(import.meta.url);
@@ -170,7 +189,7 @@ async function main() {
 
     // Each sizer tab, each partner tab.
     await go(page, `${BASE}/`);
-    for (const label of ["Hospitality & Hotels", "Multifamily & CRE"]) {
+    for (const label of ["Hospitality & Hotels", "Multifamily & CRE", "Hard money", "Construction"]) {
       await page.getByRole("tab", { name: label }).click();
       await page.waitForTimeout(900); // let entry animations finish; axe samples live colours
       scans.push(await scan(page, axeSource, `/ sizer tab: ${label}`));
@@ -266,7 +285,8 @@ async function main() {
     check("sizer tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: "Hospitality & Hotels" }).getAttribute("aria-selected")) === "true");
     await page.keyboard.press("End");
     await page.waitForTimeout(150);
-    check("sizer tabs: End selects the last tab", (await page.getByRole("tab", { name: "Multifamily & CRE" }).getAttribute("aria-selected")) === "true");
+    const lastSizerTab = page.locator('#sizer [role="tablist"] [role="tab"]').last();
+    check("sizer tabs: End selects the last tab", (await lastSizerTab.getAttribute("aria-selected")) === "true");
     check("sizer tabs: tabpanel is present and labelled", (await page.locator('[role="tabpanel"][aria-labelledby]').count()) === 1);
     await go(page, `${BASE}/partners`);
     await page.getByRole("tab", { name: /Wholesale lenders/i }).focus();

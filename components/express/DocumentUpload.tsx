@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
+import { AiUseNotice } from "@/components/privacy/AiUseNotice";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 
 const KINDS = [
@@ -51,6 +52,7 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
   return (
     <div className="mt-5 space-y-3">
       <NoticeAtCollection point="upload" />
+      <AiUseNotice context="documents" />
       <TurnstileSlot turnstile={turnstile} />
       <div className="flex flex-col gap-2 sm:flex-row">
         <select className="field sm:w-56" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Document type">

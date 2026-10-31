@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/Dialog";
+import { AiUseNotice } from "@/components/privacy/AiUseNotice";
 import { SparkIcon } from "@/components/site/GlassHeader";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { disclosures } from "@/lib/site";
@@ -307,6 +308,7 @@ export function CommandBar() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4" tabIndex={0} aria-label="Conversation history">
             {messages.length === 0 && !error && (
               <div>
+                <AiUseNotice context="chat" className="mb-4 rounded-2xl bg-black/[0.03] px-4 py-3" />
                 <p className="eyebrow mb-3">Try asking</p>
                 <ul className="space-y-1">
                   {SUGGESTIONS.map((s) => (

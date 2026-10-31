@@ -91,7 +91,8 @@ export default function PrivacyPage() {
       <p>
         Kubera is advisor-led and AI-assisted. Our loan sizer, deal qualifier, and Kubera AI use automated tools, including an AI model operated by Anthropic, to produce indicative
         estimates and answers. A licensed Kubera advisor reviews every engagement before anything goes to a lender, and no automated tool makes a credit decision; lenders make all
-        credit decisions. Please do not enter Social Security numbers, account numbers, or other sensitive details into Kubera AI.
+        credit decisions. Please do not enter Social Security numbers, account numbers, or other sensitive details into Kubera AI. Read{" "}
+        <Link href="/privacy/ai">AI use and your choices</Link> for where we use AI, what we never send to AI tools, and how to ask for advisor-only handling.
       </p>
 
       <h2 id="sharing">How we share personal information</h2>

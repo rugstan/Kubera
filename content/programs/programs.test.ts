@@ -313,3 +313,18 @@ describe("sitemap", () => {
     }
   });
 });
+
+describe("market facts shared with the sizer", () => {
+  it("derive hard money, agency and bridge exit figures from the program boxes", async () => {
+    const { AGENCY_GRID, BRIDGE_EXIT, HARD_MONEY: HM } = await import("@/lib/sizing/programs/assumptions");
+    const { AGENCY_MARKET, BRIDGE_EXIT_TEST, HARD_MONEY } = await import("./market-facts");
+    const rates = [...Object.values(HM.grid.FIX_AND_FLIP), ...Object.values(HM.grid.BRIDGE)].map((r) => r.ratePct);
+    expect(HARD_MONEY.rate).toBe(`${Math.min(...rates)}%–${Math.max(...rates)}%`);
+    expect(HARD_MONEY.term).toContain(`${HM.minTermMonths}–${HM.maxTermMonths} months`);
+    expect(HARD_MONEY.defaultRate).toBe(`up to ${HM.defaultRatePct}%`);
+    expect(BRIDGE_EXIT_TEST.dscr).toBe(`${BRIDGE_EXIT.minDscr.toFixed(2)}x`);
+    expect(BRIDGE_EXIT_TEST.debtYield).toContain(`${BRIDGE_EXIT.minDebtYield * 100}%`);
+    expect(AGENCY_MARKET.fannieSmall).toContain(`$${AGENCY_GRID.fannie.smallLoanMax / 1_000_000}M`);
+    expect(AGENCY_MARKET.freddieSmall).toContain(`${AGENCY_GRID.tiers.TIER_2.minDscr.toFixed(2)}x`);
+  });
+});

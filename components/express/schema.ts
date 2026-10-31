@@ -21,6 +21,7 @@ export const ASSETS: { value: Asset; label: string; group: string }[] = [
   { value: "MULTIFAMILY", label: "Multifamily", group: "Multifamily and CRE" },
   { value: "MIXED_USE", label: "Mixed-use", group: "Multifamily and CRE" },
   { value: "COMMERCIAL", label: "Commercial / bridge", group: "Multifamily and CRE" },
+  { value: "RESIDENTIAL_2_4", label: "2 to 4 unit rental", group: "Multifamily and CRE" },
 ];
 
 export const ASSET_GROUPS = ["Senior living and care", "Hospitality", "Multifamily and CRE"] as const;
@@ -60,11 +61,15 @@ export function unitLabel(a: Asset | ""): string {
   return "Units";
 }
 
+/** Short-term private loans are offered for investor property, not licensed care facilities or conversions. */
+export const offersHardMoney = (a: Asset | "") => a !== "" && !isSenior(a) && !isConversion(a);
+
 export function transactionOptions(a: Asset | ""): { value: Transaction; label: string }[] {
   return [
     { value: "PURCHASE", label: "Purchase" },
     { value: "REFINANCE", label: "Refinance" },
     isConversion(a) ? { value: "CONVERSION", label: "Conversion" } : { value: "CONSTRUCTION", label: "Construction" },
+    ...(offersHardMoney(a) ? [{ value: "HARD_MONEY" as const, label: "Hard money or fix-and-flip" }] : []),
   ];
 }
 
@@ -137,7 +142,7 @@ export function qualifierSchema(values: Pick<QualifierValues, "assetType" | "con
 
   return z.object({
     assetType: z.enum(ASSETS.map((a) => a.value) as [Asset, ...Asset[]], { error: "Choose what you're financing." }),
-    transaction: z.enum(["PURCHASE", "REFINANCE", "CONSTRUCTION", "CONVERSION"], { error: "Choose the type of transaction." }),
+    transaction: z.enum(["PURCHASE", "REFINANCE", "CONSTRUCTION", "CONVERSION", "HARD_MONEY"], { error: "Choose the type of transaction." }),
     loanAmount: z
       .number({ error: "Enter the loan amount you're requesting." })
       .min(250_000, "Minimum $250,000.")
@@ -218,5 +223,7 @@ export function prefillFromParams(get: (key: string) => string | null): Partial<
     const n = Number(get(key));
     return Number.isFinite(n) && n > 0 ? n : null;
   };
-  return { ...(asset ? { assetType: asset } : {}), loanAmount: positive("loan"), noi: positive("noi") };
+  // The sizer's hard money and construction tabs also send the transaction; keep it only when the asset offers it.
+  const transaction = asset ? transactionOptions(asset).find((o) => o.value === get("transaction"))?.value : undefined;
+  return { ...(asset ? { assetType: asset } : {}), ...(transaction ? { transaction } : {}), loanAmount: positive("loan"), noi: positive("noi") };
 }

@@ -12,6 +12,7 @@ import type { ConversationMode, ConversationStore, StoredAssistantMessage, Store
 import type { MarketSnapshot } from "@/lib/rates";
 import { disclosures, site } from "@/lib/site";
 import { PROGRAM_PRIMER, retrieve, type KbChunk } from "./knowledge";
+import { prepareForRoute } from "./routing";
 
 // "System Two" — Claude for structuring questions and term sheet drafts.
 export const ADVISOR_MODEL = "claude-opus-5-5";
@@ -173,6 +174,35 @@ export function setAdvisorModel(model: AdvisorModel | undefined) {
 const REFUSAL_NOTE = "I can't help with that one here — a Kubera advisor can take it from here.";
 const TRUNCATED_NOTE = "…(response truncated — ask me to continue)";
 const UNAVAILABLE_NOTE = "Kubera AI is temporarily unavailable. Please try again, or submit the qualifier and an advisor will follow up.";
+const NOT_ROUTABLE_NOTE =
+  "I can't send that message to Kubera AI. Please remove Social Security numbers, account numbers or other sensitive details and ask again, or submit the qualifier and an advisor will follow up.";
+
+/**
+ * Runs the request through the model routing guard (lib/ai/routing.ts) before
+ * anything leaves the server. Sensitive values above the advisor ceiling are
+ * redacted from the copy sent to the model; the stored transcript keeps what
+ * the user typed. Returns null when the guard refuses the request outright.
+ */
+export function routeAdvisorRequest(params: BetaMessageStreamParams, subject?: { aiProcessingOptOut?: boolean }): BetaMessageStreamParams | null {
+  const routed = prepareForRoute({
+    model: params.model,
+    purpose: "advisor",
+    payload: { system: params.system, messages: params.messages },
+    ...(subject ? { subject } : {}),
+  });
+  if (!routed) return null;
+  return { ...params, system: routed.payload.system, messages: routed.payload.messages };
+}
+
+function noteStream(note: string): ReadableStream<Uint8Array> {
+  const bytes = new TextEncoder().encode(note);
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+}
 
 // --- Turn runner ------------------------------------------------------------------
 
@@ -188,6 +218,8 @@ export type AdvisorTurnInput = {
   store: ConversationStore;
   model?: AdvisorModel;
   retrieveExcerpts?: (query: string) => Promise<KbChunk[]>;
+  /** The data subject's AI preference, when the lead is known (lib/privacy/requests.ts routingSubject). */
+  subject?: { aiProcessingOptOut?: boolean };
   now?: () => Date;
 };
 
@@ -213,7 +245,12 @@ export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<Readab
     console.error("advisor retrieval failed", err instanceof Error ? err.message : err);
   }
 
-  const params = buildAdvisorRequest({ history: input.history, turn, market: input.market, excerpts });
+  const params = routeAdvisorRequest(buildAdvisorRequest({ history: input.history, turn, market: input.market, excerpts }), input.subject);
+  if (!params) {
+    // Refused by the routing guard: nothing is sent and the turn is not stored.
+    await input.store.release(input.conversationId);
+    return noteStream(NOT_ROUTABLE_NOTE);
+  }
   let stream: AdvisorStream;
   try {
     stream = model.stream(params);

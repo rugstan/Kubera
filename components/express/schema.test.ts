@@ -50,6 +50,17 @@ describe("express form defaults", () => {
     const bad = new URLSearchParams({ asset: "NOT_AN_ASSET" });
     expect(prefillFromParams((k) => bad.get(k)).assetType).toBeUndefined();
   });
+
+  it("carries the sizer's hard money and construction transaction only when the asset offers it", () => {
+    const hm = new URLSearchParams({ asset: "RESIDENTIAL_2_4", transaction: "HARD_MONEY", loan: "400000" });
+    expect(prefillFromParams((k) => hm.get(k))).toMatchObject({ assetType: "RESIDENTIAL_2_4", transaction: "HARD_MONEY" });
+    const build = new URLSearchParams({ asset: "MULTIFAMILY", transaction: "CONSTRUCTION" });
+    expect(prefillFromParams((k) => build.get(k)).transaction).toBe("CONSTRUCTION");
+    const senior = new URLSearchParams({ asset: "SNF", transaction: "HARD_MONEY" });
+    expect(prefillFromParams((k) => senior.get(k)).transaction).toBeUndefined();
+    expect(transactionOptions("SNF").map((o) => o.value)).not.toContain("HARD_MONEY");
+    expect(transactionOptions("MULTIFAMILY").map((o) => o.value)).toContain("HARD_MONEY");
+  });
 });
 
 describe("express validation", () => {

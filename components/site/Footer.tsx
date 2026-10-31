@@ -7,10 +7,14 @@ const COLUMNS = [
   {
     title: "Financing",
     links: [
-      { href: "/#senior-living", label: "HUD 232 and senior living" },
-      { href: "/#hospitality", label: "SBA 504 hotel stacks" },
-      { href: "/#hospitality", label: "CMBS and PIP bridge" },
-      { href: "/#multifamily", label: "Multifamily and construction" },
+      { href: "/financing", label: "All financing programs" },
+      { href: "/financing/senior-living", label: "Senior living" },
+      { href: "/financing/hud-232", label: "HUD 232" },
+      { href: "/financing/hotels", label: "Hotels" },
+      { href: "/financing/sba-504-hotel", label: "SBA 504 hotel loans" },
+      { href: "/financing/multifamily", label: "Multifamily" },
+      { href: "/financing/construction", label: "Construction" },
+      { href: "/financing/hard-money", label: "Hard money" },
     ],
   },
   {

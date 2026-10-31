@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     name: "privacy",
     rate: { limit: 5, windowMs: 60 * 60_000 },
     rateLimitMessage: `Too many requests. Please email ${site.privacyEmail}.`,
-    turnstile: false,
+    turnstile: "privacy",
     maxBytes: 16_000,
   });
   if (!guard.ok) return guard.response;

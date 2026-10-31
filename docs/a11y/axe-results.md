@@ -11,18 +11,40 @@ Rules: axe-core 4.14.0, tags wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa.
 | /express (desktop) | 0 | 0 |
 | /partners (desktop) | 0 | 0 |
 | /privacy (desktop) | 0 | 0 |
+| /privacy/ai (desktop) | 0 | 0 |
 | /terms (desktop) | 0 | 0 |
 | /licensing (desktop) | 0 | 0 |
 | /accessibility (desktop) | 0 | 0 |
+| /about (desktop) | 0 | 0 |
+| /team (desktop) | 0 | 0 |
+| /contact (desktop) | 0 | 0 |
+| /track-record (desktop) | 0 | 0 |
+| /structures (desktop) | 0 | 0 |
+| /structures/memory-care-bridge-to-hud (desktop) | 0 | 0 |
+| /financing (desktop) | 0 | 0 |
+| /financing/senior-living (desktop) | 0 | 0 |
+| /financing/hud-232 (desktop) | 0 | 0 |
 | / (mobile 390px) | 0 | 0 |
 | /express (mobile 390px) | 0 | 0 |
 | /partners (mobile 390px) | 0 | 0 |
 | /privacy (mobile 390px) | 0 | 0 |
+| /privacy/ai (mobile 390px) | 0 | 0 |
 | /terms (mobile 390px) | 0 | 0 |
 | /licensing (mobile 390px) | 0 | 0 |
 | /accessibility (mobile 390px) | 0 | 0 |
+| /about (mobile 390px) | 0 | 0 |
+| /team (mobile 390px) | 0 | 0 |
+| /contact (mobile 390px) | 0 | 0 |
+| /track-record (mobile 390px) | 0 | 0 |
+| /structures (mobile 390px) | 0 | 0 |
+| /structures/memory-care-bridge-to-hud (mobile 390px) | 0 | 0 |
+| /financing (mobile 390px) | 0 | 0 |
+| /financing/senior-living (mobile 390px) | 0 | 0 |
+| /financing/hud-232 (mobile 390px) | 0 | 0 |
 | / sizer tab: Hospitality & Hotels | 0 | 0 |
 | / sizer tab: Multifamily & CRE | 0 | 0 |
+| / sizer tab: Hard money | 0 | 0 |
+| / sizer tab: Construction | 0 | 0 |
 | /partners tab: /Referral brokers/i | 0 | 0 |
 | /partners tab: /Operators/i | 0 | 0 |
 | /partners tab: /Third-party vendors/i | 0 | 0 |

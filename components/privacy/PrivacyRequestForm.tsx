@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 
 // Public privacy request form (/privacy/ai#request). Posts to
 // /api/privacy/request, which files a ticket in the compliance queue.
@@ -41,6 +42,7 @@ export function PrivacyRequestForm({ privacyEmail, defaultType = "human_review" 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const statusRef = useRef<HTMLDivElement>(null);
+  const turnstile = useTurnstile("privacy");
 
   const fid = (f: string) => `${id}-${f}`;
   const err = (f: keyof FieldErrors) => (errors[f] ? { "aria-invalid": true, "aria-describedby": `${fid(f)}-error` } : {});
@@ -65,9 +67,10 @@ export function PrivacyRequestForm({ privacyEmail, defaultType = "human_review" 
     }
     setStatus({ kind: "sending" });
     try {
+      const captcha = await turnstile.getToken();
       const res = await fetch("/api/privacy/request", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...turnstileHeaders(captcha) },
         body: JSON.stringify({
           type,
           name: name.trim(),
@@ -195,6 +198,8 @@ export function PrivacyRequestForm({ privacyEmail, defaultType = "human_review" 
       <div ref={statusRef} tabIndex={-1} aria-live="assertive" className="outline-none">
         {status.kind === "error" ? <p className="rounded-xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{status.message}</p> : null}
       </div>
+
+      <TurnstileSlot turnstile={turnstile} />
 
       <button type="submit" className="pill pill-primary" disabled={status.kind === "sending"}>
         {status.kind === "sending" ? "Sending…" : "Send request"}

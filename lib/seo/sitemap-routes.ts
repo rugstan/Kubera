@@ -50,6 +50,7 @@ export const coreRoutes: SitemapRoute[] = [
 // Legal pages are built by the compliance workstream under `app/(site)/(legal)/`.
 export const legalRoutes: SitemapRoute[] = [
   { path: "/privacy", title: "Privacy policy", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
+  { path: "/privacy/ai", title: "AI use and your choices", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
   { path: "/terms", title: "Terms of use", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
   { path: "/licensing", title: "Licensing and disclosures", changeFrequency: "yearly", priority: 0.4, section: "Legal" },
   { path: "/accessibility", title: "Accessibility statement", changeFrequency: "yearly", priority: 0.3, section: "Legal" },

@@ -11,6 +11,7 @@ const FLAG_COPY: Record<string, string> = {
   USE_2026_SBA_10M_STACK_FOR_LARGE_HOTEL_OR_CARE_FACILITY: "A combined SBA 7(a) + 504 stack may finance this project with 15–20% down, subject to SBA eligibility and lender approval.",
   NEEDS_STABILIZATION_OR_PIP_BRIDGE_FIRST: "A bridge loan first, then permanent debt once operations stabilize, can often increase proceeds.",
   OPTIMAL_AS_STRUCTURED: "This structure looks workable as submitted. An advisor will test it with lenders.",
+  EXIT_SHORTFALL_NEEDS_RESTRUCTURE: "The exit (sale, refinance or take-out) may not fully repay this loan as requested; an advisor can restructure it.",
 };
 
 export type QualifierResponse = {

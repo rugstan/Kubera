@@ -220,3 +220,48 @@ describe("streamAdvisorTurn", () => {
     expect(sent[1]!.content).toBe("answer one");
   });
 });
+
+describe("advisor routing guard", () => {
+  const setup = async () => {
+    const store = new MemoryConversationStore();
+    const conv = await store.create({ ipHash: "h", userAgent: null, page: null });
+    const claimed = await store.claim(conv.id, 60_000);
+    if (claimed.status !== "ok") throw new Error("claim failed");
+    return { store, conv: claimed.conversation };
+  };
+
+  it("redacts a pasted SSN from what reaches the model but stores the turn as typed", async () => {
+    const { store, conv } = await setup();
+    const model = fakeModel(["ok"]);
+    const message = "My SSN is 123-45-6789, can I get a bridge loan?";
+    await readAll(
+      await streamAdvisorTurn({ conversationId: conv.id, history: [], turnCount: 0, message, mode: "chat", market, store, model, retrieveExcerpts: async () => [] }),
+    );
+    expect(model.calls).toHaveLength(1);
+    expect(JSON.stringify(model.calls[0]!.messages)).not.toContain("123-45-6789");
+    expect(store.rows.get(conv.id)!.messages[0]).toMatchObject({ role: "user", content: message });
+  });
+
+  it("sends nothing for a subject who opted out of AI processing and releases the lock", async () => {
+    const { store, conv } = await setup();
+    const model = fakeModel(["should not run"]);
+    const out = await readAll(
+      await streamAdvisorTurn({
+        conversationId: conv.id,
+        history: [],
+        turnCount: 0,
+        message: "My email is pat@example.com",
+        mode: "chat",
+        market,
+        store,
+        model,
+        retrieveExcerpts: async () => [],
+        subject: { aiProcessingOptOut: true },
+      }),
+    );
+    expect(model.calls).toHaveLength(0);
+    expect(out).toMatch(/can't send that message/);
+    expect(store.rows.get(conv.id)!.messages).toHaveLength(0);
+    expect((await store.claim(conv.id, 1000)).status).toBe("ok");
+  });
+});

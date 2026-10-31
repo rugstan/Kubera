@@ -16,6 +16,7 @@ export const LEGAL_EFFECTIVE_DATE = "November 1, 2026";
 export const LEGAL_PAGES = [
   { href: "/privacy", label: "Privacy policy" },
   { href: "/privacy#notice-at-collection", label: "Notice at collection" },
+  { href: "/privacy/ai", label: "AI use and your choices" },
   { href: "/terms", label: "Terms of use" },
   { href: "/licensing", label: "Licensing and disclosures" },
   { href: "/accessibility", label: "Accessibility" },
