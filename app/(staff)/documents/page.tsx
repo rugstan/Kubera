@@ -19,9 +19,12 @@ export default function DocumentsPage({ searchParams }: { searchParams: SearchPa
         <p className="eyebrow">Vault</p>
         <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Documents</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">Borrower files from the private vault. Every open is logged, and links expire after a minute.</p>
-        <p className="mt-2 text-[14px]">
+        <p className="mt-2 flex flex-wrap gap-x-6 text-[14px]">
           <Link href="/documents/extractions" className="inline-flex min-h-11 items-center text-accent underline underline-offset-2">
             Review extracted figures
+          </Link>
+          <Link href="/documents/mail" className="inline-flex min-h-11 items-center text-accent underline underline-offset-2">
+            Mail waiting for review
           </Link>
         </p>
       </div>

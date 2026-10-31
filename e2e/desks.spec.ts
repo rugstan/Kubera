@@ -309,3 +309,24 @@ test("a principal opens a portal link and saves their profile", async ({ page, b
   await expect(portal.getByRole("region", { name: "Contact and residence" }).getByLabel("Home address (required)")).toHaveValue("1 Example Lane, Sacramento, CA 95814");
   await borrower.close();
 });
+
+test("staff file unmatched inbound mail to a deal, which sends its attachments to the vault, and dismiss the rest", async ({ page }) => {
+  await signIn(page, "/documents/mail");
+  const queue = page.getByRole("list", { name: "Messages waiting for review" });
+  const docs = queue.getByRole("article", { name: "T-12 and rent roll for the Harbor Inn" });
+  const deals = queue.getByRole("article", { name: "Re: refinance question" });
+  await expect(docs).toBeVisible();
+  await expect(docs.getByText("No matching deal or lead")).toBeVisible();
+  await expect(docs.getByText("held in quarantine")).toHaveCount(2);
+  await expect(deals.getByText("Matched only through a CC address")).toBeVisible();
+  await expectAccessibleAndReflows(page, "/documents/mail");
+
+  await docs.getByLabel("Deal reference, deal ID or lead ID").fill("KC-10000000");
+  await docs.getByRole("button", { name: "File message" }).click();
+  await expect(notice(page, "2 attachments were added to the vault")).toBeVisible();
+  await expect(queue.getByRole("article", { name: "T-12 and rent roll for the Harbor Inn" })).toHaveCount(0);
+
+  await deals.getByRole("button", { name: "Dismiss" }).click();
+  await expect(notice(page, "Message dismissed.")).toBeVisible();
+  await expect(page.getByText("Nothing is waiting for review.")).toBeVisible();
+});

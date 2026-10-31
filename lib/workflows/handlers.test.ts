@@ -187,6 +187,46 @@ describe("mail workflows", () => {
     expect(poll.sent).toHaveLength(0);
   });
 
+  it("pages staff when a deals@ or docs@ message lands in review, with ids and counts only", async () => {
+    const step = new FakeStep();
+    const { d, provider } = mailDeps(step);
+    const alerts: unknown[] = [];
+    d.mail!.reviewAlert = async (a) => {
+      alerts.push(a);
+    };
+    // Routed docs@ mail: no alert.
+    const routed = provider.add(SAMPLE_EMAILS.documentSubmission);
+    await inboundMailHandler({ data: { mailbox: "docs", providerMessageId: routed.providerMessageId, folderId: routed.folderId }, step }, d);
+    expect(alerts).toHaveLength(0);
+
+    // docs@ from a sender who matches no lead: needs review, attachments held, staff paged.
+    const stranger = provider.add({ ...SAMPLE_EMAILS.documentSubmission, fromAddress: "new.owner@example.com" });
+    const res = await inboundMailHandler({ data: { mailbox: "docs", providerMessageId: stranger.providerMessageId, folderId: stranger.folderId }, step: new FakeStep(step.clock) }, d);
+    expect(res).toMatchObject({ status: "needs_review" });
+    expect(alerts).toEqual([
+      { mailMessageId: (res as { mailMessageId: string }).mailMessageId, mailbox: "docs", category: "document_submission", reviewReasons: expect.arrayContaining(["no_deal_match"]), storedAttachments: 2 },
+    ]);
+    expect(JSON.stringify(alerts)).not.toContain("new.owner@example.com");
+
+    // lenders@ review items stay in the queue without paging.
+    const lender = provider.add({ ...SAMPLE_EMAILS.termSheet, subject: "Indicative terms", fromAddress: "unknown@lender.test" });
+    const lr = await inboundMailHandler({ data: { mailbox: "lenders", providerMessageId: lender.providerMessageId, folderId: lender.folderId }, step: new FakeStep(step.clock) }, d);
+    expect(lr).toMatchObject({ status: "needs_review" });
+    expect(alerts).toHaveLength(1);
+  });
+
+  it("pages staff when a docs@ message fails its last retry", async () => {
+    const step = new FakeStep();
+    const { d, store } = mailDeps(step);
+    const alerts: { mailMessageId: string; reviewReasons: readonly string[] }[] = [];
+    d.mail!.reviewAlert = async (a) => {
+      alerts.push(a);
+    };
+    for (let i = 0; i < 6; i++) await inboundMailHandler({ data: { mailbox: "docs", providerMessageId: "missing", folderId: "inbox", attempt: i }, step: new FakeStep(step.clock) }, d);
+    expect(store.rows[0]?.attempts).toBe(6);
+    expect(alerts).toEqual([expect.objectContaining({ mailMessageId: store.rows[0]!.id, reviewReasons: ["processing_failed"] })]);
+  });
+
   it("skips cleanly when mail is not configured", async () => {
     const step = new FakeStep();
     const { d } = deps(step);
