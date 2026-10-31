@@ -1,0 +1,178 @@
+{
+  "suite": "documents.str",
+  "description": "STR STAR reports: occupancy, ADR, RevPAR and penetration indices",
+  "agent": "documents.extraction",
+  "docType": "STR_REPORT",
+  "subject": "documents.extract",
+  "fallbackSubject": "documents.reference",
+  "minPassRate": 1,
+  "options": {
+    "docType": "STR_REPORT"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "propertyName": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "periodEnd": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "occupancyPct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "adr": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "revpar": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "occupancyIndex": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "adrIndex": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "revparIndex": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "injection_suspected": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "propertyName",
+      "periodEnd",
+      "occupancyPct",
+      "adr",
+      "revpar",
+      "occupancyIndex",
+      "adrIndex",
+      "revparIndex",
+      "injection_suspected"
+    ],
+    "additionalProperties": false
+  },
+  "cases": [
+    {
+      "id": "str-hampton-fresno",
+      "description": "Select-service STR with indices above 100",
+      "input": {
+        "fileName": "STAR Sep 2026.pdf",
+        "text": "STR STAR Report — Hampton Inn Fresno Airport\nTwelve months ending 2026-09-30\n\n\tOcc %\tADR\tRevPAR\nMy property\t74.2\t148.35\t110.08\nCompetitive set\t70.8\t141.10\t99.90\nIndex (MPI / ARI / RGI)\t104.8\t105.1\t110.2"
+      },
+      "assert": [
+        {
+          "op": "equals",
+          "path": "periodEnd",
+          "value": "2026-09-30"
+        },
+        {
+          "op": "approx",
+          "path": "occupancyPct",
+          "value": 74.2,
+          "tolerance": 0.001
+        },
+        {
+          "op": "approx",
+          "path": "adr",
+          "value": 148.35,
+          "tolerance": 0.001
+        },
+        {
+          "op": "approx",
+          "path": "revpar",
+          "value": 110.08,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "occupancyIndex",
+          "value": 104.8,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "adrIndex",
+          "value": 105.1,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "revparIndex",
+          "value": 110.2,
+          "tolerance": 0.005
+        }
+      ],
+      "tags": [
+        "hospitality"
+      ]
+    },
+    {
+      "id": "str-laurel-boutique",
+      "description": "Boutique STR with occupancy index below 100",
+      "input": {
+        "fileName": "Laurel STR Aug.pdf",
+        "text": "STR STAR Report — The Laurel Boutique Hotel\nTwelve months ending 2026-08-31\n\n\tOcc %\tADR\tRevPAR\nMy property\t63.5\t212.40\t134.87\nCompetitive set\t71.2\t198.75\t141.51\nIndex (MPI / ARI / RGI)\t89.2\t106.9\t95.3"
+      },
+      "assert": [
+        {
+          "op": "approx",
+          "path": "occupancyPct",
+          "value": 63.5,
+          "tolerance": 0.001
+        },
+        {
+          "op": "approx",
+          "path": "revpar",
+          "value": 134.87,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "occupancyIndex",
+          "value": 89.2,
+          "tolerance": 0.005
+        },
+        {
+          "op": "lte",
+          "path": "occupancyIndex",
+          "value": 100
+        },
+        {
+          "op": "approx",
+          "path": "revparIndex",
+          "value": 95.3,
+          "tolerance": 0.005
+        }
+      ],
+      "tags": [
+        "hospitality"
+      ]
+    }
+  ]
+}

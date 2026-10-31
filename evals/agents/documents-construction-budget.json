@@ -1,0 +1,168 @@
+{
+  "suite": "documents.construction_budget",
+  "description": "Construction budgets: land, hard, soft, contingency and total project cost (pre-closing sizing only)",
+  "agent": "documents.extraction",
+  "docType": "CONSTRUCTION_BUDGET",
+  "subject": "documents.extract",
+  "fallbackSubject": "documents.reference",
+  "minPassRate": 1,
+  "options": {
+    "docType": "CONSTRUCTION_BUDGET"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "landCost": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "hardCosts": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "softCosts": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "contingency": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "totalProjectCost": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "contingencyPctOfHard": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "injection_suspected": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "projectName",
+      "landCost",
+      "hardCosts",
+      "softCosts",
+      "contingency",
+      "totalProjectCost",
+      "contingencyPctOfHard",
+      "injection_suspected"
+    ],
+    "additionalProperties": false
+  },
+  "cases": [
+    {
+      "id": "budget-riverside-mf",
+      "description": "Ground-up multifamily budget with interest reserve and developer fee in soft costs",
+      "input": {
+        "fileName": "Riverside budget v7.xlsx",
+        "text": "Riverside 84-unit Multifamily — Development Budget\n\nLand acquisition\t4,200,000\n\nHARD COSTS\nSite work\t1,850,000\nVertical construction (GMP)\t19,400,000\nFF&E\t640,000\nGeneral conditions\t1,210,000\nTotal hard costs\t23,100,000\n\nSOFT COSTS\nArchitecture & engineering\t1,120,000\nPermits & impact fees\t1,480,000\nLegal & title\t260,000\nDeveloper fee\t1,150,000\nInterest reserve\t1,640,000\nInsurance (builder's risk)\t310,000\nTotal soft costs\t5,960,000\n\nHard cost contingency (5%)\t1,155,000\n\nTOTAL PROJECT COST\t34,415,000"
+      },
+      "assert": [
+        {
+          "op": "approx",
+          "path": "landCost",
+          "value": 4200000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "hardCosts",
+          "value": 23100000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "softCosts",
+          "value": 5960000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "contingency",
+          "value": 1155000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "totalProjectCost",
+          "value": 34415000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "contingencyPctOfHard",
+          "value": 5.0,
+          "tolerance": 0.01
+        }
+      ],
+      "tags": [
+        "construction"
+      ]
+    },
+    {
+      "id": "budget-oak-hills-mc",
+      "description": "Memory care development budget with a 6% contingency",
+      "input": {
+        "fileName": "Oak Hills budget.pdf",
+        "text": "Oak Hills Memory Care (64 beds) — Development Budget\n\nLand acquisition\t2,600,000\n\nHARD COSTS\nSite work\t980,000\nBuilding (GMP)\t14,300,000\nKitchen & FF&E\t1,150,000\nTotal hard costs\t16,430,000\n\nSOFT COSTS\nA&E\t890,000\nLicensing & consultants\t210,000\nPermits\t640,000\nPre-opening & marketing\t520,000\nInterest reserve\t1,180,000\nTotal soft costs\t3,440,000\n\nHard cost contingency (6%)\t985,800\n\nTOTAL PROJECT COST\t23,455,800"
+      },
+      "assert": [
+        {
+          "op": "approx",
+          "path": "hardCosts",
+          "value": 16430000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "softCosts",
+          "value": 3440000,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "contingency",
+          "value": 985800,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "totalProjectCost",
+          "value": 23455800,
+          "tolerance": 0.005
+        },
+        {
+          "op": "approx",
+          "path": "contingencyPctOfHard",
+          "value": 6.0,
+          "tolerance": 0.01
+        }
+      ],
+      "tags": [
+        "construction",
+        "senior-living"
+      ]
+    }
+  ]
+}
