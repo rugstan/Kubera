@@ -16,18 +16,21 @@ export async function RatesData() {
 
   return (
     <>
-      <JsonLd
-        data={datasetSchema({
-          name: "Commercial real estate loan benchmark rates",
-          description: "Daily U.S. Treasury 5-year and 10-year yields, 30-day average SOFR and the bank prime rate, with indicative loan rate ranges for HUD, SBA, agency, CMBS and bridge programs.",
-          path: RATES_PATH,
-          dateModified: snap.asOf,
-          temporalCoverage: snap.asOf,
-          creator: { name: "Federal Reserve Bank of St. Louis (FRED)", url: "https://fred.stlouisfed.org/" },
-          citation: FRED_ATTRIBUTION,
-          variables: SERIES.map((s) => ({ name: s.label, description: s.fredTitle, unitText: "percent", url: fredSeriesUrl(s.seriesId) })),
-        })}
-      />
+      {/* Dataset markup only for live FRED figures: fallbacks are Kubera's estimates, not a dated FRED dataset. */}
+      {snap.live && (
+        <JsonLd
+          data={datasetSchema({
+            name: "Commercial real estate loan benchmark rates",
+            description: "Daily U.S. Treasury 5-year and 10-year yields, 30-day average SOFR and the bank prime rate, with indicative loan rate ranges for HUD, SBA, agency, CMBS and bridge programs.",
+            path: RATES_PATH,
+            dateModified: snap.asOf,
+            temporalCoverage: snap.asOf,
+            creator: { name: "Federal Reserve Bank of St. Louis (FRED)", url: "https://fred.stlouisfed.org/" },
+            citation: FRED_ATTRIBUTION,
+            variables: SERIES.map((s) => ({ name: s.label, description: s.fredTitle, unitText: "percent", url: fredSeriesUrl(s.seriesId) })),
+          })}
+        />
+      )}
 
       <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px]" data-rates-as-of={snap.asOf}>
         <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-medium ${snap.live ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900"}`}>
@@ -35,7 +38,7 @@ export async function RatesData() {
           {snap.live ? "Live data" : "Indicative values"}
         </span>
         <span className="text-ink">
-          Rates as of <time dateTime={snap.asOf}>{asOfLabel}</time>
+          {snap.live ? "Rates as of" : "Fallback values set"} <time dateTime={snap.asOf}>{asOfLabel}</time>
         </span>
       </p>
       {!snap.live && (

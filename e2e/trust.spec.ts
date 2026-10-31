@@ -1,4 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+/** The CTA pill rows switch to a row at 640px, so check either side of that and a tablet width. */
+async function noSidewaysScroll(page: Page, path: string) {
+  await page.goto(path);
+  for (const width of [390, 640, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `${path} overflows by ${overflow}px at ${width}px`).toBeLessThanOrEqual(0);
+  }
+}
 
 const PAGES = [
   { path: "/about", h1: /licensed broker, not a lender/i },
@@ -22,13 +32,14 @@ test.describe("trust pages", () => {
       expect(errors).toEqual([]);
     });
 
-    test(`${p.path} has no horizontal scroll at 390px`, async ({ page }) => {
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.goto(p.path);
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      expect(overflow).toBeLessThanOrEqual(0);
+    test(`${p.path} has no horizontal scroll at 390px, 640px or 768px`, async ({ page }) => {
+      await noSidewaysScroll(page, p.path);
     });
   }
+
+  test("a structure page has no horizontal scroll at 390px, 640px or 768px", async ({ page }) => {
+    await noSidewaysScroll(page, "/structures/memory-care-bridge-to-hud");
+  });
 
   test("contact lists the mailbox routing table", async ({ page }) => {
     await page.goto("/contact");

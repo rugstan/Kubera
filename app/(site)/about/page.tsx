@@ -136,7 +136,7 @@ export default function AboutPage() {
       </Section>
 
       <Section id="next" title="Talk to an advisor">
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link href="/contact" className="pill pill-primary">Contact an advisor</Link>
           <Link href="/express" className="pill pill-glass">Start the 60-second qualifier</Link>
           <Link href="/structures" className="pill pill-glass">See representative structures</Link>

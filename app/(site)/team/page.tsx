@@ -52,7 +52,7 @@ export default function TeamPage() {
             <p className="text-[16px] leading-relaxed text-titanium">
               We are preparing individual advisor profiles. Until they are published, here is who is accountable for the firm&apos;s license. Write to us and we will tell you which licensed advisor will work with you.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link href="/contact" className="pill pill-primary">Contact an advisor</Link>
               <Link href="/about#licenses" className="pill pill-glass">See our licenses</Link>
             </div>

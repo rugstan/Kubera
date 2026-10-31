@@ -211,6 +211,24 @@ test("extraction review reflows at 390px and has no serious accessibility violat
   expect(await seriousViolations(page)).toEqual([]);
 });
 
+test("the staff shell has no sideways page scroll at 640px, 768px or 1024px", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  await signInBroker(page, "/approvals");
+  await expect(page).toHaveURL(`${base}/approvals`);
+  for (const p of ["/approvals", "/pipeline", "/documents", "/ai-review", "/reports"]) {
+    await page.goto(`${base}${p}`);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText(/^Loading\b.*…$/)).toHaveCount(0);
+    for (const width of [640, 768, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      const { scrollWidth, innerWidth } = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
+      expect(scrollWidth, `${p}: page is ${scrollWidth}px wide at a ${innerWidth}px viewport`).toBeLessThanOrEqual(innerWidth);
+    }
+    // Every staff section stays reachable from the nav.
+    await expect(page.getByRole("navigation", { name: "Staff" }).getByRole("link", { name: "Prospects" })).toBeAttached();
+  }
+});
+
 test("staff review low-confidence extractions: correct and approve, or reject", async ({ page }) => {
   await signInBroker(page, "/documents/extractions");
   await expect(page).toHaveURL(`${base}/documents/extractions`);

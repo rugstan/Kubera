@@ -116,7 +116,13 @@ test.describe("rates", () => {
     await expect(page.getByRole("link", { name: "FRED DGS10" })).toHaveAttribute("href", "https://fred.stlouisfed.org/series/DGS10");
     await expect(page.getByText(/not endorsed or certified by the Federal Reserve Bank of St. Louis/)).toBeVisible();
     await expect(page.getByRole("row", { name: /HUD 232/ })).toBeVisible();
-    expect(await ldTypes(page)).toEqual(expect.arrayContaining(["Dataset", "BreadcrumbList"]));
+    // Dataset markup describes live FRED figures only; fallbacks carry their fixed date and no Dataset.
+    const live = (await page.getByText("Live data", { exact: true }).count()) > 0;
+    expect(await ldTypes(page)).toEqual(expect.arrayContaining(live ? ["Dataset", "BreadcrumbList"] : ["BreadcrumbList"]));
+    if (!live) {
+      expect(await ldTypes(page)).not.toContain("Dataset");
+      await expect(page.getByText(/^Fallback values set/)).toBeVisible();
+    }
   });
 });
 

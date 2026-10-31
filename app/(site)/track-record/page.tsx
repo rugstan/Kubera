@@ -56,7 +56,7 @@ export default function TrackRecordPage() {
             <p className="mt-4 text-[16px] leading-relaxed text-titanium">
               In the meantime, representative structures show how we typically arrange HUD, SBA and bridge financing. They are illustrations, not client results.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link href="/structures" className="pill pill-primary">See representative structures</Link>
               <Link href="/about#licenses" className="pill pill-glass">Verify our licenses</Link>
             </div>

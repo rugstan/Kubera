@@ -26,8 +26,11 @@ export async function RateTicker() {
       <div className="flex h-full items-center">
         <div className="z-10 flex h-full shrink-0 items-center gap-2 bg-black pl-4 pr-3 font-medium text-white">
           <span className={`size-1.5 rounded-full ${snap.live ? "animate-pulse bg-emerald-400" : "bg-amber-400"}`} aria-hidden />
-          <span className="hidden sm:inline">{snap.live ? "Live" : "Indicative"}</span>
-          <span className="tabular-nums text-white/70">{snap.asOf}</span>
+          <span>{snap.live ? "Live" : "Indicative"}</span>
+          <span className="tabular-nums text-white/70">
+            <span className="sr-only">{snap.live ? "as of " : "fallback values set "}</span>
+            {snap.asOf}
+          </span>
         </div>
         <TickerMarquee
           label="Capital markets rates"

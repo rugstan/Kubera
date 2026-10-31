@@ -36,11 +36,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <Link href="/pipeline" className="rounded-md text-[15px] font-semibold tracking-tight text-ink">
             {site.name} <span className="font-normal text-titanium">· Staff</span>
           </Link>
-          <nav aria-label="Staff" className="order-3 w-full sm:order-none sm:w-auto">
+          <nav aria-label="Staff" className="order-3 w-full min-w-0 lg:order-none lg:w-auto lg:flex-1">
             <ul className="flex gap-1 overflow-x-auto">
               {NAV.map((item) => (
                 <li key={item.href}>
-                  <Link href={item.href} className="inline-flex min-h-11 items-center rounded-full px-3.5 text-[14px] font-medium text-ink hover:bg-black/5">
+                  <Link href={item.href} className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3.5 text-[14px] font-medium text-ink hover:bg-black/5">
                     {item.label}
                   </Link>
                 </li>
