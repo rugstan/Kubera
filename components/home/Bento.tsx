@@ -60,7 +60,7 @@ export function Bento() {
             <ol className="mt-auto flex flex-wrap gap-2 pt-8 text-[13px] font-medium">
               {["Acquire", "Convert & license (Title 22)", "Stabilize census", "HUD takeout"].map((s, i) => (
                 <li key={s} className="flex items-center gap-2 rounded-full bg-black/[0.04] px-3 py-1.5">
-                  <span className="grid size-5 place-items-center rounded-full bg-ink text-[11px] text-white">{i + 1}</span>
+                  <span className="grid size-5 place-items-center rounded-full bg-ink text-[12px] text-white">{i + 1}</span>
                   {s}
                 </li>
               ))}

@@ -321,7 +321,7 @@ function Done({ r, firstName }: { r: Result; firstName: string }) {
         <p className="mt-1 text-sm text-titanium">Speed things up by sharing your T-12, rent roll or census, and STR report. Files go to an encrypted, private vault.</p>
         {r.leadId && r.uploadToken ? <DocumentUpload leadId={r.leadId} token={r.uploadToken} /> : null}
       </div>
-      <p className="text-[11px] leading-relaxed text-titanium">
+      <p className="text-[12px] leading-relaxed text-titanium">
         {disclosures.indicative} An indicative match is not a loan approval or commitment; only a lender can approve a loan, in writing.
       </p>
     </motion.div>

@@ -60,7 +60,7 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-14 space-y-3 border-t border-black/[0.06] pt-8 text-[11px] leading-relaxed text-titanium">
+        <div className="mt-14 space-y-3 border-t border-black/[0.06] pt-8 text-[12px] leading-relaxed text-titanium">
           <p className="font-medium text-ink/70">{licenseLine()}</p>
           <p>{disclosures.indicative}</p>
           <p>{disclosures.ai}</p>

@@ -61,7 +61,7 @@ export function DealStructures() {
           </Reveal>
         ))}
       </div>
-      <p className="mt-6 text-[11px] text-titanium">{disclosures.illustrative}</p>
+      <p className="mt-6 text-[12px] text-titanium">{disclosures.illustrative}</p>
     </section>
   );
 }

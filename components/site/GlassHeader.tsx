@@ -39,7 +39,7 @@ export function GlassHeader() {
           >
             <SparkIcon />
             Ask Kubera AI
-            <kbd className="rounded-md bg-black/[0.05] px-1.5 py-0.5 font-sans text-[11px]">⌘K</kbd>
+            <kbd className="rounded-md bg-black/[0.05] px-1.5 py-0.5 font-sans text-[12px]">⌘K</kbd>
           </button>
           <Link href="/#sizer" className="pill pill-primary !px-4 !py-1.5 !text-[13px]">
             Size a loan
