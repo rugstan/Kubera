@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { evaluateDealCompliance } from "@/lib/compliance/gates";
 import type { ModificationFacts } from "@/lib/compliance/schemas";
 import { applyStageEvent } from "./stages";
 import { queueApprovalGate } from "@/lib/approvals/gate";
@@ -20,6 +21,12 @@ async function world(gateDefault: "approved" | "pending" = "approved", loanOver 
   await ctx.store.insertLender(lenderInput({ name: "Fidelis Private Fund", category: "PRIVATE_NON_EXEMPT", categoryEvidenceRef: null, contactEmail: "servicing@fidelis.example", programs: ["PRIVATE_BRIDGE"] }), "a", ctx.now());
   return { ...ctx, deal, m: mailer() };
 }
+
+/** Gate A clear: the deal's MLDS is signed, so a commitment may go to the borrower. */
+const mldsSignedCompliance = evaluateDealCompliance({
+  mlds: { facts: { kuberaRole: "broker", program: "PRIVATE_BRIDGE", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false } }, status: "signed" },
+  now: new Date("2026-11-03T17:00:00.000Z"),
+});
 
 const ext = (over: Partial<ModificationFacts> = {}): ModificationFacts => ({ kind: "extension", effectiveDate: "2026-11-15", arrangedBy: "kubera", noteRatePct: 12.5, agreementRecitesBrokerArrangement: true, elements: fullElements, ...over });
 
@@ -180,7 +187,7 @@ describe("locked terms change only through a documented modification", () => {
     const accepted = applyStageEvent({
       deal: { ...deal, stage: "term_sheet" },
       event: "term_sheet_accepted",
-      context: { termSheetRef: "vault://ts.pdf" },
+      context: { termSheetRef: "vault://ts.pdf", compliance: mldsSignedCompliance },
       terms: { lenderName: "Fidelis", noteRatePct: 12.5, termMonths: 12 },
       now: now(),
     });
