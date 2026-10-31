@@ -2,6 +2,8 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { CommandBar } from "@/components/ask/CommandBar";
+import { MotionProvider } from "@/components/ui/MotionProvider";
+import { SkipLink } from "@/components/ui/SkipLink";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -26,8 +28,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-dvh">
-        {children}
-        <CommandBar />
+        <SkipLink />
+        <MotionProvider>
+          {children}
+          <CommandBar />
+        </MotionProvider>
       </body>
     </html>
   );

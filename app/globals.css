@@ -4,12 +4,19 @@
   --color-canvas: #f5f5f7;
   --color-surface: #ffffff;
   --color-ink: #1d1d1f;
-  --color-titanium: #86868b;
+  /* Secondary text. 5.0:1 on white and 4.7:1 on canvas (WCAG AA). */
+  --color-titanium: #6e6e73;
   --color-hairline: rgb(0 0 0 / 0.06);
 
-  --color-accent: #059669;
-  --color-accent-hover: #047857;
+  /* Emerald accent: primary CTA background, text links, focus ring. White on
+     accent is 5.5:1; accent text on white is 5.5:1. Dark surfaces remap it. */
+  --color-accent: #047857;
+  --color-accent-hover: #065f46;
+  /* Emerald for text and focus rings on dark surfaces (8.6:1 on ink). */
+  --color-accent-on-dark: #34d399;
+  /* Gold: keep #d4af37 on dark surfaces; on light surfaces use the solid ink. */
   --color-gold: #d4af37;
+  --color-gold-ink: #8a6d16;
 
   --color-pro: #000000;
   --color-pro-surface: #121316;
@@ -20,6 +27,8 @@
 
   --shadow-bento: 0 8px 30px rgb(0 0 0 / 0.04);
   --shadow-float: 0 24px 80px rgb(0 0 0 / 0.18);
+
+  --text-min: 0.75rem; /* 12px: smallest text size anywhere */
 
   --animate-marquee: marquee 60s linear infinite;
   @keyframes marquee {
@@ -50,10 +59,25 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
+  /* Dark surfaces re-point the secondary-text token and the accent text colour
+     so text-titanium and text-accent keep AA contrast without per-component
+     overrides. Backgrounds (bg-accent, pill-primary) are deliberately untouched. */
+  .bg-ink,
+  .bg-pro,
+  .bento-pro,
+  .glass-dark,
+  .on-dark {
+    --color-titanium: #a1a1a6;
+  }
+  kbd { color: color-mix(in srgb, var(--color-ink) 78%, transparent); }
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
@@ -95,6 +119,7 @@
   .pill:active { transform: scale(0.98); }
   .pill-primary { background: var(--color-accent); color: #fff; }
   .pill-primary:hover { background: var(--color-accent-hover); }
+  .pill-primary:focus-visible { outline-offset: 3px; }
   .pill-glass {
     background: rgb(255 255 255 / 0.6);
     border: 1px solid rgb(0 0 0 / 0.08);
@@ -120,22 +145,115 @@
     color: var(--color-ink);
     transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .field:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 4px rgb(5 150 105 / 0.12); }
+  .field { border-color: rgb(0 0 0 / 0.32); } /* 3:1 non-text contrast for the input boundary */
+  .field:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; border-color: var(--color-accent); box-shadow: 0 0 0 4px rgb(4 120 87 / 0.14); }
   .field-label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--color-titanium); margin-bottom: 0.375rem; }
-  .gold-text {
-    background: linear-gradient(135deg, #b8912a 0%, #e9cd6f 45%, #c59a2c 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
+  /* Gold numerals: solid ink on light surfaces (5.0:1), bright gold on dark. */
+  .gold-text { color: var(--color-gold-ink); }
+  .bg-ink .gold-text,
+  .bg-pro .gold-text,
+  .bento-pro .gold-text,
+  .glass-dark .gold-text,
+  .on-dark .gold-text { color: var(--color-gold); }
   .badge-gold {
     background: linear-gradient(135deg, rgb(212 175 55 / 0.16), rgb(212 175 55 / 0.06));
-    border: 1px solid rgb(212 175 55 / 0.45);
-    color: #8a6d16;
+    border: 1px solid rgb(138 109 22 / 0.5);
+    color: var(--color-gold-ink);
   }
   .badge-emerald {
-    background: rgb(5 150 105 / 0.08);
-    border: 1px solid rgb(5 150 105 / 0.3);
+    background: rgb(4 120 87 / 0.08);
+    border: 1px solid rgb(4 120 87 / 0.35);
     color: var(--color-accent-hover);
   }
+
+  /* Skip link: first tab stop, visible only when focused. */
+  .skip-link {
+    position: fixed;
+    left: 0.75rem;
+    top: 0.75rem;
+    z-index: 100;
+    transform: translateY(-200%);
+    border-radius: 9999px;
+    background: var(--color-ink);
+    color: #fff;
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+  .skip-link:focus-visible { transform: none; outline-color: #fff; outline-offset: -4px; }
+
+  /* CSS-only scroll reveal. Content is always visible in the server HTML; the
+     fade only runs where scroll-driven animations exist and motion is allowed. */
+  .reveal { opacity: 1; transform: none; }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: reveal-in linear both;
+        animation-timeline: view();
+        animation-range: entry calc(var(--reveal-step, 0) * 4%) entry calc(45% + var(--reveal-step, 0) * 4%);
+      }
+    }
+  }
+
+
+}
+
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Type floor. Components written before the 12px minimum still use 10-11px
+   arbitrary sizes; clamp them here until each is migrated to text-xs. */
+[class*="text-[9px]"],
+[class*="text-[10px]"],
+[class*="text-[11px]"] {
+  font-size: var(--text-min);
+  line-height: 1.4;
+}
+
+/* Low-alpha white text on dark surfaces (white/30 to white/50) fails AA. */
+.bg-ink [class*="text-white/3"],
+.bg-ink [class*="text-white/4"],
+.bg-ink [class*="text-white/5"],
+.bg-pro [class*="text-white/3"],
+.bg-pro [class*="text-white/4"],
+.bg-pro [class*="text-white/5"],
+.bento-pro [class*="text-white/3"],
+.bento-pro [class*="text-white/4"],
+.bento-pro [class*="text-white/5"] {
+  color: rgb(255 255 255 / 0.68) !important;
+}
+
+/* Radix dialog enter/exit. Reduced motion collapses these via the base layer. */
+.dialog-overlay[data-state="open"] { animation: dialog-fade 0.18s ease-out; }
+.dialog-content[data-state="open"] { animation: dialog-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1); }
+@keyframes dialog-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dialog-pop { from { opacity: 0; scale: 0.98; } to { opacity: 1; scale: 1; } }
+
+/* AI entry points hide when /api/ask reports 503 (components/ask/availability.ts). */
+html[data-ask="off"] [data-ask-entry] { display: none !important; }
+
+/* Accent text and focus rings on dark surfaces. */
+.bg-ink .text-accent,
+.bg-pro .text-accent,
+.bento-pro .text-accent,
+.glass-dark .text-accent,
+.on-dark .text-accent { color: var(--color-accent-on-dark); }
+.bg-ink :focus-visible,
+.bg-pro :focus-visible,
+.bento-pro :focus-visible,
+.on-dark :focus-visible { outline-color: var(--color-accent-on-dark); }
+
+/* Rate ticker. Unlayered with !important because Tailwind's animate-marquee
+   utility sets the animation shorthand and would otherwise win. It pauses via
+   the control, on hover and on keyboard focus; with reduced motion it stops
+   and becomes a scrollable row instead of an auto-scrolling strip. */
+.ticker[data-paused="true"] .ticker-track,
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none !important; }
+  .ticker-scroller { overflow-x: auto; }
+  .ticker-dup { display: none; }
 }
