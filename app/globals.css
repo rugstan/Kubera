@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-ink: #1d1d1f;
+  --color-titanium: #86868b;
+  --color-hairline: rgb(0 0 0 / 0.06);
+
+  --color-accent: #059669;
+  --color-accent-hover: #047857;
+  --color-gold: #d4af37;
+
+  --color-pro: #000000;
+  --color-pro-surface: #121316;
+  --color-pro-hairline: rgb(255 255 255 / 0.1);
+
+  --font-sans: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter Variable", Inter, system-ui, sans-serif;
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Variable", Inter, system-ui, sans-serif;
+
+  --shadow-bento: 0 8px 30px rgb(0 0 0 / 0.04);
+  --shadow-float: 0 24px 80px rgb(0 0 0 / 0.18);
+
+  --animate-marquee: marquee 60s linear infinite;
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scroll-padding-top: 72px;
+  }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgb(255 255 255 / 0.78);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  .glass-dark {
+    background: rgb(22 22 23 / 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  .bento {
+    background: var(--color-surface);
+    border: 1px solid var(--color-hairline);
+    border-radius: 1.5rem;
+    box-shadow: var(--shadow-bento);
+  }
+  .bento-pro {
+    background: var(--color-pro-surface);
+    border: 1px solid var(--color-pro-hairline);
+    border-radius: 1.5rem;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+  }
+  .pill:active { transform: scale(0.98); }
+  .pill-primary { background: var(--color-accent); color: #fff; }
+  .pill-primary:hover { background: var(--color-accent-hover); }
+  .pill-glass {
+    background: rgb(255 255 255 / 0.6);
+    border: 1px solid rgb(0 0 0 / 0.08);
+    color: var(--color-ink);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  .pill-glass:hover { background: rgb(255 255 255 / 0.9); }
+  .eyebrow {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-titanium);
+  }
+  .field {
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid rgb(0 0 0 / 0.1);
+    background: #fff;
+    padding: 0.7rem 0.9rem;
+    font-size: 1rem;
+    color: var(--color-ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 4px rgb(5 150 105 / 0.12); }
+  .field-label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--color-titanium); margin-bottom: 0.375rem; }
+  .gold-text {
+    background: linear-gradient(135deg, #b8912a 0%, #e9cd6f 45%, #c59a2c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .badge-gold {
+    background: linear-gradient(135deg, rgb(212 175 55 / 0.16), rgb(212 175 55 / 0.06));
+    border: 1px solid rgb(212 175 55 / 0.45);
+    color: #8a6d16;
+  }
+  .badge-emerald {
+    background: rgb(5 150 105 / 0.08);
+    border: 1px solid rgb(5 150 105 / 0.3);
+    color: var(--color-accent-hover);
+  }
+}
