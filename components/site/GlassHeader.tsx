@@ -33,11 +33,46 @@ const DESKTOP_LINKS = NAV.filter((n) => !n.href.startsWith("/financing"));
 
 export function GlassHeader() {
   const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  // Space left under the bar. The rate ticker sits above the sticky header
+  // until the page scrolls, so this is measured rather than assumed to be
+  // 100dvh minus the 56px bar; the CSS max-height is the first-frame fallback.
+  const [panelMax, setPanelMax] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bottom = Math.max(0, navRef.current?.getBoundingClientRect().bottom ?? 0);
+        // Less 1px for the header's bottom border.
+        setPanelMax(Math.max(0, Math.floor(window.innerHeight - bottom) - 1));
+      });
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    measure();
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
     <header className="glass sticky top-0 z-40 border-b border-black/[0.06]">
-      <nav className="mx-auto flex h-14 max-w-[1280px] items-center justify-between gap-4 px-5 md:px-8" aria-label="Primary">
+      <nav ref={navRef} className="mx-auto flex h-14 max-w-[1280px] items-center justify-between gap-4 px-5 md:px-8" aria-label="Primary">
         <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Kubera Commercial home">
-          <Logo />
+          <Logo compact />
         </Link>
         <ul className="hidden items-center gap-7 text-[13px] text-ink/80 xl:flex">
           <li>
@@ -66,6 +101,7 @@ export function GlassHeader() {
             Size a loan
           </Link>
           <button
+            ref={toggleRef}
             type="button"
             className="ml-1 grid size-9 place-items-center rounded-full xl:hidden"
             aria-expanded={open}
@@ -82,27 +118,37 @@ export function GlassHeader() {
       </nav>
       <AnimatePresence>
         {open && (
-          <motion.ul
-            id="mobile-nav"
+          // The outer box animates its height; the inner box caps the panel at
+          // the space under the bar and scrolls, so every link stays
+          // reachable on short viewports and at high zoom (WCAG 1.4.10, 2.4.11).
+          <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
-            className="overflow-hidden border-t border-black/[0.06] px-5 xl:hidden"
+            className="overflow-hidden xl:hidden"
           >
-            {NAV.map((n) => (
-              <li key={n.href} className="border-b border-black/[0.04] last:border-none">
-                <Link href={n.href} onClick={() => setOpen(false)} className="block py-3.5 text-[17px] font-medium">
-                  {n.label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <button type="button" data-ask-entry onClick={() => { setOpen(false); openCommandBar(); }} className="block w-full py-3.5 text-left text-[17px] font-medium text-accent">
-                Ask Kubera AI
-              </button>
-            </li>
-          </motion.ul>
+            <div
+              data-mobile-nav-scroll
+              style={panelMax === null ? undefined : { maxHeight: panelMax }}
+              className="max-h-[calc(100dvh-3.5rem)] overflow-y-auto overscroll-contain border-t border-black/[0.06]"
+            >
+              <ul id="mobile-nav" className="px-5">
+                {NAV.map((n) => (
+                  <li key={n.href} className="border-b border-black/[0.04] last:border-none">
+                    <Link href={n.href} onClick={() => setOpen(false)} className="block py-3.5 text-[17px] font-medium">
+                      {n.label}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <button type="button" data-ask-entry onClick={() => { setOpen(false); openCommandBar(); }} className="block w-full py-3.5 text-left text-[17px] font-medium text-accent">
+                    Ask Kubera AI
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </header>
