@@ -18,6 +18,45 @@ export const contactSchema = z.object({
   consent: z.boolean().default(false),
 });
 
+/** Self-reported guarantor credit band; a band, not a score, keeps the intake out of credit-report territory. */
+export const creditBands = ["740_PLUS", "700_739", "660_699", "BELOW_660"] as const;
+
+const percent = (max: number) => z.coerce.number().finite().min(0).max(max);
+
+/** Hard money details (transaction "HARD_MONEY"); every field has a sizing default. */
+export const hardMoneyIntakeSchema = z.object({
+  strategy: z.enum(["FIX_AND_FLIP", "BRIDGE"]).default("FIX_AND_FLIP"),
+  purpose: z.enum(["PURCHASE", "REFINANCE"]).default("PURCHASE"),
+  rehabBudget: money.default(0),
+  /** After-repair (or as-stabilized) value. */
+  arv: optionalMoney,
+  termMonths: z.coerce.number().int().min(6).max(36).default(12),
+  holdMonths: z.coerce.number().int().min(1).max(60).optional(),
+  /** Comparable projects completed in the last 36 months. */
+  completedProjects: z.coerce.number().int().min(0).max(1_000).default(0),
+  existingPayoff: optionalMoney,
+});
+
+/** Ground-up construction budget (transaction "CONSTRUCTION"). Percentages are 0–100. */
+export const constructionIntakeSchema = z.object({
+  landCost: money,
+  hardCosts: money,
+  softCosts: money.default(0),
+  contingencyPct: percent(50).default(5),
+  developerFeePct: percent(10).default(3),
+  gmpContract: z.boolean().default(false),
+  constructionMonths: z.coerce.number().int().min(3).max(60).default(18),
+  leaseUpMonths: z.coerce.number().int().min(0).max(36).default(6),
+  asCompletedValue: optionalMoney,
+  completedProjects: z.coerce.number().int().min(0).max(1_000).default(0),
+});
+
+/** Rent detail for 1–4 unit rentals (DSCR = rent / PITIA). */
+export const rentalIntakeSchema = z.object({
+  monthlyRent: money,
+  monthlyTaxesInsuranceHoa: money.default(0),
+});
+
 export const intakeSchema = z.object({
   assetType: z.enum([
     "ASSISTED_LIVING",
@@ -30,8 +69,11 @@ export const intakeSchema = z.object({
     "MULTIFAMILY",
     "MIXED_USE",
     "COMMERCIAL",
+    /** 2–4 unit residential investor property (DSCR rental or hard money). */
+    "RESIDENTIAL_2_4",
   ]),
-  transaction: z.enum(["PURCHASE", "REFINANCE", "CONSTRUCTION", "CONVERSION"]),
+  /** HARD_MONEY: short-term private loan (fix-and-flip or bridge), details in `hardMoney`. */
+  transaction: z.enum(["PURCHASE", "REFINANCE", "CONSTRUCTION", "CONVERSION", "HARD_MONEY"]),
   loanAmount: money.refine((v) => v >= 250_000, "Minimum $250,000"),
   noi: money,
   value: optionalMoney,
@@ -45,6 +87,10 @@ export const intakeSchema = z.object({
   nonRecourseOnly: z.boolean().default(false),
   green: z.boolean().default(false),
   ownerOperator: z.boolean().default(true),
+  creditBand: z.enum(creditBands).optional(),
+  hardMoney: hardMoneyIntakeSchema.optional(),
+  construction: constructionIntakeSchema.optional(),
+  rental: rentalIntakeSchema.optional(),
   notes: z.string().trim().max(2_000).optional().default(""),
   source: z.enum(["express", "sizer", "ask", "website"]).default("website"),
 });
