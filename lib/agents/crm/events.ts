@@ -17,7 +17,8 @@ import type { CrmTask } from "./scopes";
 /** Versions stamped on every event (registered in the prompt and model registry by WS-AB). */
 export const CRM_AGENT_VERSIONS = {
   tool: "crm-tools@1",
-  callSummaryPrompt: "crm-call-summary@1",
+  /** The registered call-summary prompt (lib/agents/crm/call-notes.ts callSummaryPrompt()). */
+  callSummaryPrompt: "crm.call_summary@1.1.0",
 } as const;
 
 export const AGENT_EVENT_PHASES = [

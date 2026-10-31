@@ -157,7 +157,7 @@ const PATTERNS: Pattern[] = [
   { kind: "roleImpersonation", severity: "high", re: /(^|\n)[ \t]*(#{1,6}[ \t]*)?(system|developer)[ \t]+(prompt|message|override|instructions?)[ \t]*:/gi },
   { kind: "roleImpersonation", severity: "high", re: /\b(begin|start|end)\s+(of\s+)?(the\s+)?(system|developer|hidden|secret)\s+(prompt|message|instructions?)\b/gi },
   { kind: "roleImpersonation", severity: "high", re: /\b(message|note|instructions?|notice) (from|by) (the )?(system administrator|system|developer|anthropic|openai|kubera (it|security|admin|ai))\b[^.!?\n]{0,20}?:/gi },
-  { kind: "blockEscape", severity: "high", re: /<\/\s*(untrusted[a-z0-9_-]*|email|document|body|data|content|attachment|context|user_data)\s*>/gi },
+  { kind: "blockEscape", severity: "high", re: /<\/\s*(untrusted[a-z0-9_-]*|email|document|body|data|content|attachments?|context|user_data|transcript|call|term_sheet|subject|from)\s*>/gi },
 
   // Asking the agent to call tools or approve things.
   {

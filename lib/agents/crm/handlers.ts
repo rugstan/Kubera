@@ -6,10 +6,11 @@
 // Handlers return counts and statuses only (workflow step results are
 // persisted), never note text, transcripts or contact details.
 
+import type { AgentEventStore } from "@/lib/agents/core/events";
+import { recordInjection, taintFromCodes } from "@/lib/agents/core/inbound";
 import type { ModelGateway } from "@/lib/ai/gateway";
 import { mailRoutedSchema } from "@/lib/workflows/events";
 import { callNoteOp, callTaskDrafts, summarizeCall, type CallRecord } from "./call-notes";
-import { CRM_AGENT_VERSIONS } from "./events";
 import { findDuplicates } from "./dedupe";
 import type { CrmLinkLookup, CrmLinks } from "./links";
 import type { RoutedMailSource } from "./mail-source";
@@ -26,8 +27,13 @@ export type CrmAgentDeps = {
   mail: RoutedMailSource | null;
   gateway: ModelGateway | null;
   stageMap?: Readonly<Record<string, string>>;
+  /** agent_events (lib/agents/core): injection findings in call transcripts are recorded here. */
+  events?: Pick<AgentEventStore, "append"> | null;
   now?: () => Date;
 };
+
+/** CRM agent version for core agent_events rows. */
+const CRM_AGENT_SEMVER = "1.1.0";
 
 const nowOf = (deps: Pick<CrmAgentDeps, "now">) => (deps.now ?? (() => new Date()))();
 
@@ -59,7 +65,9 @@ export async function handleMailRouted(data: unknown, deps: CrmAgentDeps): Promi
   const links = await linksFor({ dealId: mail.dealId, leadId: mail.leadId }, deps);
 
   const decision = noteFromMail(mail, links);
-  const base = { dealId: mail.dealId, leadId: mail.leadId } as const;
+  // The note is built from the model's reading of an untrusted email: carry its taint.
+  const taint = taintFromCodes("email", mail.injectionCodes ?? []);
+  const base = { dealId: mail.dealId, leadId: mail.leadId, taint } as const;
   const note: WriteOutcome =
     "skip" in decision
       ? { status: "skipped", reason: decision.skip }
@@ -92,8 +100,14 @@ export async function handleCallLogged(call: CallRecord, deps: CrmAgentDeps): Pr
     return { note: skipped, tasks: [], summarized: false, fallbackReason: null };
   }
   const result = await summarizeCall(call, { gateway: deps.gateway });
-  const base = { dealId: call.dealId, leadId: call.leadId } as const;
-  const model = { model: result.model, promptVersion: result.summary ? CRM_AGENT_VERSIONS.callSummaryPrompt : null } as const;
+  await recordInjection(
+    deps.events,
+    { agent: "crm", agentVersion: CRM_AGENT_SEMVER, task: "call_notes", prompt: result.prompt, dealId: call.dealId, leadId: call.leadId, label: `call ${call.direction}` },
+    result.guard,
+  );
+  const base = { dealId: call.dealId, leadId: call.leadId, taint: result.guard.taint } as const;
+  // Prompt id and version come from the agent registry (the prompt the model call actually used).
+  const model = { model: result.model, promptVersion: result.summary && result.prompt ? `${result.prompt.id}@${result.prompt.version}` : null } as const;
   const note = await deps.writer.submit(callNoteOp(call, result, targets), {
     task: "call_notes",
     idempotencyKey: `note:call:${call.callId}`,

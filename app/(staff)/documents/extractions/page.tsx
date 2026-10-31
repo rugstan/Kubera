@@ -27,6 +27,7 @@ const DOC_TYPE_LABELS: Record<DocType, string> = {
 
 const WARNING_LABELS: Record<string, string> = {
   doc_type_inferred: "Document type was inferred, not declared",
+  injection_suspected: "The document contained text addressed to an AI; it was removed before extraction, so check every figure",
   [RESTRICTED_FIELDS_UNAVAILABLE]: "Restricted fields cannot be decrypted on this deployment",
 };
 const warningLabel = (w: string) => WARNING_LABELS[w] ?? w.replace(/_/g, " ");
@@ -100,12 +101,14 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
       {queue.length === 0 ? (
         <div className="bento p-10 text-center text-titanium">Nothing is waiting for review.</div>
       ) : (
-        <ul className="grid gap-4" aria-label="Extractions waiting for review">
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-4" aria-label="Extractions waiting for review">
           {queue.map((rec) => {
             const title = `${rec.doc_type ? DOC_TYPE_LABELS[rec.doc_type] : "Document"}${rec.attachment_name ? `: ${rec.attachment_name}` : ""}`;
             const unavailable = rec.warnings.includes(RESTRICTED_FIELDS_UNAVAILABLE);
             return (
-              <li key={rec.id}>
+              // min-w-0: a grid item otherwise grows to its content's min width, so the field
+              // table would widen the page instead of scrolling inside its own wrapper.
+              <li key={rec.id} className="min-w-0">
                 <article className="bento p-6" aria-labelledby={`extraction-${rec.id}`}>
                   <div className="flex flex-wrap items-center gap-2 text-[13px]">
                     <span className="badge-gold rounded-full px-2.5 py-0.5 font-medium">Needs review</span>

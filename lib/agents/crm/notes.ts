@@ -29,6 +29,8 @@ export type RoutedMail = {
   attachmentCount: number;
   automated: boolean;
   bulk: boolean;
+  /** Injection reason codes the inbound guard stored with the message (lib/agents/core/inbound.ts). */
+  injectionCodes?: string[];
 };
 
 export const NO_NOTE_CATEGORIES: ReadonlySet<string> = new Set(["auto_reply", "marketing", "spam_or_phishing"]);

@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
+import { agentSafety } from "@/lib/agents/core/server";
 import { AllInError } from "@/lib/agents/lenders/all-in";
 import { CreditBoxError } from "@/lib/agents/lenders/credit-box";
 import { OutreachError, submitToLenders } from "@/lib/agents/lenders/outreach";
@@ -172,7 +173,7 @@ export async function ingestTermSheetsAction(f: FormData): Promise<never> {
   return run(back, "write", async ({ staff, rt }) => {
     const dealId = str(f, "dealId");
     dealPath(dealId);
-    const r = await ingestTermSheets({ quotes: rt.store, desk: rt.desk.store, mail: rt.mail, gateway: modelGateway(), now: rt.desk.now, indexRates: indexRatesFromEnv() }, { dealId, actor: staff.actor });
+    const r = await ingestTermSheets({ quotes: rt.store, desk: rt.desk.store, mail: rt.mail, gateway: modelGateway(), now: rt.desk.now, indexRates: indexRatesFromEnv(), events: agentSafety().events }, { dealId, actor: staff.actor });
     if (!r.parsed && !r.errors.length) return r.skipped ? "No new term sheets; every routed term sheet already has a quote." : "No term sheets from lenders@ are routed to this deal yet.";
     return `Parsed ${r.parsed} term sheet${r.parsed === 1 ? "" : "s"}; ${r.needsReview} need${r.needsReview === 1 ? "s" : ""} review.${r.errors.length ? ` Errors: ${r.errors.slice(0, 2).join("; ")}` : ""}`;
   });

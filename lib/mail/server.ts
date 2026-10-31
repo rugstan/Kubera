@@ -1,4 +1,5 @@
 import "server-only";
+import { agentSafety } from "@/lib/agents/core/server";
 import { modelGateway } from "@/lib/ai/gateway";
 import { routingSubject } from "@/lib/privacy/requests";
 import { privacyServices } from "@/lib/privacy/server";
@@ -38,5 +39,6 @@ export function inboundMailDeps(): InboundDeps | null {
     sink: supabaseAttachmentSink(db),
     gateway: modelGateway(),
     subjectFor: (email) => routingSubject(privacy?.requests ?? null, email),
+    events: agentSafety().events,
   };
 }

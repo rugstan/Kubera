@@ -2,10 +2,10 @@
 // by default; an NVIDIA model when DOCUMENT_TEXT_MODEL names one and the
 // routing guard allows the document's classification).
 
-import { MODELS, type Effort, type ModelGateway } from "@/lib/ai/gateway";
+import type { Effort, ModelGateway } from "@/lib/ai/gateway";
 import type { ModelCall, ModelExtraction } from "./claude-pdf";
 import { maxTokensFor } from "./claude-pdf";
-import { extractionSchema, parseModelExtraction, systemPrompt, textUserTurn } from "./prompt";
+import { extractionPrompt, extractionSchema, parseModelExtraction, textUserTurn } from "./prompt";
 import { specFor } from "./specs";
 import type { DocType, SourceFormat } from "./types";
 
@@ -21,6 +21,7 @@ export class TextTooLongError extends Error {
 
 export type TextExtractionRequest = {
   docType: DocType;
+  /** Document text after the inbound guard (lib/agents/core/inbound.ts) stripped instruction-like sentences. */
   text: string;
   format: SourceFormat;
   fileName?: string;
@@ -33,11 +34,12 @@ export type TextExtractionRequest = {
 export async function extractFromText(gateway: ModelGateway, req: TextExtractionRequest): Promise<ModelExtraction> {
   if (req.text.length > MAX_TEXT_CHARS) throw new TextTooLongError(req.text.length);
   const spec = specFor(req.docType);
-  const model = req.model ?? MODELS.claude;
+  const prompt = extractionPrompt(req.docType);
+  const model = req.model ?? prompt.model;
   const res = await gateway.complete({
     model,
-    purpose: "document_extraction",
-    system: systemPrompt(req.docType),
+    purpose: prompt.purpose,
+    system: prompt.system,
     messages: [{ role: "user", content: textUserTurn(req.text, { format: req.format, ...(req.fileName ? { fileName: req.fileName } : {}) }) }],
     maxTokens: maxTokensFor(req.docType),
     effort: req.effort ?? "medium",
@@ -45,7 +47,7 @@ export async function extractFromText(gateway: ModelGateway, req: TextExtraction
     declared: { level: spec.classification, categories: ["borrower", "deal"] },
     ...(req.subject ? { subject: req.subject } : {}),
     onSensitive: "refuse",
-    trace: { name: "documents.extract_text", ...(req.traceId ? { traceId: req.traceId } : {}), metadata: { docType: req.docType, format: req.format } },
+    trace: { name: "documents.extract_text", ...(req.traceId ? { traceId: req.traceId } : {}), metadata: { docType: req.docType, format: req.format, promptVersion: prompt.version } },
   });
   const call: ModelCall = {
     provider: res.provider,

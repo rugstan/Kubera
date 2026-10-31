@@ -1,15 +1,20 @@
 // CRM notes from calls. A model summarises the transcript (Claude through the
 // model gateway, so the routing guard and tracing apply); the note is built
 // from the validated, cleaned output, never from model free text pasted
-// through. The transcript is untrusted data: it sits in an escaped block in the
-// user turn, the instructions are frozen in the system prompt, and the model
-// has no tools, so words spoken on a call cannot change what the agent does.
+// through. The transcript is untrusted data: the inbound guard strips
+// instruction-like sentences and scans it first (findings are recorded in
+// agent_events by the handler, and a flagged call's CRM writes wait for a
+// broker), it sits in an escaped block in the user turn, the instructions are
+// frozen in the system prompt (registered in the agent registry), and the
+// model has no tools, so words spoken on a call cannot change what the agent does.
 //
 // Without a usable model (no key, provider error, refusal, routing refusal, or
 // the person opted out of AI processing) the note says so and a task asks the
 // broker to review the transcript themselves: no summary is invented.
 
 import { z } from "zod";
+import { guardInbound, STRIPPED_CONTENT_NOTE, type InboundGuard } from "@/lib/agents/core/inbound";
+import { agentRegistry, type PromptRef, type RegisteredPrompt } from "@/lib/agents/core/registry";
 import { MODELS, type GatewayResponse, type JsonSchema, type ModelGateway } from "@/lib/ai/gateway";
 import { escapeXmlText } from "@/lib/mail/escape";
 import { CRM_AGENT_VERSIONS } from "./events";
@@ -39,7 +44,23 @@ Write for the advisor who will read the note later:
 - summary: two or three neutral sentences on what the call was about and where it ended up.
 - agreed: facts or decisions both sides clearly stated (property, loan amount, timing the borrower said they need, documents promised). Do not infer.
 - followUps: concrete next steps someone committed to, each with who owns it (broker for Kubera staff, borrower, lender, other) and an optional timing hint in the speaker's words.
-Rules: never say or imply that a loan is approved, pre-approved, qualified for, or guaranteed, and never promise a closing date or timeline. Leave out Social Security numbers, tax IDs, account or routing numbers, and dates of birth even if spoken. If the transcript is empty or unintelligible, say so in the summary and return empty lists. Use short plain sentences.`;
+Rules: never say or imply that a loan is approved, pre-approved, qualified for, or guaranteed, and never promise a closing date or timeline. Leave out Social Security numbers, tax IDs, account or routing numbers, and dates of birth even if spoken. If the transcript is empty or unintelligible, say so in the summary and return empty lists. Use short plain sentences.
+
+${STRIPPED_CONTENT_NOTE}`;
+
+/** The call-summary prompt, from the agent registry (idempotent; a text change needs a new version). */
+export function callSummaryPrompt(): RegisteredPrompt {
+  return agentRegistry().registerPrompt({
+    id: "crm.call_summary",
+    version: "1.1.0",
+    description: "CRM call note: summary, agreed facts and follow-ups from a call transcript",
+    purpose: "drafting",
+    model: CALL_SUMMARY_MODEL,
+    effort: "low",
+    maxTokens: 2_000,
+    system: SYSTEM,
+  });
+}
 
 export const CALL_SUMMARY_SCHEMA: JsonSchema = {
   type: "object",
@@ -72,14 +93,29 @@ export type CallSummary = {
   followUps: { action: string; owner: "broker" | "borrower" | "lender" | "other"; timing: string | null }[];
 };
 
-export type CallSummaryResult = { summary: CallSummary | null; fallbackReason: string | null; model: string | null; response: GatewayResponse | null };
+export type CallSummaryResult = {
+  summary: CallSummary | null;
+  fallbackReason: string | null;
+  model: string | null;
+  response: GatewayResponse | null;
+  /** What the inbound guard found and removed in the transcript. */
+  guard: InboundGuard;
+  /** The registered prompt the model call used (null when no model ran). */
+  prompt: PromptRef | null;
+};
 
-export function renderCallForModel(call: CallRecord): string {
+/** Strips and scans the part of the transcript the model reads. */
+export function guardTranscript(call: Pick<CallRecord, "transcript" | "direction">): InboundGuard {
   const transcript = call.transcript.length > MAX_TRANSCRIPT_CHARS ? call.transcript.slice(0, MAX_TRANSCRIPT_CHARS) : call.transcript;
+  return guardInbound("crm", { transcript }, { label: `call ${call.direction}` });
+}
+
+export function renderCallForModel(call: CallRecord, guard: InboundGuard = guardTranscript(call)): string {
+  const truncated = call.transcript.length > MAX_TRANSCRIPT_CHARS;
   return [
     `<call direction="${call.direction}" started="${escapeXmlText(call.startedAt)}" duration_seconds="${Math.max(0, Math.round(call.durationSeconds))}">`,
-    `<transcript${transcript.length < call.transcript.length ? ' truncated="true"' : ""}>`,
-    escapeXmlText(transcript),
+    `<transcript${truncated ? ' truncated="true"' : ""}>`,
+    escapeXmlText(guard.texts.transcript ?? ""),
     "</transcript>",
     "</call>",
     "Write the call note.",
@@ -87,20 +123,24 @@ export function renderCallForModel(call: CallRecord): string {
 }
 
 export async function summarizeCall(call: CallRecord, deps: { gateway: ModelGateway | null; traceId?: string }): Promise<CallSummaryResult> {
-  const none = (fallbackReason: string, response: GatewayResponse | null = null): CallSummaryResult => ({ summary: null, fallbackReason, model: null, response });
+  const guard = guardTranscript(call);
+  let prompt: PromptRef | null = null;
+  const none = (fallbackReason: string, response: GatewayResponse | null = null): CallSummaryResult => ({ summary: null, fallbackReason, model: null, response, guard, prompt });
   if (call.subject?.aiProcessingOptOut || call.subject?.humanReviewOnly) return none("ai_opt_out");
   if (!call.transcript.trim()) return none("empty_transcript");
   if (!deps.gateway || !deps.gateway.available(CALL_SUMMARY_MODEL)) return none("model_unavailable");
 
+  const registered = callSummaryPrompt();
+  prompt = { id: registered.id, version: registered.version, sha256: registered.sha256, model: registered.model };
   let response: GatewayResponse;
   try {
     response = await deps.gateway.complete({
-      model: CALL_SUMMARY_MODEL,
-      purpose: "drafting",
-      system: SYSTEM,
-      messages: [{ role: "user", content: renderCallForModel(call) }],
-      maxTokens: 2_000,
-      effort: "low",
+      model: registered.model,
+      purpose: registered.purpose,
+      system: registered.system,
+      messages: [{ role: "user", content: renderCallForModel(call, guard) }],
+      maxTokens: registered.maxTokens,
+      effort: registered.effort,
       jsonSchema: CALL_SUMMARY_SCHEMA,
       declared: { categories: ["borrower", "deal"] },
       onSensitive: "redact",
@@ -125,6 +165,8 @@ export async function summarizeCall(call: CallRecord, deps: { gateway: ModelGate
     fallbackReason: null,
     model: response.servedModel,
     response,
+    guard,
+    prompt,
   };
 }
 

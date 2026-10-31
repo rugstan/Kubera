@@ -9,11 +9,13 @@
 // email and makes no CRM or other third-party write; downstream agents act on
 // the `kubera/mail.routed` event through the approval gate.
 
+import { recordInjection } from "@/lib/agents/core/inbound";
+import type { AgentEventStore } from "@/lib/agents/core/events";
 import type { ModelGateway } from "@/lib/ai/gateway";
 import { classifyPayload, redactText } from "@/lib/privacy/classification";
 import { encryptField, piiKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { processAttachments, type AttachmentSink } from "./attachments";
-import { classifyMail, type MailClassification } from "./classify";
+import { classifyMail, MAIL_TRIAGE_AGENT, type MailClassification } from "./classify";
 import type { InboundMailbox } from "./mailboxes";
 import { routeMail, type DealDirectory, type MailRoute } from "./route";
 import type { MailRow, MailStore } from "./store";
@@ -34,6 +36,8 @@ export type InboundDeps = {
   /** The sender's privacy preferences (lib/privacy/requests.ts routingSubject). */
   subjectFor?: (email: string) => Promise<{ aiProcessingOptOut: boolean; humanReviewOnly: boolean }>;
   keyring?: PiiKeyring | null;
+  /** agent_events (lib/agents/core): injection findings in inbound mail are recorded here. */
+  events?: Pick<AgentEventStore, "append"> | null;
   now?: () => Date;
 };
 
@@ -88,7 +92,7 @@ export async function processInboundMessage(input: { mailbox: InboundMailbox } &
   const forModel: MailMessage = { ...msg, bodyText: stripQuotedReply(msg.bodyText) || msg.bodyText };
   const subject = deps.subjectFor ? await deps.subjectFor(msg.fromAddress).catch(() => ({ aiProcessingOptOut: true, humanReviewOnly: true })) : undefined;
 
-  const { classification, response, fallbackReason } = await classifyMail(forModel, {
+  const { classification, response, fallbackReason, guard, prompt } = await classifyMail(forModel, {
     gateway: deps.gateway,
     ...(subject ? { subject: { aiProcessingOptOut: subject.aiProcessingOptOut } } : {}),
     ...(ctx.traceId ? { traceId: ctx.traceId } : {}),
@@ -96,6 +100,22 @@ export async function processInboundMessage(input: { mailbox: InboundMailbox } &
   if (fallbackReason) classification.flags.push(`classifier_fallback:${fallbackReason}`);
 
   const route = await routeMail(msg, classification, deps.directory);
+  // Injection findings go to agent_events with their reason codes (the codes also stay in the
+  // stored flags, so the CRM agents acting on this message later carry the taint).
+  await recordInjection(
+    deps.events,
+    {
+      agent: MAIL_TRIAGE_AGENT.id,
+      agentVersion: MAIL_TRIAGE_AGENT.version,
+      task: MAIL_TRIAGE_AGENT.task,
+      prompt,
+      runId: ctx.agentRunId ?? null,
+      dealId: route.dealId ?? null,
+      leadId: route.leadId ?? null,
+      label: `${msg.mailbox}@`,
+    },
+    guard,
+  );
   if (subject?.humanReviewOnly && route.status === "processed") {
     route.status = "needs_review";
     route.reviewReasons.push("human_review_requested");

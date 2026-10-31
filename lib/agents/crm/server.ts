@@ -3,6 +3,7 @@ import { queueApprovalGate } from "@/lib/approvals/gate";
 import { approvalService } from "@/lib/approvals/server";
 import { closedApprovalGate } from "@/lib/compliance/approval-gate";
 import type { ApprovalExecutor } from "@/lib/approvals/executors";
+import { supabaseAgentEventStore } from "@/lib/agents/core/events";
 import { modelGateway } from "@/lib/ai/gateway";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { supabaseIdempotencyStore } from "@/lib/workflows/idempotency";
@@ -57,7 +58,7 @@ export function crmAgentDeps(): CrmAgentDeps | null {
     autonomy: parseAutonomy(process.env.CRM_AGENT_AUTONOMY),
     dealStage: async (dealId) => (await links.forDeal(dealId))?.dealStage ?? null,
   });
-  return (cached = { writer, client, links, mail: supabaseRoutedMailSource(db), gateway: modelGateway(), stageMap: stageMapFromEnv() });
+  return (cached = { writer, client, links, mail: supabaseRoutedMailSource(db), gateway: modelGateway(), stageMap: stageMapFromEnv(), events: supabaseAgentEventStore(db) });
 }
 
 /** Approval executors for lib/approvals/executors-server.ts: empty when the CRM agents are off. */

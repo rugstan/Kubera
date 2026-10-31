@@ -81,7 +81,7 @@ export function ReviewForm({ id, title, fields }: { id: string; title: string; f
             Approve with these values
           </button>
           {!showReject ? (
-            <button type="button" className="pill pill-glass min-h-11 px-5 py-2 text-[15px]" onClick={() => setShowReject(true)} disabled={pending} aria-label={`Reject extraction: ${title}`}>
+            <button type="button" className="pill pill-glass min-h-11 px-5 py-2 text-[15px]" onClick={() => setShowReject(true)} disabled={pending} aria-label={`Reject: ${title}`}>
               Reject
             </button>
           ) : null}

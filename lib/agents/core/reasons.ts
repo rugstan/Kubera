@@ -56,6 +56,14 @@ export const INJECTION_REASONS = {
   emailNotInContext: "injection.email_not_in_context",
 } as const;
 
+/** Codes the inbound guard (lib/agents/core/inbound.ts) adds on top of the per-finding codes. */
+export const INBOUND_REASONS = {
+  /** Instruction-like sentences were removed before the model saw the content. */
+  stripped: "injection.instructions_stripped",
+  /** A medium or high finding: the run is tainted (no automatic actions, trusted recipients only). */
+  flagged: "injection.input_flagged",
+} as const;
+
 export function isReasonCode(code: string): boolean {
   return code.length <= 120 && REASON_CODE_PATTERN.test(code);
 }

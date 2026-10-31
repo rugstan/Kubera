@@ -192,11 +192,31 @@ test("documents open through an audited, short-lived link; quarantined files do 
   expect(blocked.status()).toBe(423);
 });
 
+test("extraction review reflows at 390px and has no serious accessibility violations while items wait", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInBroker(page, "/documents/extractions");
+  await expect(page).toHaveURL(`${base}/documents/extractions`);
+  await expect(page.getByRole("heading", { name: "Extraction review", level: 1 })).toBeVisible();
+  const queue = page.getByRole("list", { name: "Extractions waiting for review" });
+  // The queue streams in behind a Suspense boundary: wait for it (or the empty state) before deciding.
+  await expect(queue.or(page.getByText("Nothing is waiting for review."))).toBeVisible();
+  test.skip((await queue.count()) === 0, "Demo queue already reviewed on a reused server");
+  await expect(queue.getByRole("table").first()).toBeVisible();
+  // Only the field tables scroll sideways, never the page.
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
+  expect(scrollWidth, `page is ${scrollWidth}px wide at a ${innerWidth}px viewport`).toBeLessThanOrEqual(innerWidth);
+  // The approve and reject buttons' names start with their visible text (label-in-name).
+  expect(await seriousViolations(page)).toEqual([]);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  expect(await seriousViolations(page)).toEqual([]);
+});
+
 test("staff review low-confidence extractions: correct and approve, or reject", async ({ page }) => {
   await signInBroker(page, "/documents/extractions");
   await expect(page).toHaveURL(`${base}/documents/extractions`);
   await expect(page.getByRole("heading", { name: "Extraction review", level: 1 })).toBeVisible();
   const queue = page.getByRole("list", { name: "Extractions waiting for review" });
+  await expect(queue.or(page.getByText("Nothing is waiting for review."))).toBeVisible();
   const pfs = queue.getByRole("article", { name: /Personal financial statement: Sunrise guarantor PFS/ });
   test.skip((await pfs.count()) === 0, "Demo queue already reviewed on a reused server");
 
@@ -217,7 +237,7 @@ test("staff review low-confidence extractions: correct and approve, or reject", 
   await expect(queue.getByRole("article", { name: /Sunrise guarantor PFS/ })).toHaveCount(0);
 
   const t12 = queue.getByRole("article", { name: /T-12 operating statement: Harbor Inn/ });
-  await t12.getByRole("button", { name: /^Reject extraction/ }).click();
+  await t12.getByRole("button", { name: /^Reject: / }).click();
   await t12.getByLabel("Reason for rejecting").fill("Wrong year; the borrower will send the 2026 T-12");
   await t12.getByRole("button", { name: "Reject extraction" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Extraction rejected" })).toBeVisible();

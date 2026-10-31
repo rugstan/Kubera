@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabaseAgentEventStore } from "@/lib/agents/core/events";
 import { modelGateway } from "@/lib/ai/gateway";
 import { supabaseVaultStorage } from "@/lib/documents/storage";
 import { supabaseDocumentStore, supabaseEventLog } from "@/lib/documents/store";
@@ -62,6 +63,7 @@ export function documentAgentDeps(): ExtractionDeps | null {
     vault: { documents: supabaseDocumentStore(db), storage: supabaseVaultStorage(db), events: supabaseEventLog(db) },
     aiOptOut: leadAiOptOut(db),
     runs: supabaseAgentRunStore(db),
+    agentEvents: supabaseAgentEventStore(db),
     config,
   };
 }

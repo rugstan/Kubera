@@ -4,16 +4,21 @@
 //
 // Primary path: Claude through the model gateway (purpose
 // `document_extraction`) with a JSON-schema structured output. The email is
-// untrusted data: it sits in an escaped <term_sheet> block in the user turn,
-// the instructions are frozen in the system prompt, and the model has no
-// tools, so an injected instruction can at most produce wrong numbers — which
-// the range checks below drop and staff review catches.
+// untrusted data: the inbound guard strips instruction-like sentences and
+// scans it first (a flagged term sheet always goes to review, and the intake
+// records the findings in agent_events), it sits in an escaped <term_sheet>
+// block in the user turn, the instructions are frozen in the system prompt
+// (registered in the agent registry), and the model has no tools, so an
+// injected instruction can at most produce wrong numbers — which the range
+// checks below drop and staff review catches.
 //
 // Fallback path: deterministic rules (no key, provider down, refusal, routing
 // refusal, invalid output). Rules results are always low-confidence, so they
 // land in the review queue.
 
 import { z } from "zod";
+import { guardInbound, STRIPPED_CONTENT_NOTE, type InboundGuard } from "@/lib/agents/core/inbound";
+import { agentRegistry, type PromptRef, type RegisteredPrompt } from "@/lib/agents/core/registry";
 import { MODELS, type JsonSchema, type ModelGateway } from "@/lib/ai/gateway";
 import { escapeXmlText } from "@/lib/mail/escape";
 import { bindingConstraints, prepayKinds, recourseKinds, type BindingConstraint, type PrepayKind, type QuoteTerms, type Recourse } from "./types";
@@ -152,14 +157,36 @@ Return only the JSON object the schema describes:
 - ratePct is the all-in note rate. If only an index and spread are given and the document states the index level, add them; otherwise leave ratePct null and fill indexName and spreadBps.
 - termMonths and amortizationMonths in months ("10-year term" = 120). If the loan is interest-only for the whole term set interestOnlyFullTerm true and amortizationMonths null.
 - prepaySchedule for step-downs such as "5/4/3/2/1" = [5,4,3,2,1].
-- confidence: for every field, 0 to 1 — how clearly the document states the value you returned (1 = stated verbatim, 0.5 = inferred from context, 0 = absent). A null field has confidence 0 unless the document clearly says the term does not apply.`;
+- confidence: for every field, 0 to 1 — how clearly the document states the value you returned (1 = stated verbatim, 0.5 = inferred from context, 0 = absent). A null field has confidence 0 unless the document clearly says the term does not apply.
+
+${STRIPPED_CONTENT_NOTE}`;
+
+/** The term-sheet prompt, from the agent registry (idempotent; a text change needs a new version). */
+export function termSheetPrompt(): RegisteredPrompt {
+  return agentRegistry().registerPrompt({
+    id: "lenders.term_sheet",
+    version: "1.1.0",
+    description: "Lender term sheet or quote email to normalized loan terms with per-field confidence",
+    purpose: "document_extraction",
+    model: TERM_SHEET_MODEL,
+    effort: "medium",
+    maxTokens: 8_000,
+    system: SYSTEM,
+  });
+}
+
+/** Strips and scans the untrusted parts of a term-sheet email (what the parser reads). */
+export function guardTermSheet(doc: { from: string; subject: string; body: string }): InboundGuard {
+  const body = doc.body.length > TERM_SHEET_CHARS ? doc.body.slice(0, TERM_SHEET_CHARS) : doc.body;
+  return guardInbound("email", { from: doc.from, subject: doc.subject, body }, { label: "lenders@ term sheet" });
+}
 
 /** Renders the untrusted document for the model: escaped, truncated, inside a data block. */
-export function renderTermSheetForModel(doc: { from: string; subject: string; body: string; receivedAt: string }): { text: string; truncated: boolean } {
+export function renderTermSheetForModel(doc: { from: string; subject: string; body: string; receivedAt: string }, guard: InboundGuard = guardTermSheet(doc)): { text: string; truncated: boolean } {
   const truncated = doc.body.length > TERM_SHEET_CHARS;
-  const body = truncated ? doc.body.slice(0, TERM_SHEET_CHARS) : doc.body;
+  const body = guard.texts.body ?? "";
   return {
-    text: `<term_sheet>\n<from>${escapeXmlText(doc.from)}</from>\n<subject>${escapeXmlText(doc.subject)}</subject>\n<received>${escapeXmlText(doc.receivedAt)}</received>\n<body>\n${escapeXmlText(body)}\n</body>\n</term_sheet>\n\nExtract the loan terms from the term sheet above.`,
+    text: `<term_sheet>\n<from>${escapeXmlText(guard.texts.from ?? "")}</from>\n<subject>${escapeXmlText(guard.texts.subject ?? "")}</subject>\n<received>${escapeXmlText(doc.receivedAt)}</received>\n<body>\n${escapeXmlText(body)}\n</body>\n</term_sheet>\n\nExtract the loan terms from the term sheet above.`,
     truncated,
   };
 }
@@ -326,22 +353,31 @@ export type ParseResult = {
   parser: "model" | "rules";
   model: string | null;
   fallbackReason: string | null;
+  /** What the inbound guard found and removed (always run, model or not). */
+  guard: InboundGuard;
+  /** The registered prompt the model call used (null when no model ran). */
+  prompt: PromptRef | null;
 };
 
 export type TermSheetDoc = { from: string; subject: string; body: string; receivedAt: string };
 
 export async function parseTermSheet(doc: TermSheetDoc, deps: { gateway: ModelGateway | null; indexRates?: Record<string, number>; traceId?: string }): Promise<ParseResult> {
-  const rules = (reason: string): ParseResult => ({ extraction: parseTermSheetByRules(doc.body, { indexRates: deps.indexRates }), parser: "rules", model: null, fallbackReason: reason });
+  const guard = guardTermSheet(doc);
+  let prompt: PromptRef | null = null;
+  // Rules read the stripped body too, so an injected sentence cannot plant terms there either.
+  const rules = (reason: string): ParseResult => ({ extraction: parseTermSheetByRules(guard.texts.body ?? "", { indexRates: deps.indexRates }), parser: "rules", model: null, fallbackReason: reason, guard, prompt });
   if (!deps.gateway || !deps.gateway.available(TERM_SHEET_MODEL)) return rules("model_unavailable");
-  const { text, truncated } = renderTermSheetForModel(doc);
+  const registered = termSheetPrompt();
+  prompt = { id: registered.id, version: registered.version, sha256: registered.sha256, model: registered.model };
+  const { text, truncated } = renderTermSheetForModel(doc, guard);
   try {
     const res = await deps.gateway.complete({
-      model: TERM_SHEET_MODEL,
-      purpose: "document_extraction",
-      system: SYSTEM,
+      model: registered.model,
+      purpose: registered.purpose,
+      system: registered.system,
       messages: [{ role: "user", content: text }],
-      maxTokens: 8_000,
-      effort: "medium",
+      maxTokens: registered.maxTokens,
+      effort: registered.effort,
       jsonSchema: TERM_SHEET_SCHEMA,
       declared: { categories: ["partner", "deal"] },
       onSensitive: "redact",
@@ -351,7 +387,7 @@ export async function parseTermSheet(doc: TermSheetDoc, deps: { gateway: ModelGa
     if (res.stopReason === "max_tokens") return rules("model_truncated");
     const extraction = sanitizeExtraction(res.json);
     if (!extraction) return rules("model_output_invalid");
-    return { extraction, parser: "model", model: res.servedModel, fallbackReason: null };
+    return { extraction, parser: "model", model: res.servedModel, fallbackReason: null, guard, prompt };
   } catch (err) {
     const name = err instanceof Error ? err.name : "error";
     return rules(name === "RoutingRefusedError" ? "routing_refused" : `model_error:${name}`);

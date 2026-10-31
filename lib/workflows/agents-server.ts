@@ -1,4 +1,5 @@
 import "server-only";
+import { agentSafety } from "@/lib/agents/core/server";
 import { documentAgentDeps } from "@/lib/agents/documents/server";
 import { documentCleanHandler } from "@/lib/agents/documents/workflow";
 import { handleMailRouted } from "@/lib/agents/crm/handlers";
@@ -39,7 +40,7 @@ export function agentWorkflowHooks(): AgentWorkflowHooks {
       const rt = lenderRuntime();
       if (!rt) return { status: "skipped", reason: "lender_desk_off" };
       const r = await ingestTermSheets(
-        { quotes: rt.store, desk: rt.desk.store, mail: rt.mail, gateway: modelGateway(), now: rt.desk.now, indexRates: indexRatesFromEnv() },
+        { quotes: rt.store, desk: rt.desk.store, mail: rt.mail, gateway: modelGateway(), now: rt.desk.now, indexRates: indexRatesFromEnv(), events: agentSafety().events },
         { dealId, limit: 10, actor: "agent:lenders" },
       );
       return { parsed: r.parsed, needsReview: r.needsReview, skipped: r.skipped, errors: r.errors.length };

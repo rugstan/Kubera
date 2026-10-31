@@ -310,4 +310,6 @@ export const DOC_TYPE_BY_VAULT_KIND: Readonly<Record<string, DocType | undefined
   PIP_BUDGET: "CONSTRUCTION_BUDGET",
 };
 
-export const PROMPT_VERSION = "documents-v1";
+/** Registered extraction prompt version (lib/agents/documents/prompt.ts extractionPrompt); stored on every extraction row. */
+export const EXTRACTION_PROMPT_SEMVER = "1.1.0";
+export const PROMPT_VERSION = `documents.extract@${EXTRACTION_PROMPT_SEMVER}`;

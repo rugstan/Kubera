@@ -13,7 +13,7 @@ import { MODELS, type Effort } from "@/lib/ai/gateway";
 import { CLAUDE_FALLBACK_BETA, claudeResult, supportsServerFallback, type AnthropicLike } from "@/lib/ai/gateway/anthropic";
 import { assertRoutable } from "@/lib/ai/routing";
 import { getTracer, type Tracer } from "@/lib/langfuse";
-import { extractionSchema, parseModelExtraction, PDF_USER_INSTRUCTION, systemPrompt } from "./prompt";
+import { extractionPrompt, extractionSchema, parseModelExtraction, PDF_USER_INSTRUCTION } from "./prompt";
 import { specFor } from "./specs";
 import type { DocType, ExtractionResult } from "./types";
 
@@ -66,7 +66,7 @@ export function buildPdfParams(req: PdfExtractionRequest, opts: { model: string;
     max_tokens: maxTokensFor(req.docType),
     ...(fallback ? { betas: [CLAUDE_FALLBACK_BETA], fallbacks: "default" as const } : {}),
     output_config: { effort: opts.effort, format: { type: "json_schema", schema: extractionSchema(req.docType) } },
-    system: [{ type: "text", text: systemPrompt(req.docType), cache_control: { type: "ephemeral" } }],
+    system: [{ type: "text", text: extractionPrompt(req.docType).system, cache_control: { type: "ephemeral" } }],
     messages: [
       {
         role: "user",
@@ -109,7 +109,7 @@ export class AnthropicDocumentClient implements ClaudeDocumentClient {
     if (req.pdf.byteLength > MAX_PDF_BYTES) throw new PdfTooLargeError(req.pdf.byteLength);
     const model = this.opts.model ?? MODELS.claude;
     const effort = this.opts.effort ?? "medium";
-    const system = systemPrompt(req.docType);
+    const system = extractionPrompt(req.docType).system;
     // Routing guard before a byte leaves: the raw file is restricted borrower data.
     assertRoutable({
       model,

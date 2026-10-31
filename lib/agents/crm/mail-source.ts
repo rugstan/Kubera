@@ -61,6 +61,7 @@ export function routedMailFromRow(r: MailRowDb): RoutedMail {
     attachmentCount: Array.isArray(r.attachments) ? r.attachments.length : 0,
     automated: r.automated,
     bulk: r.bulk,
+    injectionCodes: Array.isArray(c.flags) ? c.flags.filter((f): f is string => typeof f === "string" && f.startsWith("injection.")) : [],
   };
 }
 

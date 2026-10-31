@@ -6,6 +6,8 @@
 import { recordLenderResponse } from "@/lib/deals/packages";
 import type { DealDeskStore } from "@/lib/deals/store";
 import type { Deal, LenderPanelEntry } from "@/lib/deals/types";
+import type { AgentEventStore } from "@/lib/agents/core/events";
+import { recordInjection } from "@/lib/agents/core/inbound";
 import type { ModelGateway } from "@/lib/ai/gateway";
 import { AllInError, compareQuotes, computeAllIn, type ComparisonRow } from "./all-in";
 import { boxFromRegistration, CreditBoxError, editPatch, parseCreditBoxTerms, reviewPatch } from "./credit-box";
@@ -157,7 +159,14 @@ export type IntakeDeps = {
   gateway: ModelGateway | null;
   now: Clock;
   indexRates?: Record<string, number>;
+  /** agent_events (lib/agents/core): injection findings in term-sheet mail are recorded here. */
+  events?: Pick<AgentEventStore, "append"> | null;
 };
+
+/** Agent id and version stamped on the term-sheet intake's events. */
+export const TERM_SHEET_AGENT = { id: "lenders", version: "1.1.0", task: "term_sheet_intake" } as const;
+/** Low-confidence marker on a quote whose term sheet tried to instruct the parser. */
+export const INJECTION_REVIEW_FIELD = "injection_suspected";
 
 export type IntakeSummary = { parsed: number; needsReview: number; skipped: number; errors: string[]; quotes: Quote[] };
 
@@ -255,8 +264,15 @@ export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string
       const lenderName = lender?.name ?? parsed.extraction.lenderName ?? m.fromName ?? m.fromAddress;
       const built = termsFromExtraction(parsed.extraction, { lenderName, fallbackLoanAmountCents: deal.loanAmountCents });
       const outreach = lender ? (await deps.desk.listOutreach(deal.id)).filter((o) => o.lenderId === lender.id && ["sent", "declined", "term_sheet"].includes(o.status)).at(-1) ?? null : null;
+      await recordInjection(
+        deps.events,
+        { agent: TERM_SHEET_AGENT.id, agentVersion: TERM_SHEET_AGENT.version, task: TERM_SHEET_AGENT.task, prompt: parsed.prompt, dealId: deal.id, label: "lenders@ term sheet" },
+        parsed.guard,
+      );
       const lowConfidence = [...built.lowConfidenceFields, ...built.missing.filter((f) => !built.lowConfidenceFields.includes(f))];
       if (!lender) lowConfidence.push("lender");
+      // A term sheet that tried to instruct the parser is never trusted as read.
+      if (parsed.guard.flagged) lowConfidence.push(INJECTION_REVIEW_FIELD);
       const needsReview = lowConfidence.length > 0 || !built.terms;
       const terms = built.terms ?? placeholderTerms(lenderName, deal);
       const { allIn, allInRatePct } = priced(built.terms);
@@ -281,7 +297,13 @@ export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string
           expiresOn: terms.expiresOn,
           reviewedAt: null,
           reviewedBy: null,
-          reviewNote: parsed.fallbackReason ? `Parsed by rules (${parsed.fallbackReason}).` : null,
+          reviewNote:
+            [
+              parsed.fallbackReason ? `Parsed by rules (${parsed.fallbackReason}).` : null,
+              parsed.guard.flagged ? `The email contained text addressed to an AI (${parsed.guard.scan.codes.join(", ")}); it was removed before parsing. Check every term against the original.` : null,
+            ]
+              .filter(Boolean)
+              .join(" ") || null,
           idempotencyKey: key,
         },
         actor,

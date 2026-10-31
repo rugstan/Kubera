@@ -152,6 +152,40 @@ describe("guaranteed timelines", () => {
   });
 });
 
+describe("common phrasings the filter must catch", () => {
+  const mustCatch: [string, GuardrailCategory][] = [
+    ["Congratulations, you qualify for SBA 504 financing.", "commitment"],
+    ["You now qualify for the HUD 223(f) program.", "commitment"],
+    ["We'll hold your earnest money deposit.", "broker_role"],
+    ["Kubera’ll hold the funds until closing.", "broker_role"],
+    ["We'll fund the bridge ourselves.", "broker_role"],
+    ["We would be the lender on this one.", "broker_role"],
+    ["You won't need an MLDS for this loan.", "disclosure_waiver"],
+    ["You will not need an RE 882 at this size.", "disclosure_waiver"],
+    ["Most loans close in 10 days, guaranteed.", "guaranteed_timeline"],
+    ["Funding in two weeks is guaranteed.", "guaranteed_timeline"],
+    ["This loan is approved.", "commitment"],
+    ["That deal has been funded.", "commitment"],
+    ["The interest on this loan is tax deductible.", "legal_advice"],
+    ["Points paid at closing are fully tax-deductible.", "legal_advice"],
+  ];
+  it.each(mustCatch)("flags: %s", (text, category) => {
+    expect(categoriesOf(text)).toContain(category);
+  });
+
+  const stillAllowed = [
+    "Whether you qualify for SBA 504 depends on occupancy and the project.",
+    "If you qualify for HUD 232, the timeline is longer.",
+    "We can't hold your earnest money deposit; escrow holds it.",
+    "The SBA 7(a) program funds through banks with an SBA-guaranteed portion.",
+    "Closing in 21 days is not guaranteed.",
+    "Ask your CPA whether the interest is tax deductible.",
+  ];
+  it.each(stillAllowed)("allows: %s", (text) => {
+    expect(checkText(text).violations).toEqual([]);
+  });
+});
+
 describe("broker-only role, disclosures and copy", () => {
   it("flags Kubera acting as lender, holding funds or running draws", () => {
     expect(categoriesOf("We fund these loans directly from our balance sheet.")).toContain("broker_role");

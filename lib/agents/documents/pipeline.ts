@@ -16,6 +16,8 @@
 // rules-only extraction (and review).
 
 import { createHash } from "node:crypto";
+import type { AgentEventStore } from "@/lib/agents/core/events";
+import { guardInbound, recordInjection, type InboundGuard } from "@/lib/agents/core/inbound";
 import { GatewayProviderError, GatewayUnavailableError, MODELS, type Effort, type ModelGateway } from "@/lib/ai/gateway";
 import { providerForModel, RoutingRefusedError } from "@/lib/ai/routing";
 import type { DocumentEventLog, DocumentStore } from "@/lib/documents/store";
@@ -27,6 +29,7 @@ import { classifyDocument } from "./classify";
 import { mergeExtractions } from "./merge";
 import type { NemoRetrieverClient } from "./nemo";
 import { parseDocument, UnsupportedDocumentError } from "./parse";
+import { extractionPromptRef } from "./prompt";
 import { extractWithRules } from "./rules";
 import { DOC_TYPE_BY_VAULT_KIND, PROMPT_VERSION, specFor } from "./specs";
 import { isRestrictedExtraction, RestrictedExtractionError, type ConstructionBudgetRecord, type ConstructionBudgetStore, type ExtractionEventLog, type ExtractionRecord, type ExtractionStore, type NewExtraction } from "./store";
@@ -64,9 +67,16 @@ export type ExtractionDeps = {
   /** Has the data subject (lead) opted out of AI processing (privacy_preferences)? */
   aiOptOut?: (leadId: string | null) => Promise<boolean>;
   runs?: AgentRunStore;
+  /** agent_events (lib/agents/core): injection findings in document text are recorded here. */
+  agentEvents?: Pick<AgentEventStore, "append"> | null;
   clock?: Clock;
   config?: ExtractionConfig;
 };
+
+/** Agent id and version stamped on the extraction agent's core events. */
+export const DOCUMENTS_AGENT = { id: "documents", version: "1.1.0", task: "document_extraction" } as const;
+/** Warning on an extraction whose document text tried to instruct the model (always reviewed). */
+export const INJECTION_WARNING = "injection_suspected";
 
 type Common = { docType?: DocType; dealId?: string | null; actor?: string };
 export type ExtractionInput =
@@ -263,6 +273,14 @@ export async function extractDocument(deps: ExtractionDeps, input: ExtractionInp
   let modelName: string | null = null;
   // Restricted documents (PFS) may only go to Claude, whatever text model is configured.
   const textModel = spec.classification === "restricted" && providerForModel(cfg.textModel) !== "anthropic" ? MODELS.claude : cfg.textModel;
+  let guard: InboundGuard | null = null;
+  if (rulesAssessment.status === "needs_review" && !optOut) {
+    // The document is untrusted: strip instruction-like sentences and scan before any model
+    // sees it. The PDF path sends the file itself, so a finding in its text layer still
+    // taints the run and sends the extraction to review.
+    guard = guardInbound("document", { text }, { label: docType });
+    if (guard.flagged) warnings.push(INJECTION_WARNING);
+  }
   if (rulesAssessment.status === "needs_review") {
     try {
       if (optOut) {
@@ -270,7 +288,7 @@ export async function extractDocument(deps: ExtractionDeps, input: ExtractionInp
       } else if (text.trim() && textQuality >= cfg.minTextQuality && deps.gateway?.available(textModel)) {
         model = await extractFromText(deps.gateway, {
           docType,
-          text,
+          text: guard?.texts.text ?? text,
           format: parsed.format,
           fileName: loaded.fileName,
           model: textModel,
@@ -350,6 +368,23 @@ export async function extractDocument(deps: ExtractionDeps, input: ExtractionInp
   }
 
   // 6. Audit and the construction budget target.
+  if (guard) {
+    await recordInjection(
+      deps.agentEvents,
+      {
+        agent: DOCUMENTS_AGENT.id,
+        agentVersion: DOCUMENTS_AGENT.version,
+        task: DOCUMENTS_AGENT.task,
+        prompt: extractionPromptRef(docType),
+        model: modelName,
+        runId: runId ?? null,
+        dealId: rec.deal_id,
+        leadId: rec.lead_id,
+        label: docType,
+      },
+      guard,
+    );
+  }
   if (routingRefused) await deps.events.record({ extraction_id: rec.id, event_type: "routing_refused", actor, detail: { warnings: result.warnings.filter((w) => w.includes("routing")) } });
   await deps.events.record({
     extraction_id: rec.id,

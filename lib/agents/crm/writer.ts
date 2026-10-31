@@ -15,6 +15,8 @@
 //   one idempotency key, so a change is written at most once.
 
 import { createHash } from "node:crypto";
+import { isFlagged, type TaintState } from "@/lib/agents/core/injection";
+import { TOOL_REASONS } from "@/lib/agents/core/reasons";
 import { payloadHash } from "@/lib/approvals/hash";
 import type { ApprovalGate, OutboundAction } from "@/lib/compliance/approval-gate";
 import { EffectInProgressError, EffectOutcomeUnknownError, idempotentEffect, type IdempotencyStore } from "@/lib/workflows/idempotency";
@@ -50,6 +52,12 @@ export type SubmitContext = {
   promptVersion?: string | null;
   /** Extra non-sensitive facts for the event log. */
   detail?: Record<string, unknown>;
+  /**
+   * What untrusted content produced this change (lib/agents/core/injection.ts). A change
+   * derived from flagged content never writes directly: it waits for a broker, whatever
+   * the autonomy level, and its events carry the injection reason codes.
+   */
+  taint?: TaintState;
 };
 
 export type WriteOutcome =
@@ -114,8 +122,14 @@ export class CrmAgentWriter {
 
   // --- submit -----------------------------------------------------------------------------------
 
-  async submit(input: CrmOperation, ctx: SubmitContext): Promise<WriteOutcome> {
-    const level = this.levelFor(ctx.task);
+  async submit(input: CrmOperation, rawCtx: SubmitContext): Promise<WriteOutcome> {
+    const configured = this.levelFor(rawCtx.task);
+    // Taint narrows scope like the core tool runner: no automatic writes from flagged content.
+    const tainted = rawCtx.taint ? isFlagged(rawCtx.taint) : false;
+    const level: AutonomyLevel = tainted && configured === "automate" ? "assist" : configured;
+    const ctx: SubmitContext = tainted
+      ? { ...rawCtx, reasonCodes: [...new Set([...(rawCtx.reasonCodes ?? []), ...rawCtx.taint!.codes, ...(level !== configured ? [TOOL_REASONS.taintedNoAutomate] : [])])] }
+      : rawCtx;
     const parsed = operationSchema.safeParse(input);
     if (!parsed.success) return this.refuse(ctx, level, "invalid", "invalid_operation", { issues: parsed.error.issues.slice(0, 5).map((i) => i.path.join(".")) });
     const op = parsed.data;

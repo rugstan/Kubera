@@ -76,9 +76,9 @@ const R = (id: string, category: GuardrailCategory, description: string, pattern
 export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   // --- commitment ---------------------------------------------------------------
   R("commitment.you-are-approved", "commitment", "Tells the borrower they are approved", /\byou(?:'re|’re| are| have been|'ve been|’ve been| will be| were)\s+(?:now |already |officially |fully |definitely |all set and )?(?:pre-?)?approved\b/i),
-  R("commitment.loan-approved", "commitment", "Says the loan or application is approved or funded", /\b(?:your|the) (?:loan|application|file|deal|request|financing)\s+(?:is|has been|was|will be|has now been)\s+(?:now |already |officially |fully |pre-?)?(?:approved|funded|committed|cleared)\b/i),
+  R("commitment.loan-approved", "commitment", "Says the loan or application is approved or funded", /\b(?:your|the|this|that) (?:loan|application|file|deal|request|financing)\s+(?:is|has been|was|will be|has now been)\s+(?:now |already |officially |fully |pre-?)?(?:approved|funded|committed|cleared)\b/i),
   R("commitment.will-be-approved", "commitment", "Predicts approval as certain", new RegExp(`\\b${YOU}\\s+(?:will|are going to|is going to|are certain to|is certain to|definitely will|will definitely|will certainly)\\s+(?:definitely |certainly |surely )?(?:be |get |receive )?(?:approved|funded|financed)\\b`, "i")),
-  R("commitment.you-qualify", "commitment", "Tells the borrower they qualify", /\byou(?:'re|’re| are)\s+(?:definitely |already |certainly |clearly )?(?:pre-?)?qualified\s+(?:for|to)\b|\byou\s+(?:(?:will|definitely|certainly|clearly)\s+)+qualify\b/i),
+  R("commitment.you-qualify", "commitment", "Tells the borrower they qualify", /\byou(?:'re|’re| are)\s+(?:definitely |already |certainly |clearly )?(?:pre-?)?qualified\s+(?:for|to)\b|\byou\s+(?:(?:will|definitely|certainly|clearly)\s+)+qualify\b|\byou\s+(?:now\s+|already\s+|also\s+|easily\s+)?qualify\s+for\b/i),
   R("commitment.we-guarantee", "commitment", "Guarantees an outcome", /\b(?:we|kubera|i)\s+(?:can |will |do |hereby )?(?:guarantee|promise|assure|ensure|commit to)\b/i),
   R("commitment.guaranteed-outcome", "commitment", "Guaranteed approval, funding or financing", /\b(?:guaranteed|assured|100%|certain) (?:approval|funding|financing|closing|loan|rate|terms)\b|\b(?:approval|funding|financing|closing)\s+(?:is|are|will be)\s+(?:guaranteed|assured|certain)\b/i),
   R("commitment.rate-lock", "commitment", "Says a rate is locked or guaranteed", /\byour (?:rate|pricing|terms)\s+(?:is|are|has been|have been|will be)\s+(?:locked|guaranteed|fixed|set)\b|\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:lock|secure)\s+(?:in\s+)?(?:a |your |the )?(?:rate|pricing|terms)\b/i),
@@ -91,7 +91,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   R("legal.sue", "legal_advice", "Advises litigation", /\byou\s+(?:should|can|could|ought to)\s+(?:sue|file (?:a )?(?:lawsuit|complaint|claim|suit))\b/i),
   R("legal.attorney-role", "legal_advice", "Presents itself as an attorney or gives a legal opinion", /\b(?:as your (?:attorney|lawyer|counsel)|(?:my|our) (?:legal )?(?:opinion|legal advice)\b|i(?:'m|’m| am) (?:an |your )?(?:attorney|lawyer)\b|this is legal advice)/i),
   R("legal.no-counsel", "legal_advice", "Discourages the borrower from consulting counsel or a CPA", /\b(?:no need|don't need|do not need|don’t need|not necessary|unnecessary)\b[^.]{0,30}\b(?:attorney|lawyer|counsel|cpa|accountant|tax advisor)\b/i, { negatable: false }),
-  R("legal.tax-advice", "legal_advice", "Gives tax advice", /\b(?:you (?:can|should|may|will be able to) (?:deduct|write off|claim)\b|(?:this|that|it|the interest|the fees?) (?:is|are|will be|should be) (?:fully )?(?:tax[- ]deductible|deductible))/i),
+  R("legal.tax-advice", "legal_advice", "Gives tax advice", /\b(?:you (?:can|should|may|will be able to) (?:deduct|write off|claim)\b|(?:this|that|it|the interest|the fees?) (?:is|are|will be|should be) (?:fully )?(?:tax[- ]deductible|deductible))|\b(?:is|are|will be|should be)\s+(?:fully |generally |usually |also |100% )?tax[- ]deductible\b/i),
   R("legal.securities", "legal_advice", "Gives securities-law conclusions", /\b(?:this|that|it) (?:is|isn't|is not|isn’t) (?:a |not a )?(?:security|securities offering)\b|\b(?:exempt from|no need for) securities (?:registration|laws?)\b/i, { negatable: false }),
 
   // --- usury ----------------------------------------------------------------------------
@@ -108,6 +108,14 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
 
   // --- timelines -------------------------------------------------------------------------
   R("timeline.guarantee", "guaranteed_timeline", "Guarantees a closing or funding timeline", /\bguarantee[sd]?\b[^.]{0,50}\b(?:clos|fund|timeline|timing|schedule|in \d+|within \d+|by )/i),
+  // The same claim with "guaranteed" after the timeline ("most loans close in 10 days, guaranteed"). The
+  // SBA's guarantee on a loan ("SBA-guaranteed portion", "guaranteed by the SBA") is not a timeline.
+  R(
+    "timeline.guaranteed-after",
+    "guaranteed_timeline",
+    "States a closing or funding time, then calls it guaranteed",
+    /\b(?:clos|fund)\w*\b[^.]{0,40}(?<![-\w])guaranteed\b(?!\s+(?:portion|share|piece|percentage|amount|part|loans?|by)\b)/i,
+  ),
   R(
     "timeline.will-close-in",
     "guaranteed_timeline",
@@ -118,12 +126,12 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   R("timeline.get-you-closed", "guaranteed_timeline", "Promises a closing date", /\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:definitely |certainly )?(?:get|have)\s+(?:you|your (?:loan|deal|financing))\s+(?:closed|funded)\s+(?:in|within|by|before)\b/i),
 
   // --- broker-only role (Global rule 1) --------------------------------------------------
-  R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)\s+(?:will |can |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)\s+(?:are|is|act as|serve as|will be|will act as)\s+(?:the |your |a )?(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
-  R("role.holds-funds", "broker_role", "Says Kubera holds, receives or disburses money", /\b(?:we|kubera(?: commercial)?)\s+(?:will |can |would )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+(?:your |the |all )?(?:deposit|funds|money|earnest|payment|escrow|proceeds|draws?|retainer)\b|\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|kubera(?: commercial)?)\b|\bto (?:our|kubera's|kubera’s) (?:trust|escrow|client|bank) account\b/i),
+  R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:are|is|act as|serve as|be|will be|will act as|would be)\s+(?:the |your |a )?(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
+  R("role.holds-funds", "broker_role", "Says Kubera holds, receives or disburses money", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+(?:your |the |all )?(?:deposit|funds|money|earnest|payment|escrow|proceeds|draws?|retainer)\b|\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|kubera(?: commercial)?)\b|\bto (?:our|kubera's|kubera’s) (?:trust|escrow|client|bank) account\b/i),
   R("role.draws", "broker_role", "Says Kubera manages or processes construction draws", /\b(?:we|kubera(?: commercial)?)\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee)s?\s+(?:your |the |all |each )?(?:construction )?draws?\b|\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|kubera)\b/i),
 
   // --- disclosure waiver ----------------------------------------------------------------------
-  R("disclosure.mlds-not-needed", "disclosure_waiver", "Says the MLDS (RE 882) is not required", /\b(?:mlds|re ?882|mortgage loan disclosure statement)\b[^.]{0,50}\b(?:isn't|is not|isn’t|not|won't be|won’t be|no longer|never)\s+(?:be )?(?:required|needed|necessary)\b|\b(?:no|skip the|without an?|don't need an?|do not need an?|don’t need an?|doesn't need an?|doesn’t need an?)\s+(?:mlds|re ?882|mortgage loan disclosure statement)\b/i, { negatable: false }),
+  R("disclosure.mlds-not-needed", "disclosure_waiver", "Says the MLDS (RE 882) is not required", /\b(?:mlds|re ?882|mortgage loan disclosure statement)\b[^.]{0,50}\b(?:isn't|is not|isn’t|not|won't be|won’t be|no longer|never)\s+(?:be )?(?:required|needed|necessary)\b|\b(?:no|skip the|without an?|(?:don't|do not|don’t|doesn't|does not|doesn’t|won't|won’t|will not|wouldn't|wouldn’t|would not|shouldn't|shouldn’t)\s+(?:need|require)(?:\s+to\s+(?:sign|get|receive|provide))?\s+(?:an?|the))\s+(?:mlds|re ?882|mortgage loan disclosure statement)\b/i, { negatable: false }),
 
   // --- prohibited copy (Global rule 4) ----------------------------------------------------------
   R("copy.fees-protected", "prohibited_copy", "Claims fees are protected", /\bfees?\s+(?:are |is |will be |remain |stay )?protected\b|\bprotected fees?\b/i),
