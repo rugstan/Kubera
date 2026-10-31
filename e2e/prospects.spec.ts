@@ -203,7 +203,7 @@ test("the prospect list reflows at 390px without sideways page scroll", async ({
   await page.getByLabel("ZIP codes (up to 25)").fill("90001 91201");
   await page.getByRole("button", { name: "Run scan" }).click();
   await expect(page.getByRole("status").filter({ hasText: /Scan complete/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Check waiting outreach for broker decisions" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Check waiting outreach" })).toBeVisible();
   for (const p of ["/prospects", "/prospects/intel", "/prospects/suppressions"]) {
     await page.goto(`${base}${p}`);
     await expect(page).toHaveURL(`${base}${p}`);

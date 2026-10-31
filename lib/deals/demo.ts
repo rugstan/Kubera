@@ -23,6 +23,7 @@ import { createKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { FakeSanctionsClient } from "@/lib/screening/fake";
 import { MemoryDealHoldStore, MemoryScreeningStore } from "@/lib/screening/store";
 import { MemorySpreadStore } from "@/lib/spreads/store";
+import { MemoryIdempotencyStore } from "@/lib/workflows/idempotency";
 import { stageTemplate, templateDigest } from "./stages";
 import { MemoryDealDeskStore } from "./store";
 import type { Deal, DealProgram, LenderPanelEntry } from "./types";
@@ -55,6 +56,8 @@ export type DemoDesks = {
   deals: MemoryDealDeskStore;
   disclosures: MemoryDisclosureStore;
   storage: MemoryDocumentStorage;
+  /** Claims e-sign sends so a retried send creates at most one envelope (workflow_effects in production). */
+  effects: MemoryIdempotencyStore;
   checklists: MemoryChecklistStore;
   principals: MemoryPrincipalStore;
   invites: MemoryPortalInviteStore;
@@ -196,6 +199,7 @@ function buildDemoDesks(): DemoDesks {
     deals: seedDemoDealDesk(),
     disclosures: new MemoryDisclosureStore(),
     storage: new MemoryDocumentStorage(),
+    effects: new MemoryIdempotencyStore(),
     checklists: new MemoryChecklistStore(),
     principals: new MemoryPrincipalStore(),
     invites: new MemoryPortalInviteStore(),

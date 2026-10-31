@@ -112,6 +112,7 @@ function demoRuntime(demo: DemoDesks): DealDeskRuntime {
     disclosures: demo.disclosures,
     storage: demo.storage,
     gate: approvalGate(),
+    effects: demo.effects,
     esign: esignProvider(),
     mailer: emailLenderMailer(emailClientFromEnv()),
     baseUrl: site.siteUrl,
