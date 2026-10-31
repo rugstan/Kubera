@@ -1,18 +1,27 @@
 import { after, NextResponse } from "next/server";
+import { buildConsentEvent, recordConsent } from "@/lib/consent/ledger";
+import { consentPage, readConsentMeta } from "@/lib/consent/request";
+import { resolveConsentText } from "@/lib/consent/texts";
 import { pushPartner, twentyConfigured } from "@/lib/crm/twenty";
-import { clientIp, rateLimit } from "@/lib/security";
+import { guardPost } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { partnerSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {
-  if (!rateLimit(`partners:${clientIp(req)}`, 10, 60 * 60_000)) {
-    return NextResponse.json({ error: "Too many submissions." }, { status: 429 });
-  }
-  const parsed = partnerSchema.safeParse(await req.json().catch(() => null));
+  const guard = await guardPost(req, {
+    name: "partners",
+    rate: { limit: 10, windowMs: 60 * 60_000 },
+    rateLimitMessage: "Too many submissions.",
+    turnstile: "partners",
+  });
+  if (!guard.ok) return guard.response;
+
+  const parsed = partnerSchema.safeParse(guard.body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid registration", issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) }, { status: 400 });
   }
   const reg = parsed.data;
+  const meta = readConsentMeta(guard.body);
   const db = supabaseAdmin();
   let partnerId: string | null = null;
   if (db) {
@@ -26,6 +35,18 @@ export async function POST(req: Request) {
     partnerId = data?.id ?? null;
   }
 
+  await recordConsent(
+    buildConsentEvent({
+      text: resolveConsentText("partner", meta.textVersion),
+      email: reg.contact.email,
+      phone: reg.contact.phone,
+      ip: guard.ip,
+      userAgent: req.headers.get("user-agent"),
+      page: consentPage(req, meta.page, "/partners"),
+      partnerId,
+    }),
+  );
+
   after(async () => {
     if (!twentyConfigured()) return;
     try {
@@ -38,5 +59,5 @@ export async function POST(req: Request) {
     }
   });
 
-  return NextResponse.json({ ok: true, partnerId });
+  return NextResponse.json({ ok: true, partnerId }, { headers: { "cache-control": "no-store" } });
 }
