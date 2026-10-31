@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { twentyConfigured } from "@/lib/crm/twenty";
+import { smsConsentLookup, SupabaseConsentReader } from "@/lib/notify/consent";
+import { optOutSinkFromEnv, supabaseKnownPersonIds } from "@/lib/notify/optout";
+import { supabaseOptOutSyncQueue } from "@/lib/notify/optout-sync";
 import { getMarketSnapshot } from "@/lib/rates";
 import { safeEqual } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -28,8 +31,15 @@ export async function GET(req: Request) {
 
   try {
     const { benchmarks } = await getMarketSnapshot();
-    const summary = await runCrmRetry({ store: supabaseRetryStore(db), crm: twentyPusher, rebuildJev: rebuildJevFactory(benchmarks) });
-    const exhausted = summary.leads.exhausted + summary.partners.exhausted;
+    const sink = optOutSinkFromEnv(supabaseKnownPersonIds(db));
+    const summary = await runCrmRetry({
+      store: supabaseRetryStore(db),
+      crm: twentyPusher,
+      rebuildJev: rebuildJevFactory(benchmarks),
+      smsConsent: smsConsentLookup(new SupabaseConsentReader(db)),
+      optOuts: sink ? { queue: supabaseOptOutSyncQueue(db), sink } : null,
+    });
+    const exhausted = summary.leads.exhausted + summary.partners.exhausted + (summary.optOuts?.exhausted ?? 0);
     // Surfaces in logs and Sentry: someone has to enter these by hand.
     if (exhausted > 0) console.error(`crm-retry: ${exhausted} row(s) exhausted retries and need manual CRM entry`);
     return NextResponse.json({ ok: true, ...summary });

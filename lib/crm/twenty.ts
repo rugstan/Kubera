@@ -7,6 +7,7 @@
 // submission, which is also persisted to Supabase.
 
 import type { JevResult } from "@/lib/ai/jev";
+import { toE164 } from "@/lib/notify/phone";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
 
 type Json = Record<string, unknown>;
@@ -67,28 +68,48 @@ export function hasContactConsent(contact: Pick<Contact, "consent">): boolean {
   return contact.consent === true;
 }
 
-async function upsertPerson(contact: Contact, companyId?: string): Promise<string> {
+/** Consent as the CRM should show it: the form's answer, narrowed by a later SMS revocation in the ledger. */
+type CrmConsent = { consent: boolean; smsRevoked: boolean };
+
+/**
+ * The form's consent box, then the consent ledger: a STOP (or other
+ * revocation) recorded for the phone after the form was sent wins, so a push
+ * that runs later (the crm-retry cron) never writes a revoked number as
+ * textable. A ledger read failure fails the push, which is retried.
+ */
+async function crmConsent(contact: Contact, opts?: PushOptions): Promise<CrmConsent> {
   const consent = hasContactConsent(contact);
+  if (!consent || !contact.phone || !opts?.smsConsent) return { consent, smsRevoked: false };
+  const phone = toE164(contact.phone);
+  if (!phone) return { consent, smsRevoked: false };
+  return { consent, smsRevoked: (await opts.smsConsent(phone)) === "revoked" };
+}
+
+/** Whether brokers may call or text from the CRM record (and get the phone number). */
+const reachable = (c: CrmConsent) => c.consent && !c.smsRevoked;
+
+async function upsertPerson(contact: Contact, c: CrmConsent, companyId?: string): Promise<string> {
   const existing = await findPersonByEmail(contact.email).catch(() => null);
   if (existing) {
-    // A later submission without consent narrows an existing record to email
-    // only. A submission with consent never clears an earlier opt-out (for
-    // example a STOP reply); that is the consent ledger's job.
-    if (!consent) await call("PATCH", `people/${encodeURIComponent(existing)}`, { smsOptOut: true });
+    // A later submission without consent (or a number revoked since) narrows
+    // an existing record. A submission with consent never clears an earlier
+    // opt-out (for example a STOP reply); that is the consent ledger's job.
+    if (!reachable(c)) await call("PATCH", `people/${encodeURIComponent(existing)}`, { smsOptOut: true });
     return existing;
   }
   return create("people", {
     name: { firstName: contact.firstName, lastName: contact.lastName },
     emails: { primaryEmail: contact.email },
-    ...(consent && contact.phone ? { phones: { primaryPhoneNumber: contact.phone } } : {}),
+    ...(reachable(c) && contact.phone ? { phones: { primaryPhoneNumber: contact.phone } } : {}),
     ...(companyId ? { companyId } : {}),
-    smsOptOut: !consent,
+    smsOptOut: !reachable(c),
     leadStatus: "NEW",
   });
 }
 
-function consentLine(contact: Contact, consentEventId?: string | null): string {
+function consentLine(contact: Contact, c: CrmConsent, consentEventId?: string | null): string {
   if (!hasContactConsent(contact)) return "Contact consent: none (email only). Do not call, text or autodial; phone withheld from CRM.";
+  if (c.smsRevoked) return "Contact consent was given on the form, but texts were revoked since (STOP in the consent ledger). Do not text or autodial; phone withheld from CRM. Email instead.";
   return `Contact consent: phone, text and automated contact on file${consentEventId ? ` (consent event ${consentEventId})` : ""}.`;
 }
 
@@ -123,6 +144,12 @@ export type PushOptions = {
   onProgress?: (progress: CrmProgress) => Promise<void> | void;
   /** consent_events row id when the contact ticked the consent box, noted on the CRM record. */
   consentEventId?: string | null;
+  /**
+   * Latest SMS consent state for an E.164 phone from the consent ledger
+   * (lib/notify/consent.ts smsConsentLookup). A revoked number is withheld
+   * from Twenty and the person is marked `smsOptOut`.
+   */
+  smsConsent?: (phoneE164: string) => Promise<"granted" | "revoked" | "none">;
 };
 
 /** Accepts only string ids from a stored (untyped) checkpoint. */
@@ -179,9 +206,12 @@ export type CrmRefs = { personId: string; companyId?: string; opportunityId?: st
  */
 export async function pushLead(intake: Intake, contact: Contact, jev: JevResult | null, opts?: PushOptions): Promise<CrmRefs> {
   const cp = checkpoint(opts);
+  const cc = await crmConsent(contact, opts);
+  // For the broker's next step a revoked number counts as no phone consent.
+  const reach: Contact = reachable(cc) ? contact : { ...contact, consent: false };
   const companyId = contact.company ? await cp.step("companyId", () => create("companies", { name: contact.company })) : undefined;
-  const personId = await cp.step("personId", () => upsertPerson(contact, companyId));
-  if (!jev) return pushReviewLead(cp, intake, contact, personId, companyId, opts);
+  const personId = await cp.step("personId", () => upsertPerson(contact, cc, companyId));
+  if (!jev) return pushReviewLead(cp, intake, contact, cc, personId, companyId, opts);
   const d = jev.decision;
   const q = jev.primaryQuote;
 
@@ -192,14 +222,14 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult 
     stage: "QUALIFICATION",
     probability: PROBABILITY[d.leadUrgencyTier],
     dealType: "NEW_BUSINESS",
-    nextStep: leadNextStep(contact, d.requiresImmediateBrokerCall),
+    nextStep: leadNextStep(reach, d.requiresImmediateBrokerCall),
     closeDate: closeDate(intake),
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
   }));
 
   const md = [
-    `## Contact\n- ${consentLine(contact, opts?.consentEventId)}`,
+    `## Contact\n- ${consentLine(contact, cc, opts?.consentEventId)}`,
     `## Jev decision (${jev.engine}, ${jev.latencyMs}ms)`,
     "```json",
     JSON.stringify(d, null, 2),
@@ -224,19 +254,19 @@ export function reviewNextStep(contact: Contact): string {
     : "Advisor-only handling requested — review personally and email borrower; no automated scoring or AI tools; no phone/SMS consent on file";
 }
 
-async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake, contact: Contact, personId: string, companyId: string | undefined, opts?: PushOptions): Promise<CrmRefs> {
+async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake, contact: Contact, cc: CrmConsent, personId: string, companyId: string | undefined, opts?: PushOptions): Promise<CrmRefs> {
   const opportunityId = await cp.step("opportunityId", () => create("opportunities", {
     name: `Advisor review · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
     amount: { amountMicros: Math.round(intake.loanAmount * 1_000_000), currencyCode: "USD" },
     stage: "QUALIFICATION",
     dealType: "NEW_BUSINESS",
-    nextStep: reviewNextStep(contact),
+    nextStep: reviewNextStep(reachable(cc) ? contact : { ...contact, consent: false }),
     closeDate: closeDate(intake),
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
   }));
   const md = [
-    `## Contact\n- ${consentLine(contact, opts?.consentEventId)}`,
+    `## Contact\n- ${consentLine(contact, cc, opts?.consentEventId)}`,
     "## Advisor-only handling",
     "- This person asked that an advisor handle their requests personally (privacy request: human review).",
     "- No automated scoring was run. Do not paste their details into AI tools.",
@@ -256,12 +286,13 @@ export async function pushPartner(reg: PartnerRegistration, opts?: PushOptions):
   const orgName = "organization" in reg && reg.organization ? reg.organization : `${reg.contact.firstName} ${reg.contact.lastName}`;
   const website = reg.partnerType === "LENDER" && reg.website ? { domainName: { primaryLinkUrl: reg.website } } : {};
   const companyId = await cp.step("companyId", () => create("companies", { name: orgName, ...website }));
-  const personId = await cp.step("personId", () => upsertPerson(reg.contact, companyId));
+  const cc = await crmConsent(reg.contact, opts);
+  const personId = await cp.step("personId", () => upsertPerson(reg.contact, cc, companyId));
   const { contact: _contact, ...profile } = reg;
   await attachNote(
     cp,
     `Partner registration — ${humanize(reg.partnerType)}`,
-    ["## Contact", `- ${consentLine(reg.contact, opts?.consentEventId)}`, "## Partner profile", "```json", JSON.stringify(profile, null, 2), "```"].join("\n"),
+    ["## Contact", `- ${consentLine(reg.contact, cc, opts?.consentEventId)}`, "## Partner profile", "```json", JSON.stringify(profile, null, 2), "```"].join("\n"),
     { targetCompanyId: companyId },
   );
   return { personId, companyId };

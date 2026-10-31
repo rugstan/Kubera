@@ -29,7 +29,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
   try {
     const now = new Date();
-    const doc = await buildSubjectExport(services.subjects, row.subject_email, { now, requestId: row.id, keyring: piiKeyring() });
+    const doc = await buildSubjectExport(services.subjects, row.subject_email, { now, requestId: row.id, keyring: piiKeyring(), phones: row.subject_phone ? [row.subject_phone] : [] });
     const sha = exportSha256(doc);
     await services.requests.update(row.id, { status: "in_progress", export_generated_at: now.toISOString(), export_sha256: sha });
     return new NextResponse(canonicalJson(doc), {

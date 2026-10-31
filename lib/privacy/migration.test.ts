@@ -56,7 +56,43 @@ describe("WS-Y migration", () => {
     const { rows } = await db.query<{ table_name: string }>(
       "select table_name from information_schema.columns where table_schema = 'public' and column_name = 'legal_hold' order by table_name",
     );
-    expect(rows.map((r) => r.table_name)).toEqual(["ai_conversations", "consent_events", "documents", "leads", "partners", "privacy_requests"]);
+    expect(rows.map((r) => r.table_name)).toEqual([
+      "ai_conversations",
+      "consent_events",
+      "documents",
+      "leads",
+      "mail_messages",
+      "newsletter_subscribers",
+      "notifications",
+      "partners",
+      "privacy_requests",
+      "sms_messages",
+    ]);
+    // Every table the legal-hold API accepts has the columns and the delete guard.
+    const { LEGAL_HOLD_TABLES } = await import("./legal-hold");
+    expect([...LEGAL_HOLD_TABLES].sort()).toEqual(rows.map((r) => r.table_name));
+  });
+
+  it("refuses to delete held communications records and nulls their lead link on lead deletion", async () => {
+    const lead = await newLead();
+    const { id: sms } = await one<{ id: string }>(
+      `insert into public.sms_messages (direction, from_number, to_number, body, status, lead_id, legal_hold, legal_hold_reason, legal_hold_set_at)
+       values ('inbound', '+13105550100', '+14155550100', 'STOP', 'received', '${lead}', true, 'TCPA claim', now()) returning id`,
+    );
+    await expect(db.query(`delete from public.sms_messages where id = '${sms}'`)).rejects.toThrow(/legal hold/);
+    await db.query(`delete from public.leads where id = '${lead}'`);
+    expect((await one<{ lead_id: string | null }>(`select lead_id from public.sms_messages where id = '${sms}'`)).lead_id).toBeNull();
+  });
+
+  it("keeps one opt-out sync row per phone number and records a review completely", async () => {
+    await db.query(`insert into public.crm_optout_sync (phone, opt_out) values ('+13105550111', true)`);
+    await expect(db.query(`insert into public.crm_optout_sync (phone, opt_out) values ('+13105550111', false)`)).rejects.toThrow(/duplicate key/);
+    await expect(db.query(`insert into public.crm_optout_sync (phone, opt_out) values ('310-555-0111', true)`)).rejects.toThrow();
+    await expect(db.query(`update public.crm_optout_sync set status = 'synced' where phone = '+13105550111'`)).rejects.toThrow(/synced_has_time/);
+    await expect(
+      db.query(`insert into public.mail_messages (mailbox, provider, provider_message_id, folder_id, from_address, received_at, category, classifier_source, confidence, route_method, queue, status, reviewed_at)
+        values ('docs', 'fake', 'm-review-1', 'inbox', 'a@b.co', now(), 'other', 'rules', 0.5, 'none', 'documents', 'processed', now())`),
+    ).rejects.toThrow(/reviewed_complete/);
   });
 
   it("refuses to delete a held lead, and a lead whose document is held", async () => {

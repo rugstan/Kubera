@@ -5,7 +5,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { ExportRecord, SubjectDataSource } from "./export";
-import type { LegalHoldDb, LegalHoldPatch, LegalHoldTable } from "./legal-hold";
+import { LEGAL_HOLD_TABLES, type LegalHoldDb, type LegalHoldPatch, type LegalHoldTable } from "./legal-hold";
 import type { NewPrivacyRequest, PrivacyPreferences, PrivacyRequestPatch, PrivacyRequestRow, PrivacyRequestStatus, PrivacyRequestStore, PrivacyRequestType } from "./requests";
 import type { DeleteResult, Filter, RetentionDb, RowId } from "./retention";
 
@@ -22,9 +22,13 @@ const RELATIONS: readonly Relation[] = [
   { child: "disclosures", column: "lead_id", parent: "leads", onDelete: "restrict" },
   { child: "broker_of_record", column: "lead_id", parent: "leads", onDelete: "restrict" },
   { child: "privacy_requests", column: "lead_id", parent: "leads", onDelete: "set null" },
+  { child: "mail_messages", column: "lead_id", parent: "leads", onDelete: "set null" },
+  { child: "sms_messages", column: "lead_id", parent: "leads", onDelete: "set null" },
+  { child: "notifications", column: "lead_id", parent: "leads", onDelete: "set null" },
+  { child: "sms_messages", column: "notification_id", parent: "notifications", onDelete: "set null" },
 ];
 
-const HOLD_TABLES = new Set(["leads", "partners", "documents", "ai_conversations", "consent_events", "privacy_requests"]);
+const HOLD_TABLES: ReadonlySet<string> = new Set<string>(LEGAL_HOLD_TABLES);
 
 class DeleteRefused extends Error {}
 
@@ -68,6 +72,14 @@ export class MemoryPrivacyDb implements RetentionDb, SubjectDataSource, PrivacyR
   async selectRows(q: { table: string; column: string; values: readonly RowId[]; columns: readonly string[] }): Promise<Record<string, unknown>[]> {
     return this.rows(q.table)
       .filter((r) => q.values.includes(r[q.column] as RowId))
+      .map((r) => Object.fromEntries(q.columns.map((c) => [c, r[c]])));
+  }
+
+  async selectByValue(q: { table: string; column: string; value: string; caseInsensitive: boolean; columns: readonly string[]; limit: number }): Promise<Record<string, unknown>[]> {
+    const want = q.caseInsensitive ? q.value.toLowerCase() : q.value;
+    return this.rows(q.table)
+      .filter((r) => typeof r[q.column] === "string" && (q.caseInsensitive ? (r[q.column] as string).toLowerCase() : r[q.column]) === want)
+      .slice(0, q.limit)
       .map((r) => Object.fromEntries(q.columns.map((c) => [c, r[c]])));
   }
 
@@ -146,6 +158,24 @@ export class MemoryPrivacyDb implements RetentionDb, SubjectDataSource, PrivacyR
 
   async preferences(email: string): Promise<ExportRecord | null> {
     return (this.prefs.get(email.toLowerCase()) as ExportRecord | undefined) ?? null;
+  }
+
+  async mailFrom(email: string): Promise<ExportRecord[]> {
+    return this.rows("mail_messages").filter((r) => String(r.from_address ?? "").toLowerCase() === email.toLowerCase());
+  }
+
+  async smsForPhones(phones: readonly string[]): Promise<ExportRecord[]> {
+    return this.rows("sms_messages").filter((r) => phones.includes(String(r.from_number)) || phones.includes(String(r.to_number)));
+  }
+
+  async notificationsFor(q: { email: string; phones: readonly string[]; leadIds: readonly string[] }): Promise<ExportRecord[]> {
+    return this.rows("notifications").filter(
+      (r) => String(r.recipient ?? "").toLowerCase() === q.email.toLowerCase() || q.phones.includes(String(r.recipient)) || q.leadIds.includes(String(r.lead_id)),
+    );
+  }
+
+  async newsletter(email: string): Promise<ExportRecord[]> {
+    return this.rows("newsletter_subscribers").filter((r) => r.email === email.toLowerCase());
   }
 
   // --- PrivacyRequestStore -------------------------------------------------------

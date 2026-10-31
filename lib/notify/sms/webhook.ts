@@ -5,6 +5,7 @@ import { maskPhone, toE164 } from "../phone";
 import type { Notifier } from "../service";
 import type { NotifyStore, SmsRow } from "../store";
 import type { SmsOptOutSink } from "../optout";
+import type { OptOutSyncQueue } from "../optout-sync";
 import { classifyInbound } from "./keywords";
 import { verifyTelnyxSignature } from "./signature";
 
@@ -29,6 +30,8 @@ export type TelnyxWebhookDeps = {
   consent: ConsentReader;
   /** Mirrors opt-outs into Twenty `smsOptOut`; null when Twenty is not configured. */
   optOut: SmsOptOutSink | null;
+  /** Opt-outs that did not reach Twenty wait here for the crm-retry cron (crm_optout_sync). */
+  optOutSync?: OptOutSyncQueue | null;
   /** Staff who get an email for inbound replies that are not keywords. */
   staffEmails: readonly string[];
   now: () => Date;
@@ -129,7 +132,7 @@ async function handleInbound(event: Parsed, deps: TelnyxWebhookDeps): Promise<Re
     const state = consentState(await deps.consent.history("sms", { phone: from }), "sms");
     // The ledger row is the evidence and the gate for every later send: if it cannot be written, fail so Telnyx retries.
     await recordSmsConsent(deps.ledger, "revoked", { phone: from, leadId: state.leadId, partnerId: state.partnerId, now, source: providerMessageId ?? row.id });
-    optOutNote = await mirrorOptOut(deps, from, true);
+    optOutNote = await mirrorOptOut(deps, from, true, row.id);
     await reply(deps, row, "sms_stop_reply", from, state.leadId ?? null);
     // A revocation inside a longer message ("Please stop texting me", "cancel the appraisal") is honored
     // first; staff still get the text so they can follow up on anything else it says.
@@ -141,7 +144,7 @@ async function handleInbound(event: Parsed, deps: TelnyxWebhookDeps): Promise<Re
     // START only restores texting for someone who opted out. It never creates consent for a stranger.
     if (state.state === "revoked") {
       await recordSmsConsent(deps.ledger, "granted", { phone: from, leadId: state.leadId, partnerId: state.partnerId, now, source: providerMessageId ?? row.id });
-      optOutNote = await mirrorOptOut(deps, from, false);
+      optOutNote = await mirrorOptOut(deps, from, false, row.id);
       await reply(deps, row, "sms_start_reply", from, state.leadId ?? null);
     }
   } else if (text) {
@@ -152,17 +155,34 @@ async function handleInbound(event: Parsed, deps: TelnyxWebhookDeps): Promise<Re
   return { keyword };
 }
 
-/** Mirrors the change into Twenty. A CRM failure is logged and noted on the row; the ledger already holds the opt-out. */
-async function mirrorOptOut(deps: TelnyxWebhookDeps, phone: string, optOut: boolean): Promise<string | null> {
-  if (!deps.optOut) return "Twenty not configured; opt-out recorded in the consent ledger only";
-  try {
-    await deps.optOut.setOptOut(phone, optOut);
-    return null;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[telnyx] could not mirror smsOptOut=${optOut} to Twenty for ${maskPhone(phone)}`, message);
-    return `Twenty sync failed: ${message}`.slice(0, 300);
+/**
+ * Mirrors the change into Twenty. When that fails, or no Twenty person has the
+ * number yet (the lead push may still be queued), the change is queued for the
+ * crm-retry cron and noted on the row; the ledger already holds the opt-out.
+ * A queue write failure throws, so Telnyx redelivers and the change is not lost.
+ */
+async function mirrorOptOut(deps: TelnyxWebhookDeps, phone: string, optOut: boolean, smsMessageId: string): Promise<string | null> {
+  const now = deps.now();
+  let note: string;
+  if (!deps.optOut) note = "Twenty not configured; opt-out recorded in the consent ledger and queued for CRM sync";
+  else {
+    try {
+      const { updated } = await deps.optOut.setOptOut(phone, optOut);
+      if (updated > 0) {
+        await deps.optOutSync?.settle(phone, optOut, now);
+        return null;
+      }
+      note = "No Twenty person has this number yet; CRM sync queued for retry";
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[telnyx] could not mirror smsOptOut=${optOut} to Twenty for ${maskPhone(phone)}`, message);
+      note = `Twenty sync failed (queued for retry): ${message}`;
+    }
   }
+  note = note.slice(0, 300);
+  if (deps.optOutSync) await deps.optOutSync.enqueue({ phone, optOut, reason: note, smsMessageId, at: now });
+  else console.warn(`[telnyx] smsOptOut=${optOut} for ${maskPhone(phone)} not in Twenty and no retry queue is configured`);
+  return note;
 }
 
 async function reply(deps: TelnyxWebhookDeps, row: SmsRow, templateId: "sms_stop_reply" | "sms_help_reply" | "sms_start_reply", phone: string, leadId: string | null) {

@@ -122,6 +122,41 @@ export const PI_CATEGORIES: readonly PiCategory[] = [
   },
 ] as const;
 
+/**
+ * Specific records and how long each is kept, shown under the category table
+ * on the privacy page. Each row names the retention policies in
+ * lib/privacy/retention.ts that enforce it (asserted in tests), so the
+ * published schedule and the deletion engine cannot drift apart.
+ */
+export const RECORD_RETENTION: readonly { record: string; retention: string; policies: readonly string[] }[] = [
+  {
+    record: "Emails you send to our deals, documents, lender, vendor, and closing mailboxes, with their attachments",
+    retention:
+      "Kept with your loan request and deleted with it. Email not tied to a request: three years after we receive it. Auto-replies, marketing, and spam: 90 days.",
+    policies: ["leads", "mail_messages", "mail_messages_ignored"],
+  },
+  {
+    record: "Text messages to and from us, including STOP, HELP, and START replies",
+    retention: "Kept with your loan request and deleted with it; otherwise three years after the message. The record of an opt-out stays in your consent records.",
+    policies: ["leads", "sms_messages"],
+  },
+  {
+    record: "Our log of the emails and texts we send you (address or number, message type, delivery status)",
+    retention: "Kept with your loan request and deleted with it; otherwise three years after we send it.",
+    policies: ["leads", "notifications"],
+  },
+  {
+    record: "Newsletter subscription",
+    retention: "Until you unsubscribe, then 30 days. A signup you never confirm is deleted after 30 days. The record of your consent and unsubscribe is kept five years.",
+    policies: ["newsletter_pending", "newsletter_unsubscribed", "consent_events"],
+  },
+  {
+    record: "Kubera AI conversations",
+    retention: "Up to one year, unless they become part of a loan file.",
+    policies: ["ai_conversations", "leads"],
+  },
+];
+
 export const PURPOSES = [
   "Respond to your request and have a licensed advisor review it.",
   "Arrange financing as a real estate broker, including sharing your loan package with lenders and third-party report providers you ask us to work with.",

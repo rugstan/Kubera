@@ -14,6 +14,8 @@
 
 import { HUMAN_REVIEW_ENGINE, type JevResult } from "@/lib/ai/jev";
 import type { CrmProgress, PushOptions } from "@/lib/crm/twenty";
+import type { SmsOptOutSink } from "@/lib/notify/optout";
+import { syncPendingOptOuts, type OptOutSyncQueue, type OptOutSyncSummary } from "@/lib/notify/optout-sync";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
 import { leadSchema, partnerSchema } from "@/lib/validation";
 
@@ -77,13 +79,17 @@ export type RetryDeps = {
   crm: CrmPusher;
   /** Rebuilds the full Jev result (quotes included) from what was persisted. */
   rebuildJev: (intake: Intake, stored: Pick<FailedLeadRow, "decision" | "rationale" | "engine" | "latency_ms"> & { engine: JevResult["engine"] }) => JevResult;
+  /** Latest SMS consent state for a phone (consent ledger): a number revoked since the form is not written to Twenty as textable. */
+  smsConsent?: PushOptions["smsConsent"];
+  /** SMS opt-outs the Telnyx webhook could not write to Twenty, retried after the leads (so a person created this run is found). */
+  optOuts?: { queue: OptOutSyncQueue; sink: SmsOptOutSink } | null;
   now?: () => number;
   batch?: number;
   budgetMs?: number;
 };
 
 export type KindSummary = { candidates: number; attempted: number; succeeded: number; failed: number; exhausted: number; deferred: number };
-export type RetrySummary = { leads: KindSummary; partners: KindSummary; stoppedEarly: boolean };
+export type RetrySummary = { leads: KindSummary; partners: KindSummary; optOuts?: OptOutSyncSummary; stoppedEarly: boolean };
 
 export function backoffMs(attempts: number): number {
   if (attempts <= 0) return 0;
@@ -144,6 +150,7 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
       const refs = await deps.crm.pushLead(intake, contact, jev, {
         progress: row.crm_progress as CrmProgress | null | undefined,
         onProgress: (progress) => deps.store.saveLeadProgress(row.id, progress),
+        ...(deps.smsConsent ? { smsConsent: deps.smsConsent } : {}),
       });
       await deps.store.updateLead(row.id, {
         crm_error: null,
@@ -186,6 +193,7 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
       const refs = await deps.crm.pushPartner(parsed.data, {
         progress: row.crm_progress as CrmProgress | null | undefined,
         onProgress: (progress) => deps.store.savePartnerProgress(row.id, progress),
+        ...(deps.smsConsent ? { smsConsent: deps.smsConsent } : {}),
       });
       await deps.store.updatePartner(row.id, {
         crm_error: null,
@@ -199,6 +207,11 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
       summary.partners.failed++;
       if (attempts >= MAX_ATTEMPTS) summary.partners.exhausted++;
     }
+  }
+
+  // Opt-outs last: a person this run created is now in Twenty and can be found by phone.
+  if (deps.optOuts) {
+    summary.optOuts = await syncPendingOptOuts({ queue: deps.optOuts.queue, sink: deps.optOuts.sink, now, limit: batch * 2, deadline });
   }
 
   return summary;
