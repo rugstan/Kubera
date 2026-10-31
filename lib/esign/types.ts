@@ -68,6 +68,8 @@ export class EsignError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    /** Worth retrying later (throttled OAuth refresh, network, 5xx). */
+    readonly retryable: boolean = status === undefined || status === 429 || status >= 500,
   ) {
     super(message);
     this.name = "EsignError";

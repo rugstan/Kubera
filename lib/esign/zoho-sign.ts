@@ -12,6 +12,7 @@
 // fields (`requests`, `notifications.operation_type`, `performed_at`).
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { sharedZohoTokenCache, ZohoAccessTokens, ZohoOAuthError, type ZohoTokenCache } from "@/lib/zoho/oauth";
 import {
   EsignError,
   type CreateFromTemplateInput,
@@ -72,16 +73,27 @@ const OPERATIONS: Record<string, EsignEventType> = {
 
 export class ZohoSignProvider implements EsignProvider {
   readonly name = "zoho_sign" as const;
-  private token: { value: string; expiresAt: number } | null = null;
-  private refreshing: Promise<string> | null = null;
+  private readonly tokens: ZohoAccessTokens;
   private readonly templateActions = new Map<string, { actionId: string; role: string }[]>();
 
   constructor(
     private readonly config: ZohoSignConfig,
     private readonly fetchImpl: FetchLike = (input, init) => fetch(input, init),
     private readonly clock: () => number = () => Date.now(),
+    /** Shared access-token store (default: Upstash when configured, else this instance only). */
+    tokenCache: ZohoTokenCache | null = sharedZohoTokenCache(),
   ) {
     if (!ALLOWED_DC.has(config.dc)) throw new EsignError(`Unsupported Zoho data center: ${config.dc}`);
+    this.tokens = new ZohoAccessTokens({
+      accountsUrl: this.accountsUrl,
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      refreshToken: config.refreshToken,
+      fetch: fetchImpl,
+      now: clock,
+      cache: tokenCache,
+      label: "sign",
+    });
   }
 
   get accountsUrl(): string {
@@ -94,35 +106,15 @@ export class ZohoSignProvider implements EsignProvider {
 
   // -- OAuth -----------------------------------------------------------------
 
-  private async refreshAccessToken(): Promise<string> {
-    const body = new URLSearchParams({
-      refresh_token: this.config.refreshToken,
-      client_id: this.config.clientId,
-      client_secret: this.config.clientSecret,
-      grant_type: "refresh_token",
-    });
-    const res = await this.fetchImpl(`${this.accountsUrl}/oauth/v2/token`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body,
-      signal: AbortSignal.timeout(10_000),
-      cache: "no-store",
-    });
-    const json = (await res.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
-    // Zoho Accounts reports some failures with HTTP 200 and an `error` field.
-    if (!res.ok || !json.access_token) throw new EsignError(`Zoho OAuth refresh failed: ${json.error ?? res.status}`, res.status);
-    const ttlMs = (json.expires_in ?? 3600) * 1000;
-    this.token = { value: json.access_token, expiresAt: this.clock() + ttlMs - 60_000 };
-    return json.access_token;
-  }
-
-  private async accessToken(force = false): Promise<string> {
-    if (!force && this.token && this.token.expiresAt > this.clock()) return this.token.value;
-    // Collapse concurrent refreshes into one request.
-    this.refreshing ??= this.refreshAccessToken().finally(() => {
-      this.refreshing = null;
-    });
-    return this.refreshing;
+  // Tokens are shared across instances (lib/zoho/oauth.ts): Zoho caps refreshes
+  // per refresh token, and a throttled refresh is retryable, not fatal.
+  private async accessToken(stale?: string): Promise<string> {
+    try {
+      return await this.tokens.get(stale ? { stale } : {});
+    } catch (err) {
+      if (err instanceof ZohoOAuthError) throw new EsignError(err.message, err.status ?? undefined, err.retryable);
+      throw err;
+    }
   }
 
   private async request(path: string, init: { method: "GET" | "POST" | "PUT"; form?: Record<string, string> } = { method: "GET" }): Promise<Response> {
@@ -137,8 +129,9 @@ export class ZohoSignProvider implements EsignProvider {
         signal: AbortSignal.timeout(15_000),
         cache: "no-store",
       });
-    let res = await send(await this.accessToken());
-    if (res.status === 401) res = await send(await this.accessToken(true));
+    const token = await this.accessToken();
+    let res = await send(token);
+    if (res.status === 401) res = await send(await this.accessToken(token));
     if (!res.ok) throw new EsignError(`Zoho Sign ${init.method} ${path}: ${res.status} ${await res.text().catch(() => "")}`.trim(), res.status);
     return res;
   }
