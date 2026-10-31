@@ -1,0 +1,71 @@
+{
+  "suite": "SBA 504 and 7(a)",
+  "version": 1,
+  "cases": [
+    {
+      "id": "sba504-structure",
+      "topic": "sba",
+      "question": "How is an SBA 504 loan structured for an owner-operated assisted living facility?",
+      "expectedFacts": [
+        { "fact": "Bank first lien about 50%", "anyOf": ["50\\s*%"] },
+        { "fact": "CDC/SBA debenture second, 25-year fixed", "anyOf": ["debenture", "CDC"] },
+        { "fact": "Special-purpose property needs extra equity (15% total)", "anyOf": ["15\\s*%", "special[- ]purpose"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; SBA SOP 50 10 (verify revision in effect), as of 2026-10"
+    },
+    {
+      "id": "sba504-debenture-cap",
+      "topic": "sba",
+      "question": "What is the maximum SBA 504 debenture per project?",
+      "expectedFacts": [
+        { "fact": "$5M standard cap", "anyOf": ["\\$5 ?M", "\\$5(\\.0)? million", "5,000,000"] },
+        { "fact": "$5.5M for qualifying energy/manufacturing projects", "anyOf": ["5\\.5"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; SBA SOP 50 10, as of 2026-10"
+    },
+    {
+      "id": "sba504-recourse",
+      "topic": "sba",
+      "question": "Can I get an SBA 504 hotel loan without a personal guarantee?",
+      "expectedFacts": [
+        { "fact": "Personal guaranties from 20%+ owners are required", "anyOf": ["20\\s*%", "personal guarant"] },
+        { "fact": "Points to non-recourse alternatives like CMBS", "anyOf": ["CMBS", "non-?recourse"] }
+      ],
+      "forbiddenClaims": [{ "claim": "Says SBA 504 can be non-recourse", "pattern": "504[^.]{0,40}\\bis non-?recourse\\b" }],
+      "source": "Program primer, as of 2026-10"
+    },
+    {
+      "id": "sba-occupancy",
+      "topic": "sba",
+      "question": "I own a building and lease 60% of it to tenants. Can I use SBA 504 to refinance it?",
+      "expectedFacts": [
+        { "fact": "Operating company must occupy at least 51%", "anyOf": ["51\\s*%"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; SBA SOP 50 10, as of 2026-10"
+    },
+    {
+      "id": "sba-stack",
+      "topic": "sba",
+      "question": "How does the combined SBA 7(a) + 504 stack work for an $18M hotel?",
+      "expectedFacts": [
+        { "fact": "Up to $10M combined SBA exposure plus the bank first", "anyOf": ["\\$10 ?M", "\\$10 million", "10,000,000"] },
+        { "fact": "Confirm against the SOP revision in effect at application", "anyOf": ["SOP", "confirm", "verify", "current guidance"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer (Kubera's 2026 7(a)+504 model), as of 2026-10"
+    },
+    {
+      "id": "sba-fees",
+      "topic": "sba",
+      "question": "Besides principal and interest, what ongoing fees come with an SBA 504 loan?",
+      "expectedFacts": [
+        { "fact": "Ongoing guarantee, CDC servicing and CSA fees of about 1% annually on the debenture", "anyOf": ["servicing", "guarantee fee", "CSA", "1\\s*%"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    }
+  ]
+}

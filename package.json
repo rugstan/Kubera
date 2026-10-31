@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "kb:ingest": "node --experimental-strip-types scripts/ingest-kb.ts"
+    "kb:ingest": "node --experimental-strip-types scripts/ingest-kb.ts",
+    "evals": "tsx --conditions=react-server scripts/run-evals.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
@@ -24,6 +25,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
@@ -32,6 +34,7 @@
     "eslint-config-next": "^16.4.3",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.5"
   }
