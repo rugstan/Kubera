@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LEGAL_PAGES } from "@/components/legal/legal";
+import { CALIFORNIA_BASE, MARKETS, marketPath } from "@/content/markets/california";
 import { disclosures, licenseLine, site } from "@/lib/site";
 import { Logo } from "./Logo";
 
@@ -22,7 +23,18 @@ const COLUMNS = [
     links: [
       { href: "/#sizer", label: "60-second loan sizer" },
       { href: "/express", label: "Deal qualifier" },
-      { href: "/#rates", label: "Capital markets rates" },
+      { href: "/rates", label: "Capital markets rates" },
+      { href: "/calculators", label: "Loan calculators" },
+      { href: "/glossary", label: "Glossary" },
+      { href: "/insights", label: "Insights" },
+      { href: "/newsletter", label: "Newsletter" },
+    ],
+  },
+  {
+    title: "Markets",
+    links: [
+      { href: CALIFORNIA_BASE, label: "California" },
+      ...MARKETS.map((m) => ({ href: marketPath(m.slug), label: m.name })),
     ],
   },
   {
@@ -51,7 +63,7 @@ export function Footer() {
   return (
     <footer className="border-t border-black/[0.06] bg-canvas">
       <div className="mx-auto max-w-[1280px] px-5 py-16 md:px-8">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
+        <div className="grid gap-12 sm:grid-cols-2 lg:gap-8 lg:grid-cols-[1.4fr_repeat(6,1fr)]">
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-titanium">

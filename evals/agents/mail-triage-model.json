@@ -1,6 +1,6 @@
 {
   "suite": "mail.triage.model",
-  "description": "Inbound mail triage through the model (Haiku tier) merged with rules; run with --live",
+  "description": "Inbound mail triage through the model (bulk tier) merged with rules; run with --live",
   "agent": "mail.triage",
   "subject": "mail.triage.model",
   "minPassRate": 0.75,

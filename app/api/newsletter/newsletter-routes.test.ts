@@ -59,7 +59,7 @@ function post(path: string, body: unknown, opts: { origin?: string | null; conte
     "user-agent": "vitest",
     "x-forwarded-for": `198.51.100.${++ip % 250}`,
     ...(opts.origin === null ? {} : { origin: opts.origin ?? ORIGIN }),
-    ...(opts.turnstile === false ? {} : { "x-turnstile-token": turnstile.issue(`t${++tokenCounter}`, "qualify") }),
+    ...(opts.turnstile === false ? {} : { "x-turnstile-token": turnstile.issue(`t${++tokenCounter}`, "newsletter") }),
     ...opts.headers,
   };
   return new Request(`${ORIGIN}${path}`, { method: "POST", headers, body: typeof body === "string" ? body : JSON.stringify(body) });

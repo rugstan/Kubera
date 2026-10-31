@@ -24,6 +24,12 @@ export const EVENTS = {
   leadScored: "kubera/lead.scored",
   /** Run every outreach chaser once now (the /api/outreach/sweep cron also does). */
   outreachSweepRequested: "kubera/outreach.sweep.requested",
+  /** Write the weekly market-intel note now (a Monday-morning cron also does; lib/agents/intel INTEL_EVENTS.weeklyRequested). */
+  intelWeeklyRequested: "kubera/intel.weekly.requested",
+  /** Run a refinance-maturity prospect scan (lib/agents/intel INTEL_EVENTS.scanRequested). */
+  prospectScanRequested: "kubera/prospects.scan.requested",
+  /** Settle prospect outreach drafts against broker decisions now (a cron also does; INTEL_EVENTS.settleRequested). */
+  prospectSettleRequested: "kubera/prospects.settle.requested",
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

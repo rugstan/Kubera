@@ -13,6 +13,12 @@ import { fromInngestStep, type InngestStepLike } from "./step";
 /** Every 5 minutes. */
 export const MAIL_POLL_CRON = "*/5 * * * *";
 
+/** Monday 07:00 Pacific: the weekly market-intel note. */
+export const INTEL_WEEKLY_CRON = "TZ=America/Los_Angeles 0 7 * * 1";
+
+/** Every 5 minutes: settle prospect outreach drafts against broker decisions. */
+export const PROSPECT_SETTLE_CRON = "*/5 * * * *";
+
 type InngestCtx = { event: { data: unknown; id?: string }; step: unknown; runId: string };
 
 function context(ctx: InngestCtx): HandlerContext {
@@ -65,7 +71,7 @@ export function createWorkflowFunctions(getDeps: () => WorkflowDeps, getAgents?:
       triggers: [{ event: EVENTS.mailReceived }],
       idempotency: "event.data.mailbox + ':' + event.data.providerMessageId",
       concurrency: { limit: 5 },
-      // Haiku classification is cheap; Zoho rate limits are the usual cause of retries.
+      // Bulk-tier classification is cheap; Zoho rate limits are the usual cause of retries.
       throttle: { limit: 60, period: "1m" },
       retries: 5,
     },
@@ -187,5 +193,50 @@ function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () 
       }),
   );
 
-  return [documentClean, spreadsRecalc, crmMailRouted, termSheets, speedToLead, outreachSweep];
+  const weeklyIntel = client.createFunction(
+    {
+      id: "intel-weekly",
+      name: "Weekly market-intel note",
+      triggers: [{ cron: INTEL_WEEKLY_CRON }, { event: EVENTS.intelWeeklyRequested }],
+      concurrency: { limit: 1 },
+      retries: 2,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().weeklyIntel({ data: c.data, step: c.step });
+      }),
+  );
+
+  const prospectScan = client.createFunction(
+    {
+      id: "prospect-scan",
+      name: "Refinance-maturity prospect scan",
+      triggers: [{ event: EVENTS.prospectScanRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().prospectScan({ data: c.data, step: c.step });
+      }),
+  );
+
+  const prospectSettle = client.createFunction(
+    {
+      id: "prospect-outreach-settle",
+      name: "Settle prospect outreach drafts",
+      triggers: [{ cron: PROSPECT_SETTLE_CRON }, { event: EVENTS.prospectSettleRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().prospectSettle({ step: c.step });
+      }),
+  );
+
+  return [documentClean, spreadsRecalc, crmMailRouted, termSheets, speedToLead, outreachSweep, weeklyIntel, prospectScan, prospectSettle];
 }

@@ -2,7 +2,7 @@
 //
 //   poll    list messages newer than the cursor (minus a lookback window, so a
 //           message that failed earlier is picked up again), skip stored ones
-//   process fetch → classify (Haiku via the gateway, rules fallback) → route to
+//   process fetch → classify (bulk tier via the gateway, rules fallback) → route to
 //           a deal/lead → attachments to quarantine (+ vault row) → mail_messages
 //
 // The pipeline only reads mail and writes Kubera's own tables. It sends no

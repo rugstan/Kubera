@@ -187,6 +187,8 @@ test("the weekly market note is a cited rules digest without an xAI key, and a r
 
   await page.goto(`${base}/prospects/intel`);
   await page.getByRole("button", { name: "Generate draft" }).click();
+  // Wait for the new draft, or the first link may still be the rejected note.
+  await expect(page.getByRole("status").filter({ hasText: /Draft ready for review/ })).toBeVisible();
   await page.getByRole("link", { name: /Market intel: week of/ }).first().click();
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByRole("status").filter({ hasText: /Nothing was published or sent/ })).toBeVisible();

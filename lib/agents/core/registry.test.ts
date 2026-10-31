@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AgentRegistry, approvedModels, compareVersions, RegistryError, sha256, type PromptDefinition } from "./registry";
+import { xaiModel } from "@/lib/ai/gateway";
 
 const prompt = (o: Partial<PromptDefinition> = {}): PromptDefinition => ({
   id: "outreach.reminder",
@@ -51,7 +52,12 @@ describe("prompt registry", () => {
   });
 
   it("reads configured NVIDIA and xAI ids from the environment", () => {
-    expect(approvedModels({ NVIDIA_NIM_MODEL: "nvidia/x", XAI_MODEL: "grok-4" }).map((m) => m.tier)).toEqual(["default", "mid", "bulk", "nvidia", "xai"]);
+    expect(approvedModels({ NVIDIA_NIM_MODEL: "nvidia/x", XAI_MODEL: "grok-x" }).map((m) => m.tier)).toEqual(["default", "mid", "bulk", "nvidia", "xai"]);
+    expect(approvedModels({ XAI_MODEL: "grok-x" }).find((m) => m.tier === "xai")?.id).toBe("grok-x");
+  });
+
+  it("approves the gateway's default xAI model without XAI_MODEL", () => {
+    expect(approvedModels({}).find((m) => m.tier === "xai")?.id).toBe(xaiModel({}));
   });
 });
 

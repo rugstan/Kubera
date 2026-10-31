@@ -15,7 +15,7 @@ import { MemoryMailStore } from "./store";
 
 const keyring = createKeyring({ version: 1, key: randomBytes(32) });
 
-/** A model that answers like Haiku would for each sample (keyed by subject). */
+/** A model that answers like the bulk-tier classifier would for each sample (keyed by subject). */
 const MODEL_ANSWERS: Record<string, { category: MailCategory; propertyName?: string; documentKinds?: string[] }> = {
   [SAMPLE_EMAILS.newInquiry.subject]: { category: "new_inquiry", propertyName: "Sun Valley Gardens" },
   [SAMPLE_EMAILS.termSheet.subject]: { category: "term_sheet", propertyName: "Harbor View Apartments" },

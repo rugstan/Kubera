@@ -91,10 +91,10 @@ export type MarketPrompt = { id: string; version: string; sha256: string; model:
 let warnedRegistry = false;
 
 /**
- * The market-intel prompt from the agent registry. The registry only knows
- * the xAI model when XAI_MODEL is set; without it the prompt is used
- * unregistered (same text, same hash) so the note still records which prompt
- * wrote it.
+ * The market-intel prompt from the agent registry. The registry approves
+ * the gateway's xAI model; if a different model is passed and rejected, the
+ * prompt is used unregistered (same text, same hash) so the note still
+ * records which prompt wrote it.
  */
 export function marketPrompt(model: string = xaiModel()): MarketPrompt {
   try {
@@ -113,7 +113,7 @@ export function marketPrompt(model: string = xaiModel()): MarketPrompt {
     if (!(err instanceof RegistryError)) throw err;
     if (!warnedRegistry) {
       warnedRegistry = true;
-      console.warn(`[intel] market prompt not registered (${err.message}); set XAI_MODEL so the registry approves the model`);
+      console.warn(`[intel] market prompt not registered (${err.message}); pass the gateway xAI model so the registry approves it`);
     }
     return { id: MARKET_PROMPT_ID, version: MARKET_PROMPT_VERSION, sha256: sha256(SYSTEM), model, system: SYSTEM, registered: false };
   }

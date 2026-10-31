@@ -17,7 +17,7 @@ export interface AnthropicLike {
 }
 
 /**
- * Models with a server-side refusal fallback. Haiku has none (a fallback list
+ * Models with a server-side refusal fallback. The bulk tier has none (a fallback list
  * is a 400 there, and "default" changes nothing), so it gets no `fallbacks`.
  */
 export function supportsServerFallback(model: string): boolean {

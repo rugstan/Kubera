@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DOCUMENT_EVENTS } from "@/lib/agents/documents/workflow";
+import { INTEL_EVENTS } from "@/lib/agents/intel/workflow";
 import { OUTREACH_EVENTS } from "@/lib/agents/outreach/workflow";
 import type { AgentWorkflowHooks, WorkflowDeps } from "./deps";
 import { EVENTS } from "./events";
@@ -13,6 +14,9 @@ const hooks = (): AgentWorkflowHooks => ({
   termSheets: async () => ({}),
   speedToLead: async () => ({}),
   outreachSweep: async () => ({}),
+  weeklyIntel: async () => ({}),
+  prospectScan: async () => ({}),
+  prospectSettle: async () => ({}),
 });
 
 type Fn = { id: (prefix?: string) => string; opts: { triggers?: { event?: string; cron?: string; if?: string }[]; idempotency?: string } };
@@ -25,7 +29,7 @@ describe("workflow functions", () => {
   it("binds the Phase 3 agents to their events", () => {
     const fns = createWorkflowFunctions(deps, hooks) as unknown as Fn[];
     const byId = new Map(fns.map((f) => [f.id(), f.opts]));
-    expect([...byId.keys()]).toEqual(["outbound-action", "mail-poll", "inbound-mail", "document-extract", "spreads-recalculate", "crm-mail-routed", "lender-term-sheets", "speed-to-lead", "outreach-sweep"]);
+    expect([...byId.keys()]).toEqual(["outbound-action", "mail-poll", "inbound-mail", "document-extract", "spreads-recalculate", "crm-mail-routed", "lender-term-sheets", "speed-to-lead", "outreach-sweep", "intel-weekly", "prospect-scan", "prospect-outreach-settle"]);
     expect(byId.get("document-extract")).toMatchObject({ triggers: [{ event: EVENTS.documentClean }], idempotency: "event.data.documentId" });
     // Extraction results are consumed: spreads and Jev re-sizing subscribe to document.extracted.
     expect(byId.get("spreads-recalculate")).toMatchObject({ triggers: [{ event: EVENTS.documentExtracted }] });
@@ -34,6 +38,10 @@ describe("workflow functions", () => {
     expect(byId.get("speed-to-lead")?.triggers?.[0]?.event).toBe("kubera/lead.scored");
     // The sweep runs on the /api/outreach/sweep cron; the function only runs on request.
     expect(byId.get("outreach-sweep")?.triggers).toEqual([{ event: "kubera/outreach.sweep.requested" }]);
+    // Market intel runs Monday morning Pacific; outreach drafts settle every few minutes; scans run on request.
+    expect(byId.get("intel-weekly")?.triggers).toEqual([{ cron: "TZ=America/Los_Angeles 0 7 * * 1" }, { event: "kubera/intel.weekly.requested" }]);
+    expect(byId.get("prospect-scan")?.triggers).toEqual([{ event: "kubera/prospects.scan.requested" }]);
+    expect(byId.get("prospect-outreach-settle")?.triggers).toEqual([{ cron: "*/5 * * * *" }, { event: "kubera/prospects.settle.requested" }]);
   });
 
   it("uses the agents' own event names", () => {
@@ -41,6 +49,9 @@ describe("workflow functions", () => {
     expect(EVENTS.documentExtracted).toBe(DOCUMENT_EVENTS.documentExtracted);
     expect(EVENTS.leadScored).toBe(OUTREACH_EVENTS.leadScored);
     expect(EVENTS.outreachSweepRequested).toBe(OUTREACH_EVENTS.sweepRequested);
+    expect(EVENTS.intelWeeklyRequested).toBe(INTEL_EVENTS.weeklyRequested);
+    expect(EVENTS.prospectScanRequested).toBe(INTEL_EVENTS.scanRequested);
+    expect(EVENTS.prospectSettleRequested).toBe(INTEL_EVENTS.settleRequested);
   });
 
   it("only treats deal-linked term sheets as quotes", () => {

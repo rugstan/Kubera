@@ -39,6 +39,9 @@ describe("/api/inngest", () => {
       "lender-term-sheets",
       "speed-to-lead",
       "outreach-sweep",
+      "intel-weekly",
+      "prospect-scan",
+      "prospect-outreach-settle",
     ]);
   });
 

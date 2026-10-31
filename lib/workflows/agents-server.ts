@@ -6,14 +6,17 @@ import { handleMailRouted } from "@/lib/agents/crm/handlers";
 import { crmAgentDeps } from "@/lib/agents/crm/server";
 import { indexRatesFromEnv, lenderRuntime, modelGateway } from "@/lib/agents/lenders/runtime";
 import { ingestTermSheets } from "@/lib/agents/lenders/service";
+import { intelRuntime, marketDeps, outreachDeps, scanDeps } from "@/lib/agents/intel/runtime";
+import { outreachSettleWorkflow, prospectScanWorkflow, weeklyIntelWorkflow } from "@/lib/agents/intel/workflow";
 import { outreachRuntime } from "@/lib/agents/outreach/runtime";
 import { outreachSweepWorkflow, speedToLeadWorkflow } from "@/lib/agents/outreach/workflow";
 import { spreadWorkflowDeps } from "@/lib/spreads/server";
 import { documentExtractedHandler } from "@/lib/spreads/workflow";
 import type { AgentWorkflowHooks } from "./deps";
 
-// Production wiring for the Phase 3 agent workflow functions (document
-// extraction, CRM notes, lender term sheets, outreach chasers). Each agent is
+// Production wiring for the agent workflow functions (document extraction,
+// CRM notes, lender term sheets, outreach chasers, market intel and
+// prospecting). Each agent is
 // env-gated in its own runtime and returns a skip when it is off. Step results
 // carry ids, statuses and counts only.
 
@@ -51,6 +54,21 @@ export function agentWorkflowHooks(): AgentWorkflowHooks {
     },
     async outreachSweep(ctx) {
       return outreachSweepWorkflow(ctx, outreachRuntime());
+    },
+    async weeklyIntel(ctx) {
+      const rt = await intelRuntime();
+      if (!rt) return { status: "skipped", reason: "intel_off" };
+      return weeklyIntelWorkflow(ctx, marketDeps(rt));
+    },
+    async prospectScan(ctx) {
+      const rt = await intelRuntime();
+      if (!rt) return { status: "skipped", reason: "intel_off" };
+      return prospectScanWorkflow(ctx, scanDeps(rt));
+    },
+    async prospectSettle(ctx) {
+      const rt = await intelRuntime();
+      if (!rt) return { status: "skipped", reason: "intel_off" };
+      return outreachSettleWorkflow(ctx, outreachDeps(rt));
     },
   };
 }

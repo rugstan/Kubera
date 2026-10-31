@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     rate: { limit: 5, windowMs: 60 * 60_000 },
     rateLimitMessage: "Too many signups from this connection. Please try again later.",
     // The qualifier's widget action: a lead-form action that already exists. See the WS-P report.
-    turnstile: "qualify",
+    turnstile: "newsletter",
     maxBytes: 8_000,
   });
   if (!guard.ok) return guard.response;

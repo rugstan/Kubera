@@ -1,7 +1,7 @@
 // Inbound mail triage: what is this message, which deal does it mention, and
 // does a broker need to look at it?
 //
-// Primary path: Claude Haiku through the model gateway with structured output
+// Primary path: the bulk-tier Claude model through the model gateway with structured output
 // (cheap bulk classification). The email is untrusted data: the inbound guard
 // (lib/agents/core/inbound.ts) strips instruction-like sentences and scans it
 // for injection first, then it sits in an escaped <email> block in the user

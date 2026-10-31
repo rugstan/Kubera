@@ -54,7 +54,7 @@ describe("personal information categories", () => {
 });
 
 describe("NoticeAtCollection", () => {
-  it.each(["qualifier", "partner", "upload", "privacy_request"] as const)("renders the %s notice with the required elements", (point) => {
+  it.each(["qualifier", "partner", "upload", "privacy_request", "newsletter"] as const)("renders the %s notice with the required elements", (point) => {
     const markup = html(createElement(NoticeAtCollection, { point }));
     const t = text(markup);
     expect(markup).toContain(`data-notice-at-collection="${point}"`);

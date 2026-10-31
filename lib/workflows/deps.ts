@@ -45,4 +45,10 @@ export type AgentWorkflowHooks = {
   speedToLead(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
   /** kubera/outreach.sweep.requested: run every chaser once. */
   outreachSweep(ctx: { step: WorkflowStep }): Promise<Record<string, unknown>>;
+  /** kubera/intel.weekly.requested (and the weekly cron): draft the market-intel note. */
+  weeklyIntel(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
+  /** kubera/prospects.scan.requested: scan recorded mortgages for refinance-maturity prospects. */
+  prospectScan(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
+  /** kubera/prospects.settle.requested (and the settle cron): act on broker decisions for outreach drafts. */
+  prospectSettle(ctx: { step: WorkflowStep }): Promise<Record<string, unknown>>;
 };

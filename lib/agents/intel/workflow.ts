@@ -6,8 +6,8 @@ import { scanProspects, type ScanDeps } from "./prospects";
 
 // Workflow bodies for market intel and prospecting, written against
 // WorkflowStep so they run the same under Inngest and the test FakeStep (the
-// pattern in lib/workflows). The Inngest registration (event names, cron
-// schedules) is a cross-request: lib/workflows/functions.ts is WS-Q's file.
+// pattern in lib/workflows). lib/workflows/functions.ts binds them to their
+// events and cron schedules; lib/workflows/agents-server.ts supplies the deps.
 //
 // Step results are persisted by Inngest, so steps return ids, statuses and
 // counts only: never signal text, owner names or message bodies.

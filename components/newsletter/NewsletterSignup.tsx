@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 import { CheckboxField, Form, FormAlert, TextField, postJson, useZodForm, type FormFailure } from "@/components/forms";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { NEWSLETTER_CONSENT_TEXTS, CURRENT_NEWSLETTER_CONSENT } from "@/lib/newsletter/consent";
@@ -21,7 +22,7 @@ export function NewsletterSignup({ source, className = "" }: { source: string; c
   const [failure, setFailure] = useState<FormFailure | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const turnstile = useTurnstile("qualify");
+  const turnstile = useTurnstile("newsletter");
   const form = useZodForm<Values>({ schema: subscribeSchema, defaultValues: { email: "", consent: false } });
 
   async function submit(values: Values) {
@@ -64,13 +65,7 @@ export function NewsletterSignup({ source, className = "" }: { source: string; c
           <button type="submit" disabled={submitting} className="pill pill-primary disabled:opacity-60">
             {submitting ? "Sending" : "Subscribe"}
           </button>
-          <p role="note" aria-label="Notice at collection" data-notice-at-collection="newsletter" className="text-[12px] leading-relaxed text-ink/70">
-            <span className="font-semibold text-ink">Notice at collection.</span> We collect your email address, and the date, page, IP address and browser of your signup, to send the newsletter and to keep a record of your consent. We do not sell your personal information or share it for cross-context behavioral advertising.{" "}
-            <a href="/privacy#notice-at-collection" target="_blank" rel="noopener" className="font-medium text-accent underline underline-offset-2">
-              Read the full notice and your California privacy rights<span className="sr-only"> (opens in a new tab)</span>
-            </a>
-            .
-          </p>
+          <NoticeAtCollection point="newsletter" />
         </Form>
       )}
     </section>

@@ -68,7 +68,7 @@ export default function PrivacyPage() {
 
       <h3 id="sources">Where it comes from</h3>
       <ul>
-        <li>From you, when you use the deal qualifier, the loan sizer, Kubera AI, the partner portal, or the document vault, or when you email, call, or text us.</li>
+        <li>From you, when you use the deal qualifier, the loan sizer, Kubera AI, the partner portal, the document vault, or the newsletter signup, or when you email, call, or text us.</li>
         <li>From people you authorize, such as your referring broker, co-borrowers, accountants, and attorneys.</li>
         <li>From lenders and third-party report providers working on your loan, such as appraisers, title companies, and escrow companies.</li>
         <li>From public sources, such as property records and license lookups.</li>

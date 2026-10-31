@@ -1,7 +1,7 @@
 // Cloudflare Turnstile bot protection: shared types for the verifier client.
 
 /** Actions the widgets declare; the server checks the token was minted for the same action. */
-export const TURNSTILE_ACTIONS = ["qualify", "partners", "ask", "documents", "privacy"] as const;
+export const TURNSTILE_ACTIONS = ["qualify", "partners", "ask", "documents", "privacy", "newsletter"] as const;
 export type TurnstileAction = (typeof TURNSTILE_ACTIONS)[number];
 
 /** Request header the browser sends the widget token in. */

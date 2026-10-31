@@ -18,7 +18,7 @@ import { SupabaseIntelStore } from "./intel-store-supabase";
 import { FakeMaturityProvider, maturityProviderFromEnv, type MaturityProvider } from "./maturity";
 import type { OutreachDeps, SenderIdentity } from "./outreach";
 import { senderIdentityFromSite } from "./outreach";
-import { marketRateFromEnv, scanProspects } from "./prospects";
+import { marketRateFromEnv, scanProspects, type ScanDeps } from "./prospects";
 import { MemoryProspectStore, type ProspectStore } from "./prospect-store";
 import { SupabaseProspectStore } from "./prospect-store-supabase";
 import { FederalRegisterSource, RatesSignalSource, StaticSignalSource, FeedSource, feedUrlsFromEnv, type SignalSourceClient } from "./signals";
@@ -117,6 +117,10 @@ export async function intelRuntime(): Promise<IntelRuntime | null> {
 
 export function marketDeps(rt: IntelRuntime): MarketDeps {
   return { gateway: rt.gateway, sources: rt.sources, store: rt.intel, events: rt.events, autonomy: rt.autonomy, now: rt.now };
+}
+
+export function scanDeps(rt: IntelRuntime): ScanDeps {
+  return { provider: rt.provider, store: rt.prospects, events: rt.events, now: rt.now, marketRatePct: rt.marketRatePct };
 }
 
 export function outreachDeps(rt: IntelRuntime): OutreachDeps {

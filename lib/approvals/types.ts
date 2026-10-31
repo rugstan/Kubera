@@ -26,6 +26,7 @@ export const APPROVAL_KIND_LABELS: Record<string, string> = {
   mlds_send: "MLDS (RE 882) e-sign send",
   form159_send: "SBA Form 159 e-sign send",
   third_party_write: "Third-party write",
+  prospect_letter: "Prospect letter",
 };
 
 export const KIND_PATTERN = /^[a-z][a-z0-9_]{1,47}$/;

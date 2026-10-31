@@ -5,11 +5,11 @@
 // immutable: registering the same id and version with different text throws,
 // so any wording change needs a new version, and each agent event records the
 // prompt id, version and hash it ran with. Models are checked against the
-// approved model list (lib/ai/gateway.ts tiers plus configured NVIDIA / xAI
-// ids) and agents declare the tools (with versions) and tasks they use.
+// approved model list (lib/ai/gateway.ts tiers, a configured NVIDIA id and
+// the gateway's xAI model) and agents declare the tools (with versions) and tasks they use.
 
 import { createHash } from "node:crypto";
-import { MODELS, type Effort } from "@/lib/ai/gateway";
+import { MODELS, xaiModel, type Effort } from "@/lib/ai/gateway";
 import type { AiPurpose } from "@/lib/ai/routing";
 
 const ID = /^[a-z][a-z0-9_.-]{1,62}$/;
@@ -28,8 +28,9 @@ export function approvedModels(env: Record<string, string | undefined> = process
   ];
   const nvidia = env.NVIDIA_NIM_MODEL?.trim();
   if (nvidia) out.push({ id: nvidia, tier: "nvidia", status: "active" });
-  const xai = env.XAI_MODEL?.trim();
-  if (xai) out.push({ id: xai, tier: "xai", status: "active" });
+  // The xAI model is always approved (for market intel only, see registerPrompt);
+  // XAI_MODEL overrides the gateway default.
+  out.push({ id: xaiModel(env), tier: "xai", status: "active" });
   return out;
 }
 

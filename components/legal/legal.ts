@@ -127,13 +127,14 @@ export const PURPOSES = [
   "Arrange financing as a real estate broker, including sharing your loan package with lenders and third-party report providers you ask us to work with.",
   "Prepare required disclosures, such as the Mortgage Loan Disclosure Statement, and keep records the California Department of Real Estate requires.",
   "Contact you by email, phone, or text when you have agreed to it.",
+  "Send the newsletter you subscribe to, and keep a record of your consent and any unsubscribe.",
   "Review partner registrations and manage partner relationships.",
   "Run AI-assisted sizing and analysis that an advisor reviews.",
   "Protect our sites and users, prevent fraud, and fix errors.",
   "Comply with law, respond to lawful requests, and enforce our terms.",
 ] as const;
 
-export type CollectionPoint = "qualifier" | "partner" | "upload" | "privacy_request";
+export type CollectionPoint = "qualifier" | "partner" | "upload" | "privacy_request" | "newsletter";
 
 export const COLLECTION_POINTS: Record<CollectionPoint, { categories: readonly CategoryId[]; purpose: string; retention?: string }> = {
   qualifier: {
@@ -153,6 +154,12 @@ export const COLLECTION_POINTS: Record<CollectionPoint, { categories: readonly C
     purpose: "to verify your identity and respond to your privacy request; we use it only for that purpose",
     // 11 CCR §7101: request records are kept 24 months (see lib/privacy/retention.ts).
     retention: "which for privacy requests is 24 months after we close the request, as California privacy regulations require",
+  },
+  newsletter: {
+    categories: ["identifiers", "consent_records", "device_usage"],
+    purpose: "to send you the newsletter you asked for and keep a record of your consent",
+    // Matches the consent_records retention: the opt-out is kept so it can be honored.
+    retention: "which for the newsletter is until you unsubscribe, and for the record of your consent and unsubscribe five years after that",
   },
 };
 
@@ -177,7 +184,7 @@ export const SERVICE_PROVIDERS = [
   { name: "Twenty", role: "Customer relationship management" },
   { name: "Anthropic", role: "AI processing for Kubera AI and sizing narratives" },
   { name: "Zoho", role: "Business email and electronic signatures" },
-  { name: "Resend", role: "Transactional email" },
+  { name: "Resend", role: "Transactional email and the newsletter" },
   { name: "Telnyx", role: "Text messages and calls" },
   { name: "Cloudflare", role: "Bot protection" },
   { name: "Sentry", role: "Error monitoring, with personal details removed" },

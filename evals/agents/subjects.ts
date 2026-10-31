@@ -95,7 +95,7 @@ const mailRules: EvalSubject = {
 
 const mailModel: EvalSubject = {
   kind: "model",
-  description: "Inbound mail triage through the model gateway (Haiku tier), merged with the rules",
+  description: "Inbound mail triage through the model gateway (bulk tier), merged with the rules",
   async run(input, { caseId }) {
     const r = await classifyMail(toMailMessage(input, caseId), { gateway: modelGateway() });
     return { ...r.classification, fallbackReason: r.fallbackReason };
