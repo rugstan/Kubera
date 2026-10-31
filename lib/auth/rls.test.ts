@@ -170,14 +170,30 @@ describe("deals and documents", () => {
     await db.query(`update public.deal_members set revoked_at = null where deal_id = $1 and user_id = $2`, [dealA, IDS.borrower]);
   });
 
-  it("lets brokers with MFA edit deals; analysts and portal users cannot", async () => {
-    await as("broker", "aal2", () => db.query(`update public.deals set stage = 'packaging' where id = $1`, [dealB]));
-    expect((await rows<{ stage: string }>(`select stage from public.deals where id = $1`, [dealB]))[0]?.stage).toBe("packaging");
-    await as("analyst", "aal2", () => db.query(`update public.deals set stage = 'closing' where id = $1`, [dealB]));
-    await as("borrower", "aal1", () => db.query(`update public.deals set stage = 'closing' where id = $1`, [dealA]));
-    expect((await rows<{ stage: string }>(`select stage from public.deals where id = $1`, [dealB]))[0]?.stage).toBe("packaging");
+  it("never lets the API roles write deals or memberships (server-only, past the MLDS/OFAC/stage gates)", async () => {
+    // Even a broker or admin with an MFA session cannot PATCH /rest/v1/deals:
+    // stage, status and every other field change only through the server.
+    for (const who of ["broker", "admin", "analyst"] as const) {
+      await expect(as(who, "aal2", () => db.query(`update public.deals set stage = 'closing' where id = $1`, [dealB])), who).rejects.toThrow(/permission denied/);
+      await expect(as(who, "aal2", () => db.query(`update public.deals set status = 'active' where id = $1`, [dealA])), who).rejects.toThrow(/permission denied/);
+      await expect(as(who, "aal2", () => db.query(`insert into public.deals (name) values ('x')`)), who).rejects.toThrow(/permission denied/);
+      await expect(as(who, "aal2", () => db.query(`delete from public.deals where id = $1`, [dealB])), who).rejects.toThrow(/permission denied/);
+      await expect(
+        as(who, "aal2", () => db.query(`insert into public.deal_members (deal_id, user_id, member_role) values ($1, $2, 'borrower')`, [dealB, IDS.outsider])),
+        who,
+      ).rejects.toThrow(/permission denied/);
+      await expect(as(who, "aal2", () => db.query(`update public.deal_members set revoked_at = now() where deal_id = $1`, [dealA])), who).rejects.toThrow(/permission denied/);
+    }
+    await expect(as("borrower", "aal1", () => db.query(`update public.deals set stage = 'closing' where id = $1`, [dealA]))).rejects.toThrow(/permission denied/);
+    expect((await rows<{ stage: string }>(`select stage from public.deals where id = $1`, [dealB]))[0]?.stage).toBe("intake");
     expect((await rows<{ stage: string }>(`select stage from public.deals where id = $1`, [dealA]))[0]?.stage).toBe("intake");
-    await expect(as("analyst", "aal2", () => db.query(`insert into public.deals (name) values ('x')`))).rejects.toThrow(/row-level security/);
+    expect(await rows(`select 1 from public.deal_members where deal_id = $1`, [dealB])).toHaveLength(0);
+    // The write policies are gone; reads are unchanged.
+    const policies = await rows<{ policyname: string }>(
+      `select policyname from pg_policies where schemaname = 'public' and tablename in ('deals', 'deal_members') order by policyname`,
+    );
+    expect(policies.map((p) => p.policyname)).toEqual(["deal_members_read_own", "deal_members_read_staff", "deals_read_member", "deals_read_staff"]);
+    expect(await as("broker", "aal2", () => rows(`select id from public.deals`))).toHaveLength(2);
   });
 
   it("models Kubera as broker only and links disclosures to deals", async () => {
