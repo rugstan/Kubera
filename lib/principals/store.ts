@@ -106,6 +106,11 @@ export interface PortalInviteStore {
   /** Marks the link used, only if it is still unused; returns the updated row or null when someone else won. */
   consume(id: string, sessionExpiresAt: string, now: Date): Promise<PortalInvite | null>;
   revoke(id: string, now: Date): Promise<void>;
+  /**
+   * Replaces the token of a still-usable link (not used, revoked or expired);
+   * the previous link stops working. Returns the updated row, or null.
+   */
+  rotateToken(id: string, tokenHash: string, now: Date): Promise<PortalInvite | null>;
   forDeal(dealId: string): Promise<PortalInvite[]>;
 }
 
@@ -126,6 +131,14 @@ export class MemoryPortalInviteStore implements PortalInviteStore {
   async getByTokenHash(tokenHash: string) {
     const r = [...this.rows.values()].find((x) => x.tokenHash === tokenHash);
     return r ? { ...r } : null;
+  }
+
+  async rotateToken(id: string, tokenHash: string, now: Date) {
+    const r = this.rows.get(id);
+    if (!r || r.consumedAt || r.revokedAt || Date.parse(r.expiresAt) <= now.getTime()) return null;
+    const next = { ...r, tokenHash };
+    this.rows.set(id, next);
+    return { ...next };
   }
 
   async consume(id: string, sessionExpiresAt: string, now: Date) {

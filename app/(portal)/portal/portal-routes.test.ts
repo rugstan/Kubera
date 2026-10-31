@@ -13,6 +13,8 @@ import { CURRENT_CREDIT_AUTH } from "@/lib/principals/consent";
 import { PORTAL_COOKIE, issuePortalInvite } from "@/lib/principals/portal";
 import { addPrincipal } from "@/lib/principals/service";
 import { DEAL_ID } from "@/lib/principals/test-fixtures";
+import { PDF_BYTES } from "@/lib/documents/testing";
+import { QUARANTINE_BUCKET } from "@/lib/documents/types";
 import { POST as redeem } from "./access/redeem/route";
 import { POST as profile } from "./api/profile/route";
 import { POST as startUpload } from "./api/uploads/route";
@@ -136,18 +138,19 @@ describe("portal profile", () => {
 });
 
 describe("portal uploads", () => {
-  it("uploads to the signed URL and confirms after checking the bytes", async () => {
+  it("uploads to the quarantine bucket, confirms after checking the bytes, and waits for the scan", async () => {
     const cookie = await signIn();
     const item = (await desk.checklists.itemsForDeal(DEAL_ID)).find((i) => i.itemKey === "business_tax_returns")!;
     const start = await post(startUpload, "/portal/api/uploads", { itemId: item.id, fileName: "2025 return.pdf", contentType: "application/pdf", sizeBytes: 2048 }, cookie);
     expect(start.status).toBe(201);
     const { fileId, uploadUrl } = await start.json();
-    expect(uploadUrl).toMatch(/^https:\/\/storage\.test\/upload\//);
+    expect(String(uploadUrl)).toContain(QUARANTINE_BUCKET);
     const file = await desk.checklists.getFile(fileId);
-    desk.storage.put(file!.storagePath, "%PDF-1.4 tax return");
+    desk.vaultParts.storage.upload(QUARANTINE_BUCKET, file!.storagePath, PDF_BYTES);
     const done = await post(completeUpload, "/portal/api/uploads/complete", { fileId }, cookie);
     expect(done.status).toBe(200);
-    expect(await done.json()).toMatchObject({ ok: true, item: { status: "submitted" }, file: { status: "uploaded" } });
+    expect(await done.json()).toMatchObject({ ok: true, item: { status: "requested" }, file: { status: "scanning" } });
+    expect((await desk.vaultParts.store.get(file!.documentId!))!.status).toBe("quarantined");
 
     const tooBig = await post(startUpload, "/portal/api/uploads", { itemId: item.id, fileName: "x.pdf", contentType: "application/pdf", sizeBytes: 80 * 1024 * 1024 }, cookie);
     expect(tooBig.status).toBe(400);

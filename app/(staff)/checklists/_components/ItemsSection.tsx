@@ -1,9 +1,17 @@
+import Link from "next/link";
 import { CSLB_STATUSES, type CslbVerification } from "@/lib/checklists/cslb";
 import { isStale, STAFF_MOVES } from "@/lib/checklists/engine";
 import { CATEGORY_LABEL, CHECKLIST_CATEGORIES, ITEM_STATUS_LABEL, PROGRAM_LABEL, type ChecklistItemFile, type DealChecklist, type DealChecklistItem, type ItemStatus } from "@/lib/checklists/types";
 import type { Readiness } from "@/lib/checklists/engine";
 import { moveItemAction, recordCslbAction } from "../actions";
 import { Badge, Card, date } from "./ui";
+
+const FILE_STATUS_LABEL: Record<ChecklistItemFile["status"], string> = {
+  pending_upload: "upload not finished",
+  scanning: "scanning for viruses (not yet received)",
+  uploaded: "received",
+  rejected: "rejected",
+};
 
 const TONE: Record<ItemStatus, "good" | "warn" | "bad" | "muted"> = {
   requested: "muted",
@@ -46,7 +54,15 @@ function ItemRow({ item, files, dealId, now }: { item: DealChecklistItem; files:
         <ul className="mt-2 text-[13px]" aria-label={`Files for ${item.title}`}>
           {files.map((f) => (
             <li key={f.id}>
-              {f.fileName} — {f.status.replace("_", " ")} {f.uploadedAt ? `on ${date(f.uploadedAt)}` : ""} by {f.uploadedBy}
+              {f.status === "uploaded" && f.documentId ? (
+                // Opens through the vault viewer: access check, audit row, short-lived signed link.
+                <Link href={`/documents/${f.documentId}`} className="font-medium text-accent underline underline-offset-2">
+                  {f.fileName}
+                </Link>
+              ) : (
+                f.fileName
+              )}{" "}
+              — {FILE_STATUS_LABEL[f.status]} {f.uploadedAt ? `on ${date(f.uploadedAt)}` : ""} by {f.uploadedBy}
               {f.rejectReason ? ` (${f.rejectReason})` : ""}
             </li>
           ))}

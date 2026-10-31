@@ -1,7 +1,6 @@
 // Small presentational pieces shared by the deal desk pages (server components).
 
-import { interimStaffConfigured } from "@/lib/checklists/staff";
-import { signIn } from "../actions";
+import { SignInRedirect } from "@/lib/auth/sign-in-redirect";
 
 export type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -48,32 +47,9 @@ export function Card({ id, title, children, actions }: { id?: string; title: str
   );
 }
 
-export function SignIn({ error }: { error?: string }) {
-  if (!interimStaffConfigured()) {
-    return (
-      <div className="bento max-w-xl p-7">
-        <h2 className="text-xl font-semibold">Staff sign-in is not configured</h2>
-        <p className="mt-3 text-[15px] text-ink/80">The deal desk opens once staff authentication is set up for this deployment. Until then nothing on this page is available.</p>
-      </div>
-    );
-  }
-  return (
-    <form action={signIn} className="bento max-w-xl p-7">
-      <h2 className="text-xl font-semibold">Staff sign-in</h2>
-      {error ? (
-        <p role="alert" className="mt-3 text-[15px] text-red-900">
-          {error}
-        </p>
-      ) : null}
-      <label htmlFor="staff-token" className="field-label mt-4">
-        Access token
-      </label>
-      <input id="staff-token" name="token" type="password" autoComplete="current-password" required className="field" />
-      <button type="submit" className="pill pill-primary mt-5">
-        Sign in
-      </button>
-    </form>
-  );
+/** Not signed in as staff (or lib/auth is not configured): send the visitor through WS-I sign-in with MFA. */
+export function SignIn() {
+  return <SignInRedirect to="login" />;
 }
 
 export const usd = (n: number | null | undefined) => (n === null || n === undefined || !Number.isFinite(n) ? "—" : n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }));

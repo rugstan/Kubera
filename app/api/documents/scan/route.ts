@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { checklistDeps, deskServices } from "@/lib/checklists/server";
+import { settlePortalDocument } from "@/lib/checklists/service";
 import { NO_STORE } from "@/lib/documents/http";
 import { documentServices } from "@/lib/documents/server";
 import { safeEqual } from "@/lib/security";
@@ -22,7 +24,10 @@ async function run(req: Request) {
     return NextResponse.json({ ok: true, skipped: "supabase-not-configured" }, { headers: NO_STORE });
   }
   try {
-    const report = await runScanCycle(deps, scannerFromEnv(), { batchSize: 20 });
+    // Portal uploads: a settled scan moves the checklist file (clean → item received; infected → rejected).
+    const desk = deskServices();
+    const onSettled = desk ? async (documentId: string) => void (await settlePortalDocument(checklistDeps(desk), documentId)) : undefined;
+    const report = await runScanCycle(deps, scannerFromEnv(), { batchSize: 20, onSettled });
     return NextResponse.json({ ok: true, ...report }, { headers: NO_STORE });
   } catch (err) {
     console.error("document scan failed", err instanceof Error ? err.message : err);

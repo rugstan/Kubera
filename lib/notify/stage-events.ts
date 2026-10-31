@@ -34,10 +34,17 @@ const MILESTONE_LIST: readonly Milestone[] = [
 
 const MILESTONES = new Map(MILESTONE_LIST.map((m) => [m.key, m]));
 
-/** Stage name (any case or punctuation) to milestone key. Includes the Twenty opportunity stages. */
-const STAGE_TO_MILESTONE: Record<string, string> = {
+/**
+ * Stage name (any case or punctuation) to milestone key. Includes the Twenty
+ * opportunity stages and every deal-desk stage key (lib/deals/stage-catalog.ts).
+ * Commitment-type stages (firm_commitment, sba_authorization, commitment) and
+ * exits (withdrawn, lost) announce nothing: a commitment message would read as
+ * an approval, and exits are handled by the advisor personally.
+ */
+export const STAGE_TO_MILESTONE: Record<string, string> = {
   qualification: "advisor_review",
   intake: "advisor_review",
+  engaged: "advisor_review",
   new: "advisor_review",
   advisor_review: "advisor_review",
   package: "package_preparation",
@@ -52,6 +59,10 @@ const STAGE_TO_MILESTONE: Record<string, string> = {
   quote: "lender_terms",
   quotes: "lender_terms",
   negotiation: "lender_terms",
+  application: "lender_underwriting",
+  third_party_reports: "lender_underwriting",
+  plan_and_cost_review: "lender_underwriting",
+  hud_review: "lender_underwriting",
   underwriting: "lender_underwriting",
   lender_underwriting: "lender_underwriting",
   processing: "lender_underwriting",
@@ -96,6 +107,8 @@ export async function notifyStageEvent(event: StageEvent, notifier: Notifier): P
   if (event.previousStage && normalizeStage(event.previousStage) === normalizeStage(event.stage)) return { milestone: null, skipped: "no_change" };
   const milestone = milestoneForStage(event.stage);
   if (!milestone) return { milestone: null, skipped: "unknown_stage" };
+  // Moving between two stages of the same milestone (application → HUD review) is not news to the borrower.
+  if (event.previousStage && milestoneForStage(event.previousStage)?.key === milestone.key) return { milestone: null, skipped: "no_change" };
 
   const base = { leadId: event.leadId ?? null, dealId: event.dealId ?? null, metadata: { milestone: milestone.key, stage: normalizeStage(event.stage), eventId: event.eventId } };
   const result: StageNotifyResult = { milestone: milestone.key };

@@ -161,7 +161,13 @@ export type DealChecklistItem = {
   updatedAt: string;
 };
 
-export const FILE_STATUSES = ["pending_upload", "uploaded", "rejected"] as const;
+/**
+ * pending_upload  vault document minted, browser uploading to quarantine
+ * scanning        finalized; waiting for the malware scan (item not received yet)
+ * uploaded        scan clean; the item is received
+ * rejected        refused at finalize, or the scan found malware / could not scan
+ */
+export const FILE_STATUSES = ["pending_upload", "scanning", "uploaded", "rejected"] as const;
 export type FileStatus = (typeof FILE_STATUSES)[number];
 
 export type ChecklistItemFile = {
@@ -169,6 +175,8 @@ export type ChecklistItemFile = {
   itemId: string;
   dealId: string;
   storagePath: string;
+  /** Vault document (public.documents); null only for files from before the vault integration. */
+  documentId: string | null;
   fileName: string;
   contentType: string;
   sizeBytes: number;

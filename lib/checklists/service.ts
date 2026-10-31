@@ -17,22 +17,16 @@ import { hmMetrics, hmUnderwritingSchema, type HmUnderwriting, type HmUnderwriti
 import type { ChecklistStore } from "./store";
 import { templateFor } from "./templates";
 import { PROGRAM_LABEL, type ChecklistItemFile, type ChecklistProgram, type DealChecklist, type DealChecklistItem, type ItemStatus } from "./types";
-import { bytesMatchType, checklistStoragePath, MAX_FILES_PER_ITEM, uploadRequestSchema, type AllowedType, type UploadRequest } from "./uploads";
-
-/** Private vault bucket access for checklist uploads. */
-export interface ChecklistObjectStorage {
-  createSignedUploadUrl(path: string): Promise<{ url: string; token: string }>;
-  /** First `bytes` bytes of the stored object, or null when it does not exist. */
-  readHead(path: string, bytes: number): Promise<Uint8Array | null>;
-  remove(path: string): Promise<void>;
-}
+import { MAX_FILES_PER_ITEM, uploadRequestSchema, type UploadRequest } from "./uploads";
+import { documentKindForItem, type ChecklistVault } from "./vault";
 
 export type ChecklistDeps = {
   checklists: ChecklistStore;
   principals: PrincipalStore;
   screenings: ScreeningStore;
   holds: DealHoldStore;
-  storage?: ChecklistObjectStorage | null;
+  /** WS-K document vault for portal uploads (quarantine + malware scan); null = uploads unavailable. */
+  vault?: ChecklistVault | null;
   now?: () => Date;
 };
 
@@ -162,37 +156,117 @@ function assertBorrowerItem(item: DealChecklistItem | null, scope: PortalPrincip
   return item;
 }
 
-export async function startPortalUpload(deps: ChecklistDeps, scope: PortalPrincipalScope, request: UploadRequest): Promise<{ file: ChecklistItemFile; uploadUrl: string; uploadToken: string }> {
-  if (!deps.storage) throw new ChecklistError("Uploads are not available right now. Email your documents to docs@kuberacommercial.com.", 503);
+const UPLOADS_UNAVAILABLE = "Uploads are not available right now. Email your documents to docs@kuberacommercial.com.";
+
+/** Lead the deal's vault documents are filed under: the checklist's lead, else the deal's. */
+async function vaultLead(deps: ChecklistDeps, vault: ChecklistVault, dealId: string): Promise<string> {
+  const fromChecklist = (await deps.checklists.checklistsForDeal(dealId)).find((c) => c.leadId)?.leadId ?? null;
+  const leadId = fromChecklist ?? (await vault.leadForDeal(dealId));
+  if (!leadId) throw new ChecklistError("Uploads are not set up for this loan file yet. Email your documents to docs@kuberacommercial.com and your advisor will add them.", 409);
+  return leadId;
+}
+
+/**
+ * Step 1: a vault document in `pending_upload` and a signed URL into the
+ * QUARANTINE bucket. Nothing reaches the clean bucket until the scan passes.
+ */
+export async function startPortalUpload(deps: ChecklistDeps, scope: PortalPrincipalScope, request: UploadRequest): Promise<{ file: ChecklistItemFile; uploadUrl: string }> {
+  const vault = deps.vault;
+  if (!vault) throw new ChecklistError(UPLOADS_UNAVAILABLE, 503);
   const req = uploadRequestSchema.parse(request);
   const item = assertBorrowerItem(await deps.checklists.getItem(req.itemId), scope);
   if ((await deps.checklists.countFiles(item.id)) >= MAX_FILES_PER_ITEM) throw new ChecklistError(`This item already has ${MAX_FILES_PER_ITEM} files. Ask your advisor before adding more.`, 429);
-  const id = randomUUID();
-  const path = checklistStoragePath(scope.dealId, item.id, req.fileName, req.contentType, id);
-  const signed = await deps.storage.createSignedUploadUrl(path);
-  const file = await deps.checklists.insertFile({ id, itemId: item.id, dealId: scope.dealId, storagePath: path, fileName: req.fileName.slice(0, 200), contentType: req.contentType, sizeBytes: req.sizeBytes, status: "pending_upload", uploadedBy: scope.email }, now(deps));
-  return { file, uploadUrl: signed.url, uploadToken: signed.token };
+  const leadId = await vaultLead(deps, vault, scope.dealId);
+  const reserved = await vault.reserve({ leadId, kind: documentKindForItem(item), fileName: req.fileName, contentType: req.contentType, sizeBytes: req.sizeBytes });
+  if (!reserved.ok) throw new ChecklistError(reserved.message, reserved.status >= 500 ? 503 : reserved.status);
+  const file = await deps.checklists.insertFile(
+    { id: randomUUID(), itemId: item.id, dealId: scope.dealId, storagePath: reserved.storagePath, documentId: reserved.documentId, fileName: req.fileName.slice(0, 200), contentType: req.contentType, sizeBytes: req.sizeBytes, status: "pending_upload", uploadedBy: scope.email },
+    now(deps),
+  );
+  return { file, uploadUrl: reserved.uploadUrl };
 }
 
-/** After the browser's upload: check the stored bytes match the declared type, then mark the item received. */
+/**
+ * Step 2, after the browser's upload: the vault verifies the stored object
+ * (size, declared type vs. magic bytes, quota) and queues it for the malware
+ * scan. The file then shows as `scanning`; the item is received only once the
+ * scan reports clean (settlePortalDocument).
+ */
 export async function completePortalUpload(deps: ChecklistDeps, scope: PortalPrincipalScope, fileId: string): Promise<{ file: ChecklistItemFile; item: DealChecklistItem }> {
-  if (!deps.storage) throw new ChecklistError("Uploads are not available right now.", 503);
+  const vault = deps.vault;
+  if (!vault) throw new ChecklistError("Uploads are not available right now.", 503);
   const file = await deps.checklists.getFile(fileId);
   if (!file || file.dealId !== scope.dealId || file.uploadedBy !== scope.email) throw new ChecklistError("Upload not found.", 404);
   if (file.status !== "pending_upload") throw new ChecklistError("This upload was already completed.", 409);
+  if (!file.documentId) throw new ChecklistError("Upload not found.", 404);
   const item = assertBorrowerItem(await deps.checklists.getItem(file.itemId), scope);
-  const head = await deps.storage.readHead(file.storagePath, 512);
-  if (!head) throw new ChecklistError("We did not receive the file. Please try the upload again.", 409);
-  if (!bytesMatchType(head, file.contentType as AllowedType)) {
-    await deps.storage.remove(file.storagePath).catch(() => {});
-    await deps.checklists.updateFile(file.id, { status: "rejected", rejectReason: "File contents do not match its type." });
-    throw new ChecklistError("That file does not look like the type it claims to be. Upload a PDF, Excel, CSV, PNG or JPEG file.", 422);
+  const verdict = await vault.finalize(file.documentId, `borrower:${scope.email}`);
+  if (!verdict.ok) {
+    if (verdict.status === 409 && /not received|have not received/i.test(verdict.message)) throw new ChecklistError("We did not receive the file. Please try the upload again.", 409);
+    await deps.checklists.updateFile(file.id, { status: "rejected", rejectReason: verdict.message.slice(0, 500) });
+    throw new ChecklistError(verdict.status === 422 ? `${verdict.message} Upload a PDF, Excel, CSV, PNG or JPEG file.` : verdict.message, verdict.status >= 500 ? 503 : verdict.status);
   }
+  const scanning = await deps.checklists.updateFile(file.id, { status: "scanning" });
+  // A document the scanner already cleared (a retried confirmation) settles at once.
+  if (verdict.status !== "quarantined") {
+    const settled = await settlePortalDocument(deps, file.documentId);
+    return { file: settled?.file ?? scanning, item: settled?.item ?? item };
+  }
+  return { file: scanning, item };
+}
+
+const SCAN_REJECTIONS: Partial<Record<string, string>> = {
+  infected: "The file did not pass the virus scan and was deleted. Upload a clean copy.",
+  scan_failed: "The file could not be checked for viruses. Upload it again or email it to your advisor.",
+};
+
+/**
+ * Applies the vault's scan result to the checklist file backed by
+ * `documentId`: clean → file uploaded and the item received (submitted);
+ * infected / rejected / unscannable → file rejected, item untouched. Still
+ * quarantined → nothing changes. Idempotent; returns null when no checklist
+ * file uses the document.
+ */
+export async function settlePortalDocument(deps: ChecklistDeps, documentId: string): Promise<{ file: ChecklistItemFile; item: DealChecklistItem | null } | null> {
+  const vault = deps.vault;
+  if (!vault) return null;
+  const file = await deps.checklists.fileByDocumentId(documentId);
+  if (!file) return null;
+  if (file.status !== "scanning" && file.status !== "pending_upload") return { file, item: await deps.checklists.getItem(file.itemId) };
+  const doc = (await vault.statuses([documentId])).get(documentId);
+  if (!doc) return { file, item: null };
   const t = now(deps);
-  const done = await deps.checklists.updateFile(file.id, { status: "uploaded", uploadedAt: t.toISOString() });
-  const patch = transitionItem(item, { to: "submitted", actor: { kind: "borrower", principalId: scope.principalId, email: scope.email }, now: t });
-  const updated = item.status === "submitted" ? item : await deps.checklists.updateItem(item.id, item.version, patch, t);
-  return { file: done, item: updated };
+  if (doc.status === "clean") {
+    const uploaded = await deps.checklists.updateFile(file.id, { status: "uploaded", uploadedAt: t.toISOString() });
+    let item = await deps.checklists.getItem(file.itemId);
+    if (item && (item.status === "requested" || item.status === "rejected")) {
+      try {
+        item = await deps.checklists.updateItem(item.id, item.version, transitionItem(item, { to: "submitted", actor: { kind: "system", id: "system:vault-scan" }, now: t }), t);
+      } catch (err) {
+        // Someone moved the item meanwhile (another file, or staff); the file is still recorded.
+        if (!(err instanceof Error && ["ConcurrentUpdateError", "ItemTransitionError"].includes(err.name))) throw err;
+        item = await deps.checklists.getItem(file.itemId);
+      }
+    }
+    return { file: uploaded, item };
+  }
+  const reason = SCAN_REJECTIONS[doc.status] ?? (doc.status === "rejected" ? (doc.rejectReason ?? "The file was refused.") : null);
+  if (reason) {
+    return { file: await deps.checklists.updateFile(file.id, { status: "rejected", rejectReason: reason.slice(0, 500) }), item: await deps.checklists.getItem(file.itemId) };
+  }
+  return { file, item: await deps.checklists.getItem(file.itemId) };
+}
+
+/** Settles every file of the deal still waiting on its scan (page loads call this as a backstop to the scan hook). */
+export async function settleDealScans(deps: ChecklistDeps, dealId: string): Promise<number> {
+  if (!deps.vault) return 0;
+  let changed = 0;
+  for (const f of await deps.checklists.filesForDeal(dealId)) {
+    if ((f.status !== "scanning" && f.status !== "pending_upload") || !f.documentId) continue;
+    const r = await settlePortalDocument(deps, f.documentId);
+    if (r && r.file.status !== f.status) changed++;
+  }
+  return changed;
 }
 
 /** Marks a portal-captured item received (PFS, REO schedule, credit authorization, 1919, 2530). */

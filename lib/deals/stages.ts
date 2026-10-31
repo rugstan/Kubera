@@ -10,6 +10,7 @@
 
 import { createHash } from "node:crypto";
 import { stageAdvanceGate, type DealCompliance } from "@/lib/compliance/gates";
+import { POST_TERM_SHEET, STAGE_LABELS, TERMINAL_STAGE_STATUS, isTerminalStage } from "./stage-catalog";
 import { DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type DealProgram } from "./types";
 
 export type StageDef = { key: string; label: string; terminal?: boolean };
@@ -55,42 +56,6 @@ export const TERM_SNAPSHOT_KEYS = [
   "recourse",
   "brokerCompensationCents",
 ] as const;
-
-const STAGE_LABELS: Record<string, string> = {
-  intake: "Intake",
-  engaged: "Engaged",
-  packaging: "Packaging",
-  lender_outreach: "Lender outreach",
-  term_sheet: "Term sheet",
-  application: "Lender application",
-  third_party_reports: "Third-party reports",
-  plan_and_cost_review: "Plan and cost review",
-  hud_review: "HUD review",
-  firm_commitment: "Firm commitment",
-  lender_underwriting: "Lender underwriting",
-  sba_authorization: "SBA authorization",
-  underwriting: "Underwriting",
-  commitment: "Commitment",
-  closing: "Closing",
-  closed: "Closed",
-  withdrawn: "Withdrawn",
-  lost: "Lost",
-};
-
-/** Middle of the pipeline (between term-sheet acceptance and closing), per program. */
-const POST_TERM_SHEET: Record<DealProgram, string[]> = {
-  HUD_232: ["application", "third_party_reports", "hud_review", "firm_commitment"],
-  HUD_MULTIFAMILY: ["application", "third_party_reports", "hud_review", "firm_commitment"],
-  SBA_7A: ["application", "lender_underwriting", "sba_authorization"],
-  SBA_504: ["application", "lender_underwriting", "sba_authorization"],
-  HOTEL_CMBS: ["application", "third_party_reports", "underwriting", "commitment"],
-  PIP_BRIDGE: ["application", "underwriting", "commitment"],
-  AGENCY: ["application", "third_party_reports", "underwriting", "commitment"],
-  BANK_LIFE_CO: ["application", "underwriting", "commitment"],
-  PRIVATE_BRIDGE: ["underwriting", "commitment"],
-  HARD_MONEY: ["underwriting"],
-  CONSTRUCTION: ["application", "plan_and_cost_review", "underwriting", "commitment"],
-};
 
 const EVENT_INTO: Record<string, { key: string; label: string }> = {
   application: { key: "application_submitted", label: "Lender application submitted" },
@@ -188,7 +153,23 @@ export type StageContext = {
   compliance?: DealCompliance | null;
   /** SBA deals: Form 159 is signed by agent, applicant and lender, or no Kubera compensation exists. */
   form159Satisfied?: boolean;
+  /**
+   * Open holds on the deal (possible or confirmed sanctions match), as reasons.
+   * While any is open only the exit events (withdraw, mark lost) apply.
+   */
+  holds?: string[];
+  /**
+   * WS-U closing gate (checklists, pre-closing conditions, sanctions screening
+   * clear within the rescreen window). When provided, events into closing or
+   * closed require `ready`; null means it could not be evaluated (refused).
+   */
+  closingGate?: { ready: boolean; reasons: string[] } | null;
 };
+
+/** Events that only take a deal out of the pipeline; they stay available while the deal is on hold. */
+export const EXIT_STAGES: ReadonlySet<string> = new Set(["withdrawn", "lost"]);
+/** Target stages the closing gate guards. */
+export const CLOSING_TARGET_STAGES: ReadonlySet<string> = new Set(["closing", "closed"]);
 
 export type StageEventInput = {
   deal: Deal;
@@ -235,8 +216,18 @@ export function applyStageEvent(input: StageEventInput): StageAdvance {
   if (!event) return { ok: false, from, event: input.event, reasons: [`Unknown event "${input.event}" for ${template.name}.`] };
   if (!event.from.includes(from)) return { ok: false, from, event: input.event, reasons: [`"${event.label}" does not apply in stage ${stageLabel(input.deal.program, from)}.`] };
 
+  const holds = input.context.holds ?? [];
+  if (holds.length && !EXIT_STAGES.has(event.to)) {
+    return { ok: false, from, event: input.event, reasons: [...holds.map((h) => `On hold: ${h}`), "Only withdrawing or marking the deal lost is possible until the hold is released."] };
+  }
+
   const reasons = [...new Set(event.requires.flatMap((r) => requirementReasons(r, input, event.to)))];
-  if (reasons.length) return { ok: false, from, event: input.event, reasons };
+  if (CLOSING_TARGET_STAGES.has(event.to) && input.context.closingGate !== undefined) {
+    const g = input.context.closingGate;
+    if (!g) reasons.push("The checklist and sanctions-screening gate could not be evaluated, so the deal cannot go to closing.");
+    else if (!g.ready) reasons.push(...(g.reasons.length ? g.reasons : ["The checklist and sanctions-screening gate is not clear."]));
+  }
+  if (reasons.length) return { ok: false, from, event: input.event, reasons: [...new Set(reasons)] };
 
   const at = input.now.toISOString();
   const patch: Partial<Deal> = { stage: event.to, stageEnteredAt: at };
@@ -247,6 +238,8 @@ export function applyStageEvent(input: StageEventInput): StageAdvance {
     patch.lockedFields = template.lockedFields;
   }
   if (event.to === "closed") patch.closedOn = at.slice(0, 10);
+  // Terminal stages settle the deal's pipeline status (closed → won, lost, withdrawn).
+  if (isTerminalStage(event.to)) patch.status = TERMINAL_STAGE_STATUS[event.to];
   return { ok: true, from, to: event.to, event, patch };
 }
 

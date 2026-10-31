@@ -7,8 +7,9 @@ import { seedDemoApprovals } from "./demo";
 import { queueApprovalGate } from "./gate";
 import { sendWorkflowEvent } from "@/lib/workflows/client";
 import { EVENTS as WORKFLOW_EVENTS } from "@/lib/workflows/events";
+import { executeApproved } from "./executors";
 import { ApprovalService, type ApprovalHooks } from "./service";
-import { MemoryApprovalStore } from "./store";
+import { MemoryApprovalStore, type ApprovalStore } from "./store";
 import { supabaseApprovalStore } from "./supabase-store";
 
 // Server wiring for the approval queue. Supabase (service role) when
@@ -21,18 +22,36 @@ export function setApprovalService(service: ApprovalService | null | undefined):
   override = service;
 }
 
-/** Wakes workflows waiting on an approval (lib/workflows/approval.ts) instead of the next gate poll. */
-const hooks: ApprovalHooks = {
-  async onDecided(records) {
-    await sendWorkflowEvent(
-      records.map((r) => ({
-        name: WORKFLOW_EVENTS.approvalDecided,
-        id: `approval-decided:${r.id}:${r.status}`,
-        data: { approvalId: r.id, idempotencyKey: r.idempotencyKey, status: r.status },
-      })),
-    );
-  },
-};
+/**
+ * Wakes workflows waiting on an approval (lib/workflows/approval.ts) instead of
+ * the next gate poll, then runs the executor registered for an approved action
+ * that no workflow waits on (lib/approvals/executors-server.ts), once.
+ */
+function hooksFor(service: () => ApprovalService): ApprovalHooks {
+  return {
+    async onDecided(records) {
+      try {
+        await sendWorkflowEvent(
+          records.map((r) => ({
+            name: WORKFLOW_EVENTS.approvalDecided,
+            id: `approval-decided:${r.id}:${r.status}`,
+            data: { approvalId: r.id, idempotencyKey: r.idempotencyKey, status: r.status },
+          })),
+        );
+      } catch (err) {
+        console.warn("[approvals] workflow wake-up failed", err instanceof Error ? err.message : err);
+      }
+      if (!records.some((r) => r.status === "approved")) return;
+      const { approvalExecutors } = await import("./executors-server");
+      await executeApproved(service(), records, approvalExecutors());
+    },
+  };
+}
+
+function withHooks(store: ApprovalStore): ApprovalService {
+  const service: ApprovalService = new ApprovalService(store, undefined, hooksFor(() => service));
+  return service;
+}
 
 const DEMO_KEY = Symbol.for("kubera.approvals.demo");
 type DemoBundle = { service: ApprovalService; ready: Promise<void> };
@@ -42,7 +61,7 @@ function demoService(): ApprovalService {
   let bundle = g[DEMO_KEY];
   if (!bundle) {
     const store = new MemoryApprovalStore();
-    const service = new ApprovalService(store, undefined, hooks);
+    const service = withHooks(store);
     bundle = { service, ready: seedDemoApprovals(service, store) };
     g[DEMO_KEY] = bundle;
   }
@@ -54,7 +73,7 @@ export function approvalService(): ApprovalService | null {
   if (override !== undefined) return override;
   if (resolveAuthMode().mode === "fake") return demoService();
   const db = supabaseAdmin();
-  return db ? new ApprovalService(supabaseApprovalStore(db), undefined, hooks) : null;
+  return db ? withHooks(supabaseApprovalStore(db)) : null;
 }
 
 /** Same as approvalService(), after the demo queue (fake mode) finished seeding. */

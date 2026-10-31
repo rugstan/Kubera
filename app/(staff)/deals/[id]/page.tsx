@@ -7,7 +7,7 @@ import { FEE_ENTRY_LABELS, DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type Fe
 import { FORM159_BLOCKING_FLAGS, type Form159Flag } from "@/lib/deals/form159";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
 import { panelForDeal } from "@/lib/deals/lenders";
-import { currentStaff, dealDeskRuntime, type DealDeskRuntime } from "@/lib/deals/runtime";
+import { currentStaff, dealDeskRuntime, deskDeps, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { stageContext } from "@/lib/deals/service";
 import { can, type StaffSession } from "@/lib/deals/session";
 import { availableEvents, stageLabel, stageTemplate } from "@/lib/deals/stages";
@@ -125,7 +125,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
 // ---------------------------------------------------------------------------
 
 async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime; write: boolean }) {
-  const ctx = await stageContext({ store: rt.store, disclosures: rt.disclosures, now: rt.now }, deal);
+  const ctx = await stageContext(deskDeps(rt), deal);
   const events = availableEvents(stageTemplate(deal.program), deal.stage);
   const compliance = ctx.compliance;
   return (
@@ -139,7 +139,31 @@ async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime
           {compliance ? (compliance.gates.closing.allowed ? <Badge tone="good">Clear</Badge> : <Badge tone="bad">Blocked</Badge>) : <Badge tone="warn">Not evaluated</Badge>}
         </li>
         {isSbaProgram(deal.program) ? <li>SBA Form 159: {ctx.form159Satisfied ? <Badge tone="good">Satisfied</Badge> : <Badge tone="warn">Signature needed</Badge>}</li> : null}
+        <li>Sanctions holds: {ctx.holds?.length ? <Badge tone="bad">On hold</Badge> : <Badge tone="good">None</Badge>}</li>
+        {ctx.closingGate !== undefined ? (
+          <li>
+            Checklist and screening:{" "}
+            {ctx.closingGate ? ctx.closingGate.ready ? <Badge tone="good">Ready</Badge> : <Badge tone="bad">Not ready</Badge> : <Badge tone="warn">Not evaluated</Badge>}
+          </li>
+        ) : null}
       </ul>
+      {ctx.holds?.length ? (
+        <div className="mt-3 rounded-2xl border border-red-700/30 bg-red-50 p-3 text-sm text-red-900" role="alert">
+          <p className="font-medium">This deal is on hold. Only withdrawing or marking it lost is possible until the hold is released.</p>
+          <ul className="mt-1 list-disc pl-5">
+            {ctx.holds.map((h) => (
+              <li key={h}>{h}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {ctx.closingGate && !ctx.closingGate.ready && !ctx.holds?.length ? (
+        <ul className="mt-3 list-disc pl-5 text-sm text-red-900">
+          {ctx.closingGate.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      ) : null}
       {compliance && !compliance.gates.closing.allowed ? (
         <ul className="mt-3 list-disc pl-5 text-sm text-red-900">
           {compliance.gates.closing.reasons.map((r) => (

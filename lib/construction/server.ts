@@ -1,8 +1,10 @@
 import "server-only";
 import { approvalGate } from "@/lib/approvals/server";
-import { resolveAuthMode } from "@/lib/auth/config";
 import { primaryStaffRole, signedInStaff } from "@/lib/auth/staff";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
+import { SupabaseDealDeskStore } from "@/lib/deals/store-supabase";
+import { dealDeskTakeoutCreator } from "@/lib/deals/takeout";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { createContractorLicenseLookup } from "./cslb";
 import { ConstructionError, type ConstructionDeps, type DealCreator } from "./deps";
 import { MemoryConstructionStore, type ConstructionStore } from "./store";
@@ -12,9 +14,10 @@ import type { StaffIdentity } from "./types";
 // Wiring for the staff app: which store, approval gate, license lookup and deal
 // creator the construction desk uses, and who counts as signed-in staff.
 //
-// Other modules plug in without this one importing them:
-//   registerStaffGuard(...)   WS-I's auth session check
-//   configureConstruction({ gate, deals })   WS-I's approvals queue, WS-T's deal creator
+// Defaults: WS-I's approvals queue and lib/auth session, and WS-T's deal desk
+// as the take-out deal creator whenever Supabase is configured. Tests override:
+//   registerStaffGuard(...)   a staff session check
+//   configureConstruction({ gate, deals, store })
 
 export type StaffGuard = () => Promise<StaffIdentity | null>;
 
@@ -37,21 +40,15 @@ export function resetConstructionConfig(): void {
   guard = null;
 }
 
-const DEV_STAFF: StaffIdentity = { id: "dev-staff", email: "dev-staff@localhost", role: "broker" };
-
 /**
- * Signed-in staff, or null. A registered guard wins; otherwise WS-I's lib/auth
- * session (MFA required) when staff auth is configured. With no staff auth at
- * all the desk fails closed in production and uses a local stand-in only under
- * `next dev` and tests, so it is never reachable unauthenticated when deployed.
+ * Signed-in staff, or null. A registered guard (tests) wins; otherwise WS-I's
+ * lib/auth session (active profile, staff role, MFA). Without lib/auth
+ * configured there is no session, so the desk fails closed everywhere.
  */
 export async function currentStaff(): Promise<StaffIdentity | null> {
   if (guard) return guard();
-  if (resolveAuthMode().mode !== "disabled") {
-    const p = await signedInStaff();
-    return p ? { id: p.userId, email: p.email.toLowerCase(), role: primaryStaffRole(p) } : null;
-  }
-  return process.env.NODE_ENV === "production" ? null : DEV_STAFF;
+  const p = await signedInStaff();
+  return p ? { id: p.userId, email: p.email.toLowerCase(), role: primaryStaffRole(p) } : null;
 }
 
 export async function requireStaff(): Promise<StaffIdentity> {
@@ -78,6 +75,12 @@ function defaultStore(): ConstructionStore | null {
   return globalForStore.__constructionMemoryStore;
 }
 
+/** WS-T deal desk as the take-out deal creator; null without Supabase (take-outs are then recorded only). */
+function defaultDealCreator(): DealCreator | null {
+  const db = supabaseAdmin();
+  return db ? dealDeskTakeoutCreator({ store: new SupabaseDealDeskStore(db), now: () => new Date() }) : null;
+}
+
 /** The desk's collaborators, or null when there is no database to keep records in. */
 export function getConstructionDeps(): ConstructionDeps | null {
   const store = overrides.store ?? defaultStore();
@@ -86,7 +89,7 @@ export function getConstructionDeps(): ConstructionDeps | null {
     store,
     gate: overrides.gate ?? approvalGate(),
     licenses: createContractorLicenseLookup(),
-    deals: overrides.deals ?? null,
+    deals: overrides.deals ?? defaultDealCreator(),
     now: () => new Date(),
   };
 }

@@ -4,7 +4,10 @@ import { MemoryDisclosureStore } from "@/lib/disclosures/store";
 import { advanceDeal, editDeal } from "./service";
 import { LockedFieldError, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest } from "./stages";
 import { dealPrograms, type Deal } from "./types";
-import { docs, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
+import { checklistDesk, docs, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
+import { dispositionScreening } from "@/lib/screening/service";
+import { dealStatusHoldSink } from "./holds";
+import { MemoryStageEventSink } from "./stage-events";
 import { markOutreachSent, recordLenderResponse, sendPackageToLender } from "./packages";
 import { sbaPackagingFee } from "./ledger";
 
@@ -108,8 +111,10 @@ describe("advanceDeal (end to end with the records)", () => {
   it("moves a HUD deal from intake to closed only when each record exists", async () => {
     const { store, gate, now } = setup();
     const disclosures = new MemoryDisclosureStore();
-    const deps = { store, disclosures, now };
     let deal = await newDeal(store, now);
+    const { deps: checklist } = await checklistDesk(deal.id, now);
+    const stageEvents = new MemoryStageEventSink();
+    const deps = { store, disclosures, now, checklist, stageEvents };
     const lender = await store.insertLender(lenderInput(), "a", now());
 
     expect((await advanceDeal(deps, { dealId: deal.id, event: "engagement_signed", actor: "a" })).ok).toBe(false);
@@ -135,7 +140,11 @@ describe("advanceDeal (end to end with the records)", () => {
     store.seedLoanBrokerOfRecord(loanRecord(deal.id, { lender: { name: "Cambridge", category: "STATE_BANK", evidenceRef: "DFPI 1" }, noteRatePct: 6.2 }));
     expect((await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" })).ok).toBe(true);
     const closed = await advanceDeal(deps, { dealId: deal.id, event: "loan_closed", actor: "a" });
-    expect(closed.deal).toMatchObject({ stage: "closed", closedOn: "2026-11-03" });
+    expect(closed.deal).toMatchObject({ stage: "closed", closedOn: "2026-11-03", status: "won" });
+    // Every stage change was announced once, with an id stable per deal, stage and record version.
+    expect(stageEvents.changes.map((c) => c.stage)).toEqual(["engaged", "packaging", "lender_outreach", "term_sheet", "application", "third_party_reports", "hud_review", "firm_commitment", "closing", "closed"]);
+    expect(stageEvents.changes.at(-1)).toMatchObject({ dealId: deal.id, previousStage: "closing", event: "loan_closed", eventId: `deal-stage:${deal.id}:closed:${closed.deal.recordVersion}` });
+    expect(new Set(stageEvents.changes.map((c) => c.eventId)).size).toBe(stageEvents.changes.length);
     expect(store.audit.filter((a) => a.tableName === "deals" && a.changed.includes("stage")).length).toBeGreaterThanOrEqual(10);
   });
 
@@ -143,7 +152,8 @@ describe("advanceDeal (end to end with the records)", () => {
     const { store, now } = setup();
     const deal = await newDeal(store, now, { collateralRealProperty: null });
     await store.updateDeal(deal.id, deal.recordVersion, { stage: "firm_commitment" }, "a", now());
-    const r = await advanceDeal({ store, disclosures: null, now }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    const { deps: checklist } = await checklistDesk(deal.id, now);
+    const r = await advanceDeal({ store, disclosures: null, now, checklist }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.reasons.join(" ")).toMatch(/lien on real property/);
@@ -156,7 +166,92 @@ describe("advanceDeal (end to end with the records)", () => {
     const deal = await newDeal(store, now, { program: "SBA_7A", collateralRealProperty: false });
     await store.updateDeal(deal.id, deal.recordVersion, { stage: "sba_authorization" }, "a", now());
     await store.insertFeeEntry(sbaPackagingFee({ dealId: deal.id, flatCents: 100_000 }), "a", now());
-    const r = await advanceDeal({ store, disclosures, now }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    const { deps: checklist } = await checklistDesk(deal.id, now);
+    const r = await advanceDeal({ store, disclosures, now, checklist }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
     expect(r).toMatchObject({ ok: false, reasons: [expect.stringMatching(/Form 159/)] });
+  });
+});
+
+describe("sanctions holds and the closing gate on the deal desk", () => {
+  async function dealAtFirmCommitment() {
+    const { store, now } = setup();
+    const disclosures = new MemoryDisclosureStore();
+    const deal = await newDeal(store, now);
+    const moved = await store.updateDeal(deal.id, deal.recordVersion, { stage: "firm_commitment" }, "a", now());
+    await disclosures.insert({ kind: "MLDS_RE882", status: "signed", dealId: deal.id, signedAt: now().toISOString() }, now());
+    store.seedLoanBrokerOfRecord(loanRecord(deal.id, { lender: { name: "Cambridge", category: "STATE_BANK", evidenceRef: "DFPI 1" }, noteRatePct: 6.2 }));
+    return { store, now, disclosures, deal: moved };
+  }
+
+  it("a deal with an open sanctions hold cannot advance to closing; only withdraw / lost apply", async () => {
+    const { store, now, disclosures, deal } = await dealAtFirmCommitment();
+    const { desk, deps: checklist, sdeps, screened } = await checklistDesk(deal.id, now, { sanctions: [{ entryId: "SDN-9", name: "Pat Owner", kind: "individual" }] });
+    const sink = dealStatusHoldSink({ store, holds: desk.holds, now });
+    // The screening service announced the hold before the sink existed; replay it.
+    for (const h of await desk.holds.active(deal.id)) await sink.held(h);
+    expect((await store.getDeal(deal.id))!.status).toBe("on_hold");
+
+    const deps = { store, disclosures, now, checklist };
+    const blocked = await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(blocked).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/On hold: Possible sanctions match for Pat Owner/)]) });
+    expect((await store.getDeal(deal.id))!.stage).toBe("firm_commitment");
+
+    // Confirmed match: held for counsel, still blocked.
+    const hit = screened.records.find((r) => r.result === "potential_match")!;
+    await dispositionScreening({ ...sdeps, sink }, { screeningId: hit.id, to: "confirmed_match", reviewer: { id: "u1", email: "broker@kuberacommercial.com", name: "B", role: "broker", dreLicense: null }, note: "Same date of birth and nationality as SDN-9." });
+    expect((await store.getDeal(deal.id))!.status).toBe("held_for_counsel");
+    expect((await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" })).ok).toBe(false);
+
+    const withdrawn = await advanceDeal(deps, { dealId: deal.id, event: "withdraw", actor: "a" });
+    expect(withdrawn.ok).toBe(true);
+    expect(withdrawn.deal).toMatchObject({ stage: "withdrawn", status: "withdrawn" });
+  });
+
+  it("releasing a possible-match hold returns the deal to active and lets it close", async () => {
+    const { store, now, disclosures, deal } = await dealAtFirmCommitment();
+    const { desk, deps: checklist, sdeps, screened } = await checklistDesk(deal.id, now, { sanctions: [{ entryId: "SDN-9", name: "Pat Owner", kind: "individual" }] });
+    const sink = dealStatusHoldSink({ store, holds: desk.holds, now });
+    for (const h of await desk.holds.active(deal.id)) await sink.held(h);
+    const hit = screened.records.find((r) => r.result === "potential_match")!;
+    await dispositionScreening({ ...sdeps, sink }, { screeningId: hit.id, to: "false_positive", reviewer: { id: "u1", email: "broker@kuberacommercial.com", name: "B", role: "broker", dreLicense: null }, note: "Different date of birth and nationality from SDN-9." });
+    expect((await store.getDeal(deal.id))!.status).toBe("active");
+    const r = await advanceDeal({ store, disclosures, now, checklist }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(r).toMatchObject({ ok: true, to: "closing" });
+  });
+
+  it("closing needs the checklist gate ready and a screening inside the rescreen window", async () => {
+    const { store, now, disclosures, deal } = await dealAtFirmCommitment();
+    const incomplete = await checklistDesk(deal.id, now, { complete: false });
+    const r = await advanceDeal({ store, disclosures, now, checklist: incomplete.deps }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(r).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/item\(s\) outstanding/)]) });
+
+    // A clean screening that has gone stale (outside the rescreen window) blocks closing too.
+    const { deps: ready } = await checklistDesk(deal.id, now);
+    const later = () => new Date(now().getTime() + 60 * 24 * 3600 * 1000);
+    const stale = await advanceDeal({ store, disclosures, now: later, checklist: { ...ready, now: later } }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(stale.ok).toBe(false);
+    if (!stale.ok) expect(stale.reasons.join(" ")).toMatch(/[Rr]escreen/);
+  });
+
+  it("without the checklist desk every event but the exits is refused (fail closed)", async () => {
+    const { store, now, disclosures, deal } = await dealAtFirmCommitment();
+    const r = await advanceDeal({ store, disclosures, now, checklist: null }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(r).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/not configured/)]) });
+    expect((await advanceDeal({ store, disclosures, now, checklist: null }, { dealId: deal.id, event: "mark_lost", actor: "a" })).deal.status).toBe("lost");
+  });
+
+  it("a failing stage notification does not undo the advance", async () => {
+    const { store, now } = setup();
+    let deal = await newDeal(store, now);
+    deal = await store.updateDeal(deal.id, deal.recordVersion, { engagementAgreementRef: "vault://e.pdf" }, "a", now());
+    const { deps: checklist } = await checklistDesk(deal.id, now);
+    const errors: unknown[] = [];
+    const r = await advanceDeal(
+      { store, disclosures: null, now, checklist, stageEvents: { stageChanged: async () => Promise.reject(new Error("notify down")) }, onStageEventError: (e) => errors.push(e) },
+      { dealId: deal.id, event: "engagement_signed", actor: "a" },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.deal.stage).toBe("engaged");
+    expect(errors).toHaveLength(1);
   });
 });

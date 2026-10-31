@@ -66,6 +66,16 @@ export function notifyRuntime(): NotifyRuntime {
   return cached;
 }
 
+/**
+ * A notifier on the runtime's store, consent ledger and providers with its own
+ * gate: for a message a broker already approved through another request (the
+ * portal invitation, lib/principals/portal-mail.ts).
+ */
+export function notifierWithGate(gate: ApprovalGate): Notifier {
+  const rt = notifyRuntime();
+  return new Notifier({ email: emailClientFromEnv(), sms: smsClientFromEnv(), store: rt.store, consent: rt.consent, gate, preApproved: preApprovedFromEnv() });
+}
+
 /** Test hook. */
 export function setNotifyRuntime(runtime: NotifyRuntime | undefined) {
   cached = runtime;

@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 // Uploads one file for a checklist item: ask the server for a signed upload
-// URL, send the file straight to the private vault, then confirm so the
-// server can check the file and mark the item received.
+// URL, send the file straight to the vault's quarantine bucket, then confirm
+// so the server can check the file and queue it for the malware scan. The
+// item is received once the scan passes.
 
 const ACCEPT = ".pdf,.csv,.xls,.xlsx,.png,.jpg,.jpeg,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg";
 const MAX = 50 * 1024 * 1024;
@@ -38,7 +39,8 @@ export function UploadButton({ itemId, itemTitle }: { itemId: string; itemTitle:
       if (!put.ok) return setState({ kind: "error", message: "The upload did not finish. Check your connection and try again." });
       const done = await postJson("/portal/api/uploads/complete", { fileId: start.data.fileId });
       if (!done.ok) return setState({ kind: "error", message: String(done.data.error ?? "We couldn't confirm the upload.") });
-      setState({ kind: "done", message: `${file.name} received. Your advisor will review it.` });
+      const scanning = (done.data.file as { status?: string } | undefined)?.status === "scanning";
+      setState({ kind: "done", message: scanning ? `${file.name} uploaded. We are checking it for viruses; it goes to your advisor once the check passes.` : `${file.name} received. Your advisor will review it.` });
       router.refresh();
     } catch {
       setState({ kind: "error", message: "Network error. Nothing was uploaded; please try again." });

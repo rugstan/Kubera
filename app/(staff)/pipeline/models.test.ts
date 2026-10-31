@@ -2,18 +2,52 @@ import { describe, expect, it } from "vitest";
 import { relativeExpiry, statusLabel } from "../approvals/format";
 import { safeDispositionName, scanStatusOf, servable } from "../documents/model";
 import { DEMO_PIPELINE } from "./demo";
-import { formatUsd, matchesQuery, stageOrder, summarizeStages, type PipelineRow } from "./model";
+import { applyStageEvent, stageTemplate } from "@/lib/deals/stages";
+import type { Deal } from "@/lib/deals/types";
+import { DEAL_STAGES, formatUsd, isOpenDeal, matchesQuery, stageLabel, stageOrder, summarizeStages, type PipelineRow } from "./model";
 
 const rows: PipelineRow[] = DEMO_PIPELINE.map((d) => ({ ...d, pendingApprovals: 0 }));
 
 describe("pipeline model", () => {
   it("summarizes active deals by stage in lifecycle order", () => {
     const s = summarizeStages(rows);
-    expect(s.map((x) => x.stage)).toEqual(["intake", "qualifying", "packaging", "lender_outreach", "term_sheet", "underwriting", "closing"]);
+    expect(s.map((x) => x.stage)).toEqual(["intake", "engaged", "packaging", "lender_outreach", "term_sheet", "underwriting", "closing"]);
     expect(s.find((x) => x.stage === "packaging")).toMatchObject({ count: 1, amountUsd: 18_500_000, label: "Packaging" });
     expect(s.some((x) => x.stage === "lost")).toBe(false);
     expect(stageOrder("intake")).toBeLessThan(stageOrder("closing"));
     expect(stageOrder("unknown")).toBeGreaterThan(stageOrder("lost"));
+  });
+
+  it("orders every deal-desk template stage, including engaged and withdrawn", () => {
+    const keys = DEAL_STAGES.map((s) => s.key);
+    for (const program of ["HUD_232", "SBA_7A", "CONSTRUCTION", "HARD_MONEY"] as const) {
+      for (const st of stageTemplate(program).stages) expect(keys).toContain(st.key);
+    }
+    expect(stageLabel("engaged")).toBe("Engaged");
+    expect(stageLabel("withdrawn")).toBe("Withdrawn");
+    expect(stageOrder("engaged")).toBeLessThan(stageOrder("packaging"));
+    expect(stageOrder("closed")).toBeLessThan(stageOrder("withdrawn"));
+  });
+
+  it("drops a deal from the active summary once the deal desk closes, loses or withdraws it", () => {
+    const deal = { id: "d1", title: "Closing deal", program: "PRIVATE_BRIDGE", stage: "closing", status: "active", stageTemplateVersion: 1 } as Deal;
+    const compliance = { gates: { closing: { allowed: true, reasons: [] } } } as never;
+    const closed = applyStageEvent({ deal, event: "loan_closed", context: { compliance }, now: new Date("2026-11-03T00:00:00Z") });
+    const lost = applyStageEvent({ deal, event: "mark_lost", context: {}, now: new Date("2026-11-03T00:00:00Z") });
+    const withdrawn = applyStageEvent({ deal, event: "withdraw", context: {}, now: new Date("2026-11-03T00:00:00Z") });
+    expect(lost.ok && lost.patch.status).toBe("lost");
+    expect(withdrawn.ok && withdrawn.patch.status).toBe("withdrawn");
+    const row: PipelineRow = { ...rows[0]!, id: "d1", stage: "closing", status: "active", loanAmountUsd: 5_000_000 };
+    const before = summarizeStages([row]).find((s) => s.stage === "closing")!;
+    expect(before.count).toBe(1);
+    expect(closed.ok).toBe(true);
+    if (closed.ok) {
+      expect(closed.patch.status).toBe("won");
+      const after = { ...row, stage: closed.to, status: closed.patch.status! };
+      expect(isOpenDeal(after)).toBe(false);
+      expect(summarizeStages([after])).toEqual([]);
+    }
+    expect(isOpenDeal({ status: "on_hold" })).toBe(true);
   });
 
   it("formats loan amounts compactly", () => {

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { deskServices } from "@/lib/checklists/server";
 import { CHECKLIST_PROGRAMS, PROGRAM_LABEL } from "@/lib/checklists/types";
-import { createChecklistAction, signOut } from "./actions";
+import { createChecklistAction } from "./actions";
+import { signOutAction } from "@/app/(auth)/actions";
 import { currentStaff } from "./_lib/session";
 import { Card, date, first, Notice, SignIn, type SearchParams } from "./_components/ui";
 
@@ -27,7 +28,7 @@ export default function ChecklistsPage({ searchParams }: { searchParams: SearchP
 async function Desk({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const staff = await currentStaff();
-  if (!staff) return <SignIn error={first(sp.error)} />;
+  if (!staff) return <SignIn />;
   const s = deskServices();
   if (!s) {
     return (
@@ -47,7 +48,7 @@ async function Desk({ searchParams }: { searchParams: SearchParams }) {
         <p>
           Signed in as <strong>{staff.name}</strong> ({staff.email}, {staff.role})
         </p>
-        <form action={signOut}>
+        <form action={signOutAction}>
           <button type="submit" className="pill pill-glass !px-4 !py-2 !text-[15px]">
             Sign out
           </button>

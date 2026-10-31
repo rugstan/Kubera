@@ -7,7 +7,7 @@ import { checklistReadiness, instantiateItems, isStale, outstandingForBorrower, 
 import { hmMetrics, hmUnderwritingSchema } from "./hm-underwriting";
 import { CHECKLIST_TEMPLATES } from "./templates";
 import type { DealChecklistItem } from "./types";
-import { bytesMatchType, checklistStoragePath, safeFileName, sniffContentType, uploadRequestSchema } from "./uploads";
+import { uploadRequestSchema } from "./uploads";
 
 const NOW = new Date("2026-11-03T12:00:00Z");
 const DEAL = "11111111-1111-4111-8111-111111111111";
@@ -181,24 +181,9 @@ describe("hard money underwriting", () => {
 });
 
 describe("uploads", () => {
-  it("validates type and size and builds safe storage paths", () => {
+  it("validates type and size before the vault is asked for an upload URL", () => {
     expect(uploadRequestSchema.safeParse({ itemId: DEAL, fileName: "rr.pdf", contentType: "application/zip", sizeBytes: 10 }).success).toBe(false);
     expect(uploadRequestSchema.safeParse({ itemId: DEAL, fileName: "rr.pdf", contentType: "application/pdf", sizeBytes: 60 * 1024 * 1024 }).success).toBe(false);
-    expect(safeFileName("../../etc/Rent Roll (Oct).exe", "application/pdf")).toBe("Rent-Roll-Oct.pdf");
-    expect(safeFileName("Ñandú.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).toBe("Nandu.xlsx");
-    const p = checklistStoragePath(DEAL, DEAL, "x.pdf", "application/pdf", DEAL);
-    expect(p).toBe(`deals/${DEAL}/checklist/${DEAL}/${DEAL}-x.pdf`);
-  });
-
-  it("sniffs magic bytes", () => {
-    const enc = (s: string) => new TextEncoder().encode(s);
-    expect(sniffContentType(enc("%PDF-1.7"))).toBe("application/pdf");
-    expect(bytesMatchType(enc("%PDF-1.7"), "application/pdf")).toBe(true);
-    expect(bytesMatchType(enc("MZ\u0090\u0000"), "application/pdf")).toBe(false);
-    expect(bytesMatchType(Uint8Array.from([0x50, 0x4b, 0x03, 0x04, 0]), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).toBe(true);
-    expect(bytesMatchType(Uint8Array.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), "application/vnd.ms-excel")).toBe(true);
-    expect(bytesMatchType(enc("unit,rent\n101,1500\n"), "text/csv")).toBe(true);
-    expect(bytesMatchType(Uint8Array.from([0x00, 0x01, 0x02]), "text/csv")).toBe(false);
-    expect(bytesMatchType(Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), "image/jpeg")).toBe(false);
+    expect(uploadRequestSchema.safeParse({ itemId: DEAL, fileName: "rr.pdf", contentType: "application/pdf", sizeBytes: 1024 }).success).toBe(true);
   });
 });

@@ -5,8 +5,9 @@ import { uploadCompleteSchema } from "@/lib/checklists/uploads";
 import { guardPost } from "@/lib/security";
 import { portalFromRequest } from "../../../_lib/request";
 
-// Borrower portal: confirm an upload. The server checks the stored file's
-// first bytes match its type, then marks the checklist item received.
+// Borrower portal: confirm an upload. The vault checks the stored file (size,
+// type vs. magic bytes) and queues it for the malware scan; the checklist item
+// is received once the scan reports clean.
 
 const NO_STORE = { "cache-control": "no-store" };
 const json = (status: number, body: unknown) => NextResponse.json(body, { status, headers: NO_STORE });

@@ -1,4 +1,4 @@
-// In-memory vault storage and a full desk bundle for WS-U tests.
+// In-memory WS-K vault and a full desk bundle for WS-U tests.
 
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import { MemoryPortalInviteStore, MemoryPrincipalStore } from "@/lib/principals/store";
@@ -6,43 +6,38 @@ import { TEST_KEYRING } from "@/lib/principals/test-fixtures";
 import { FakeSanctionsClient, type FakeListEntry } from "@/lib/screening/fake";
 import { MemoryDealHoldStore, MemoryScreeningStore } from "@/lib/screening/store";
 import type { DeskServices } from "./desk";
-import type { ChecklistObjectStorage } from "./service";
+import { makeVault } from "@/lib/documents/testing";
 import { MemoryChecklistStore } from "./store";
+import { checklistVault, type ChecklistVault } from "./vault";
 
-export class FakeObjectStorage implements ChecklistObjectStorage {
-  readonly objects = new Map<string, Uint8Array>();
-  readonly signed: string[] = [];
-  readonly removed: string[] = [];
-
-  async createSignedUploadUrl(path: string) {
-    this.signed.push(path);
-    return { url: `https://storage.test/upload/${encodeURIComponent(path)}?token=t`, token: `tok-${this.signed.length}` };
-  }
-
-  /** What the browser's PUT to the signed URL does. */
-  put(path: string, bytes: Uint8Array | string) {
-    this.objects.set(path, typeof bytes === "string" ? new TextEncoder().encode(bytes) : bytes);
-  }
-
-  async readHead(path: string, bytes: number) {
-    const o = this.objects.get(path);
-    return o ? o.subarray(0, bytes) : null;
-  }
-
-  async remove(path: string) {
-    this.removed.push(path);
-    this.objects.delete(path);
-  }
+/** The real vault flow (reserve, finalize, scan) on in-memory WS-K stores, filed under `leadId`. */
+export function memoryVault(leadId: string | null = TEST_LEAD_ID) {
+  const vault = makeVault();
+  const leads = new Map<string, string | null>();
+  const checklistVaultImpl = checklistVault(vault.deps, async (dealId) => (leads.has(dealId) ? (leads.get(dealId) ?? null) : leadId));
+  return { ...vault, leads, vault: checklistVaultImpl };
 }
 
-export function memoryDesk(opts: { sanctions?: FakeListEntry[]; now?: () => Date } = {}): DeskServices & { storage: FakeObjectStorage; gate: FakeApprovalGate; sanctions: FakeSanctionsClient; invites: MemoryPortalInviteStore; checklists: MemoryChecklistStore; principals: MemoryPrincipalStore } {
+export const TEST_LEAD_ID = "6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10";
+
+export function memoryDesk(opts: { sanctions?: FakeListEntry[]; now?: () => Date } = {}): DeskServices & {
+  vault: ChecklistVault;
+  vaultParts: ReturnType<typeof memoryVault>;
+  gate: FakeApprovalGate;
+  sanctions: FakeSanctionsClient;
+  invites: MemoryPortalInviteStore;
+  checklists: MemoryChecklistStore;
+  principals: MemoryPrincipalStore;
+} {
+  const vaultParts = memoryVault();
   return {
     checklists: new MemoryChecklistStore(),
     principals: new MemoryPrincipalStore(),
     invites: new MemoryPortalInviteStore(),
     screenings: new MemoryScreeningStore(),
     holds: new MemoryDealHoldStore(),
-    storage: new FakeObjectStorage(),
+    vault: vaultParts.vault,
+    vaultParts,
     sanctions: new FakeSanctionsClient(opts.sanctions ?? [], { now: opts.now }),
     keyring: TEST_KEYRING,
     gate: new FakeApprovalGate("pending"),

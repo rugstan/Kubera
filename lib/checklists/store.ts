@@ -41,6 +41,8 @@ export interface ChecklistStore {
 
   insertFile(file: NewFile, now: Date): Promise<ChecklistItemFile>;
   getFile(id: string): Promise<ChecklistItemFile | null>;
+  /** The checklist file backed by a vault document, if any. */
+  fileByDocumentId(documentId: string): Promise<ChecklistItemFile | null>;
   updateFile(id: string, patch: Partial<Pick<ChecklistItemFile, "status" | "rejectReason" | "uploadedAt" | "sizeBytes" | "contentType">>): Promise<ChecklistItemFile>;
   filesForDeal(dealId: string): Promise<ChecklistItemFile[]>;
   /** Uploads started (pending_upload) by this uploader for an item, for quotas. */
@@ -121,6 +123,11 @@ export class MemoryChecklistStore implements ChecklistStore {
     const row: ChecklistItemFile = { ...f, id: f.id ?? randomUUID(), createdAt: now.toISOString(), uploadedAt: null, rejectReason: null };
     this.files.set(row.id, row);
     return clone(row);
+  }
+
+  async fileByDocumentId(documentId: string) {
+    const f = [...this.files.values()].find((x) => x.documentId === documentId);
+    return f ? clone(f) : null;
   }
 
   async getFile(id: string) {

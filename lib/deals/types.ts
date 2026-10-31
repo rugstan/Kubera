@@ -45,11 +45,19 @@ export function isSbaProgram(p: DealProgram): p is "SBA_7A" | "SBA_504" {
   return p === "SBA_7A" || p === "SBA_504";
 }
 
+/** Pipeline status (deals.status). Terminal stages settle it; sanctions holds pause it. */
+export const dealStatuses = ["active", "on_hold", "held_for_counsel", "won", "lost", "withdrawn"] as const;
+export type DealStatus = (typeof dealStatuses)[number];
+/** Statuses of a deal that is still being worked (counted in the pipeline's open deals). */
+export const OPEN_DEAL_STATUSES: readonly DealStatus[] = ["active", "on_hold", "held_for_counsel"];
+
 export type Deal = {
   id: string;
   title: string;
   program: DealProgram;
   stage: string;
+  /** Pipeline status: active, paused by a hold, or settled by a terminal stage. */
+  status: DealStatus;
   stageTemplateVersion: number;
   stageEnteredAt: string;
   leadId: string | null;
@@ -71,6 +79,8 @@ export type Deal = {
   /** Modification id that authorized the latest change to locked terms. */
   lockOverrideRef: string | null;
   closedOn: string | null;
+  /** Idempotency key of the process that opened the deal (e.g. a construction take-out); unique. */
+  originKey: string | null;
   recordVersion: number;
   createdAt: string;
   updatedAt: string;
@@ -78,7 +88,7 @@ export type Deal = {
 };
 
 export type NewDeal = Pick<Deal, "title" | "program"> &
-  Partial<Pick<Deal, "leadId" | "twentyOpportunityId" | "ownerId" | "borrowerName" | "propertyAddress" | "propertyState" | "loanAmountCents" | "collateralRealProperty" | "engagementAgreementRef">>;
+  Partial<Pick<Deal, "leadId" | "twentyOpportunityId" | "ownerId" | "borrowerName" | "propertyAddress" | "propertyState" | "loanAmountCents" | "collateralRealProperty" | "engagementAgreementRef" | "originKey">>;
 
 // ---------------------------------------------------------------------------
 // Lender panel

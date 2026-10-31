@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
+import { checklistDeps } from "@/lib/checklists/desk";
+import { settleDealScans } from "@/lib/checklists/service";
 import { ITEM_STATUS_LABEL, PROGRAM_LABEL, type DealChecklistItem } from "@/lib/checklists/types";
 import { site } from "@/lib/site";
 import { UploadButton } from "./_components/UploadButton";
@@ -58,11 +60,15 @@ async function PortalContent({ searchParams }: { searchParams: SearchParams }) {
   if (!isContext(ctx)) return <SignedOut state={ctx.reason === "unconfigured" ? "unavailable" : state} />;
 
   const { session, services } = ctx;
-  const [checklists, all, principal] = await Promise.all([
+  // Apply finished malware scans first, so a cleared upload shows as received.
+  await settleDealScans(checklistDeps(services), session.dealId).catch((err) => console.error("[portal] scan settle failed", err instanceof Error ? err.message : err));
+  const [checklists, all, principal, files] = await Promise.all([
     services.checklists.checklistsForDeal(session.dealId),
     services.checklists.itemsForDeal(session.dealId),
     session.principalId ? services.principals.get(session.principalId) : Promise.resolve(null),
+    services.checklists.filesForDeal(session.dealId),
   ]);
+  const scanning = new Set(files.filter((f) => f.status === "scanning" && f.uploadedBy === session.email).map((f) => f.itemId));
   const mine = all.filter((i) => i.responsible === "borrower" && i.status !== "not_applicable" && (!session.principalId || !i.principalId || i.principalId === session.principalId));
   const todo = mine.filter((i) => i.status === "requested" || i.status === "rejected");
   const withAdvisor = mine.filter((i) => i.status === "submitted" || i.status === "under_review");
@@ -107,7 +113,7 @@ async function PortalContent({ searchParams }: { searchParams: SearchParams }) {
         <NoticeAtCollection point="upload" className="mt-4" />
         <ul className="mt-4 grid gap-4">
           {todo.map((i) => (
-            <TodoItem key={i.id} item={i} />
+            <TodoItem key={i.id} item={i} scanning={scanning.has(i.id)} />
           ))}
         </ul>
       </section>
@@ -119,7 +125,7 @@ async function PortalContent({ searchParams }: { searchParams: SearchParams }) {
   );
 }
 
-function TodoItem({ item }: { item: DealChecklistItem }) {
+function TodoItem({ item, scanning }: { item: DealChecklistItem; scanning: boolean }) {
   const viaProfile = PROFILE_ITEMS.has(item.templateKey);
   return (
     <li className="bento p-5">
@@ -130,6 +136,11 @@ function TodoItem({ item }: { item: DealChecklistItem }) {
             {item.required ? null : <span className="ml-2 text-[13px] font-normal text-ink/80">(optional)</span>}
           </h3>
           <p className="mt-1 text-[15px] text-ink/80">{item.description}</p>
+          {scanning ? (
+            <p className="mt-2 text-[15px] text-ink" role="status">
+              <span className="font-semibold">Scanning:</span> we are checking your upload for viruses. It goes to your advisor once the check passes.
+            </p>
+          ) : null}
           {item.status === "rejected" && item.reviewNote ? (
             <p className="mt-2 text-[15px] text-red-900">
               <span className="font-semibold">Your advisor asked for a change:</span> {item.reviewNote}

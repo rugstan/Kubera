@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 import { deskServices, checklistDeps } from "@/lib/checklists/server";
-import { dealClosingGate } from "@/lib/checklists/service";
+import { dealClosingGate, settleDealScans } from "@/lib/checklists/service";
 import { canDecide } from "@/lib/checklists/staff";
 import { CHECKLIST_PROGRAMS, PROGRAM_LABEL } from "@/lib/checklists/types";
 import { openPrincipalSecrets } from "@/lib/principals/crypto-fields";
@@ -49,7 +49,7 @@ async function DealDesk({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const raw = first(sp.id) ?? "";
   const staff = await currentStaff();
-  if (!staff) return <SignIn error={first(sp.error)} />;
+  if (!staff) return <SignIn />;
   const parsed = z.uuid().safeParse(raw);
   if (!parsed.success) return <Card title="Not a deal id"><p className="text-[15px]">Deal ids are UUIDs from the pipeline.</p></Card>;
   const dealId = parsed.data;
@@ -59,6 +59,8 @@ async function DealDesk({ searchParams }: { searchParams: SearchParams }) {
   await connection();
   const now = s.now?.() ?? new Date();
   const deps = checklistDeps(s);
+  // Backstop for the scan hook: apply finished malware scans to portal uploads before reading.
+  await settleDealScans(deps, dealId).catch((err) => console.error("[checklists] scan settle failed", err instanceof Error ? err.message : err));
   const [checklists, items, files, conditions, principalRows, screenings, holds, invites, hm, gate] = await Promise.all([
     s.checklists.checklistsForDeal(dealId),
     s.checklists.itemsForDeal(dealId),

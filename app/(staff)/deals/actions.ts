@@ -19,7 +19,7 @@ import { ModificationError, applyModificationTerms, recordLenderNoticeSent, reco
 import { Form159BlockedError, generateForm159, sendForm159 } from "@/lib/deals/form159";
 import { parseLender } from "@/lib/deals/lenders";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
-import { brokerIdentity, currentStaff, dealDeskRuntime, form159TemplateId, kuberaAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
+import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, kuberaAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { StaffAccessError, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from "@/lib/deals/types";
 import type { ModificationFacts } from "@/lib/compliance/schemas";
@@ -141,7 +141,7 @@ export async function advanceDealAction(f: FormData): Promise<never> {
             ...(str(f, "brokerCompensation") ? { brokerCompensationCents: dollarsToCents(str(f, "brokerCompensation")) } : {}),
           }
         : undefined;
-    const r = await advanceDeal({ store: rt.store, disclosures: rt.disclosures, now: rt.now }, { dealId: id, event, terms, actor: staff.actor });
+    const r = await advanceDeal(deskDeps(rt), { dealId: id, event, terms, actor: staff.actor });
     if (!r.ok) throw new DealError(r.reasons.join(" "));
     return `Moved to ${r.to.replace(/_/g, " ")}.`;
   });

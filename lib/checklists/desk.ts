@@ -8,8 +8,9 @@ import type { PiiKeyring } from "@/lib/privacy/crypto";
 import type { DealHoldSink, ScreeningDeps } from "@/lib/screening/service";
 import type { DealHoldStore, ScreeningStore } from "@/lib/screening/store";
 import type { SanctionsClient } from "@/lib/screening/types";
-import type { ChecklistDeps, ChecklistObjectStorage } from "./service";
+import type { ChecklistDeps } from "./service";
 import type { ChecklistStore } from "./store";
+import type { ChecklistVault } from "./vault";
 
 export type DeskServices = {
   checklists: ChecklistStore;
@@ -17,7 +18,8 @@ export type DeskServices = {
   invites: PortalInviteStore;
   screenings: ScreeningStore;
   holds: DealHoldStore;
-  storage: ChecklistObjectStorage | null;
+  /** WS-K vault (quarantine + scan) for portal uploads; null = uploads unavailable. */
+  vault: ChecklistVault | null;
   sanctions: SanctionsClient | null;
   keyring: PiiKeyring | null;
   gate: ApprovalGate;
@@ -26,7 +28,7 @@ export type DeskServices = {
 };
 
 export function checklistDeps(s: DeskServices): ChecklistDeps {
-  return { checklists: s.checklists, principals: s.principals, screenings: s.screenings, holds: s.holds, storage: s.storage, now: s.now };
+  return { checklists: s.checklists, principals: s.principals, screenings: s.screenings, holds: s.holds, vault: s.vault, now: s.now };
 }
 
 export function screeningDeps(s: DeskServices): ScreeningDeps {

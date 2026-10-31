@@ -8,8 +8,12 @@
 // every request so revoking the invite ends the session.
 //
 // Sending the link by email is an outbound action, so it goes through the
-// broker approval gate (Global rule 2); the broker can also copy the link
-// and send it from their own mailbox.
+// broker approval gate (Global rule 2). The approval request carries the
+// invite id, recipient and expiry only, never the link: the approvals queue is
+// readable by every staff role. Once a broker approves, the portal_invite
+// executor (lib/principals/portal-mail.ts) mints a fresh token for the same
+// invite and emails it, so the link the issuing broker copied stops working.
+// The broker can instead copy the link and send it from their own mailbox.
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { ApprovalDecision, ApprovalGate } from "@/lib/compliance/approval-gate";
@@ -57,28 +61,44 @@ export type IssueInput = {
   ttlHours?: number;
 };
 
-export type IssuedInvite = { invite: PortalInvite; url: string; email: ApprovalDecision["status"] | "not_requested" };
+export type IssuedInvite = { invite: PortalInvite; url: string; email: ApprovalDecision["status"] | "not_requested"; approval?: ApprovalDecision };
 
-/** Creates a single-use link. The URL (with its token) is returned once and never stored. */
-export async function issuePortalInvite(store: PortalInviteStore, input: IssueInput, mail?: { gate: ApprovalGate; send?: (to: string, url: string) => Promise<void> }): Promise<IssuedInvite> {
-  const token = randomBytes(32).toString("base64url");
+export const newPortalToken = () => randomBytes(32).toString("base64url");
+
+export function portalLinkUrl(origin: string, token: string): string {
+  return `${origin.replace(/\/+$/, "")}/portal/access?token=${encodeURIComponent(token)}`;
+}
+
+/** Idempotency key (and approval key) of the invitation email for an invite. */
+export const portalInviteEmailKey = (inviteId: string) => `email:portal_invite:${inviteId}`;
+export const PORTAL_INVITE_TEMPLATE = "portal_invite";
+
+/** What the broker approves for the invitation email: no link, no token. */
+export type PortalInviteApprovalPayload = { to: string; dealId: string; principalId: string | null; inviteId: string; expiresAt: string };
+
+/**
+ * Creates a single-use link. The URL (with its token) is returned once to the
+ * issuing broker and never stored; the email approval names the invite only.
+ */
+export async function issuePortalInvite(store: PortalInviteStore, input: IssueInput, mail?: { gate: ApprovalGate }): Promise<IssuedInvite> {
+  const token = newPortalToken();
   const ttl = input.ttlHours ?? portalConfig().linkTtlHours;
   const invite = await store.insert(
     { dealId: input.dealId, principalId: input.principalId, email: input.email.trim().toLowerCase(), tokenHash: hashToken(token), expiresAt: new Date(input.now.getTime() + ttl * HOUR).toISOString(), createdBy: input.issuedBy },
     input.now,
   );
-  const url = `${input.origin.replace(/\/+$/, "")}/portal/access?token=${encodeURIComponent(token)}`;
+  const url = portalLinkUrl(input.origin, token);
   if (!mail) return { invite, url, email: "not_requested" };
+  const payload: PortalInviteApprovalPayload = { to: invite.email, dealId: invite.dealId, principalId: invite.principalId, inviteId: invite.id, expiresAt: invite.expiresAt };
   const decision = await mail.gate.request({
     kind: "email",
-    idempotencyKey: `email:portal_invite:${invite.id}`,
+    idempotencyKey: portalInviteEmailKey(invite.id),
     summary: `Send the borrower portal link to ${invite.email}`,
-    templateId: "portal_invite",
-    payload: { to: invite.email, dealId: invite.dealId, principalId: invite.principalId, inviteId: invite.id, url, expiresAt: invite.expiresAt },
+    templateId: PORTAL_INVITE_TEMPLATE,
+    payload,
     requestedBy: input.issuedBy,
   });
-  if (decision.status === "approved" && mail.send) await mail.send(invite.email, url);
-  return { invite, url, email: decision.status };
+  return { invite, url, email: decision.status, approval: decision };
 }
 
 /** Redeems a link: validates and consumes it, returning the session to set. */

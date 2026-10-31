@@ -52,14 +52,21 @@ async function recordFailure(deps: VaultDeps, row: DocumentRow, engine: string, 
   report.retrying++;
 }
 
-async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRow, report: ScanReport): Promise<void> {
+/** Called once a document's scan is settled (clean, infected or parked as scan_failed). */
+export type ScanSettledHook = (documentId: string) => Promise<void>;
+
+async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRow, report: ScanReport): Promise<boolean> {
   let found: Awaited<ReturnType<typeof locate>>;
   try {
     found = await locate(deps, row);
   } catch (err) {
-    return recordFailure(deps, row, scanner.name, `could not read the stored file: ${err instanceof Error ? err.message : String(err)}`, report);
+    await recordFailure(deps, row, scanner.name, `could not read the stored file: ${err instanceof Error ? err.message : String(err)}`, report);
+    return false;
   }
-  if (!found) return recordFailure(deps, row, scanner.name, "stored file not found", report);
+  if (!found) {
+    await recordFailure(deps, row, scanner.name, "stored file not found", report);
+    return false;
+  }
 
   const sha256 = createHash("sha256").update(found.bytes).digest("hex");
   const verdict = await scanner.scan(found.bytes, row.file_name).catch((err) => ({
@@ -68,7 +75,10 @@ async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRo
     message: err instanceof Error ? err.message : String(err),
   }));
 
-  if (verdict.status === "error") return recordFailure(deps, row, verdict.engine, verdict.message, report);
+  if (verdict.status === "error") {
+    await recordFailure(deps, row, verdict.engine, verdict.message, report);
+    return false;
+  }
 
   const now = deps.clock().toISOString();
   if (verdict.status === "infected") {
@@ -88,14 +98,17 @@ async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRo
     await recordQuietly(deps.events, { event: "scan_infected", document_id: row.id, lead_id: row.lead_id, actor: "scanner", detail: { signature: verdict.signature, engine: verdict.engine, size_bytes: found.bytes.byteLength } });
     console.error(`[scan] malware detected in document ${row.id} (lead ${row.lead_id}): ${verdict.signature}`);
     report.infected++;
-    return;
+    return true;
   }
 
   // Clean: release to the vault bucket, then record it. If the row update fails after the
   // move, locate() finds the object in the vault bucket on the next attempt.
   if (found.bucket !== VAULT_BUCKET) {
     const moved = await deps.storage.move(found.bucket, VAULT_BUCKET, row.storage_path);
-    if (moved.error) return recordFailure(deps, row, verdict.engine, `could not release the file to the vault: ${moved.error}`, report);
+    if (moved.error) {
+      await recordFailure(deps, row, verdict.engine, `could not release the file to the vault: ${moved.error}`, report);
+      return false;
+    }
   }
   const updated = await deps.store.update(
     row.id,
@@ -106,9 +119,10 @@ async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRo
     await recordQuietly(deps.events, { event: "scan_clean", document_id: row.id, lead_id: row.lead_id, actor: "scanner", detail: { engine: verdict.engine, size_bytes: found.bytes.byteLength } });
     report.clean++;
   }
+  return Boolean(updated);
 }
 
-export async function runScanCycle(deps: VaultDeps, scanner: MalwareScanner | null, opts: { batchSize?: number } = {}): Promise<ScanReport> {
+export async function runScanCycle(deps: VaultDeps, scanner: MalwareScanner | null, opts: { batchSize?: number; onSettled?: ScanSettledHook } = {}): Promise<ScanReport> {
   const report = empty();
   report.sweep = await sweepPendingUploads(deps);
   if (!scanner) {
@@ -119,7 +133,12 @@ export async function runScanCycle(deps: VaultDeps, scanner: MalwareScanner | nu
   report.claimed = batch.length;
   for (const row of batch) {
     try {
-      await scanOne(deps, scanner, row, report);
+      const failedBefore = report.failed;
+      const settled = (await scanOne(deps, scanner, row, report)) || report.failed > failedBefore;
+      if (settled && opts.onSettled) {
+        // Downstream (the checklist item behind a portal upload) must never undo the scan result.
+        await opts.onSettled(row.id).catch((err) => console.error(`[scan] settle hook failed for ${row.id}:`, err instanceof Error ? err.message : err));
+      }
     } catch (err) {
       console.error(`[scan] unexpected failure on ${row.id}:`, err instanceof Error ? err.message : err);
       report.retrying++;

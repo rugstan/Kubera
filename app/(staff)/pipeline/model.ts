@@ -1,22 +1,14 @@
 // Pipeline row shape and pure helpers shared by the server loader and the
-// client table. These are the default stage keys; WS-T stage templates may add
-// others, which fall back to a humanized label and sort last.
+// client table. Stage keys and their order come from the deal desk's stage
+// templates (lib/deals/stage-catalog.ts); keys from older rows that no template
+// uses fall back to a humanized label and sort last.
 
-export const DEAL_STAGES = [
-  { key: "intake", label: "Intake" },
-  { key: "qualifying", label: "Qualifying" },
-  { key: "application", label: "Application" },
-  { key: "packaging", label: "Packaging" },
-  { key: "lender_outreach", label: "Lender outreach" },
-  { key: "term_sheet", label: "Term sheet" },
-  { key: "underwriting", label: "Underwriting" },
-  { key: "commitment", label: "Commitment" },
-  { key: "closing", label: "Closing" },
-  { key: "closed", label: "Closed" },
-  { key: "lost", label: "Lost" },
-] as const;
+import { PIPELINE_STAGES } from "@/lib/deals/stage-catalog";
+import { OPEN_DEAL_STATUSES } from "@/lib/deals/types";
 
-export type DealStage = (typeof DEAL_STAGES)[number]["key"];
+export const DEAL_STAGES = PIPELINE_STAGES;
+
+export type DealStage = string;
 
 const STAGE_INDEX = new Map<string, number>(DEAL_STAGES.map((s, i) => [s.key, i]));
 
@@ -47,13 +39,18 @@ export type PipelineRow = {
   updatedAt: string;
 };
 
+/** Still being worked: active or paused by a hold (not won, lost or withdrawn). */
+export function isOpenDeal(row: Pick<PipelineRow, "status">): boolean {
+  return (OPEN_DEAL_STATUSES as readonly string[]).includes(row.status);
+}
+
 export type StageSummary = { stage: string; label: string; count: number; amountUsd: number };
 
-/** Count and loan volume per stage, in lifecycle order, for active deals. */
+/** Count and loan volume per stage, in lifecycle order, for open deals. */
 export function summarizeStages(rows: PipelineRow[]): StageSummary[] {
   const by = new Map<string, StageSummary>();
   for (const r of rows) {
-    if (r.status !== "active") continue;
+    if (!isOpenDeal(r)) continue;
     const s = by.get(r.stage) ?? { stage: r.stage, label: stageLabel(r.stage), count: 0, amountUsd: 0 };
     s.count += 1;
     s.amountUsd += r.loanAmountUsd ?? 0;

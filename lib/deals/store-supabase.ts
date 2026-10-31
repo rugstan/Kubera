@@ -65,6 +65,12 @@ export class SupabaseDealDeskStore implements DealDeskStore {
     return this.byId<Deal>("deals", id, DEAL_NUM);
   }
 
+  async findDealByOriginKey(originKey: string): Promise<Deal | null> {
+    const { data, error } = await this.db.from("deals").select("*").eq("origin_key", originKey).maybeSingle();
+    fail(error, "read deals");
+    return data ? fromRow<Deal>(data as Row, DEAL_NUM) : null;
+  }
+
   async listDeals(opts: { limit?: number; openOnly?: boolean } = {}): Promise<Deal[]> {
     let q = this.db.from("deals").select("*").not("program", "is", null);
     if (opts.openOnly) q = q.not("stage", "in", "(closed,withdrawn,lost)");

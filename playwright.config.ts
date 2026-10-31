@@ -53,9 +53,8 @@ export default defineConfig({
       // e2e/staff.spec.ts reuses this server; refused in production deploys.
       AUTH_PROVIDER: "fake",
       SUPABASE_ANON_KEY: "",
-      // Interim desk and portal secrets stay blank so .env.local cannot change results.
+      // Portal secret stays blank so .env.local cannot change results.
       PORTAL_SESSION_SECRET: "",
-      STAFF_ACCESS_TOKEN: "",
     },
   },
 });

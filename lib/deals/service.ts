@@ -3,10 +3,12 @@
 // sent, term sheet, compliance gates A/H, Form 159), apply the event, and
 // edit deal fields subject to the term lock.
 
+import { dealClosingGate, type ChecklistDeps } from "@/lib/checklists/service";
 import { evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
 import type { DisclosureStore } from "@/lib/disclosures/store";
 import { form159Satisfied } from "./form159";
-import { applyStageEvent, assertEditable, stageTemplate, templateDigest, type StageAdvance, type StageContext } from "./stages";
+import { stageChangeOf, type DealStageEventSink } from "./stage-events";
+import { CLOSING_TARGET_STAGES, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest, type StageAdvance, type StageContext } from "./stages";
 import type { DealDeskStore } from "./store";
 import type { Clock, Deal, NewDeal } from "./types";
 
@@ -62,24 +64,45 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
   return { compliance, missing };
 }
 
-export async function stageContext(deps: { store: DealDeskStore; disclosures: DisclosureStore | null; now: Clock }, deal: Deal): Promise<StageContext & { complianceMissing: string[] }> {
+export type DealDeskDeps = {
+  store: DealDeskStore;
+  disclosures: DisclosureStore | null;
+  now: Clock;
+  /**
+   * WS-U checklist and screening services: open sanctions holds and the
+   * closing gate (checklists, conditions, rescreen window). null = not
+   * configured, which fails closed: only withdraw / mark lost apply.
+   */
+  checklist: ChecklistDeps | null;
+  /** Milestone notifications for stage changes (WS-J); null/absent = none. */
+  stageEvents?: DealStageEventSink | null;
+  /** Called when the stage-event sink throws (the advance itself stands). */
+  onStageEventError?: (err: unknown) => void;
+};
+
+const HOLDS_UNAVAILABLE = "Sanctions holds cannot be checked because the checklist and screening desk is not configured.";
+
+export async function stageContext(deps: DealDeskDeps, deal: Deal): Promise<StageContext & { complianceMissing: string[] }> {
   const [outreach, entries, forms] = await Promise.all([deps.store.listOutreach(deal.id), deps.store.listFeeEntries(deal.id), deps.store.listForm159(deal.id)]);
   const { compliance, missing } = await loadDealCompliance(deps, deal);
   const termSheet = [...outreach].reverse().find((o) => o.status === "term_sheet" && o.termSheetRef);
+  const activeHolds = deps.checklist ? await deps.checklist.holds.active(deal.id) : null;
+  // The closing gate is only evaluated when an event into closing is available from this stage.
+  const closingReachable = availableEvents(stageTemplate(deal.program), deal.stage).some((e) => CLOSING_TARGET_STAGES.has(e.to));
+  const closingGate = closingReachable ? (deps.checklist ? await dealClosingGate({ ...deps.checklist, now: deps.checklist.now ?? deps.now }, deal.id) : null) : undefined;
   return {
     engagementAgreementRef: deal.engagementAgreementRef,
     lockedPackageSent: outreach.some((o) => ["sent", "declined", "term_sheet"].includes(o.status)),
     termSheetRef: termSheet?.termSheetRef ?? null,
     compliance,
     form159Satisfied: form159Satisfied(deal, entries, forms),
+    holds: activeHolds ? activeHolds.map((h) => h.detail) : [HOLDS_UNAVAILABLE],
+    ...(closingGate !== undefined ? { closingGate: closingGate && { ready: closingGate.ready, reasons: closingGate.reasons } } : {}),
     complianceMissing: missing,
   };
 }
 
-export async function advanceDeal(
-  deps: { store: DealDeskStore; disclosures: DisclosureStore | null; now: Clock },
-  input: { dealId: string; event: string; terms?: Record<string, unknown>; actor: string },
-): Promise<StageAdvance & { deal: Deal }> {
+export async function advanceDeal(deps: DealDeskDeps, input: { dealId: string; event: string; terms?: Record<string, unknown>; actor: string }): Promise<StageAdvance & { deal: Deal }> {
   const deal = await deps.store.getDeal(input.dealId);
   if (!deal) throw new DealError(`Deal ${input.dealId} not found`);
   const { complianceMissing, ...context } = await stageContext(deps, deal);
@@ -89,6 +112,13 @@ export async function advanceDeal(
     return { ...result, reasons, deal };
   }
   const updated = await deps.store.updateDeal(deal.id, deal.recordVersion, { ...result.patch, updatedBy: input.actor }, input.actor, deps.now());
+  if (deps.stageEvents) {
+    try {
+      await deps.stageEvents.stageChanged(stageChangeOf(updated, result.from, input.event));
+    } catch (err) {
+      (deps.onStageEventError ?? ((e) => console.error("[deals] stage notification failed:", e instanceof Error ? e.message : e)))(err);
+    }
+  }
   return { ...result, deal: updated };
 }
 

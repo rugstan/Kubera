@@ -13,7 +13,7 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { DEAL_STAGES, MLDS_LABELS, formatUsd, matchesQuery, stageLabel, stageOrder, type PipelineRow } from "./model";
+import { DEAL_STAGES, MLDS_LABELS, formatUsd, isOpenDeal, matchesQuery, stageLabel, stageOrder, type PipelineRow } from "./model";
 
 const col = createColumnHelper<PipelineRow>();
 
@@ -75,7 +75,7 @@ export function PipelineTable({ rows }: { rows: PipelineRow[] }) {
   const [stage, setStage] = useState("");
   const [showClosed, setShowClosed] = useState(false);
 
-  const data = useMemo(() => (showClosed ? rows : rows.filter((r) => r.status === "active")), [rows, showClosed]);
+  const data = useMemo(() => (showClosed ? rows : rows.filter(isOpenDeal)), [rows, showClosed]);
   const columnFilters = useMemo(() => (stage ? [{ id: "stage", value: stage }] : []), [stage]);
 
   // TanStack Table returns non-memoizable functions by design; the React Compiler lint knows.

@@ -77,7 +77,7 @@ export const DEMO_PIPELINE: Omit<PipelineRow, "pendingApprovals">[] = [
     name: "Coastal Ground-up Townhomes (demo)",
     program: "Construction",
     assetType: "Townhomes",
-    stage: "qualifying",
+    stage: "engaged",
     status: "active",
     loanAmountUsd: 14_750_000,
     location: "Ventura, CA",

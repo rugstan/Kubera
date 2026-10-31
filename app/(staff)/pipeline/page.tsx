@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireStaff } from "@/lib/auth/dal";
 import { loadPipeline } from "./data";
-import { formatUsd, summarizeStages } from "./model";
+import { formatUsd, isOpenDeal, summarizeStages } from "./model";
 import { PipelineTable } from "./PipelineTable";
 
 export const metadata: Metadata = { title: "Pipeline" };
@@ -25,7 +25,7 @@ async function Pipeline() {
   const ctx = await requireStaff("/pipeline");
   const rows = await loadPipeline(ctx);
   const stages = summarizeStages(rows);
-  const active = rows.filter((r) => r.status === "active");
+  const active = rows.filter(isOpenDeal);
   const volume = active.reduce((s, r) => s + (r.loanAmountUsd ?? 0), 0);
   return (
     <>

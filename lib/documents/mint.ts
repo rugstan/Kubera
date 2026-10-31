@@ -40,7 +40,14 @@ export type MintSuccess = {
   maxBytes: number;
 };
 
-export async function mintUpload(deps: VaultDeps, input: MintInput, env: Record<string, string | undefined> = process.env): Promise<MintSuccess | Failure> {
+export type ReservedUpload = Omit<MintSuccess, "uploadToken">;
+
+/**
+ * Step 1 for a caller that finalizes server-side under its own session (the
+ * borrower portal): the same checks, row and quarantine upload URL as
+ * mintUpload, without the bearer upload token.
+ */
+export async function reserveUpload(deps: VaultDeps, input: MintInput): Promise<ReservedUpload | Failure> {
   const { store, events, storage, clock, limits } = deps;
   const fileName = sanitizeFileName(input.fileName);
   if (!extensionMatches(fileName, input.contentType)) {
@@ -91,13 +98,11 @@ export async function mintUpload(deps: VaultDeps, input: MintInput, env: Record<
     detail: { kind: input.kind, declared_size_bytes: declared, content_type: input.contentType },
   });
 
-  return {
-    ok: true,
-    documentId: row.id,
-    uploadUrl: signed.url,
-    path,
-    uploadToken: signUploadToken({ documentId: row.id, leadId: input.leadId, expiresAt }, env),
-    expiresAt: expiresAt.toISOString(),
-    maxBytes: declared,
-  };
+  return { ok: true, documentId: row.id, uploadUrl: signed.url, path, expiresAt: expiresAt.toISOString(), maxBytes: declared };
+}
+
+export async function mintUpload(deps: VaultDeps, input: MintInput, env: Record<string, string | undefined> = process.env): Promise<MintSuccess | Failure> {
+  const reserved = await reserveUpload(deps, input);
+  if (!reserved.ok) return reserved;
+  return { ...reserved, uploadToken: signUploadToken({ documentId: reserved.documentId, leadId: input.leadId, expiresAt: new Date(reserved.expiresAt) }, env) };
 }

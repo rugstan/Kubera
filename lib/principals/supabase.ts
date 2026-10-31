@@ -159,6 +159,20 @@ export function supabasePortalInviteStore(db: SupabaseClient): PortalInviteStore
       if (error) fail("portal invite redeem failed", error);
       return data ? inviteFromRow(data as Row) : null;
     },
+    async rotateToken(id, tokenHash, now) {
+      // Conditional update: only a link that is still usable gets a new token.
+      const { data, error } = await db
+        .from("portal_invites")
+        .update({ token_hash: tokenHash })
+        .eq("id", id)
+        .is("consumed_at", null)
+        .is("revoked_at", null)
+        .gt("expires_at", now.toISOString())
+        .select("*")
+        .maybeSingle();
+      if (error) fail("portal invite rotate failed", error);
+      return data ? inviteFromRow(data as Row) : null;
+    },
     async revoke(id, now) {
       const { error } = await db.from("portal_invites").update({ revoked_at: now.toISOString() }).eq("id", id).is("revoked_at", null);
       if (error) fail("portal invite revoke failed", error);

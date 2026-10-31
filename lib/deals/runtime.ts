@@ -1,20 +1,23 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { cookies } from "next/headers";
 import { approvalGate } from "@/lib/approvals/server";
-import { resolveAuthMode } from "@/lib/auth/config";
+import { checklistDeps, deskServices } from "@/lib/checklists/server";
+import type { ChecklistDeps } from "@/lib/checklists/service";
 import { primaryStaffRole, signedInStaff, staffDreLicense } from "@/lib/auth/staff";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage, DisclosureStore } from "@/lib/disclosures/store";
 import { SupabaseDisclosureStore, SupabaseDocumentStorage } from "@/lib/disclosures/store-supabase";
 import { esignProvider } from "@/lib/esign";
+import { notifyRuntime } from "@/lib/notify/runtime";
 import type { EsignProvider } from "@/lib/esign/types";
 import { site } from "@/lib/site";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 import type { BrokerIdentity } from "./dre";
 import type { Form159Data } from "./form159";
 import type { LenderMailer } from "./packages";
-import { resolveStaffSession, type StaffSession } from "./session";
+import type { DealDeskDeps } from "./service";
+import { notifierStageSink, type DealStageEventSink } from "./stage-events";
+import type { StaffSession } from "./session";
 import type { DealDeskStore } from "./store";
 import { SupabaseDealDeskStore } from "./store-supabase";
 import type { PackageItem } from "./types";
@@ -34,6 +37,10 @@ export type DealDeskRuntime = {
   mailer: LenderMailer | null;
   baseUrl: string;
   now: () => Date;
+  /** WS-U checklist / screening services: sanctions holds and the closing gate. */
+  checklist: ChecklistDeps | null;
+  /** Milestone notifications for stage changes (WS-J). */
+  stageEvents: DealStageEventSink | null;
   vaultItems(leadId: string, documentIds: string[]): Promise<PackageItem[]>;
   vaultDocuments(leadId: string): Promise<{ id: string; kind: string; fileName: string; createdAt: string }[]>;
 };
@@ -58,6 +65,8 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     mailer: null,
     baseUrl: site.siteUrl,
     now: () => new Date(),
+    checklist: checklistFromDesk(),
+    stageEvents: stageEventSink(),
     async vaultDocuments(leadId) {
       // Only files with a clean malware scan (WS-K vault) can go into a lender package.
       const { data, error } = await db.from("documents").select("id, kind, file_name, created_at").eq("lead_id", leadId).eq("status", "clean").order("created_at");
@@ -83,28 +92,40 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
   };
 }
 
+function checklistFromDesk(): ChecklistDeps | null {
+  const desk = deskServices();
+  return desk ? checklistDeps(desk) : null;
+}
+
+function stageEventSink(): DealStageEventSink {
+  const rt = notifyRuntime();
+  return notifierStageSink({ notifier: rt.notifier, leads: rt.leads });
+}
+
+/** The deps advanceDeal / stageContext run on. */
+export function deskDeps(rt: DealDeskRuntime): DealDeskDeps {
+  return { store: rt.store, disclosures: rt.disclosures, now: rt.now, checklist: rt.checklist, stageEvents: rt.stageEvents };
+}
+
 /**
  * The signed-in staff member (null = sign-in required). WS-I's lib/auth session
- * (profile, roles, MFA) is the source of truth; a DRE broker-officer license on
- * the profile makes the person the designated officer for gate-H approvals.
+ * (active profile, staff role, MFA at aal2) is the only way in; without lib/auth
+ * configured every deal-desk page and action fails closed. A DRE broker-officer
+ * license on the profile makes the person the designated officer for gate-H
+ * approvals.
  */
 export async function currentStaff(): Promise<StaffSession | null> {
-  if (resolveAuthMode().mode !== "disabled") {
-    const principal = await signedInStaff();
-    if (!principal) return null;
-    return {
-      userId: principal.userId,
-      email: principal.email.toLowerCase(),
-      name: principal.displayName,
-      role: primaryStaffRole(principal),
-      dreLicense: staffDreLicense(principal),
-      designatedOfficer: principal.profile.dreLicenseType === "broker_officer",
-      actor: `staff:${principal.email.toLowerCase()}`,
-    };
-  }
-  // Without lib/auth configured, a Supabase Auth cookie with staff app_metadata still works.
-  const jar = await cookies();
-  return resolveStaffSession({ cookies: jar.getAll(), supabase: supabaseAdmin(), supabaseUrl: process.env.SUPABASE_URL });
+  const principal = await signedInStaff();
+  if (!principal) return null;
+  return {
+    userId: principal.userId,
+    email: principal.email.toLowerCase(),
+    name: principal.displayName,
+    role: primaryStaffRole(principal),
+    dreLicense: staffDreLicense(principal),
+    designatedOfficer: principal.profile.dreLicenseType === "broker_officer",
+    actor: `staff:${principal.email.toLowerCase()}`,
+  };
 }
 
 /** Kubera as Form 159 agent and DRE reporting broker, from configuration. */

@@ -1,14 +1,16 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CONDITION_STATUSES } from "@/lib/checklists/conditions";
 import { checklistDeps, deskServices, principalDeps, screeningDeps } from "@/lib/checklists/server";
 import { addCondition, createDealChecklist, moveCondition, moveItem, recordContractorLicense, saveHmUnderwriting, syncDealPrincipalItems } from "@/lib/checklists/service";
-import { canDecide, interimStaffConfigured, STAFF_COOKIE, staffCookieValue, verifyStaffToken } from "@/lib/checklists/staff";
+import { canDecide } from "@/lib/checklists/staff";
 import { CHECKLIST_PROGRAMS, ITEM_STATUSES } from "@/lib/checklists/types";
+import { portalInviteMailDeps } from "@/lib/approvals/executors-server";
 import { issuePortalInvite } from "@/lib/principals/portal";
+import { sendApprovedPortalInvite } from "@/lib/principals/portal-mail";
 import { addPrincipal, removePrincipal } from "@/lib/principals/service";
 import { PRINCIPAL_ROLES } from "@/lib/principals/types";
 import { dispositionScreening, screenDeal } from "@/lib/screening/service";
@@ -63,20 +65,6 @@ function services() {
 
 function dealIdOf(f: FormData): string {
   return uuid.parse(text(f, "dealId"));
-}
-
-// --- Session -----------------------------------------------------------------------------------
-
-export async function signIn(formData: FormData): Promise<void> {
-  if (!interimStaffConfigured() || !verifyStaffToken(text(formData, "token"))) redirect(deskUrl(null, { error: "That access token is not valid." }));
-  const jar = await cookies();
-  jar.set(STAFF_COOKIE, staffCookieValue(process.env.STAFF_ACCESS_TOKEN!.trim()), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", path: "/", maxAge: 12 * 3600 });
-  redirect("/checklists");
-}
-
-export async function signOut(): Promise<void> {
-  (await cookies()).delete(STAFF_COOKIE);
-  redirect("/checklists");
 }
 
 // --- Checklists and items ---------------------------------------------------------------------------
@@ -251,8 +239,22 @@ export async function issueInviteAction(_prev: InviteState, formData: FormData):
     const proto = h.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
     const origin = host ? `${proto}://${host}` : site.siteUrl;
     const issued = await issuePortalInvite(s.invites, { dealId, principalId, email, issuedBy: staff.email, origin, now: s.now?.() ?? new Date() }, { gate: s.gate });
-    const status = issued.email === "approved" ? "A broker cleared the invitation email and it is queued." : "The invitation email is waiting in the approvals queue; you can also send this link from your own mailbox.";
-    return { url: issued.url, email: issued.invite.email, message: `Link for ${issued.invite.email}, valid until ${new Date(issued.invite.expiresAt).toUTCString()}. ${status}` };
+    let status: string;
+    let emailed = false;
+    if (issued.approval?.status === "approved") {
+      // The gate answered "approved" straight away and this request holds the execution: send now.
+      const mail = portalInviteMailDeps();
+      const sent = mail ? await sendApprovedPortalInvite(mail, { inviteId: issued.invite.id, approval: { id: issued.approval.approvalId, decidedBy: issued.approval.decidedBy, decidedAt: issued.approval.decidedAt.toISOString() }, requestedBy: staff.email }) : null;
+      emailed = sent?.status === "sent";
+      status = emailed ? "The invitation email was sent with its own link." : `The invitation email could not be sent${sent?.reason ? ` (${sent.reason})` : ""}. Send the link below from your own mailbox.`;
+    } else if (issued.approval?.status === "pending" && issued.approval.approvalId) {
+      status = "The invitation email is waiting for a broker's approval. When a broker approves it, it is sent with a fresh link and the link below stops working, so copy it only if you will send it yourself instead.";
+    } else if (issued.approval?.status === "pending") {
+      status = "The approvals queue is not configured, so no invitation email will be sent. Send the link below from your own mailbox.";
+    } else {
+      status = "The invitation email was not approved and will not be sent. Send the link below from your own mailbox if appropriate.";
+    }
+    return { url: emailed ? undefined : issued.url, email: issued.invite.email, message: `Link for ${issued.invite.email}, valid until ${new Date(issued.invite.expiresAt).toUTCString()}. ${status}` };
   } catch (err) {
     return { error: messageOf(err) };
   }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import DocumentRequest, { documentRequestSubject } from "@/emails/document-request";
 import LeadConfirmation, { leadConfirmationSubject } from "@/emails/lead-confirmation";
 import MilestoneUpdate, { milestoneUpdateSubject } from "@/emails/milestone-update";
+import PortalInvite, { portalInviteSubject } from "@/emails/portal-invite";
 import StaffAlert, { staffAlertSubject } from "@/emails/staff-alert";
 import { site } from "@/lib/site";
 import type { Audience, Channel, ConsentPolicy } from "./types";
@@ -25,6 +26,7 @@ export const TEMPLATE_IDS = [
   "lead_confirmation",
   "document_request",
   "milestone_update",
+  "portal_invite",
   "staff_alert",
   "document_request_sms",
   "milestone_update_sms",
@@ -120,6 +122,17 @@ const TEMPLATES: readonly TemplateDef[] = [
         milestoneUpdateSubject(d.label),
         <MilestoneUpdate firstName={d.firstName} label={d.label} message={d.message} bookingUrl={d.bookingUrl ?? null} contactEmail={site.email} />,
       ),
+  }),
+  // Borrower-portal magic link. Sent only after a broker approves the invitation
+  // (lib/principals/portal-mail.ts); the link is minted at send time and never stored.
+  email({
+    id: "portal_invite",
+    version: 1,
+    audiences: ["borrower"],
+    consent: "not_revoked",
+    preApproved: false,
+    schema: z.object({ firstName: firstName.nullish(), portalUrl: httpsUrl, expiresLabel: z.string().trim().min(1).max(80) }),
+    run: (d) => renderEmail(portalInviteSubject, <PortalInvite firstName={d.firstName ?? null} portalUrl={d.portalUrl} expiresLabel={d.expiresLabel} contactEmail={site.email} />),
   }),
   email({
     id: "staff_alert",

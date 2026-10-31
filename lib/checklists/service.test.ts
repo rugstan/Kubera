@@ -6,9 +6,13 @@ import { decodeSession, encodeSession, hashToken, issuePortalInvite, PortalLinkE
 import { addPrincipal, updatePrincipal } from "@/lib/principals/service";
 import { DEAL_ID } from "@/lib/principals/test-fixtures";
 import { dispositionScreening, screenDeal } from "@/lib/screening/service";
-import { memoryDesk } from "./fakes";
 import { checklistDeps } from "./desk";
-import { addCondition, completePortalUpload, createDealChecklist, dealClosingGate, markCapturedInPortal, moveCondition, moveItem, recordContractorLicense, saveHmUnderwriting, startPortalUpload, syncDealPrincipalItems } from "./service";
+import { PDF_BYTES } from "@/lib/documents/testing";
+import { QUARANTINE_BUCKET, VAULT_BUCKET } from "@/lib/documents/types";
+import { EICAR, FakeScanner } from "@/workers/scan/fake";
+import { runScanCycle } from "@/workers/scan/worker";
+import { memoryDesk, TEST_LEAD_ID } from "./fakes";
+import { addCondition, completePortalUpload, createDealChecklist, dealClosingGate, markCapturedInPortal, moveCondition, moveItem, recordContractorLicense, saveHmUnderwriting, settleDealScans, settlePortalDocument, startPortalUpload, syncDealPrincipalItems } from "./service";
 import { DuplicateChecklistError } from "./store";
 
 const NOW = new Date("2026-11-03T12:00:00Z");
@@ -52,34 +56,93 @@ describe("deal checklist desk", () => {
     expect((await syncDealPrincipalItems(deps, DEAL_ID)).revived).toBe(6);
   });
 
-  it("takes a portal upload end to end and rejects a file whose bytes lie about its type", async () => {
+  it("a portal upload lands quarantined in the vault and the item is received only after a clean scan", async () => {
     const { desk, deps } = await dealWithPrincipals();
+    const v = desk.vaultParts;
     const items = await deps.checklists.itemsForDeal(DEAL_ID);
     const t12 = items.find((i) => i.itemKey === "t12")!;
     const scope = { dealId: DEAL_ID, principalId: null, email: "ana@example.com" };
-    const started = await startPortalUpload(deps, scope, { itemId: t12.id, fileName: "T-12 Oct.pdf", contentType: "application/pdf", sizeBytes: 12_345 });
-    expect(started.file).toMatchObject({ status: "pending_upload", uploadedBy: "ana@example.com" });
-    expect(started.file.storagePath).toMatch(new RegExp(`^deals/${DEAL_ID}/checklist/${t12.id}/[0-9a-f-]{36}-T-12-Oct\\.pdf$`));
+    const started = await startPortalUpload(deps, scope, { itemId: t12.id, fileName: "T-12 Oct.pdf", contentType: "application/pdf", sizeBytes: PDF_BYTES.byteLength });
+    expect(started.file).toMatchObject({ status: "pending_upload", uploadedBy: "ana@example.com", documentId: expect.any(String) });
+    // A WS-K vault document, minted into the quarantine bucket (never the clean one).
+    const doc = (await v.store.get(started.file.documentId!))!;
+    expect(doc).toMatchObject({ status: "pending_upload", bucket: QUARANTINE_BUCKET, lead_id: TEST_LEAD_ID, kind: "T12", storage_path: started.file.storagePath });
     await expect(completePortalUpload(deps, scope, started.file.id)).rejects.toThrow(/did not receive/);
-    desk.storage.put(started.file.storagePath, "%PDF-1.7 ...");
+
+    v.storage.upload(QUARANTINE_BUCKET, started.file.storagePath, PDF_BYTES);
     const done = await completePortalUpload(deps, scope, started.file.id);
-    expect(done.file.status).toBe("uploaded");
-    expect(done.item.status).toBe("submitted");
+    expect(done.file.status).toBe("scanning");
+    expect(done.item.status).toBe("requested");
+    expect((await v.store.get(doc.id))!.status).toBe("quarantined");
+    expect(v.storage.has(VAULT_BUCKET, started.file.storagePath)).toBe(false);
     await expect(completePortalUpload(deps, scope, started.file.id)).rejects.toThrow(/already completed/);
     // Another deal's session cannot see this upload.
     await expect(completePortalUpload(deps, { ...scope, dealId: "22222222-2222-4222-8222-222222222222" }, started.file.id)).rejects.toThrow(/not found/);
 
+    // The scan passes: the file leaves quarantine and only then is the item received.
+    const report = await runScanCycle(v.deps, new FakeScanner(), { onSettled: async (id) => void (await settlePortalDocument(deps, id)) });
+    expect(report.clean).toBe(1);
+    expect(v.storage.has(VAULT_BUCKET, started.file.storagePath)).toBe(true);
+    expect((await deps.checklists.getFile(started.file.id))!.status).toBe("uploaded");
+    expect((await deps.checklists.getItem(t12.id))!.status).toBe("submitted");
+
+    // A file whose bytes lie about its type is refused at finalize and deleted from quarantine.
     const rr = items.find((i) => i.itemKey === "rent_roll")!;
     const fake = await startPortalUpload(deps, scope, { itemId: rr.id, fileName: "rr.pdf", contentType: "application/pdf", sizeBytes: 100 });
-    desk.storage.put(fake.file.storagePath, "MZ this is an executable");
-    await expect(completePortalUpload(deps, scope, fake.file.id)).rejects.toThrow(/does not look like/);
-    expect(desk.storage.removed).toEqual([fake.file.storagePath]);
+    v.storage.upload(QUARANTINE_BUCKET, fake.file.storagePath, "MZ this is an executable");
+    await expect(completePortalUpload(deps, scope, fake.file.id)).rejects.toThrow(/Upload a PDF, Excel, CSV, PNG or JPEG file/);
+    expect(v.storage.has(QUARANTINE_BUCKET, fake.file.storagePath)).toBe(false);
     expect((await deps.checklists.getFile(fake.file.id))!.status).toBe("rejected");
 
     // Lender-side items cannot be uploaded from the portal.
     const appraisal = items.find((i) => i.itemKey === "appraisal")!;
     await expect(startPortalUpload(deps, scope, { itemId: appraisal.id, fileName: "a.pdf", contentType: "application/pdf", sizeBytes: 1 })).rejects.toThrow(/not uploaded through the portal/);
-    await expect(startPortalUpload({ ...deps, storage: null }, scope, { itemId: t12.id, fileName: "a.pdf", contentType: "application/pdf", sizeBytes: 1 })).rejects.toThrow(/not available/);
+    await expect(startPortalUpload({ ...deps, vault: null }, scope, { itemId: t12.id, fileName: "a.pdf", contentType: "application/pdf", sizeBytes: 1 })).rejects.toThrow(/not available/);
+  });
+
+  it("an EICAR hit from the scanner leaves the item un-received and the file rejected", async () => {
+    const { desk, deps } = await dealWithPrincipals();
+    const v = desk.vaultParts;
+    const t12 = (await deps.checklists.itemsForDeal(DEAL_ID)).find((i) => i.itemKey === "t12")!;
+    const scope = { dealId: DEAL_ID, principalId: null, email: "ana@example.com" };
+    // A valid %PDF header followed by the EICAR test string passes the magic-byte check...
+    const bytes = new TextEncoder().encode(`%PDF-1.7\n${EICAR}\n%%EOF\n`);
+    const started = await startPortalUpload(deps, scope, { itemId: t12.id, fileName: "t12.pdf", contentType: "application/pdf", sizeBytes: bytes.byteLength });
+    v.storage.upload(QUARANTINE_BUCKET, started.file.storagePath, bytes);
+    expect((await completePortalUpload(deps, scope, started.file.id)).file.status).toBe("scanning");
+    // ...but the scanner catches it: destroyed, never released to the clean bucket.
+    const report = await runScanCycle(v.deps, new FakeScanner(), { onSettled: async (id) => void (await settlePortalDocument(deps, id)) });
+    expect(report.infected).toBe(1);
+    expect((await v.store.get(started.file.documentId!))!.status).toBe("infected");
+    expect(v.storage.has(VAULT_BUCKET, started.file.storagePath)).toBe(false);
+    expect(v.storage.has(QUARANTINE_BUCKET, started.file.storagePath)).toBe(false);
+    const file = (await deps.checklists.getFile(started.file.id))!;
+    expect(file).toMatchObject({ status: "rejected", rejectReason: expect.stringMatching(/virus scan/) });
+    expect((await deps.checklists.getItem(t12.id))!.status).toBe("requested");
+    // The page-load backstop agrees and changes nothing more.
+    expect(await settleDealScans(deps, DEAL_ID)).toBe(0);
+    expect((await deps.checklists.getItem(t12.id))!.status).toBe("requested");
+  });
+
+  it("settles a clean scan on page load when the scan hook did not run", async () => {
+    const { desk, deps } = await dealWithPrincipals();
+    const v = desk.vaultParts;
+    const t12 = (await deps.checklists.itemsForDeal(DEAL_ID)).find((i) => i.itemKey === "t12")!;
+    const scope = { dealId: DEAL_ID, principalId: null, email: "ana@example.com" };
+    const started = await startPortalUpload(deps, scope, { itemId: t12.id, fileName: "t12.pdf", contentType: "application/pdf", sizeBytes: PDF_BYTES.byteLength });
+    v.storage.upload(QUARANTINE_BUCKET, started.file.storagePath, PDF_BYTES);
+    await completePortalUpload(deps, scope, started.file.id);
+    await runScanCycle(v.deps, new FakeScanner());
+    expect((await deps.checklists.getItem(t12.id))!.status).toBe("requested");
+    expect(await settleDealScans(deps, DEAL_ID)).toBe(1);
+    expect((await deps.checklists.getItem(t12.id))!.status).toBe("submitted");
+  });
+
+  it("refuses portal uploads for a deal with no lead to file them under", async () => {
+    const { desk, deps } = await dealWithPrincipals();
+    desk.vaultParts.leads.set(DEAL_ID, null);
+    const t12 = (await deps.checklists.itemsForDeal(DEAL_ID)).find((i) => i.itemKey === "t12")!;
+    await expect(startPortalUpload(deps, { dealId: DEAL_ID, principalId: null, email: "a@x.com" }, { itemId: t12.id, fileName: "t12.pdf", contentType: "application/pdf", sizeBytes: 10 })).rejects.toThrow(/docs@kuberacommercial.com/);
   });
 
   it("an OFAC hit holds the deal; clearing it and finishing the file makes it ready to close", async () => {

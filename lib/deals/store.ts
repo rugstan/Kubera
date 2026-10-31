@@ -44,6 +44,8 @@ export interface DealDeskStore {
   // Deals
   createDeal(input: NewDealRow, actor: string, now: Date): Promise<Deal>;
   getDeal(id: string): Promise<Deal | null>;
+  /** The deal opened under an idempotency key (deals.origin_key), if any. */
+  findDealByOriginKey(originKey: string): Promise<Deal | null>;
   listDeals(opts?: { limit?: number; openOnly?: boolean }): Promise<Deal[]>;
   /** Optimistic update on `recordVersion`. Enforces the term lock like the database trigger. */
   updateDeal(id: string, expectedVersion: number, patch: Partial<Deal>, actor: string, now: Date): Promise<Deal>;
@@ -164,6 +166,7 @@ export class MemoryDealDeskStore implements DealDeskStore {
 
   // Deals ---------------------------------------------------------------------
   async createDeal(input: NewDealRow, actor: string, now: Date): Promise<Deal> {
+    if (input.originKey && [...this.deals.values()].some((d) => d.originKey === input.originKey)) throw new GuardError(`A deal already exists for ${input.originKey} (deals_origin_key_key)`);
     const ts = now.toISOString();
     const deal: Deal = {
       leadId: null,
@@ -175,7 +178,9 @@ export class MemoryDealDeskStore implements DealDeskStore {
       loanAmountCents: null,
       collateralRealProperty: null,
       engagementAgreementRef: null,
+      originKey: null,
       ...clone(input),
+      status: "active",
       id: this.id(),
       stageEnteredAt: ts,
       termSheetAcceptedAt: null,
@@ -195,6 +200,11 @@ export class MemoryDealDeskStore implements DealDeskStore {
 
   async getDeal(id: string): Promise<Deal | null> {
     const d = this.deals.get(id);
+    return d ? clone(d) : null;
+  }
+
+  async findDealByOriginKey(originKey: string): Promise<Deal | null> {
+    const d = [...this.deals.values()].find((x) => x.originKey === originKey);
     return d ? clone(d) : null;
   }
 

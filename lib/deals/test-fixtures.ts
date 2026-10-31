@@ -1,6 +1,12 @@
 // Shared fixtures for lib/deals tests.
 
+import { checklistDeps } from "@/lib/checklists/desk";
+import { memoryDesk } from "@/lib/checklists/fakes";
+import { createDealChecklist, moveItem, syncDealPrincipalItems } from "@/lib/checklists/service";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
+import { addPrincipal } from "@/lib/principals/service";
+import { screenDeal } from "@/lib/screening/service";
+import type { FakeListEntry } from "@/lib/screening/fake";
 import { createDeal } from "./service";
 import { MemoryDealDeskStore } from "./store";
 import type { Deal, LoanBrokerOfRecord, NewDeal, NewLender, PackageItem } from "./types";
@@ -80,3 +86,27 @@ export const fullElements = {
   negotiationLog: [{ at: "2026-10-20T18:00:00.000Z", kind: "term_sheet" as const, ref: "ext-term-sheet-v2", summary: "6-month extension at 12.5%" }],
   businessPurposeCertified: true,
 };
+
+/**
+ * WS-U desk for a deal: one checklist with every required item accepted, a
+ * borrower entity wholly owned by one managing member, and both screened
+ * against `sanctions` (default: no list entries, so the screening is clear).
+ */
+export async function checklistDesk(dealId: string, now: () => Date, opts: { sanctions?: FakeListEntry[]; complete?: boolean } = {}) {
+  const desk = memoryDesk({ sanctions: opts.sanctions ?? [], now });
+  const deps = checklistDeps(desk);
+  const pdeps = { principals: desk.principals, keyring: desk.keyring, now };
+  await createDealChecklist(deps, { dealId, program: "BRIDGE", createdBy: "broker:ana" });
+  const entity = await addPrincipal(pdeps, { dealId, kind: "entity", legalName: "Sunrise Care LLC", roles: ["borrower_entity"], formationState: "CA" });
+  await addPrincipal(pdeps, { dealId, parentId: entity.principal.id, kind: "individual", legalName: "Pat Owner", roles: ["managing_member"], ownershipPct: 100, email: "pat@example.com" });
+  await syncDealPrincipalItems(deps, dealId);
+  if (opts.complete !== false) {
+    for (const item of await deps.checklists.itemsForDeal(dealId)) {
+      if (!item.required) continue;
+      await moveItem(deps, { itemId: item.id, expectedVersion: item.version, to: "accepted", actor: { kind: "staff", id: "broker@kuberacommercial.com" }, documentDate: now().toISOString().slice(0, 10) });
+    }
+  }
+  const sdeps = { client: desk.sanctions, screenings: desk.screenings, holds: desk.holds, principals: desk.principals, keyring: desk.keyring, now };
+  const screened = await screenDeal(sdeps, { dealId, purpose: "initial", requestedBy: "broker@kuberacommercial.com" });
+  return { desk, deps, sdeps, screened };
+}

@@ -1,11 +1,11 @@
-// Supabase (service role) implementation of ChecklistStore and the vault
-// storage used for portal uploads. Row mappers are exported for tests.
+// Supabase (service role) implementation of ChecklistStore. Portal upload
+// bytes live in the WS-K vault (lib/checklists/vault.ts). Row mappers are
+// exported for tests.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Condition } from "./conditions";
 import type { NewChecklistItem } from "./engine";
 import type { HmMetrics, HmUnderwriting, HmUnderwritingData } from "./hm-underwriting";
-import type { ChecklistObjectStorage } from "./service";
 import { ConcurrentUpdateError, DuplicateChecklistError, type ChecklistStore, type ItemUpdate, type NewConditionRow, type NewDealChecklist, type NewFile } from "./store";
 import type { ChecklistItemFile, ChecklistProgram, DealChecklist, DealChecklistItem } from "./types";
 
@@ -69,7 +69,7 @@ export function itemFromRow(r: Row): DealChecklistItem {
 }
 
 export function fileFromRow(r: Row): ChecklistItemFile {
-  return { id: String(r.id), itemId: String(r.item_id), dealId: String(r.deal_id), storagePath: String(r.storage_path), fileName: String(r.file_name), contentType: String(r.content_type), sizeBytes: Number(r.size_bytes), status: r.status as ChecklistItemFile["status"], uploadedBy: String(r.uploaded_by), rejectReason: str(r.reject_reason), createdAt: String(r.created_at), uploadedAt: str(r.uploaded_at) };
+  return { id: String(r.id), itemId: String(r.item_id), dealId: String(r.deal_id), storagePath: String(r.storage_path), documentId: str(r.document_id), fileName: String(r.file_name), contentType: String(r.content_type), sizeBytes: Number(r.size_bytes), status: r.status as ChecklistItemFile["status"], uploadedBy: String(r.uploaded_by), rejectReason: str(r.reject_reason), createdAt: String(r.created_at), uploadedAt: str(r.uploaded_at) };
 }
 
 const CONDITION_COLUMNS: Record<string, string> = {
@@ -213,11 +213,16 @@ export function supabaseChecklistStore(db: SupabaseClient): ChecklistStore {
     async insertFile(f: NewFile, now) {
       const { data, error } = await db
         .from("checklist_item_files")
-        .insert({ id: f.id, item_id: f.itemId, deal_id: f.dealId, storage_path: f.storagePath, file_name: f.fileName, content_type: f.contentType, size_bytes: f.sizeBytes, status: f.status, uploaded_by: f.uploadedBy, created_at: now.toISOString() })
+        .insert({ id: f.id, item_id: f.itemId, deal_id: f.dealId, storage_path: f.storagePath, document_id: f.documentId, file_name: f.fileName, content_type: f.contentType, size_bytes: f.sizeBytes, status: f.status, uploaded_by: f.uploadedBy, created_at: now.toISOString() })
         .select("*")
         .single();
       if (error) fail("file insert failed", error);
       return fileFromRow(data as Row);
+    },
+    async fileByDocumentId(documentId) {
+      const { data, error } = await db.from("checklist_item_files").select("*").eq("document_id", documentId).maybeSingle();
+      if (error) fail("file lookup failed", error);
+      return data ? fileFromRow(data as Row) : null;
     },
     async getFile(id) {
       const { data, error } = await db.from("checklist_item_files").select("*").eq("id", id).maybeSingle();
@@ -301,43 +306,3 @@ export function supabaseChecklistStore(db: SupabaseClient): ChecklistStore {
   };
 }
 
-/** Vault access for checklist uploads (private bucket; signed URLs only). */
-export function supabaseChecklistStorage(db: SupabaseClient, bucket: string, fetchImpl: typeof fetch = fetch): ChecklistObjectStorage {
-  return {
-    async createSignedUploadUrl(path) {
-      const { data, error } = await db.storage.from(bucket).createSignedUploadUrl(path);
-      if (error || !data) fail("signed upload URL failed", error ?? { message: "no data" });
-      return { url: data.signedUrl, token: data.token };
-    },
-    async readHead(path, bytes) {
-      const { data, error } = await db.storage.from(bucket).createSignedUrl(path, 60);
-      if (error || !data) return null;
-      const res = await fetchImpl(data.signedUrl, { headers: { range: `bytes=0-${bytes - 1}` }, signal: AbortSignal.timeout(10_000) });
-      if (!res.ok || !res.body) return null;
-      // Read only what we need, even if the server ignored the range.
-      const reader = res.body.getReader();
-      const chunks: Uint8Array[] = [];
-      let size = 0;
-      while (size < bytes) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        size += value.byteLength;
-      }
-      await reader.cancel().catch(() => {});
-      const out = new Uint8Array(Math.min(size, bytes));
-      let offset = 0;
-      for (const c of chunks) {
-        const take = Math.min(c.byteLength, out.length - offset);
-        out.set(c.subarray(0, take), offset);
-        offset += take;
-        if (offset >= out.length) break;
-      }
-      return out;
-    },
-    async remove(path) {
-      const { error } = await db.storage.from(bucket).remove([path]);
-      if (error) fail("storage delete failed", error);
-    },
-  };
-}
