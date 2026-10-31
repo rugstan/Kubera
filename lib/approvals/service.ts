@@ -3,6 +3,7 @@
 // these are called; this layer enforces the lifecycle and idempotency.
 
 import { z } from "zod";
+import { reauthSatisfied, requiresReauthentication, type ReauthCheck, type ReauthStore } from "@/lib/agents/core/reauth";
 import { DRE_LICENSE_PATTERN } from "@/lib/site";
 import { payloadHash } from "./hash";
 import type { ApprovalStore } from "./store";
@@ -45,7 +46,7 @@ export class ApprovalNotFoundError extends Error {
 
 export type DecisionResult =
   | { ok: true; record: ApprovalRecord }
-  | { ok: false; reason: "expired" | "already_decided" | "invalid_approver" | "reason_required"; record: ApprovalRecord };
+  | { ok: false; reason: "expired" | "already_decided" | "invalid_approver" | "reason_required" | "reauth_required"; record: ApprovalRecord };
 
 export type ExecuteResult =
   | { status: "executed"; record: ApprovalRecord; executionRef?: string }
@@ -61,11 +62,29 @@ export type ApprovalHooks = {
 };
 
 export class ApprovalService {
+  /**
+   * `reauth` holds the step-up proofs (approval_reauthentications). Sensitive
+   * approvals (MLDS, Form 159, lender submissions, fee quotes; see
+   * requiresReauthentication) can only be approved, and only execute, with a
+   * fresh proof by the approving broker. Without a store they fail closed.
+   */
   constructor(
     private readonly store: ApprovalStore,
     private readonly now: Clock = () => new Date(),
     private readonly hooks: ApprovalHooks = {},
+    private readonly reauth: Pick<ReauthStore, "forApproval"> | null = null,
   ) {}
+
+  /**
+   * Whether an approved record may execute: records that need step-up
+   * re-authentication need a matching proof (reauthSatisfied); every other
+   * approved record passes.
+   */
+  async reauthCheck(record: ApprovalRecord): Promise<ReauthCheck | { ok: true; proof: null }> {
+    if (!requiresReauthentication(record)) return { ok: true, proof: null };
+    if (!this.reauth) return { ok: false, reason: "no_proof" };
+    return reauthSatisfied(record, await this.reauth.forApproval(record.id));
+  }
 
   private async notify(records: ApprovalRecord[]): Promise<void> {
     if (!records.length || !this.hooks.onDecided) return;
@@ -94,7 +113,9 @@ export class ApprovalService {
     }
 
     const template = req.templateId ? await this.store.activeTemplate(req.templateId) : null;
-    const auto = Boolean(template && template.kind === req.kind && req.templateBodySha256 && template.bodySha256 === req.templateBodySha256);
+    // A sensitive send needs a person who re-authenticated: never auto-approved.
+    const sensitive = requiresReauthentication({ kind: req.kind, payload: req.payload, templateId: req.templateId ?? null });
+    const auto = !sensitive && Boolean(template && template.kind === req.kind && req.templateBodySha256 && template.bodySha256 === req.templateBodySha256);
     const expiresAt = new Date(now.getTime() + (req.ttlMinutes ?? DEFAULT_TTL_MINUTES) * 60_000);
 
     const { record, created } = await this.store.insertIfAbsent(
@@ -145,6 +166,13 @@ export class ApprovalService {
     if (!approver.userId || !approver.dreLicense || !DRE_LICENSE_PATTERN.test(approver.dreLicense)) {
       return { ok: false, reason: "invalid_approver", record };
     }
+    if (requiresReauthentication(record)) {
+      // The broker must have recorded a fresh second factor for this exact
+      // approval and payload (ReauthService.record) before approving it.
+      const asDecided: ApprovalRecord = { ...record, status: "approved", autoApproved: false, decidedBy: approver.userId, decidedAt: this.now().toISOString() };
+      const check = await this.reauthCheck(asDecided);
+      if (!check.ok) return { ok: false, reason: "reauth_required", record };
+    }
     return this.decide(record, { status: "approved", decidedBy: approver.userId, decidedByLabel: approver.label, decidedByDre: approver.dreLicense, decisionReason: null });
   }
 
@@ -183,6 +211,7 @@ export class ApprovalService {
     const record = await this.require(id);
     if (record.status !== "approved") return { status: "not_approved", record };
     if (record.executedAt) return { status: "already_executed", record };
+    if (!(await this.reauthCheck(record)).ok) return { status: "not_approved", record };
     const claimed = await this.store.claimExecution(id, this.now());
     if (!claimed) {
       const latest = await this.require(id);
@@ -200,6 +229,7 @@ export class ApprovalService {
   async claimExecution(id: string): Promise<ApprovalRecord | null> {
     const record = await this.require(id);
     if (record.status !== "approved" || record.executedAt) return null;
+    if (!(await this.reauthCheck(record)).ok) return null;
     return this.store.claimExecution(id, this.now());
   }
 

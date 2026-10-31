@@ -4,15 +4,17 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, money } from "@/app/(staff)/deals/ui";
+import { agentSafety } from "@/lib/agents/core/server";
 import { DEFAULT_MAX_HOLD_MONTHS, type ComparisonRow } from "@/lib/agents/lenders/all-in";
-import { lenderRuntime } from "@/lib/agents/lenders/runtime";
+import { logLenderMatch } from "@/lib/agents/lenders/decision-log";
+import { lenderRuntime, savedSpreadsFor } from "@/lib/agents/lenders/runtime";
 import { compareDealQuotes, matchDeal } from "@/lib/agents/lenders/service";
 import { ASSET_CLASS_LABELS, assetClasses, type Quote } from "@/lib/agents/lenders/types";
 import { currentStaff } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
 import { DEAL_PROGRAM_LABELS, type LenderPanelEntry } from "@/lib/deals/types";
 import { addQuoteAction, ingestTermSheetsAction, quoteStatusAction, reviewQuoteAction, submitOutreachAction } from "../../actions";
-import { FormInputError, METRIC_FIELDS, metricsFromSource } from "../../_lib/forms";
+import { FormInputError, METRIC_FIELDS, mergeSavedSpreads, metricsFromSource, withSavedSpreadDefaults } from "../../_lib/forms";
 import { QuoteFields } from "../../_components/QuoteFields";
 
 export const metadata: Metadata = { title: "Match lenders" };
@@ -50,15 +52,18 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
   const deal = await rt.desk.store.getDeal(id);
   if (!deal) notFound();
 
-  const query = toParams(sp);
+  // The latest saved spreads (from the borrower's documents) are the defaults; anything typed overrides them.
+  const saved = await savedSpreadsFor(rt, deal);
+  const query = withSavedSpreadDefaults(toParams(sp), saved);
   let metrics: ReturnType<typeof metricsFromSource>;
   let metricsError: string | null = null;
   try {
     metrics = metricsFromSource(query, deal.loanAmountCents);
   } catch (err) {
     metricsError = err instanceof FormInputError ? err.message : "Check the deal metrics";
-    metrics = metricsFromSource(new URLSearchParams(), deal.loanAmountCents);
+    metrics = metricsFromSource(withSavedSpreadDefaults(new URLSearchParams(), saved), deal.loanAmountCents);
   }
+  metrics = { ...metrics, spreads: mergeSavedSpreads(metrics.spreads, saved) };
   const deps = { boxes: rt.store, desk: rt.desk.store, now: rt.desk.now };
   const [{ match }, lenders, quotesView, docs] = await Promise.all([
     matchDeal(deps, deal.id, metrics.overrides),
@@ -66,6 +71,8 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
     compareDealQuotes({ quotes: rt.store, now: rt.desk.now }, deal.id, { ...(metrics.holdMonths ? { holdMonths: metrics.holdMonths } : {}), ...(metrics.reinvestmentRatePct !== null ? { reinvestmentRatePct: metrics.reinvestmentRatePct } : {}), noiCents: metrics.spreads.noiCents ?? null }, { targetCloseDays: metrics.overrides.targetCloseDays ?? null }),
     deal.leadId ? rt.desk.vaultDocuments(deal.leadId) : Promise.resolve([]),
   ]);
+  // Reason-code log of the ranking staff see (skipped when unchanged since the last view).
+  await logLenderMatch(agentSafety().events, { dealId: deal.id, match, now: rt.desk.now(), context: "view" });
   const write = can(staff, "write");
   const returnQuery = query.toString();
   const shareRaw = (await cookies()).get("lender_share_urls")?.value;
@@ -110,7 +117,10 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
         </div>
       ) : null}
 
-      <Section description="From the spreads or the borrower's numbers. Ratios are derived from NOI, value and cost when left blank; untested limits are listed below." title="Deal metrics">
+      <Section
+        description={`${saved ? `NOI and occupancy default to the saved spreads from the borrower's documents (as of ${saved.asOf}); type a figure to override it.` : "No spreads are saved for this deal yet; enter the borrower's numbers."} Ratios are derived from NOI, value and cost when left blank; untested limits are listed below.`}
+        title="Deal metrics"
+      >
         <form className="grid gap-4 sm:grid-cols-4" method="get">
           <Field defaultValue={v("loan") ?? (deal.loanAmountCents !== null ? String(deal.loanAmountCents / 100) : undefined)} label="Loan amount (USD)" name="loan" />
           <Field defaultValue={v("state") ?? deal.propertyState} label="State" name="state" placeholder="CA" />

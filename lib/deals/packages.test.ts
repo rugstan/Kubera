@@ -3,6 +3,8 @@ import { GuardError } from "./store";
 import { queueApprovalGate } from "@/lib/approvals/gate";
 import { ApprovalService } from "@/lib/approvals/service";
 import { MemoryApprovalStore } from "@/lib/approvals/store";
+import type { ApprovalRecord } from "@/lib/approvals/types";
+import { MemoryReauthStore, ReauthService } from "@/lib/agents/core/reauth";
 import { canonicalManifest, checkOutreachApproval, lockPackageVersion, manifestDigest, markOutreachSent, outreachApprovalKey, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type LenderMailer } from "./packages";
 import { hashShareToken, resolveShareLink, tokenMatches } from "./share-links";
 import { docs, lenderInput, newDeal, setup } from "./test-fixtures";
@@ -68,7 +70,7 @@ describe("package lock and version on send", () => {
     await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m }, input);
     await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m }, input);
     expect(gate.requests).toHaveLength(1);
-    expect(gate.requests[0]).toMatchObject({ kind: "lender_notice", idempotencyKey: outreachApprovalKey(deal.id, lender.id, 1), templateId: "lender_package_submission_v1" });
+    expect(gate.requests[0]).toMatchObject({ kind: "lender_submission", idempotencyKey: outreachApprovalKey(deal.id, lender.id, 1), templateId: "lender_package_submission_v1" });
     expect(m.sent).toHaveLength(1);
     expect(m.sent[0]!.to).toBe("dana@lender.example");
     expect(m.sent[0]!.text).toMatch(/broker, not the lender/);
@@ -135,12 +137,60 @@ describe("checking a pending submission", () => {
 
   async function queued() {
     const w = await world();
-    const service = new ApprovalService(new MemoryApprovalStore(), w.now);
-    return { ...w, service, gate: queueApprovalGate(service) };
+    const proofs = new MemoryReauthStore();
+    const service = new ApprovalService(new MemoryApprovalStore(), w.now, {}, proofs);
+    const reauth = new ReauthService(proofs, w.now);
+    /** The broker's step-up (fresh TOTP) then the approval, as the approvals page does. */
+    const approve = async (id: string) => {
+      const record = (await service.get(id)) as ApprovalRecord;
+      await reauth.record({ approval: record, user: { userId: broker.userId, dreLicense: broker.dreLicense }, factor: { method: "totp", verifiedAt: w.now() } });
+      return service.approve(id, broker);
+    };
+    return { ...w, service, proofs, approve, gate: queueApprovalGate(service) };
   }
 
-  it("mints the share link once a broker approves, without re-submitting the package", async () => {
+  it("refuses to approve a lender submission without the broker's step-up, and never sends it", async () => {
     const { store, gate, service, now, deal, lender } = await queued();
+    const m = mailer();
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    const approval = (await service.getByKey(first.outreach.approvalKey))!;
+    expect(approval.kind).toBe("lender_submission");
+    const denied = await service.approve(approval.id, broker);
+    expect(denied).toMatchObject({ ok: false, reason: "reauth_required" });
+    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m }, first.outreach.id, "a");
+    expect(r.outreach.status).toBe("pending_approval");
+    expect(r.shareUrl).toBeUndefined();
+    expect(m.sent).toHaveLength(0);
+    expect(store.links.size).toBe(0);
+  });
+
+  it("does not send an approved lender submission that has no step-up proof", async () => {
+    // An approval row marked approved some other way (a direct store write, a
+    // legacy row): the gate still refuses to hand out "approved".
+    const w = await world();
+    const approvals = new MemoryApprovalStore();
+    const service = new ApprovalService(approvals, w.now, {}, new MemoryReauthStore());
+    const gate = queueApprovalGate(service);
+    const m = mailer();
+    const first = await sendPackageToLender({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
+    const pending = (await service.getByKey(first.outreach.approvalKey))!;
+    await approvals.decide(pending.id, { status: "approved", decidedBy: broker.userId, decidedByLabel: broker.label, decidedByDre: broker.dreLicense, decisionReason: null }, w.now());
+    expect((await service.get(pending.id))!.status).toBe("approved");
+
+    const r = await checkOutreachApproval({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m }, first.outreach.id, "a");
+    expect(r.outreach.status).toBe("pending_approval");
+    expect(m.sent).toHaveLength(0);
+    expect(w.store.links.size).toBe(0);
+    expect((await service.get(pending.id))!.executedAt).toBeNull();
+    expect(await service.claimExecution(pending.id)).toBeNull();
+
+    // Without any proof store the queue fails closed as well.
+    const closed = new ApprovalService(approvals, w.now);
+    expect(await closed.reauthCheck((await closed.get(pending.id))!)).toMatchObject({ ok: false, reason: "no_proof" });
+  });
+
+  it("mints the share link once a broker approves, without re-submitting the package", async () => {
+    const { store, gate, service, approve, now, deal, lender } = await queued();
     const first = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Rush, please" });
     expect(first.outreach.status).toBe("pending_approval");
     expect(outreachMessage(first)).toMatch(/Check approval/);
@@ -155,7 +205,7 @@ describe("checking a pending submission", () => {
     const again = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Different note" });
     expect(again.outreach.id).toBe(first.outreach.id);
 
-    await service.approve(approval.id, broker);
+    expect(await approve(approval.id)).toMatchObject({ ok: true });
     const packagesBefore = (await store.listPackages(deal.id)).length;
     const r = await checkOutreachApproval({ store, gate, now, baseUrl: base }, first.outreach.id, "broker:ana");
     expect(r.outreach).toMatchObject({ status: "approved", approvalId: approval.id });
@@ -169,10 +219,10 @@ describe("checking a pending submission", () => {
   });
 
   it("emails the lender on approval when a mailer is configured", async () => {
-    const { store, gate, service, now, deal, lender } = await queued();
+    const { store, gate, service, approve, now, deal, lender } = await queued();
     const m = mailer();
     const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
-    await service.approve((await service.getByKey(first.outreach.approvalKey))!.id, broker);
+    expect(await approve((await service.getByKey(first.outreach.approvalKey))!.id)).toMatchObject({ ok: true });
     const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m }, first.outreach.id, "a");
     expect(r.outreach.status).toBe("sent");
     expect(m.sent).toHaveLength(1);

@@ -122,3 +122,22 @@ describe("WS-L migration", () => {
     expect(spreads.rows[0]!.n).toBe(0);
   });
 });
+
+describe("Phase 3 fixes migration", () => {
+  it("accepts jev_resize spreads and refuses unsealed PFS fields", async () => {
+    const lead = (await db.query<{ id: string }>(`insert into public.leads (source, contact, intake, decision, engine, latency_ms) values ('website', '{}', '{}', '{}', 'rules', 1) returning id`)).rows[0]!.id;
+    await db.query(`insert into public.spreads (lead_id, kind, version, lender_profile, results, created_by) values ($1, 'jev_resize', 1, 'AGENCY', '{}', 'agent:spreads')`, [lead]);
+    await expect(db.query(`insert into public.spreads (lead_id, kind, version, results, created_by) values ($1, 'bogus', 1, '{}', 'a')`, [lead])).rejects.toThrow(/check constraint/);
+
+    const pfs = { source_type: "manual", document_id: null, lead_id: lead, doc_type: "PFS", source_format: "csv", engine: "rules", status: "extracted" };
+    const insert = (fields: unknown) => {
+      const all: Record<string, unknown> = { ...pfs, fields };
+      const keys = Object.keys(all);
+      return db.query(`insert into public.document_extractions (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")})`, keys.map((k) => all[k]));
+    };
+    await expect(insert({ scalars: { netWorth: { value: 1500000, confidence: 0.9, source: "rules", evidence: "Net worth 1,500,000" } }, rows: [] })).rejects.toThrow(/document_extractions_pfs_sealed/);
+    await expect(insert(JSON.stringify("plaintext as a json string"))).rejects.toThrow(/document_extractions_pfs_sealed/);
+    await insert({ sealed: "pii1.1.aaaa.bbbb.cccc" });
+    await insert({ scalars: {}, rows: [] });
+  });
+});

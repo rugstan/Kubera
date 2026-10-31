@@ -171,6 +171,19 @@ test("a broker reads the reports and downloads a CSV", async ({ page }) => {
   expect(await seriousViolations(page)).toEqual([]);
 });
 
+test("report views reflow at 390px: only the tables scroll, never the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, "broker@kubera.test", "/reports");
+  await expect(page).toHaveURL(`${base}/reports`);
+  for (const view of ["overview", "fees", "lenders", "sources"]) {
+    await page.goto(`${base}/reports${view === "overview" ? "" : `?view=${view}`}`);
+    await expect(page.getByRole("heading", { name: "Reports", level: 1 })).toBeVisible();
+    await expect(page.getByRole("table").first()).toBeAttached();
+    const { scrollWidth, innerWidth } = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
+    expect(scrollWidth, `${view}: page is ${scrollWidth}px wide at a ${innerWidth}px viewport`).toBeLessThanOrEqual(innerWidth);
+  }
+});
+
 test("recording marketing spend updates the lead-source return", async ({ page }) => {
   await signIn(page, "broker@kubera.test", "/reports?view=sources");
   const table = page.getByRole("table", { name: "Lead-source return on spend", exact: true });

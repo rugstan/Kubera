@@ -31,6 +31,16 @@ export async function seedDemoApprovals(service: ApprovalService, store: MemoryA
     dealId: DEMO_DEAL_IDS.hotel,
     ttlMinutes: 3 * 24 * 60,
   });
+  // Sensitive: approving it asks the broker for a fresh authenticator code.
+  await service.request({
+    kind: "mlds_send",
+    idempotencyKey: "demo:mlds_send:sunrise:v1",
+    summary: "Send the MLDS (RE 882) for Sunrise Senior Living to Pat Owner for e-signature",
+    payload: { document: "MLDS_RE882", recipients: [{ role: "Borrower 1", name: "Pat Owner", email: "pat@example.com" }] },
+    requestedBy: "broker:demo",
+    dealId: DEMO_DEAL_IDS.seniorLiving,
+    ttlMinutes: 2 * 24 * 60,
+  });
   await service.request({
     kind: "crm_update",
     idempotencyKey: "demo:crm_update:oak-terrace:stage:v1",

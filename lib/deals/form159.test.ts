@@ -128,6 +128,8 @@ describe("Form 159 workflow", () => {
     expect(pending.sent).toBe(false);
     expect(pending.record.status).toBe("pending_approval");
     expect(provider.requests.size).toBe(0);
+    // A sensitive kind: the broker re-authenticates before it is approved or sent.
+    expect(gate.requests[0]).toMatchObject({ kind: "form159_send" });
 
     gate.decide(`esign_send:form159:${g.record.id}:${g.record.documentSha256}`, { status: "approved", approvalId: "appr_9", decidedBy: "broker:lee", decidedAt: now() });
     const sent = await sendForm159({ store, provider, gate, now, templateId: "tpl_159" }, g.record.id, "broker:ana");

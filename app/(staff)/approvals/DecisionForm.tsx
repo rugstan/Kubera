@@ -3,11 +3,28 @@
 import { useActionState, useId, useState } from "react";
 import { decideApprovalAction, sweepExpiredAction, type DecisionState } from "./actions";
 
-export function DecisionForm({ id, summary, canApprove, approveBlockedReason, canReject }: { id: string; summary: string; canApprove: boolean; approveBlockedReason?: string; canReject: boolean }) {
+export function DecisionForm({
+  id,
+  summary,
+  canApprove,
+  approveBlockedReason,
+  canReject,
+  stepUp = false,
+}: {
+  id: string;
+  summary: string;
+  canApprove: boolean;
+  approveBlockedReason?: string;
+  canReject: boolean;
+  /** Sensitive send (MLDS, Form 159, lender submission, fee quote): approving needs a fresh authenticator code. */
+  stepUp?: boolean;
+}) {
   const [state, action, pending] = useActionState<DecisionState, FormData>(decideApprovalAction, {});
   const [rejecting, setRejecting] = useState(false);
   const reasonId = useId();
   const blockedId = useId();
+  const codeId = useId();
+  const codeHintId = useId();
 
   return (
     <div className="mt-4">
@@ -31,6 +48,28 @@ export function DecisionForm({ id, summary, canApprove, approveBlockedReason, ca
           </>
         ) : (
           <>
+            {stepUp && canApprove ? (
+              <div className="w-full">
+                <label htmlFor={codeId} className="field-label">
+                  Authenticator code
+                </label>
+                <p id={codeHintId} className="mb-1.5 text-[13px] text-titanium">
+                  This sends a sensitive document. Confirm it is you with the current code from your authenticator app.
+                </p>
+                <input
+                  id={codeId}
+                  name="totp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="\d{6}"
+                  maxLength={6}
+                  required
+                  className="field max-w-48 tracking-[0.3em]"
+                  aria-describedby={codeHintId}
+                />
+              </div>
+            ) : null}
             <button
               type="submit"
               className="pill pill-primary min-h-11 px-5 py-2 text-[15px] disabled:cursor-not-allowed disabled:opacity-50"

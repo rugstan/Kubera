@@ -7,6 +7,8 @@ import { indexRatesFromEnv, lenderRuntime, modelGateway } from "@/lib/agents/len
 import { ingestTermSheets } from "@/lib/agents/lenders/service";
 import { outreachRuntime } from "@/lib/agents/outreach/runtime";
 import { outreachSweepWorkflow, speedToLeadWorkflow } from "@/lib/agents/outreach/workflow";
+import { spreadWorkflowDeps } from "@/lib/spreads/server";
+import { documentExtractedHandler } from "@/lib/spreads/workflow";
 import type { AgentWorkflowHooks } from "./deps";
 
 // Production wiring for the Phase 3 agent workflow functions (document
@@ -21,6 +23,11 @@ export function agentWorkflowHooks(): AgentWorkflowHooks {
       if (!deps) return null;
       const r = await documentCleanHandler(data, deps);
       return r.skipped ? null : { name: r.emit.name, data: r.emit.data };
+    },
+    async documentExtracted(data) {
+      const deps = spreadWorkflowDeps();
+      if (!deps) return { status: "skipped", reason: "spreads_off" };
+      return documentExtractedHandler(data, deps);
     },
     async crmMailRouted(data) {
       const deps = crmAgentDeps();

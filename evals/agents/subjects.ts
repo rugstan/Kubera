@@ -163,14 +163,21 @@ const toolPolicy: EvalSubject = {
     const pending = await h.approvals.list({ status: "pending" });
     for (const a of pending) {
       switch (p.broker) {
-        case "approve":
-          await h.approvals.approve(a.id, BROKER);
-          break;
-        case "approve_with_reauth": {
+        case "approve": {
           const approved = await h.approvals.approve(a.id, BROKER);
-          if (approved.ok) await h.reauth.record({ approval: approved.record, user: { userId: BROKER.userId, dreLicense: BROKER.dreLicense }, factor: { method: "totp", verifiedAt: h.clock.now() } });
+          // The queue refuses a sensitive approval without a step-up. Mark it
+          // approved behind the queue's back (as a legacy or hand-edited row
+          // would be) so the runner's own re-authentication check is exercised.
+          if (!approved.ok && approved.reason === "reauth_required") {
+            await h.approvalStore.decide(a.id, { status: "approved", decidedBy: BROKER.userId, decidedByLabel: BROKER.label, decidedByDre: BROKER.dreLicense, decisionReason: null }, h.clock.now());
+          }
           break;
         }
+        case "approve_with_reauth":
+          // Step-up first (fresh TOTP), then the decision, as the approvals page does.
+          await h.reauth.record({ approval: a, user: { userId: BROKER.userId, dreLicense: BROKER.dreLicense }, factor: { method: "totp", verifiedAt: h.clock.now() } });
+          await h.approvals.approve(a.id, BROKER);
+          break;
         case "reject":
           await h.approvals.reject(a.id, BROKER, "Not now");
           break;

@@ -7,8 +7,8 @@ export function Overview({ r }: { r: ReportBundle }) {
   const maxStage = Math.max(1, ...pipeline.byStage.map((s) => s.open));
   const maxFunnel = Math.max(1, ...funnel.map((f) => f.reached));
   return (
-    <div className="grid gap-5">
-      <section aria-label="Pipeline summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+      <section aria-label="Pipeline summary" className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Open deals" value={String(pipeline.openDeals)} hint="Active, on hold or held for counsel" />
         <Stat label="Requested loan volume" value={usd0(pipeline.openAmountCents)} hint="Size of the loans requested; Kubera does not hold or move it" />
         <Stat label={`Closed in ${r.window.label.toLowerCase()}`} value={String(pipeline.outcomes.won)} hint={usd0(pipeline.outcomes.wonAmountCents)} />

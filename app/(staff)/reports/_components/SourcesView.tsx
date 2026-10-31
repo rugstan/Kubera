@@ -5,8 +5,8 @@ import { SpendForm } from "./SpendForm";
 export function SourcesView({ r }: { r: ReportBundle }) {
   const { rows, totals } = r.sources;
   return (
-    <div className="grid gap-5">
-      <section aria-label="Lead source summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+      <section aria-label="Lead source summary" className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Leads" value={String(totals.leads)} hint={`Created in the ${r.window.label.toLowerCase()}`} />
         <Stat label="Deals opened" value={String(totals.deals)} hint={`${pct(totals.leadToDealPct)} of leads; ${totals.won} closed`} />
         <Stat label="Booked net fees" value={usd(totals.bookedNetCents)} hint="Earned, invoiced and settled, after partner shares" />

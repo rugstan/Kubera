@@ -5,6 +5,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { decryptJson, encryptJson, isEncrypted, piiKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import type { BudgetCategory } from "./specs";
 import { systemClock, type Clock, type DocType, type ExtractedField, type ExtractedRow, type ExtractionStatus, type SourceFormat } from "./types";
 
@@ -56,6 +57,8 @@ export interface ExtractionStore {
   listByStatus(status: ExtractionStatus, limit: number): Promise<ExtractionRecord[]>;
   listForDeal(dealId: string): Promise<ExtractionRecord[]>;
   listForLead(leadId: string): Promise<ExtractionRecord[]>;
+  /** False when restricted (PFS) fields cannot be stored encrypted (no PII_ENCRYPTION_KEY); absent = accepts. */
+  acceptsRestricted?(): boolean;
 }
 
 export const EXTRACTION_EVENT_TYPES = ["extracted", "queued_for_review", "corrected", "approved", "rejected", "superseded", "failed", "routing_refused"] as const;
@@ -94,38 +97,113 @@ export interface ConstructionBudgetStore {
   get(extractionId: string): Promise<ConstructionBudgetRecord | null>;
 }
 
+// --- Restricted fields (PFS) ---------------------------------------------------------------
+//
+// A personal financial statement (doc_type = 'PFS') is restricted personal
+// information (lib/privacy/classification.ts), as is anything whose type was
+// inferred rather than declared (it could be a PFS; pipeline.ts treats it the
+// same way). Its extracted fields, evidence snippets included, are sealed with
+// AES-256-GCM (lib/privacy/crypto.ts) bound to the extraction id before they
+// reach the database, and opened on read for the review queue and spreads.
+// Without PII_ENCRYPTION_KEY a restricted extraction is refused, never stored
+// in plaintext (as lib/principals/crypto-fields.ts does for principals.pfs).
+
+export const extractionFieldsContext = (id: string) => `document_extractions:${id}.fields`;
+/** Warning added on read when sealed fields cannot be opened (key missing or wrong). */
+export const RESTRICTED_FIELDS_UNAVAILABLE = "restricted_fields_unavailable";
+
+export class RestrictedExtractionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RestrictedExtractionError";
+  }
+}
+
+export function isRestrictedExtraction(r: { doc_type: DocType | null; warnings: readonly string[] }): boolean {
+  return r.doc_type === "PFS" || r.warnings.includes("doc_type_inferred");
+}
+
+type SealedFields = { sealed: string };
+
+export function isSealedFields(v: unknown): v is SealedFields {
+  return !!v && typeof v === "object" && !Array.isArray(v) && isEncrypted((v as { sealed?: unknown }).sealed);
+}
+
+const hasContent = (f: StoredFields | undefined) => !!f && (Object.keys(f.scalars ?? {}).length > 0 || (f.rows ?? []).length > 0);
+
+/** Seals extracted fields (values and evidence) for the row `id`. Throws without a key. */
+export function sealExtractionFields(id: string, fields: StoredFields, keyring: PiiKeyring | null | undefined = piiKeyring()): SealedFields {
+  if (!keyring) throw new RestrictedExtractionError("PII_ENCRYPTION_KEY is not configured; refusing to store a personal financial statement extraction unencrypted");
+  return { sealed: encryptJson(fields, { context: extractionFieldsContext(id), keyring }) };
+}
+
+/** Opens stored fields; plaintext rows pass through. `unavailable` when sealed fields cannot be opened. */
+export function openExtractionFields(id: string, stored: unknown, keyring: PiiKeyring | null | undefined = piiKeyring()): { fields: StoredFields; unavailable: boolean } {
+  if (!isSealedFields(stored)) return { fields: (stored ?? { scalars: {}, rows: [] }) as StoredFields, unavailable: false };
+  try {
+    if (!keyring) throw new Error("no key");
+    return { fields: decryptJson<StoredFields>(stored.sealed, { context: extractionFieldsContext(id), keyring }), unavailable: false };
+  } catch {
+    return { fields: { scalars: {}, rows: [] }, unavailable: true };
+  }
+}
+
 // --- Supabase ----------------------------------------------------------------------------
 
 const fail = (op: string, error: { message: string }): never => {
   throw new Error(`document_extractions.${op}: ${error.message}`);
 };
 
-function fromDb(row: Record<string, unknown>): ExtractionRecord {
+function fromDb(row: Record<string, unknown>, keyring: PiiKeyring | null | undefined): ExtractionRecord {
+  const r = row as unknown as ExtractionRecord;
+  const opened = openExtractionFields(r.id, row.fields, keyring);
   return {
-    ...(row as unknown as ExtractionRecord),
+    ...r,
+    fields: opened.fields,
+    warnings: opened.unavailable ? [...(r.warnings ?? []), RESTRICTED_FIELDS_UNAVAILABLE] : r.warnings,
     overall_confidence: row.overall_confidence === null || row.overall_confidence === undefined ? null : Number(row.overall_confidence),
   };
 }
 
-export function supabaseExtractionStore(db: SupabaseClient): ExtractionStore {
+export function supabaseExtractionStore(db: SupabaseClient, opts: { keyring?: PiiKeyring | null } = {}): ExtractionStore {
   const live = ["superseded", "failed", "rejected"];
+  const keyring = () => (opts.keyring !== undefined ? opts.keyring : piiKeyring());
+  const open = (row: Record<string, unknown>) => fromDb(row, keyring());
   return {
+    acceptsRestricted: () => keyring() !== null,
     async insert(row) {
-      const { data, error } = await db.from("document_extractions").insert(row).select("*").single();
+      let toInsert: Record<string, unknown> = { ...row };
+      if (isRestrictedExtraction(row) && hasContent(row.fields)) {
+        // The id is chosen here so the ciphertext can be bound to it.
+        const id = randomUUID();
+        toInsert = { ...row, id, fields: sealExtractionFields(id, row.fields, keyring()) };
+      }
+      const { data, error } = await db.from("document_extractions").insert(toInsert).select("*").single();
       if (error || !data) return fail("insert", error ?? { message: "no row returned" });
-      return fromDb(data);
+      return open(data);
     },
     async get(id) {
       const { data, error } = await db.from("document_extractions").select("*").eq("id", id).maybeSingle();
       if (error) return fail("get", error);
-      return data ? fromDb(data) : null;
+      return data ? open(data) : null;
     },
     async update(id, patch, expect) {
-      let q = db.from("document_extractions").update(patch).eq("id", id);
+      let toWrite: Record<string, unknown> = { ...patch };
+      if (patch.fields) {
+        const { data: current, error: readError } = await db.from("document_extractions").select("doc_type, warnings, fields").eq("id", id).maybeSingle();
+        if (readError) return fail("update", readError);
+        if (!current) return null;
+        const c = current as { doc_type: DocType | null; warnings: string[] | null; fields: unknown };
+        const restricted = isRestrictedExtraction({ doc_type: c.doc_type, warnings: patch.warnings ?? c.warnings ?? [] }) || isSealedFields(c.fields);
+        if (restricted && hasContent(patch.fields)) toWrite = { ...patch, fields: sealExtractionFields(id, patch.fields, keyring()) };
+      }
+      // Never persist the read-side marker.
+      if (patch.warnings) toWrite.warnings = patch.warnings.filter((w) => w !== RESTRICTED_FIELDS_UNAVAILABLE);
+      let q = db.from("document_extractions").update(toWrite).eq("id", id);
       if (expect) q = q.in("status", [...expect]);
       const { data, error } = await q.select("*").maybeSingle();
       if (error) return fail("update", error);
-      return data ? fromDb(data) : null;
+      return data ? open(data) : null;
     },
     async findLive(key) {
       let q = db.from("document_extractions").select("*").eq("doc_type", key.docType).not("status", "in", `(${live.join(",")})`);
@@ -134,22 +212,22 @@ export function supabaseExtractionStore(db: SupabaseClient): ExtractionStore {
       else return null;
       const { data, error } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (error) return fail("findLive", error);
-      return data ? fromDb(data) : null;
+      return data ? open(data) : null;
     },
     async listByStatus(status, limit) {
       const { data, error } = await db.from("document_extractions").select("*").eq("status", status).order("created_at").limit(limit);
       if (error) return fail("listByStatus", error);
-      return (data ?? []).map(fromDb);
+      return (data ?? []).map(open);
     },
     async listForDeal(dealId) {
       const { data, error } = await db.from("document_extractions").select("*").eq("deal_id", dealId).order("created_at", { ascending: false }).limit(500);
       if (error) return fail("listForDeal", error);
-      return (data ?? []).map(fromDb);
+      return (data ?? []).map(open);
     },
     async listForLead(leadId) {
       const { data, error } = await db.from("document_extractions").select("*").eq("lead_id", leadId).order("created_at", { ascending: false }).limit(500);
       if (error) return fail("listForLead", error);
-      return (data ?? []).map(fromDb);
+      return (data ?? []).map(open);
     },
   };
 }

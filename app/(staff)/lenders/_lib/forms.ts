@@ -168,3 +168,54 @@ export function metricsFromSource(f: Source, dealLoanCents: number | null = null
 
 /** The metric field names carried from the GET form into the submission form. */
 export const METRIC_FIELDS = ["loan", "state", "assetClass", "lien", "nonRecourse", "closeDays", "franchise", "ltv", "ltc", "dscr", "debtYield", "noi", "value", "cost", "occupancy", "hold", "reinvest"] as const;
+
+/** The saved-spread fields the desk uses (lib/spreads/workflow SavedPackageSpreads). */
+export type SavedSpreadDefaults = {
+  asOf: string | null;
+  noiCents: number | null;
+  underwrittenNoiCents: number | null;
+  revenueCents: number | null;
+  expensesCents: number | null;
+  occupancyPct: number | null;
+  units: number | null;
+  unitLabel: string | null;
+  adrCents: number | null;
+  revparCents: number | null;
+  payorMix: Record<string, number> | null;
+};
+
+/**
+ * The deal-metrics query with blanks filled from the latest saved spreads
+ * (lender-normalized NOI, occupancy). Anything staff typed wins.
+ */
+export function withSavedSpreadDefaults(query: URLSearchParams, saved: SavedSpreadDefaults | null): URLSearchParams {
+  if (!saved) return query;
+  const q = new URLSearchParams(query);
+  const noi = saved.underwrittenNoiCents ?? saved.noiCents;
+  if (!q.get("noi") && noi !== null) q.set("noi", String(Math.round(noi) / 100));
+  if (!q.get("occupancy") && saved.occupancyPct !== null) q.set("occupancy", String(saved.occupancyPct));
+  return q;
+}
+
+/** Package metrics: what staff typed, then the saved spreads for everything left blank. */
+export function mergeSavedSpreads(typed: PackageSpreads, saved: SavedSpreadDefaults | null): PackageSpreads {
+  if (!saved) return typed;
+  const out: PackageSpreads = {
+    asOf: saved.asOf,
+    noiCents: saved.noiCents,
+    underwrittenNoiCents: saved.underwrittenNoiCents,
+    revenueCents: saved.revenueCents,
+    expensesCents: saved.expensesCents,
+    occupancyPct: saved.occupancyPct,
+    units: saved.units,
+    unitLabel: saved.unitLabel,
+    adrCents: saved.adrCents,
+    revparCents: saved.revparCents,
+    payorMix: saved.payorMix,
+  };
+  for (const [k, v] of Object.entries(typed) as [keyof PackageSpreads, PackageSpreads[keyof PackageSpreads]][]) {
+    if (v !== null && v !== undefined) (out as Record<string, unknown>)[k] = v;
+  }
+  // A typed NOI that differs from the documents is the advisor's figure; keep the documents' normalized NOI beside it.
+  return out;
+}

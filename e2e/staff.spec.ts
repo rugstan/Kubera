@@ -135,6 +135,21 @@ test("a broker approves and rejects requests; expired ones never send", async ({
     await expect(queue.getByRole("article", { name: /Oak Terrace Apartments/ })).toHaveCount(0);
   }
 
+  // A sensitive send (MLDS) asks for a fresh authenticator code before it is approved.
+  const mlds = queue.getByRole("article", { name: /MLDS \(RE 882\) for Sunrise/ });
+  if (await mlds.count()) {
+    const code = mlds.getByLabel("Authenticator code");
+    await expect(code).toBeVisible();
+    await code.fill("000000" === totp(DEMO_TOTP_SECRET) ? "111111" : "000000");
+    await mlds.getByRole("button", { name: /^Approve/ }).click();
+    await expect(mlds.getByRole("alert")).toContainText("did not match");
+    await expect(queue.getByRole("article", { name: /MLDS \(RE 882\) for Sunrise/ })).toHaveCount(1);
+    await mlds.getByLabel("Authenticator code").fill(totp(DEMO_TOTP_SECRET));
+    await mlds.getByRole("button", { name: /^Approve/ }).click();
+    await expect(page.getByRole("status").filter({ hasText: "MLDS (RE 882) e-sign send approved: Send the MLDS" })).toBeVisible();
+    await expect(queue.getByRole("article", { name: /MLDS \(RE 882\) for Sunrise/ })).toHaveCount(0);
+  }
+
   const harbor = queue.getByRole("article", { name: /Harbor Inn SBA 504 package/ });
   if (await harbor.count()) {
     await harbor.getByRole("button", { name: /^Reject/ }).click();
@@ -177,6 +192,43 @@ test("documents open through an audited, short-lived link; quarantined files do 
   expect(blocked.status()).toBe(423);
 });
 
+test("staff review low-confidence extractions: correct and approve, or reject", async ({ page }) => {
+  await signInBroker(page, "/documents/extractions");
+  await expect(page).toHaveURL(`${base}/documents/extractions`);
+  await expect(page.getByRole("heading", { name: "Extraction review", level: 1 })).toBeVisible();
+  const queue = page.getByRole("list", { name: "Extractions waiting for review" });
+  const pfs = queue.getByRole("article", { name: /Personal financial statement: Sunrise guarantor PFS/ });
+  test.skip((await pfs.count()) === 0, "Demo queue already reviewed on a reused server");
+
+  // Fields show with their confidence and evidence; the figures that disagree are flagged.
+  await expect(pfs.getByRole("table", { name: /Extracted fields/ })).toBeVisible();
+  await expect(pfs.getByText("row 12: Total assets")).toBeVisible();
+  await expect(pfs.getByText("62%", { exact: true })).toBeVisible();
+  await expect(pfs.getByRole("list", { name: "Checks that failed" })).toContainText(/mismatch/);
+
+  // Approving as read is refused while the totals disagree.
+  await pfs.getByRole("button", { name: /^Approve extraction/ }).click();
+  await expect(pfs.getByRole("alert")).toContainText(/disagree/);
+
+  await pfs.getByLabel("Total assets").fill("1900000");
+  await pfs.getByRole("button", { name: /^Approve extraction/ }).click();
+  await expect(page).toHaveURL(/\/documents\/extractions\?approved=/);
+  await expect(page.getByRole("status").filter({ hasText: "Extraction approved" })).toBeVisible();
+  await expect(queue.getByRole("article", { name: /Sunrise guarantor PFS/ })).toHaveCount(0);
+
+  const t12 = queue.getByRole("article", { name: /T-12 operating statement: Harbor Inn/ });
+  await t12.getByRole("button", { name: /^Reject extraction/ }).click();
+  await t12.getByLabel("Reason for rejecting").fill("Wrong year; the borrower will send the 2026 T-12");
+  await t12.getByRole("button", { name: "Reject extraction" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Extraction rejected" })).toBeVisible();
+  await expect(page.getByText("Nothing is waiting for review.")).toBeVisible();
+});
+
+test("extraction review requires sign-in", async ({ page }) => {
+  await page.goto(`${base}/documents/extractions`);
+  await expect(page).toHaveURL(/\/login\?next=%2Fdocuments%2Fextractions/);
+});
+
 test("an analyst enrolls TOTP on first sign-in and can view but not approve", async ({ page }) => {
   await signInWithCode(page, "analyst@kubera.test", "/approvals");
   await expect(page).toHaveURL(/\/mfa\?next=/);
@@ -214,5 +266,8 @@ test("sign-in and staff pages have no serious accessibility violations", async (
   expect(await seriousViolations(page)).toEqual([]);
   await page.goto(`${base}/documents`);
   await expect(page.getByRole("table", { name: "Documents in the vault" })).toBeVisible();
+  expect(await seriousViolations(page)).toEqual([]);
+  await page.goto(`${base}/documents/extractions`);
+  await expect(page.getByRole("heading", { name: "Extraction review", level: 1 })).toBeVisible();
   expect(await seriousViolations(page)).toEqual([]);
 });

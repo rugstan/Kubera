@@ -336,7 +336,8 @@ export async function sendForm159(
   ];
   const approvalKey = `esign_send:form159:${record.id}:${record.documentSha256}`;
   const decision = await deps.gate.request({
-    kind: "esign_send",
+    // Sensitive: needs the approving broker's step-up re-authentication.
+    kind: "form159_send",
     idempotencyKey: approvalKey,
     summary: `Send SBA Form 159 (${formatCents(d.totalCents)} agent compensation) to ${d.applicant.businessName} and ${d.lender.name}`,
     templateId: deps.templateId,

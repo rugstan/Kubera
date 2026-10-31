@@ -6,7 +6,7 @@
 
 import { budgetRecordFrom } from "./pipeline";
 import { specFor } from "./specs";
-import type { ConstructionBudgetStore, ExtractionEventLog, ExtractionRecord, ExtractionStore } from "./store";
+import { RESTRICTED_FIELDS_UNAVAILABLE, type ConstructionBudgetStore, type ExtractionEventLog, type ExtractionRecord, type ExtractionStore } from "./store";
 import { systemClock, type Clock, type ExtractedField, type ExtractionResult, type FieldValue } from "./types";
 import { assessExtraction, validateExtraction } from "./validate";
 import { coerceField } from "./values";
@@ -103,6 +103,8 @@ export async function correctAndApprove(
   const rec = await deps.store.get(id);
   if (!rec) throw new ReviewError("extraction not found", "not_found");
   if (!REVIEWABLE.includes(rec.status as (typeof REVIEWABLE)[number])) throw new ReviewError(`extraction is ${rec.status}`, "not_reviewable");
+  // Sealed (PFS) fields that could not be opened must never be approved, or overwritten, blind.
+  if (rec.warnings.includes(RESTRICTED_FIELDS_UNAVAILABLE)) throw new ReviewError("this extraction's restricted fields cannot be decrypted (check PII_ENCRYPTION_KEY)", "not_reviewable");
   const { result: corrected, changed } = applyCorrections(toResult(rec), args.corrections ?? {});
   // Approval vouches for every field that is left: the reviewer saw them.
   const vouched: ExtractionResult = {

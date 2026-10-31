@@ -1,7 +1,7 @@
 import { PackageCopyError, buildExecutiveSummary } from "@/lib/agents/lenders/package";
-import { lenderRuntime, renderSummaryPdf } from "@/lib/agents/lenders/runtime";
+import { lenderRuntime, renderSummaryPdf, savedSpreadsFor } from "@/lib/agents/lenders/runtime";
 import { currentStaff } from "@/lib/deals/runtime";
-import { FormInputError, metricsFromSource } from "../../../_lib/forms";
+import { FormInputError, mergeSavedSpreads, metricsFromSource, withSavedSpreadDefaults } from "../../../_lib/forms";
 
 // Staff-only preview of the executive summary PDF for a deal, from the deal
 // record and the metrics in the query string. What a lender receives is the
@@ -20,11 +20,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const deal = await rt.desk.store.getDeal(id);
   if (!deal) return Response.json({ error: "Not found" }, { status: 404, headers: noStore });
   try {
-    const metrics = metricsFromSource(new URL(req.url).searchParams, deal.loanAmountCents);
+    // Saved spreads (from the borrower's documents) fill whatever the query leaves blank.
+    const saved = await savedSpreadsFor(rt, deal);
+    const metrics = metricsFromSource(withSavedSpreadDefaults(new URL(req.url).searchParams, saved), deal.loanAmountCents);
     const spec = buildExecutiveSummary({
       deal: { ...deal, loanAmountCents: metrics.overrides.loanAmountCents ?? deal.loanAmountCents },
       assetClass: metrics.overrides.assetClass ?? null,
-      spreads: metrics.spreads,
+      spreads: mergeSavedSpreads(metrics.spreads, saved),
       asOf: rt.desk.now().toISOString().slice(0, 10),
       advisor: { name: staff.name, email: staff.email, dreLicense: staff.dreLicense },
     });

@@ -3,6 +3,7 @@ import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import { closedApprovalGate } from "@/lib/compliance/approval-gate";
 import { resolveAuthMode } from "@/lib/auth/config";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { MemoryReauthStore, supabaseReauthStore, type ReauthStore } from "@/lib/agents/core/reauth";
 import { seedDemoApprovals } from "./demo";
 import { queueApprovalGate } from "./gate";
 import { sendWorkflowEvent } from "@/lib/workflows/client";
@@ -48,8 +49,23 @@ function hooksFor(service: () => ApprovalService): ApprovalHooks {
   };
 }
 
+const REAUTH_MEMORY_KEY = Symbol.for("kubera.approvals.reauth.memory");
+
+/**
+ * Step-up proofs (approval_reauthentications): Supabase when configured, an
+ * in-memory store shared per process in fake-auth mode (demo / e2e) or when
+ * Supabase is missing (then the queue itself is unavailable outside fake mode).
+ */
+export function reauthStore(): ReauthStore {
+  const db = resolveAuthMode().mode === "fake" ? null : supabaseAdmin();
+  if (db) return supabaseReauthStore(db);
+  const g = globalThis as unknown as Record<symbol, MemoryReauthStore | undefined>;
+  g[REAUTH_MEMORY_KEY] ??= new MemoryReauthStore();
+  return g[REAUTH_MEMORY_KEY]!;
+}
+
 function withHooks(store: ApprovalStore): ApprovalService {
-  const service: ApprovalService = new ApprovalService(store, undefined, hooksFor(() => service));
+  const service: ApprovalService = new ApprovalService(store, undefined, hooksFor(() => service), reauthStore());
   return service;
 }
 

@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 import { MemoryDocumentStorage } from "@/lib/disclosures/store";
 import type { LenderMailer } from "@/lib/deals/packages";
 import { docs, lenderInput, newDeal, setup } from "@/lib/deals/test-fixtures";
+import { MemoryAgentEventStore } from "@/lib/agents/core/events";
+import { logLenderMatch, matchDecisionCandidates } from "./decision-log";
+import { matchLenders } from "./matcher";
 import { submitToLenders, type OutreachDeps } from "./outreach";
 import { renderExecutiveSummaryPdf } from "./package-pdf";
 import { dealProfile } from "./service";
@@ -82,7 +85,7 @@ describe("submitToLenders", () => {
     expect(w.mailer.sent).toEqual([]);
     expect(await w.store.listShareLinks(w.deal.id)).toEqual([]);
     expect(w.gate.requests).toHaveLength(1);
-    expect(w.gate.requests[0]).toMatchObject({ kind: "lender_notice", templateId: "lender_package_submission_v1" });
+    expect(w.gate.requests[0]).toMatchObject({ kind: "lender_submission", templateId: "lender_package_submission_v1" });
     expect(w.gate.requests[0]!.summary).toMatch(/match \d+(\.\d)?\/100/);
   });
 
@@ -140,5 +143,45 @@ describe("submitToLenders", () => {
     await expect(submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [], items: docs(1), summary: null, actor: "a" })).rejects.toThrow(/at least one lender/);
     await expect(submitToLenders(w.deps, { dealId: "missing", profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: null, actor: "a" })).rejects.toThrow(/not found/);
     await expect(submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: [], summary: null, actor: "a" })).rejects.toThrow(/at least one document/);
+  });
+});
+
+describe("lender-match decision log (reason codes)", () => {
+  it("appends a decision.lender_match event for a submission, with ranked, knocked-out and override candidates", async () => {
+    const w = await world("pending");
+    const events = new MemoryAgentEventStore();
+    const deps = { ...w.deps, events };
+    await submitToLenders(deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id, w.lenders.c.id], items: docs(1), summary: null, actor: "broker:ana", overrideReason: "Lender confirmed a CA exception by phone" });
+    const [e] = await events.list({ eventType: "decision.lender_match" });
+    expect(e).toBeDefined();
+    expect(e!).toMatchObject({ agent: "lenders.matching", dealId: w.deal.id, outcome: "recorded" });
+    expect(e!.reasonCodes).toEqual(expect.arrayContaining(["lender_match.program.hud_232", "lender_match.program_fit", "lender_match.state_not_covered", "lender_match.manual_override", "lender_match.box_verified"]));
+    const detail = e!.detail as { context: string; submittedLenderIds: string[]; override: { lenderIds: string[]; reason: string }; candidates: { lenderId: string; eligible: boolean; reasons: string[] }[] };
+    expect(detail.context).toBe("submission");
+    expect(detail.submittedLenderIds.sort()).toEqual([w.lenders.a.id, w.lenders.c.id].sort());
+    expect(detail.override).toEqual({ lenderIds: [w.lenders.c.id], reason: "Lender confirmed a CA exception by phone" });
+    const c = detail.candidates.find((x) => x.lenderId === w.lenders.c.id)!;
+    expect(c).toMatchObject({ eligible: false });
+    expect(c.reasons).toContain("lender_match.state_not_covered");
+    expect(detail.candidates.filter((x) => x.eligible).map((x) => x.lenderId).sort()).toEqual([w.lenders.a.id, w.lenders.b.id].sort());
+  });
+
+  it("logs the static LENDER_ROUTING fallback, and skips an unchanged ranking on re-view", async () => {
+    const w = await world("pending");
+    const events = new MemoryAgentEventStore();
+    const now = new Date("2026-11-04T17:00:00.000Z");
+    // No approved box covers SBA 504: the matcher falls back to static routing.
+    const match = matchLenders({ profile: { ...w.profile, program: "SBA_504" }, boxes: [], lenders: await w.store.listLenders(), now });
+    expect(match.usedFallback).toBe(true);
+    const candidates = matchDecisionCandidates(match, now);
+    expect(candidates.length).toBeGreaterThan(0);
+    expect(candidates.every((c) => c.source === "static_routing" && c.reasons.includes("lender_match.static_routing_fallback"))).toBe(true);
+
+    expect(await logLenderMatch(events, { dealId: w.deal.id, match, now, context: "view" })).toBe("recorded");
+    expect(await logLenderMatch(events, { dealId: w.deal.id, match, now, context: "view" })).toBe("unchanged");
+    const rows = await events.list({ eventType: "decision.lender_match" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.reasonCodes).toContain("lender_match.static_routing_fallback");
+    expect(await logLenderMatch(null, { dealId: w.deal.id, match, now, context: "view" })).toBe("unavailable");
   });
 });

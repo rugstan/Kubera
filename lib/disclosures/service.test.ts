@@ -205,7 +205,7 @@ describe("sendMlds", () => {
     expect(req?.input.templateId).toBe("tmpl_mlds");
     expect(req?.input.recipients.map((x) => x.role)).toEqual(["Borrower 1", "Borrower 2", "Broker"]);
     expect(req?.input.fields.broker_comp_lender).toBe("$42,500.00");
-    expect(gate.requests[0]).toMatchObject({ kind: "esign_send", templateId: "tmpl_mlds", idempotencyKey: expect.stringContaining(`esign_send:${r.id}:`) });
+    expect(gate.requests[0]).toMatchObject({ kind: "mlds_send", templateId: "tmpl_mlds", idempotencyKey: expect.stringContaining(`esign_send:${r.id}:`) });
     expect(crmWrites).toEqual([expect.objectContaining({ twentyOpportunityId: OPP, title: "MLDS (RE 882): sent" })]);
   });
 

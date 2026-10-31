@@ -1,7 +1,10 @@
 import "server-only";
+import { agentSafety } from "@/lib/agents/core/server";
 import { modelGateway } from "@/lib/ai/gateway";
 import { dealDeskRuntime, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { supabaseSpreadStore, type SpreadStore } from "@/lib/spreads/store";
+import { packageSpreadsFromSaved, type SavedPackageSpreads } from "@/lib/spreads/workflow";
 import type { OutreachDeps } from "./outreach";
 import type { ExecutiveSummarySpec } from "./package";
 import type { LenderMatchStore, PartnerSource, TermSheetMailSource } from "./store";
@@ -19,7 +22,19 @@ export type LenderRuntime = {
   partners: PartnerSource;
   mail: TermSheetMailSource;
   outreach: OutreachDeps;
+  /** Saved spreads (WS-L), the default source of the desk's metrics. */
+  spreads: SpreadStore;
 };
+
+/** The latest saved spread bundle for the deal (or its lead) as package metrics; null when none is saved. */
+export async function savedSpreadsFor(rt: Pick<LenderRuntime, "spreads">, deal: { id: string; leadId: string | null }): Promise<SavedPackageSpreads | null> {
+  try {
+    return (await packageSpreadsFromSaved(rt.spreads, { dealId: deal.id, leadId: null })) ?? (deal.leadId ? await packageSpreadsFromSaved(rt.spreads, { dealId: null, leadId: deal.leadId }) : null);
+  } catch (err) {
+    console.warn("[lenders] saved spreads unavailable", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
 
 export async function renderSummaryPdf(spec: ExecutiveSummarySpec): Promise<Uint8Array> {
   const { renderExecutiveSummaryPdf } = await import("./package-pdf");
@@ -49,7 +64,8 @@ export function lenderRuntime(): LenderRuntime | null {
     store: new SupabaseLenderMatchStore(db),
     partners: new SupabasePartnerSource(db),
     mail: new SupabaseTermSheetMailSource(db),
-    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now },
+    spreads: supabaseSpreadStore(db),
+    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, events: agentSafety().events },
   };
 }
 

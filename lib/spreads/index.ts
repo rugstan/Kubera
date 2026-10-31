@@ -15,3 +15,4 @@ export * from "./deal";
 export * from "./store";
 export * from "./jev";
 export * from "./service";
+export * from "./workflow";

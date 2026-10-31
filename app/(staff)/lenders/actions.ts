@@ -14,7 +14,7 @@ import { AllInError } from "@/lib/agents/lenders/all-in";
 import { CreditBoxError } from "@/lib/agents/lenders/credit-box";
 import { OutreachError, submitToLenders } from "@/lib/agents/lenders/outreach";
 import { PackageCopyError } from "@/lib/agents/lenders/package";
-import { indexRatesFromEnv, lenderRuntime, modelGateway, type LenderRuntime } from "@/lib/agents/lenders/runtime";
+import { indexRatesFromEnv, lenderRuntime, modelGateway, savedSpreadsFor, type LenderRuntime } from "@/lib/agents/lenders/runtime";
 import { LenderMatchError, addStaffQuote, dealProfile, importLenderRegistrations, ingestTermSheets, reviewCreditBox, reviewQuote, saveCreditBox, setQuoteStatus, verifyCreditBox } from "@/lib/agents/lenders/service";
 import { LenderStoreError } from "@/lib/agents/lenders/store";
 import { quoteStatuses, type CreditBoxStatus, type QuoteStatus } from "@/lib/agents/lenders/types";
@@ -22,7 +22,7 @@ import { currentStaff } from "@/lib/deals/runtime";
 import { StaffAccessError, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { PackageError } from "@/lib/deals/packages";
 import { MoneyError } from "@/lib/deals/money";
-import { FormInputError, boxTermsFromForm, lines, list, metricsFromSource, quoteTermsFromForm } from "./_lib/forms";
+import { FormInputError, boxTermsFromForm, lines, list, mergeSavedSpreads, metricsFromSource, quoteTermsFromForm } from "./_lib/forms";
 
 const KNOWN = [StaffAccessError, CreditBoxError, LenderMatchError, LenderStoreError, OutreachError, PackageCopyError, PackageError, AllInError, FormInputError, MoneyError];
 
@@ -134,6 +134,7 @@ export async function submitOutreachAction(f: FormData): Promise<never> {
     if (documentIds.length && !deal.leadId) throw new LenderMatchError("Link the deal to its lead so vault documents can be packaged");
     const items = documentIds.length && deal.leadId ? await rt.desk.vaultItems(deal.leadId, documentIds) : [];
     const metrics = metricsFromSource(f, deal.loanAmountCents);
+    const saved = await savedSpreadsFor(rt, deal);
     const includeSummary = str(f, "includeSummary") === "on";
     const asOf = rt.desk.now().toISOString().slice(0, 10);
     const r = await submitToLenders(rt.outreach, {
@@ -145,7 +146,7 @@ export async function submitOutreachAction(f: FormData): Promise<never> {
         ? {
             asOf,
             assetClass: metrics.overrides.assetClass ?? null,
-            spreads: metrics.spreads,
+            spreads: mergeSavedSpreads(metrics.spreads, saved),
             highlights: lines(f, "highlights"),
             risks: lines(f, "risks"),
             purpose: str(f, "purpose") || null,

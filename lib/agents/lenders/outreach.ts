@@ -10,10 +10,12 @@
 // broker sees in the approval summary.
 
 import { PackageError, outreachMessage, sendPackageToLender, type LenderMailer, type SendPackageResult } from "@/lib/deals/packages";
+import type { AgentEventStore } from "@/lib/agents/core/events";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage } from "@/lib/disclosures/store";
 import type { DealDeskStore } from "@/lib/deals/store";
 import type { PackageItem } from "@/lib/deals/types";
+import { logLenderMatch } from "./decision-log";
 import { matchLenders, type MatchResult } from "./matcher";
 import { buildExecutiveSummary, sha256Hex, summaryPackageItem, type ExecutiveSummaryInput, type ExecutiveSummarySpec } from "./package";
 import type { CreditBoxStore } from "./store";
@@ -28,6 +30,8 @@ export type OutreachDeps = {
   renderPdf: (spec: ExecutiveSummarySpec) => Promise<Uint8Array>;
   baseUrl: string;
   now: () => Date;
+  /** agent_events (AB): the ranking, knock-outs and overrides behind each submission are logged with reason codes. */
+  events?: AgentEventStore | null;
 };
 
 export type SubmitInput = {
@@ -113,5 +117,15 @@ export async function submitToLenders(deps: OutreachDeps, input: SubmitInput): P
       else throw err;
     }
   }
+  const submitted = outcomes.filter((o) => o.ok);
+  const overridden = submitted.filter((o) => o.ok && !o.matched).map((o) => o.lenderId);
+  await logLenderMatch(deps.events, {
+    dealId: deal.id,
+    match,
+    now,
+    context: "submission",
+    submittedLenderIds: submitted.map((o) => o.lenderId),
+    override: overridden.length && override ? { lenderIds: overridden, reason: override } : null,
+  });
   return { outcomes, summaryItem, match };
 }

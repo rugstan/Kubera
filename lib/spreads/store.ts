@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LenderProfileId } from "./assumptions";
 import type { SpreadBundle } from "./deal";
 
-export const SPREAD_KINDS = ["operating_statement", "quotes", "global_cash_flow", "hotel_str", "senior_census", "rent_roll", "construction_budget", "deal_summary"] as const;
+export const SPREAD_KINDS = ["operating_statement", "quotes", "global_cash_flow", "hotel_str", "senior_census", "rent_roll", "construction_budget", "deal_summary", "jev_resize"] as const;
 export type SpreadKind = (typeof SPREAD_KINDS)[number];
 
 export type SpreadSubject = { dealId: string | null; leadId: string | null };

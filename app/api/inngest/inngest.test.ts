@@ -34,6 +34,7 @@ describe("/api/inngest", () => {
       "mail-poll",
       "inbound-mail",
       "document-extract",
+      "spreads-recalculate",
       "crm-mail-routed",
       "lender-term-sheets",
       "speed-to-lead",

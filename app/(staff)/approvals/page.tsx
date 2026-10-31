@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { z } from "zod";
+import { requiresReauthentication } from "@/lib/agents/core/reauth";
 import { requireStaff } from "@/lib/auth/dal";
 import { californiaDate, can, licenseStatus } from "@/lib/auth/policy";
 import { getApprovalService } from "@/lib/approvals/server";
@@ -154,7 +155,9 @@ function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject 
         <summary className="cursor-pointer text-[14px] font-medium text-accent">What will be sent</summary>
         <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-canvas p-3 text-[13px] leading-relaxed text-ink">{payload}</pre>
       </details>
-      {pending ? <DecisionForm id={r.id} summary={r.summary} canApprove={canApprove} approveBlockedReason={blocked} canReject={canReject} /> : null}
+      {pending ? (
+        <DecisionForm id={r.id} summary={r.summary} canApprove={canApprove} approveBlockedReason={blocked} canReject={canReject} stepUp={requiresReauthentication(r)} />
+      ) : null}
     </article>
   );
 }

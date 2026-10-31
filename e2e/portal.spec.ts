@@ -53,7 +53,11 @@ test.describe("borrower portal", () => {
     await expectAccessible(page);
     await button.click();
     await expect(page).toHaveURL(/\/portal\?state=unavailable$/);
-    await expect(page.getByText(/The portal is not available right now/)).toBeVisible();
+    // During the server-action redirect a transient copy of the page can briefly
+    // coexist with the settled one; assert on the settled main content, once.
+    const alert = page.locator("#main-content").getByRole("alert").filter({ hasText: "The portal is not available right now" });
+    await expect(alert).toHaveCount(1);
+    await expect(alert).toBeVisible();
   });
 
   test("the profile page asks for a new link without a session", async ({ page }) => {

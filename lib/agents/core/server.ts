@@ -1,10 +1,10 @@
 import "server-only";
-import { getApprovalService } from "@/lib/approvals/server";
+import { getApprovalService, reauthStore } from "@/lib/approvals/server";
 import { resolveAuthMode } from "@/lib/auth/config";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { AutonomyPolicy, MemoryAutonomyStore, supabaseAutonomyStore } from "./autonomy";
 import { MemoryAgentEventStore, supabaseAgentEventStore, type AgentEventStore } from "./events";
-import { MemoryReauthStore, ReauthService, supabaseReauthStore } from "./reauth";
+import { ReauthService } from "./reauth";
 import { ToolRunner, type Tool } from "./tools";
 
 // Server wiring for the agent safety platform. Supabase (service role) when
@@ -21,11 +21,11 @@ export type AgentSafety = {
 };
 
 const MEMORY_KEY = Symbol.for("kubera.agents.core.memory");
-type MemoryBundle = { events: MemoryAgentEventStore; autonomy: MemoryAutonomyStore; reauth: MemoryReauthStore };
+type MemoryBundle = { events: MemoryAgentEventStore; autonomy: MemoryAutonomyStore };
 
 function memory(): MemoryBundle {
   const g = globalThis as unknown as Record<symbol, MemoryBundle | undefined>;
-  g[MEMORY_KEY] ??= { events: new MemoryAgentEventStore(), autonomy: new MemoryAutonomyStore(), reauth: new MemoryReauthStore() };
+  g[MEMORY_KEY] ??= { events: new MemoryAgentEventStore(), autonomy: new MemoryAutonomyStore() };
   return g[MEMORY_KEY]!;
 }
 
@@ -43,16 +43,15 @@ export function agentSafety(): AgentSafety {
   const fake = resolveAuthMode().mode === "fake";
   let events: AgentEventStore | null;
   let autonomy: AutonomyPolicy;
-  let reauth: ReauthService;
+  // The same proof store the approval queue checks (lib/approvals/server.ts).
+  const reauth = new ReauthService(reauthStore());
   if (db && !fake) {
     events = supabaseAgentEventStore(db);
     autonomy = new AutonomyPolicy(supabaseAutonomyStore(db));
-    reauth = new ReauthService(supabaseReauthStore(db));
   } else if (fake) {
     const m = memory();
     events = m.events;
     autonomy = new AutonomyPolicy(m.autonomy);
-    reauth = new ReauthService(m.reauth);
   } else {
     if (!warned) {
       warned = true;
@@ -61,7 +60,6 @@ export function agentSafety(): AgentSafety {
     const m = memory();
     events = null;
     autonomy = new AutonomyPolicy(m.autonomy);
-    reauth = new ReauthService(m.reauth);
   }
   return {
     events,

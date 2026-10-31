@@ -28,7 +28,7 @@ export function Stat({ label, value, hint }: { label: string; value: string; hin
 export function Panel({ title, description, children, action }: { title: string; description?: string; children: React.ReactNode; action?: React.ReactNode }) {
   const id = `panel-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
   return (
-    <section aria-labelledby={id} className="bento p-5 sm:p-6">
+    <section aria-labelledby={id} className="bento min-w-0 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id={id} className="text-[18px] font-semibold tracking-tight text-ink">

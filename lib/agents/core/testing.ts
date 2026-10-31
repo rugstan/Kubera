@@ -121,12 +121,13 @@ export function createHarness(opts: { tools?: (sent: Sent[]) => Tool[]; failSend
   const clock = new Clock();
   const sent: Sent[] = [];
   const approvalStore = new MemoryApprovalStore();
-  const approvals = new ApprovalService(approvalStore, clock.now);
   const events = new MemoryAgentEventStore(clock.now);
   const autonomyStore = new MemoryAutonomyStore();
   const autonomy = new AutonomyPolicy(autonomyStore, TEST_TASKS, clock.now);
   const reauthStore = new MemoryReauthStore();
   const reauth = new ReauthService(reauthStore, clock.now);
+  // The queue checks the same proofs: sensitive approvals need a step-up first.
+  const approvals = new ApprovalService(approvalStore, clock.now, {}, reauthStore);
   const tools = opts.tools ? opts.tools(sent) : sampleTools(sent, opts);
   const runner = new ToolRunner({ tools, events, approvals, autonomy, reauth, now: clock.now });
   return {

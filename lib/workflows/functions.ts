@@ -26,6 +26,8 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
   } catch (err) {
     if (err instanceof ZodError) throw new NonRetriableError(`Invalid event payload: ${err.issues.map((i) => i.path.join(".")).join(", ")}`);
     if (err instanceof EffectOutcomeUnknownError) throw new NonRetriableError(err.message);
+    // Restricted data that cannot be stored encrypted: retrying cannot help until the key is configured.
+    if (err instanceof Error && err.name === "RestrictedExtractionError") throw new NonRetriableError(err.message);
     throw err;
   }
 }
@@ -101,6 +103,25 @@ function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () 
       }),
   );
 
+  // Extraction results feed spreads and Jev re-sizing (and, through the saved
+  // spreads, the lenders desk and the executive summary).
+  const spreadsRecalc = client.createFunction(
+    {
+      id: "spreads-recalculate",
+      name: "Recalculate spreads and re-size with Jev",
+      triggers: [{ event: EVENTS.documentExtracted }],
+      idempotency: "event.data.extractionId + ':' + event.data.status",
+      // One recalculation per deal at a time, so versions stay in order.
+      concurrency: { limit: 1, key: "event.data.dealId" },
+      retries: 3,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return c.step.run("recalculate-spreads", () => getAgents().documentExtracted(c.data));
+      }),
+  );
+
   const crmMailRouted = client.createFunction(
     {
       id: "crm-mail-routed",
@@ -166,5 +187,5 @@ function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () 
       }),
   );
 
-  return [documentClean, crmMailRouted, termSheets, speedToLead, outreachSweep];
+  return [documentClean, spreadsRecalc, crmMailRouted, termSheets, speedToLead, outreachSweep];
 }

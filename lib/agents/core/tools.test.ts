@@ -161,21 +161,33 @@ describe("re-authentication for sensitive actions", () => {
   const submission = { tool: "lenders.submit_package", input: { dealId: DEAL, lenderId: "pacific-life", packageVersion: 3, to: "j.chen@pacificlifeco.test" } };
   const ctx = { task: "lenders.submission", agent: "lenders.matching", trustedRecipients: ["j.chen@pacificlifeco.test"] };
 
-  it("blocks an approved lender submission until the approving broker re-authenticates", async () => {
+  it("blocks a lender submission until the approving broker re-authenticates", async () => {
     const h = createHarness();
     const id = pendingId((await h.runner.invoke(h.ctx(ctx), submission)) as { status: string; approvalId: string });
-    await h.approvals.approve(id, BROKER);
-    expect(await h.runner.invoke(h.ctx(ctx), submission)).toMatchObject({ status: "blocked", reasons: [TOOL_REASONS.reauthRequired] });
+    // The queue refuses the approval itself without a step-up proof.
+    expect(await h.approvals.approve(id, BROKER)).toMatchObject({ ok: false, reason: "reauth_required" });
+    expect(await h.runner.invoke(h.ctx(ctx), submission)).toMatchObject({ status: "pending_approval" });
     expect(h.sent).toHaveLength(0);
 
     const record = (await h.approvals.get(id))!;
-    // Someone else's second factor does not count.
-    await expect(h.reauth.record({ approval: record, user: { userId: OTHER_BROKER.userId, dreLicense: OTHER_BROKER.dreLicense }, factor: { method: "totp", verifiedAt: h.clock.now() } })).rejects.toThrow(/approving broker/);
     await h.reauth.record({ approval: record, user: { userId: BROKER.userId, dreLicense: BROKER.dreLicense }, factor: { method: "totp", verifiedAt: h.clock.now() } });
+    // Someone else's second factor does not count for this broker's decision.
+    await expect(h.approvals.approve(id, OTHER_BROKER)).resolves.toMatchObject({ ok: false, reason: "reauth_required" });
+    expect(await h.approvals.approve(id, BROKER)).toMatchObject({ ok: true });
+    await expect(h.reauth.record({ approval: (await h.approvals.get(id))!, user: { userId: OTHER_BROKER.userId, dreLicense: OTHER_BROKER.dreLicense }, factor: { method: "totp", verifiedAt: h.clock.now() } })).rejects.toThrow(/approving broker/);
     expect(await h.runner.invoke(h.ctx(ctx), submission)).toMatchObject({ status: "executed" });
     expect(h.sent).toHaveLength(1);
     const executed = (await h.events.list({ eventType: "tool.executed" }))[0]!;
     expect(executed.reasonCodes).toContain(TOOL_REASONS.reauthVerified);
+  });
+
+  it("an approved sensitive record without a proof is blocked by the runner", async () => {
+    const h = createHarness();
+    const id = pendingId((await h.runner.invoke(h.ctx(ctx), submission)) as { status: string; approvalId: string });
+    // Approved behind the service's back (e.g. a direct store write).
+    await h.approvalStore.decide(id, { status: "approved", decidedBy: BROKER.userId, decidedByLabel: "Broker", decidedByDre: BROKER.dreLicense, decisionReason: null }, h.clock.now());
+    expect(await h.runner.invoke(h.ctx(ctx), submission)).toMatchObject({ status: "blocked", reasons: [TOOL_REASONS.reauthRequired] });
+    expect(h.sent).toHaveLength(0);
   });
 
   it("sensitive tasks are capped at assist even when set higher in the store", async () => {
@@ -190,8 +202,8 @@ describe("re-authentication for sensitive actions", () => {
     const call = { tool: "disclosures.send_mlds", input: { dealId: DEAL, documentType: "MLDS_RE882", signerEmail: "pat.lee@example.com" } };
     const c = h.ctx({ task: "disclosures.mlds_send", trustedRecipients: ["pat.lee@example.com"] });
     const id = pendingId((await h.runner.invoke(c, call)) as { status: string; approvalId: string });
-    await h.approvals.approve(id, BROKER);
-    expect(await h.runner.invoke(c, call)).toMatchObject({ status: "blocked", reasons: [TOOL_REASONS.reauthRequired] });
+    expect(await h.approvals.approve(id, BROKER)).toMatchObject({ ok: false, reason: "reauth_required" });
+    expect(await h.runner.invoke(c, call)).toMatchObject({ status: "pending_approval" });
   });
 
   it("a stale second factor does not count", async () => {
@@ -200,8 +212,8 @@ describe("re-authentication for sensitive actions", () => {
     const pending = (await h.approvals.get(id))!;
     await h.reauth.record({ approval: pending, user: { userId: BROKER.userId, dreLicense: BROKER.dreLicense }, factor: { method: "totp", verifiedAt: h.clock.now() } });
     h.clock.advance(30);
-    await h.approvals.approve(id, BROKER);
-    expect(await h.runner.invoke(h.ctx(ctx), submission)).toMatchObject({ status: "blocked", reasons: [TOOL_REASONS.reauthRequired] });
+    expect(await h.approvals.approve(id, BROKER)).toMatchObject({ ok: false, reason: "reauth_required" });
+    expect(await h.runner.invoke(h.ctx(ctx), submission)).toMatchObject({ status: "pending_approval" });
   });
 });
 

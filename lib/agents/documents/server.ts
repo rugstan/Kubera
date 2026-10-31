@@ -3,13 +3,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { modelGateway } from "@/lib/ai/gateway";
 import { supabaseVaultStorage } from "@/lib/documents/storage";
 import { supabaseDocumentStore, supabaseEventLog } from "@/lib/documents/store";
+import { resolveAuthMode } from "@/lib/auth/config";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { supabaseAgentRunStore } from "@/lib/workflows/runs";
 import { AnthropicDocumentClient } from "./claude-pdf";
 import { nemoFromEnv } from "./nemo";
 import { extractionConfigFromEnv, type ExtractionDeps } from "./pipeline";
 import type { ReviewDeps } from "./review";
-import { supabaseConstructionBudgetStore, supabaseExtractionEventLog, supabaseExtractionStore } from "./store";
+import { seedDemoExtractions } from "./demo";
+import { MemoryConstructionBudgetStore, MemoryExtractionEventLog, MemoryExtractionStore, supabaseConstructionBudgetStore, supabaseExtractionEventLog, supabaseExtractionStore } from "./store";
 
 // Server wiring for the document agent. Missing Supabase config yields null
 // (callers degrade); missing model keys leave the agent rules-only, and every
@@ -64,7 +66,26 @@ export function documentAgentDeps(): ExtractionDeps | null {
   };
 }
 
-export function documentReviewDeps(): ReviewDeps | null {
+const DEMO_KEY = Symbol.for("kubera.documents.review.demo");
+type DemoReview = { deps: ReviewDeps; ready: Promise<void> };
+
+/** In-memory review queue for fake-auth mode (demo / e2e), seeded once per process. */
+function demoReviewDeps(): DemoReview {
+  const g = globalThis as unknown as Record<symbol, DemoReview | undefined>;
+  if (!g[DEMO_KEY]) {
+    const store = new MemoryExtractionStore();
+    g[DEMO_KEY] = { deps: { store, events: new MemoryExtractionEventLog(), budgets: new MemoryConstructionBudgetStore() }, ready: seedDemoExtractions(store) };
+  }
+  return g[DEMO_KEY]!;
+}
+
+/** The extraction review queue: Supabase when configured, the demo queue in fake-auth mode, else null. */
+export async function documentReviewDeps(): Promise<ReviewDeps | null> {
+  if (override === undefined && resolveAuthMode().mode === "fake") {
+    const demo = demoReviewDeps();
+    await demo.ready;
+    return demo.deps;
+  }
   const deps = documentAgentDeps();
   return deps ? { store: deps.store, events: deps.events, ...(deps.budgets ? { budgets: deps.budgets } : {}) } : null;
 }

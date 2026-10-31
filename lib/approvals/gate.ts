@@ -32,6 +32,9 @@ export function queueApprovalGate(service: ApprovalService, opts: { ttlMinutes?:
     async request(action: OutboundAction): Promise<ApprovalDecision> {
       const record = await lookup(action);
       if (record.status !== "approved") return notApproved(record);
+      // A sensitive send (MLDS, Form 159, lender submission, fee quote) needs the
+      // approving broker's step-up proof; without it nothing is claimed or sent.
+      if (!(await service.reauthCheck(record)).ok) return { status: "pending", approvalId: record.id, reason: "reauth_required" };
       const claimed = await service.claimExecution(record.id);
       if (!claimed) return { status: "rejected", approvalId: record.id, decidedBy: "system", reason: "already_executed" };
       return approved(record);
@@ -39,6 +42,7 @@ export function queueApprovalGate(service: ApprovalService, opts: { ttlMinutes?:
     async peek(action: OutboundAction): Promise<ApprovalDecision> {
       const record = await lookup(action);
       if (record.status !== "approved") return notApproved(record);
+      if (!(await service.reauthCheck(record)).ok) return { status: "pending", approvalId: record.id, reason: "reauth_required" };
       return { ...approved(record), ...(record.executedAt ? { executedAt: new Date(record.executedAt) } : {}) };
     },
   };

@@ -8,6 +8,7 @@ import { createWorkflowFunctions, isDealTermSheet } from "./functions";
 const deps = () => ({}) as WorkflowDeps;
 const hooks = (): AgentWorkflowHooks => ({
   documentClean: async () => null,
+  documentExtracted: async () => ({}),
   crmMailRouted: async () => ({}),
   termSheets: async () => ({}),
   speedToLead: async () => ({}),
@@ -24,8 +25,10 @@ describe("workflow functions", () => {
   it("binds the Phase 3 agents to their events", () => {
     const fns = createWorkflowFunctions(deps, hooks) as unknown as Fn[];
     const byId = new Map(fns.map((f) => [f.id(), f.opts]));
-    expect([...byId.keys()]).toEqual(["outbound-action", "mail-poll", "inbound-mail", "document-extract", "crm-mail-routed", "lender-term-sheets", "speed-to-lead", "outreach-sweep"]);
+    expect([...byId.keys()]).toEqual(["outbound-action", "mail-poll", "inbound-mail", "document-extract", "spreads-recalculate", "crm-mail-routed", "lender-term-sheets", "speed-to-lead", "outreach-sweep"]);
     expect(byId.get("document-extract")).toMatchObject({ triggers: [{ event: EVENTS.documentClean }], idempotency: "event.data.documentId" });
+    // Extraction results are consumed: spreads and Jev re-sizing subscribe to document.extracted.
+    expect(byId.get("spreads-recalculate")).toMatchObject({ triggers: [{ event: EVENTS.documentExtracted }] });
     expect(byId.get("crm-mail-routed")?.triggers?.[0]?.event).toBe(EVENTS.mailRouted);
     expect(byId.get("lender-term-sheets")?.triggers?.[0]).toMatchObject({ event: EVENTS.mailRouted, if: expect.stringContaining("term_sheet") });
     expect(byId.get("speed-to-lead")?.triggers?.[0]?.event).toBe("kubera/lead.scored");

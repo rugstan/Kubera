@@ -4,7 +4,12 @@
 // WS-I; until then the default gate is closed: requests are recorded as
 // pending and nothing is sent. A timed-out approval expires and never sends.
 
-export type OutboundActionKind = "esign_send" | "crm_update" | "lender_notice" | "email";
+/**
+ * lender_submission, mlds_send, form159_send and fee_quote are sensitive: the
+ * approving broker must re-authenticate (lib/agents/core/reauth.ts) before
+ * they are approved or sent.
+ */
+export type OutboundActionKind = "esign_send" | "crm_update" | "lender_notice" | "email" | "lender_submission" | "mlds_send" | "form159_send" | "fee_quote";
 
 export type OutboundAction = {
   kind: OutboundActionKind;
@@ -21,7 +26,8 @@ export type OutboundAction = {
 export type ApprovalDecision =
   /** From peek(): `executedAt` is set when the approved action was already carried out (claimed). */
   | { status: "approved"; approvalId: string; decidedBy: string; decidedAt: Date; executedAt?: Date }
-  | { status: "pending"; approvalId?: string }
+  /** `reauth_required`: approved, but the approving broker's step-up proof is missing or stale, so nothing may be sent. */
+  | { status: "pending"; approvalId?: string; reason?: "reauth_required" }
   | { status: "rejected"; approvalId: string; decidedBy: string; reason?: string }
   | { status: "expired"; approvalId: string };
 

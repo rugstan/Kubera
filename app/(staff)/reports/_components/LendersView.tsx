@@ -5,8 +5,8 @@ import { CsvLink, DataTable, Panel, Pill, Stat, days, pct } from "./ui";
 export function LendersView({ r }: { r: ReportBundle }) {
   const { rows, totals } = r.lenders;
   return (
-    <div className="grid gap-5">
-      <section aria-label="Lender summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+      <section aria-label="Lender summary" className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Packages sent" value={String(totals.sent)} hint={`${totals.requested} requested, ${totals.stoppedAtGate} stopped at the approval gate`} />
         <Stat label="Term sheets" value={String(totals.termSheets)} hint={`${totals.declined} declined, ${totals.awaiting} waiting`} />
         <Stat label="Hit rate" value={pct(totals.hitRatePct)} hint="Term sheets as a share of packages sent" />

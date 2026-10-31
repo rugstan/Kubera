@@ -29,7 +29,7 @@ import type { NemoRetrieverClient } from "./nemo";
 import { parseDocument, UnsupportedDocumentError } from "./parse";
 import { extractWithRules } from "./rules";
 import { DOC_TYPE_BY_VAULT_KIND, PROMPT_VERSION, specFor } from "./specs";
-import type { ConstructionBudgetRecord, ConstructionBudgetStore, ExtractionEventLog, ExtractionRecord, ExtractionStore, NewExtraction } from "./store";
+import { isRestrictedExtraction, RestrictedExtractionError, type ConstructionBudgetRecord, type ConstructionBudgetStore, type ExtractionEventLog, type ExtractionRecord, type ExtractionStore, type NewExtraction } from "./store";
 import { extractFromText, TextTooLongError } from "./text-model";
 import { systemClock, type Clock, type DocType, type ExtractionResult, type ParsedSource, type SourceFormat } from "./types";
 import { assessExtraction, validateExtraction, type Assessment } from "./validate";
@@ -312,6 +312,12 @@ export async function extractDocument(deps: ExtractionDeps, input: ExtractionInp
   const merged = model?.result ? (rulesHadFields ? mergeExtractions(rules, model.result) : model.result) : rules;
   const result = validateExtraction({ ...merged, warnings: [...new Set([...merged.warnings, ...warnings])] });
   const assessment = assessExtraction(result);
+
+  // A restricted extraction (PFS, or an inferred type) is only stored sealed; without
+  // the encryption key it is refused before anything (the previous run included) changes.
+  if (isRestrictedExtraction({ doc_type: docType, warnings: result.warnings }) && deps.store.acceptsRestricted && !deps.store.acceptsRestricted()) {
+    throw new RestrictedExtractionError("PII_ENCRYPTION_KEY is not configured; refusing to store a personal financial statement extraction unencrypted");
+  }
 
   // 5. Store: supersede the previous live run first (one live extraction per document and type).
   const previous =

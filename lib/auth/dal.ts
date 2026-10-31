@@ -179,3 +179,51 @@ export async function requestFingerprint(): Promise<{ ipHash?: string; userAgent
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
   return { ipHash: ip ? hashIp(ip) : undefined, userAgent: h.get("user-agent")?.slice(0, 512) || undefined };
 }
+
+// --- Step-up (sensitive approvals) ------------------------------------------------
+
+/** Claims of a JWT access token, or null (fake-provider tokens are opaque). Only call on a token the provider already validated. */
+function jwtClaims(token: string): Record<string, unknown> | null {
+  const part = token.split(".")[1];
+  if (!part) return null;
+  try {
+    const claims = JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as unknown;
+    return claims && typeof claims === "object" && !Array.isArray(claims) ? (claims as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Claims of the signed-in session's access token (validated with the identity
+ * provider by loadWith), e.g. to read the `amr` second-factor time. Null when
+ * signed out or the token is not a JWT.
+ */
+export async function currentAccessTokenClaims(): Promise<Record<string, unknown> | null> {
+  const auth = await sessionForMutation();
+  return auth.ok ? jwtClaims(auth.stored.accessToken) : null;
+}
+
+export type StepUpTotp = { ok: true; verifiedAt: Date; sessionRef: string | null } | { ok: false; reason: "signed_out" | "no_factor" | "invalid_code" };
+
+/**
+ * Re-verifies the signed-in user's authenticator (TOTP) right now, for a step-up
+ * on a sensitive approval. The provider issues a fresh session on success; it
+ * replaces the cookie so the request keeps working.
+ */
+export async function verifyStepUpTotp(code: string): Promise<StepUpTotp> {
+  const auth = await sessionForMutation();
+  if (!auth.ok) return { ok: false, reason: "signed_out" };
+  const factors = await auth.services.provider.listTotpFactors(auth.stored);
+  const factor = factors.find((f) => f.status === "verified");
+  if (!factor) return { ok: false, reason: "no_factor" };
+  let upgraded: AuthSession;
+  try {
+    upgraded = await auth.services.provider.verifyTotp(auth.stored, factor.id, code);
+  } catch {
+    return { ok: false, reason: "invalid_code" };
+  }
+  await writeSessionCookie(toStored(upgraded, auth.stored.issuedAt));
+  const sid = jwtClaims(upgraded.accessToken)?.session_id;
+  return { ok: true, verifiedAt: new Date(), sessionRef: typeof sid === "string" ? sid.slice(0, 200) : null };
+}

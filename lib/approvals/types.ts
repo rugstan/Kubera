@@ -23,6 +23,8 @@ export const APPROVAL_KIND_LABELS: Record<string, string> = {
   lender_notice: "Lender notice",
   lender_submission: "Lender submission",
   fee_quote: "Fee quote",
+  mlds_send: "MLDS (RE 882) e-sign send",
+  form159_send: "SBA Form 159 e-sign send",
   third_party_write: "Third-party write",
 };
 

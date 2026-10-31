@@ -153,7 +153,9 @@ async function decideOutreach(
   let decision: ApprovalDecision;
   try {
     decision = await deps.gate.request({
-      kind: "lender_notice",
+      // Sensitive: the approving broker re-authenticates (lib/agents/core/reauth.ts),
+      // and the gate refuses to hand out "approved" without that proof.
+      kind: "lender_submission",
       idempotencyKey: approvalKey,
       // The staff note is shown to the approving broker but is not part of the
       // hashed payload, so re-checking (or re-sending with another note) never conflicts.

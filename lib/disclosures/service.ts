@@ -233,7 +233,8 @@ export async function sendMlds(deps: SendDeps, id: string, actor: string): Promi
     { role: "Broker", name: deps.brokerSigner.name, email: deps.brokerSigner.email, embedded: false, verifyByEmail: true },
   ];
   const decision = await deps.gate.request({
-    kind: "esign_send",
+    // Sensitive: needs the approving broker's step-up re-authentication.
+    kind: "mlds_send",
     idempotencyKey: `esign_send:${record.id}:${record.documentSha256}:${attempt}`,
     summary: `Send MLDS (RE 882) for ${mlds.data.property.address} to ${mlds.data.borrowers.map((b) => b.name).join(", ")}`,
     templateId: deps.templateId,

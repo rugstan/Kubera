@@ -7,12 +7,12 @@ export function FeesView({ r }: { r: ReportBundle }) {
   const maxMonth = Math.max(1, ...booked.byMonth.map((m) => m.grossCents));
   const recon = r.reconciliation;
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <p className="max-w-3xl text-[14px] text-titanium">
         Kubera&apos;s own compensation as recorded in the fee ledger, paid by the borrower or the lender on the closing statement. Kubera never holds or
         moves loan funds. Void entries are never counted.
       </p>
-      <section aria-label="Fee summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Fee summary" className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label={`Booked income, ${r.window.label.toLowerCase()}`} value={usd(booked.total.grossCents)} hint={`${booked.entries} ledger ${booked.entries === 1 ? "entry" : "entries"}`} />
         <Stat label="Partner shares" value={usd(booked.total.partnerSharesCents)} hint="Co-broker and referral splits Kubera owes" />
         <Stat label="Booked net" value={usd(booked.total.netCents)} hint={`${usd(booked.incomeByStatus.settled)} settled`} />

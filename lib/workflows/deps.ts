@@ -35,6 +35,8 @@ export type WorkflowDeps = {
 export type AgentWorkflowHooks = {
   /** kubera/document.clean: extract the document; returns the follow-up event, or null when skipped or the agent is off. */
   documentClean(data: unknown): Promise<{ name: string; data: Record<string, unknown> } | null>;
+  /** kubera/document.extracted: recalculate the deal's spreads and re-size the lead with Jev (internal analysis; sends nothing). */
+  documentExtracted(data: unknown): Promise<Record<string, unknown>>;
   /** kubera/mail.routed: the CRM agent's note/task for the message (approval-gated writes). */
   crmMailRouted(data: unknown): Promise<Record<string, unknown>>;
   /** kubera/mail.routed for a term sheet tied to a deal: parse lenders@ term sheets into quotes. */

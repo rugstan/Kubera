@@ -132,6 +132,12 @@ export const LENDER_MATCH_REASONS = [
   "lender_match.prior_quote_on_deal",
   "lender_match.declined_before",
   "lender_match.static_routing_fallback",
+  "lender_match.lien_position_mismatch",
+  "lender_match.lender_missing",
+  "lender_match.lender_inactive",
+  "lender_match.panel_program_mismatch",
+  "lender_match.not_on_panel",
+  "lender_match.manual_override",
 ] as const;
 export type LenderMatchReason = (typeof LENDER_MATCH_REASONS)[number];
 
@@ -153,6 +159,17 @@ export type LenderMatchDecisionInput = {
   agentVersion?: string | null;
   programId: string;
   candidates: readonly LenderCandidate[];
+  /** Where the ranking was computed: shown to staff on the lenders desk, or used for a submission. */
+  context?: "view" | "submission";
+  /** Lenders a submission went to (ids), when context is "submission". */
+  submittedLenderIds?: readonly string[];
+  /**
+   * Lenders submitted although the matcher did not rank them, with the
+   * broker's written reason (staff justification, clipped; never borrower data).
+   */
+  override?: { lenderIds: readonly string[]; reason: string } | null;
+  /** Digest of the ranking, so an unchanged ranking is not logged twice. */
+  digest?: string | null;
 };
 
 /**
@@ -172,6 +189,8 @@ export async function recordLenderMatchDecision(events: AgentEventStore, input: 
   const codes = [`lender_match.program.${codeSegment(input.programId)}`, ...seen];
   if (!ranked.some((c) => c.eligible)) codes.push("lender_match.no_eligible_lender");
   if (ranked.some((c) => c.source === "static_routing")) codes.push("lender_match.static_routing_fallback");
+  const override = input.override && input.override.lenderIds.length ? input.override : null;
+  if (override) codes.push("lender_match.manual_override");
   return events.append({
     eventType: "decision.lender_match",
     agent: LENDER_MATCH_AGENT,
@@ -186,6 +205,10 @@ export async function recordLenderMatchDecision(events: AgentEventStore, input: 
       programId: input.programId,
       candidates: ranked.slice(0, 25).map((c) => ({ lenderId: c.lenderId.slice(0, 120), rank: c.rank, score: Math.round(c.score * 1000) / 1000, eligible: c.eligible, source: c.source, reasons: [...c.reasons] })),
       candidateCount: ranked.length,
+      context: input.context ?? "view",
+      ...(input.submittedLenderIds ? { submittedLenderIds: input.submittedLenderIds.slice(0, 25).map((id) => id.slice(0, 120)) } : {}),
+      ...(override ? { override: { lenderIds: override.lenderIds.slice(0, 25).map((id) => id.slice(0, 120)), reason: override.reason.trim().slice(0, 300) } } : {}),
+      ...(input.digest ? { digest: input.digest } : {}),
     },
     chain: `decisions:${LENDER_MATCH_AGENT}`,
   });
