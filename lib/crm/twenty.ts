@@ -56,16 +56,50 @@ async function findPersonByEmail(email: string): Promise<string | null> {
   return Array.isArray(list) ? ((list[0]?.id as string | undefined) ?? null) : null;
 }
 
+/**
+ * Contact consent is optional (see `contactSchema`). Without it the borrower or
+ * partner agreed to email replies about their request only: no phone call, text
+ * or automated outreach. Brokers and the outreach agents work from Twenty, so
+ * the person record carries that decision in `smsOptOut` (the field the SMS
+ * STOP handler also writes) and never gets a phone number to dial.
+ */
+export function hasContactConsent(contact: Pick<Contact, "consent">): boolean {
+  return contact.consent === true;
+}
+
 async function upsertPerson(contact: Contact, companyId?: string): Promise<string> {
+  const consent = hasContactConsent(contact);
   const existing = await findPersonByEmail(contact.email).catch(() => null);
-  if (existing) return existing;
+  if (existing) {
+    // A later submission without consent narrows an existing record to email
+    // only. A submission with consent never clears an earlier opt-out (for
+    // example a STOP reply); that is the consent ledger's job.
+    if (!consent) await call("PATCH", `people/${encodeURIComponent(existing)}`, { smsOptOut: true });
+    return existing;
+  }
   return create("people", {
     name: { firstName: contact.firstName, lastName: contact.lastName },
     emails: { primaryEmail: contact.email },
-    ...(contact.phone ? { phones: { primaryPhoneNumber: contact.phone } } : {}),
+    ...(consent && contact.phone ? { phones: { primaryPhoneNumber: contact.phone } } : {}),
     ...(companyId ? { companyId } : {}),
+    smsOptOut: !consent,
     leadStatus: "NEW",
   });
+}
+
+function consentLine(contact: Contact, consentEventId?: string | null): string {
+  if (!hasContactConsent(contact)) return "Contact consent: none (email only). Do not call, text or autodial; phone withheld from CRM.";
+  return `Contact consent: phone, text and automated contact on file${consentEventId ? ` (consent event ${consentEventId})` : ""}.`;
+}
+
+/** The broker's next step, never a phone call without consent. */
+export function leadNextStep(contact: Contact, requiresImmediateBrokerCall: boolean): string {
+  if (!hasContactConsent(contact)) {
+    return requiresImmediateBrokerCall
+      ? "Email borrower today — Jev flagged priority; no phone/SMS consent on file"
+      : "Email borrower — no phone/SMS consent on file; request T-12, rent roll / census, and PFS";
+  }
+  return requiresImmediateBrokerCall ? "Call borrower today — Jev flagged immediate broker call" : "Request T-12, rent roll / census, and PFS";
 }
 
 /**
@@ -87,6 +121,8 @@ export type PushOptions = {
   progress?: CrmProgress | null;
   /** Called after each step that created a record, with the checkpoint so far. */
   onProgress?: (progress: CrmProgress) => Promise<void> | void;
+  /** consent_events row id when the contact ticked the consent box, noted on the CRM record. */
+  consentEventId?: string | null;
 };
 
 /** Accepts only string ids from a stored (untyped) checkpoint. */
@@ -149,13 +185,14 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult,
     stage: "QUALIFICATION",
     probability: PROBABILITY[d.leadUrgencyTier],
     dealType: "NEW_BUSINESS",
-    nextStep: d.requiresImmediateBrokerCall ? "Call borrower today — Jev flagged immediate broker call" : "Request T-12, rent roll / census, and PFS",
+    nextStep: leadNextStep(contact, d.requiresImmediateBrokerCall),
     closeDate: new Date(Date.now() + Math.max(intake.timelineDays, 30) * 86_400_000).toISOString(),
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
   }));
 
   const md = [
+    `## Contact\n- ${consentLine(contact, opts?.consentEventId)}`,
     `## Jev decision (${jev.engine}, ${jev.latencyMs}ms)`,
     "```json",
     JSON.stringify(d, null, 2),
@@ -183,7 +220,7 @@ export async function pushPartner(reg: PartnerRegistration, opts?: PushOptions):
   await attachNote(
     cp,
     `Partner registration — ${humanize(reg.partnerType)}`,
-    ["## Partner profile", "```json", JSON.stringify(profile, null, 2), "```"].join("\n"),
+    ["## Contact", `- ${consentLine(reg.contact, opts?.consentEventId)}`, "## Partner profile", "```json", JSON.stringify(profile, null, 2), "```"].join("\n"),
     { targetCompanyId: companyId },
   );
   return { personId, companyId };

@@ -105,12 +105,16 @@ class FakeStore implements RetryStore {
 function fakeTwenty() {
   const creates: Record<string, number> = {};
   const failures: Record<string, number> = {};
+  const bodies: { method: string; object: string; body: Record<string, unknown> }[] = [];
+  let people: { id: string }[] = [];
   let seq = 0;
   const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
     const object = url.pathname.replace(/^\/rest\//, "");
     const method = init?.method ?? "GET";
-    if (method === "GET") return Response.json({ data: { [object]: [] } });
+    if (method === "GET") return Response.json({ data: { [object]: object === "people" ? people : [] } });
+    bodies.push({ method, object, body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {} });
+    if (method === "PATCH") return Response.json({ data: { updatePerson: { id: object.split("/")[1] } } });
     if ((failures[object] ?? 0) > 0) {
       failures[object]!--;
       return new Response("upstream timeout", { status: 504 });
@@ -118,7 +122,11 @@ function fakeTwenty() {
     creates[object] = (creates[object] ?? 0) + 1;
     return Response.json({ data: { [`create${object}`]: { id: `${object}-${++seq}` } } });
   });
-  return { creates, failures, fetchImpl };
+  const sent = (object: string) => bodies.filter((b) => b.object === object && b.method === "POST").map((b) => b.body);
+  const setExistingPeople = (ids: string[]) => {
+    people = ids.map((id) => ({ id }));
+  };
+  return { creates, failures, bodies, sent, setExistingPeople, fetchImpl };
 }
 
 class FakeCrm implements CrmPusher {
@@ -331,6 +339,83 @@ describe("resumable pushes against the Twenty client", () => {
     const store = new FakeStore([leadRow({ crm_progress: { personId: 42, opportunityId: "" } })]);
     await run(store, realTwenty);
     expect(twenty.creates).toEqual({ people: 1, opportunities: 1, notes: 1, noteTargets: 1 });
+  });
+});
+
+describe("contact consent in the CRM push", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  function stubTwenty() {
+    const twenty = fakeTwenty();
+    vi.stubEnv("TWENTY_API_URL", "https://twenty.test");
+    vi.stubEnv("TWENTY_API_KEY", "test-key");
+    vi.stubGlobal("fetch", twenty.fetchImpl);
+    return twenty;
+  }
+
+  const hot = { ...decided.decision, requiresImmediateBrokerCall: true };
+  const withPhone = { ...contact, phone: "415-555-0100" };
+
+  it("never tells a broker to call a borrower who gave no phone consent", async () => {
+    const twenty = stubTwenty();
+    const store = new FakeStore([leadRow({ contact: { ...withPhone, consent: false }, decision: hot })]);
+    const summary = await run(store, realTwenty);
+    expect(summary.leads).toMatchObject({ succeeded: 1 });
+
+    const [opportunity] = twenty.sent("opportunities");
+    expect(opportunity!.nextStep).not.toMatch(/call borrower/i);
+    expect(opportunity!.nextStep).toMatch(/^Email borrower/);
+    expect(opportunity!.nextStep).toMatch(/no phone\/SMS consent/);
+
+    const [person] = twenty.sent("people");
+    expect(person).toMatchObject({ smsOptOut: true });
+    expect(person).not.toHaveProperty("phones");
+
+    const [note] = twenty.sent("notes");
+    expect((note!.bodyV2 as { markdown: string }).markdown).toContain("Contact consent: none (email only)");
+  });
+
+  it("treats a stored contact with no consent field as no consent", async () => {
+    const twenty = stubTwenty();
+    const { consent: _omitted, ...legacy } = withPhone;
+    await run(new FakeStore([leadRow({ contact: legacy, decision: hot })]), realTwenty);
+    expect(twenty.sent("opportunities")[0]!.nextStep).not.toMatch(/call borrower/i);
+    expect(twenty.sent("people")[0]).toMatchObject({ smsOptOut: true });
+  });
+
+  it("keeps the call next step and the phone number when consent was given", async () => {
+    const twenty = stubTwenty();
+    await pushLead(intake as Intake, withPhone, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }), { consentEventId: "consent-7" });
+    expect(twenty.sent("opportunities")[0]!.nextStep).toBe("Call borrower today — Jev flagged immediate broker call");
+    expect(twenty.sent("people")[0]).toMatchObject({ smsOptOut: false, phones: { primaryPhoneNumber: "415-555-0100" } });
+    expect((twenty.sent("notes")[0]!.bodyV2 as { markdown: string }).markdown).toContain("consent event consent-7");
+  });
+
+  it("marks an existing person email-only when a later submission has no consent", async () => {
+    const twenty = stubTwenty();
+    twenty.setExistingPeople(["person-existing"]);
+    await pushLead(intake as Intake, { ...withPhone, consent: false }, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }));
+    expect(twenty.creates.people).toBeUndefined();
+    expect(twenty.bodies).toContainEqual({ method: "PATCH", object: "people/person-existing", body: { smsOptOut: true } });
+  });
+
+  it("does not clear an existing opt-out when a later submission has consent", async () => {
+    const twenty = stubTwenty();
+    twenty.setExistingPeople(["person-existing"]);
+    await pushLead(intake as Intake, withPhone, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }));
+    expect(twenty.bodies.filter((b) => b.method === "PATCH")).toEqual([]);
+  });
+
+  it("records a partner without consent as email only", async () => {
+    const twenty = stubTwenty();
+    await run(new FakeStore([], [partnerRow({ profile: { ...partnerProfile, contact: { ...withPhone, consent: false } } })]), realTwenty);
+    const [person] = twenty.sent("people");
+    expect(person).toMatchObject({ smsOptOut: true });
+    expect(person).not.toHaveProperty("phones");
+    expect((twenty.sent("notes")[0]!.bodyV2 as { markdown: string }).markdown).toContain("Contact consent: none (email only)");
   });
 });
 

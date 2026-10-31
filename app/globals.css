@@ -128,6 +128,13 @@
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
   .pill-glass:hover { background: rgb(255 255 255 / 0.9); }
+  /* A pill that wraps a visually hidden control (the document upload's
+     "Choose file" label around an sr-only file input) shows the focus ring
+     itself: the input's own outline is clipped to 1px and invisible. */
+  .pill:has(> input:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
   .eyebrow {
     font-size: 0.8125rem;
     font-weight: 600;
@@ -247,7 +254,11 @@ body:has([data-ask-floating-hidden]) [data-ask-floating] { display: none !import
 .bg-ink :focus-visible,
 .bg-pro :focus-visible,
 .bento-pro :focus-visible,
-.on-dark :focus-visible { outline-color: var(--color-accent-on-dark); }
+.on-dark :focus-visible,
+.bg-ink .pill:has(> input:focus-visible),
+.bg-pro .pill:has(> input:focus-visible),
+.bento-pro .pill:has(> input:focus-visible),
+.on-dark .pill:has(> input:focus-visible) { outline-color: var(--color-accent-on-dark); }
 
 /* Rate ticker. Unlayered with !important because Tailwind's animate-marquee
    utility sets the animation shorthand and would otherwise win. It pauses via

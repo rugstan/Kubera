@@ -42,8 +42,9 @@ export async function POST(req: Request) {
   // The consent record is evidence, so it is written before we respond. It is
   // written only when the box was ticked: consent is optional, and no row means
   // no phone, text or automated outreach (email replies about this request only).
+  let consentEventId: string | null = null;
   if (contact.consent) {
-    await recordConsent(
+    consentEventId = (await recordConsent(
       buildConsentEvent({
         text: resolveConsentText("qualifier", meta.textVersion),
         email: contact.email,
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
         page: consentPage(req, meta.page, "/express"),
         leadId,
       }),
-    );
+    ))?.id ?? null;
   }
 
   // CRM sync runs after the response so the borrower never waits on Twenty.
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
       // Checkpoint each Twenty id as it is created so the retry cron resumes
       // instead of creating a second company and opportunity.
       const refs = await pushLead(intake, contact, jev, {
+        consentEventId,
         onProgress: async (progress) => {
           if (db && leadId) await db.from("leads").update({ crm_progress: progress }).eq("id", leadId);
         },

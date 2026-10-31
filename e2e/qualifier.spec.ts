@@ -72,7 +72,37 @@ test.describe("express qualifier", () => {
     expect(calls[0]!.body).toMatchObject({ contact: { email: "pat.lee@example.com", consent: false } });
   });
 
-    test("shows the server's error message and keeps the form usable", async ({ page }) => {
+  test("the document upload's Choose file control shows a visible keyboard focus ring", async ({ page }) => {
+    // A stored lead returns an upload token, which reveals the upload step.
+    await mockJsonApi(page, "/api/qualify", { body: { ...RESULT, leadId: "6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10", uploadToken: "t".repeat(43) } });
+    await gotoHydrated(page, "/express");
+    await fillThroughToContact(page);
+    await page.getByRole("button", { name: /see my indicative structure/i }).click();
+
+    const docType = page.getByRole("combobox", { name: /document type/i });
+    await expect(docType).toBeVisible();
+    await docType.focus();
+    await page.keyboard.press("Tab");
+
+    const input = page.locator('input[type="file"]');
+    await expect(input).toBeFocused();
+    // The input itself is sr-only (clipped to 1px), so its label must draw the ring.
+    const label = page.locator("label.pill", { has: input });
+    await expect(label).toHaveText(/choose file/i);
+    const ring = await label.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
+    });
+    expect(ring.style).not.toBe("none");
+    expect(ring.width).toBeGreaterThanOrEqual(2);
+
+    // No ring once focus moves away.
+    await page.keyboard.press("Shift+Tab");
+    await expect(docType).toBeFocused();
+    expect(await label.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
+  });
+
+  test("shows the server's error message and keeps the form usable", async ({ page }) => {
     await mockJsonApi(page, "/api/qualify", { status: 429, body: { error: "Too many submissions. Please call us directly." } });
     await gotoHydrated(page, "/express");
     await fillThroughToContact(page);

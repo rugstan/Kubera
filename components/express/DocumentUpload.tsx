@@ -56,6 +56,7 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
         <select className="field sm:w-56" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Document type">
           {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
         </select>
+        {/* The input is sr-only, so the label draws the focus ring (see .pill:has(> input:focus-visible) in globals.css). */}
         <label className="pill pill-glass cursor-pointer !py-2.5 !text-[15px]">
           Choose file
           <input

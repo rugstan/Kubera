@@ -36,8 +36,9 @@ export async function POST(req: Request) {
   }
 
   // Consent is optional; a row is written only when the box was ticked.
+  let consentEventId: string | null = null;
   if (reg.contact.consent) {
-    await recordConsent(
+    consentEventId = (await recordConsent(
       buildConsentEvent({
         text: resolveConsentText("partner", meta.textVersion),
         email: reg.contact.email,
@@ -47,13 +48,14 @@ export async function POST(req: Request) {
         page: consentPage(req, meta.page, "/partners"),
         partnerId,
       }),
-    );
+    ))?.id ?? null;
   }
 
   after(async () => {
     if (!twentyConfigured()) return;
     try {
       const refs = await pushPartner(reg, {
+        consentEventId,
         onProgress: async (progress) => {
           if (db && partnerId) await db.from("partners").update({ crm_progress: progress }).eq("id", partnerId);
         },
