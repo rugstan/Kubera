@@ -1,7 +1,7 @@
 // Embeddings for the knowledge base (public.kb_chunks.embedding, vector(1024)).
 //
-//   Voyage AI    POST https://api.voyageai.com/v1/embeddings   (voyage-3.5, 1024 dims)
-//   NVIDIA NIM   POST <NVIDIA_NIM_BASE_URL>/embeddings          (nv-embedqa-e5-v5, 1024 dims)
+//   Voyage AI    POST https://api.voyageai.com/v1/embeddings   (1024 dims)
+//   NVIDIA NIM   POST <NVIDIA_NIM_BASE_URL>/embeddings          (1024 dims)
 //
 // Same shape as the model gateway (lib/ai/gateway.ts): a typed client with an
 // interface, a real implementation per provider and an in-memory fake, selected

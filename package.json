@@ -17,7 +17,8 @@
     "test:e2e": "playwright test",
     "scan:worker": "tsx --conditions=react-server workers/scan/cli.ts",
     "vault": "tsx --conditions=react-server lib/documents/backup-cli.ts",
-    "evals:agents": "tsx --conditions=react-server evals/agents/run.ts"
+    "evals:agents": "tsx --conditions=react-server evals/agents/run.ts",
+    "evals:documents": "tsx --conditions=react-server evals/documents/run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

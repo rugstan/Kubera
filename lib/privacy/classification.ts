@@ -124,6 +124,17 @@ export const FIELD_CLASSIFICATION: Readonly<Record<string, FieldRule>> = {
   "principals.phone": C("borrower"),
   "principals.home_address": C("borrower"),
   "principals.reo_schedule": C("borrower"),
+  // document extractions and spreads (WS-L, Phase 3). Extraction fields are
+  // confidential deal data; a PFS extraction (doc_type = 'PFS') is restricted,
+  // which the document agent enforces per row (the registry is per column).
+  "document_extractions.fields": { level: "confidential", category: "borrower", pii: true, note: "Restricted when doc_type = 'PFS' (personal financial statement)." },
+  "document_extraction_events.detail": I("system"),
+  "construction_budgets.line_items": C("deal", false),
+  "spreads.inputs": C("deal", false),
+  "spreads.results": C("deal", false),
+  // AI supervision (WS-O, Phase 3)
+  "ai_guardrail_events.excerpt": C("borrower"),
+  "ai_review_annotations.note": C("borrower"),
   // public data
   "rate_snapshots.benchmarks": P("market"),
   "kb_chunks.content": P("market"),

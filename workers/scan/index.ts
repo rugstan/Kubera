@@ -8,7 +8,7 @@ import { FakeScanner } from "./fake";
 import type { MalwareScanner } from "./scanner";
 
 export type { MalwareScanner, ScanVerdict } from "./scanner";
-export { runScanCycle, type ScanReport } from "./worker";
+export { announceDocumentClean, runScanCycle, type ScanReport } from "./worker";
 
 let warned = false;
 

@@ -3,6 +3,7 @@ import { approvalGate } from "@/lib/approvals/server";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import { inboundMailDeps } from "@/lib/mail/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { agentWorkflowHooks } from "./agents-server";
 import type { OutboundExecutor, WorkflowDeps } from "./deps";
 import { createWorkflowFunctions } from "./functions";
 import { MemoryIdempotencyStore, supabaseIdempotencyStore } from "./idempotency";
@@ -62,6 +63,6 @@ let functions: ReturnType<typeof createWorkflowFunctions> | undefined;
 
 /** The functions /api/inngest serves (created once). */
 export function workflowFunctions(): ReturnType<typeof createWorkflowFunctions> {
-  functions ??= createWorkflowFunctions(workflowDeps);
+  functions ??= createWorkflowFunctions(workflowDeps, agentWorkflowHooks);
   return functions;
 }

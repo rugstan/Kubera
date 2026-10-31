@@ -10,7 +10,7 @@
 import { checklistDeps, deskServices } from "@/lib/checklists/server";
 import { settlePortalDocument } from "@/lib/checklists/service";
 import { documentServices } from "@/lib/documents/server";
-import { runScanCycle, scannerFromEnv } from "./index";
+import { announceDocumentClean, runScanCycle, scannerFromEnv } from "./index";
 
 async function main(): Promise<void> {
   const deps = documentServices();
@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   for (const sig of ["SIGINT", "SIGTERM"] as const) process.once(sig, () => (stopping = true));
 
   do {
-    const report = await runScanCycle(deps, scanner, { batchSize: 10, onSettled });
+    const report = await runScanCycle(deps, scanner, { batchSize: 10, onSettled, onClean: announceDocumentClean });
     if (report.claimed || report.sweep?.finalized || report.sweep?.expired) console.log(JSON.stringify({ at: new Date().toISOString(), ...report }));
     if (once || stopping) break;
     await new Promise((resolve) => setTimeout(resolve, intervalMs));

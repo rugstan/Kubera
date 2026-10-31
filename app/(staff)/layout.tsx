@@ -19,6 +19,9 @@ const NAV = [
   { href: "/deals", label: "Deal desk" },
   { href: "/checklists", label: "Checklists" },
   { href: "/construction", label: "Construction" },
+  { href: "/lenders", label: "Lenders" },
+  { href: "/ai-review", label: "AI review" },
+  { href: "/reports", label: "Reports" },
 ] as const;
 
 // The staff shell. The static chrome prerenders; who is signed in streams in

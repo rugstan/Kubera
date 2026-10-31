@@ -1,5 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { crmAgentDeps } from "@/lib/agents/crm/server";
+import { crmStageSink } from "@/lib/agents/crm/stage-sync";
 import { approvalGate } from "@/lib/approvals/server";
 import { checklistDeps, deskServices } from "@/lib/checklists/server";
 import type { ChecklistDeps } from "@/lib/checklists/service";
@@ -99,9 +101,23 @@ function checklistFromDesk(): ChecklistDeps | null {
   return desk ? checklistDeps(desk) : null;
 }
 
+/** Notifications first, then the CRM agents (when Twenty and Supabase are configured). */
 function stageEventSink(): DealStageEventSink {
   const rt = notifyRuntime();
-  return notifierStageSink({ notifier: rt.notifier, leads: rt.leads });
+  const notifier = notifierStageSink({ notifier: rt.notifier, leads: rt.leads });
+  const crm = crmAgentDeps();
+  if (!crm) return notifier;
+  const crmSink = crmStageSink(crm);
+  return {
+    async stageChanged(change) {
+      try {
+        await notifier.stageChanged(change);
+      } finally {
+        // The CRM sink logs and swallows its own failures.
+        await crmSink.stageChanged(change);
+      }
+    },
+  };
 }
 
 /** The deps advanceDeal / stageContext run on. */

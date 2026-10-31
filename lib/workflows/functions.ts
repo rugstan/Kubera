@@ -4,7 +4,7 @@
 import { NonRetriableError } from "inngest";
 import { ZodError } from "zod";
 import { inngest } from "./client";
-import type { WorkflowDeps } from "./deps";
+import type { AgentWorkflowHooks, WorkflowDeps } from "./deps";
 import { EVENTS } from "./events";
 import { inboundMailHandler, mailPollHandler, outboundActionHandler, type HandlerContext } from "./handlers";
 import { EffectOutcomeUnknownError } from "./idempotency";
@@ -30,7 +30,7 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-export function createWorkflowFunctions(getDeps: () => WorkflowDeps) {
+export function createWorkflowFunctions(getDeps: () => WorkflowDeps, getAgents?: () => AgentWorkflowHooks) {
   const client = inngest();
 
   const outboundAction = client.createFunction(
@@ -70,5 +70,101 @@ export function createWorkflowFunctions(getDeps: () => WorkflowDeps) {
     async (ctx) => guard(() => inboundMailHandler(context(ctx as unknown as InngestCtx), getDeps())),
   );
 
-  return [outboundAction, mailPoll, inboundMail];
+  if (!getAgents) return [outboundAction, mailPoll, inboundMail];
+  return [outboundAction, mailPoll, inboundMail, ...createAgentFunctions(client, getAgents)];
+}
+
+/** Term-sheet mail tied to a deal is parsed into lender quotes. */
+export function isDealTermSheet(data: unknown): data is { category: "term_sheet"; dealId: string } {
+  const d = data as { category?: unknown; dealId?: unknown } | null;
+  return !!d && d.category === "term_sheet" && typeof d.dealId === "string" && d.dealId.length > 0;
+}
+
+function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () => AgentWorkflowHooks) {
+  const documentClean = client.createFunction(
+    {
+      id: "document-extract",
+      name: "Extract a clean vault document",
+      triggers: [{ event: EVENTS.documentClean }],
+      idempotency: "event.data.documentId",
+      concurrency: { limit: 3 },
+      // Only transient model errors reach here; the handler skips documents that are not ready.
+      retries: 4,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        const emit = await c.step.run("extract", () => getAgents().documentClean(c.data));
+        if (!emit) return { status: "skipped" };
+        await c.step.sendEvent("announce-extracted", { name: EVENTS.documentExtracted, data: emit.data });
+        return { status: "extracted", ...emit.data };
+      }),
+  );
+
+  const crmMailRouted = client.createFunction(
+    {
+      id: "crm-mail-routed",
+      name: "CRM note and task for routed mail",
+      triggers: [{ event: EVENTS.mailRouted }],
+      idempotency: "event.data.mailMessageId",
+      concurrency: { limit: 3 },
+      retries: 3,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return c.step.run("crm-note", () => getAgents().crmMailRouted(c.data));
+      }),
+  );
+
+  const termSheets = client.createFunction(
+    {
+      id: "lender-term-sheets",
+      name: "Read lender term sheets into quotes",
+      triggers: [{ event: EVENTS.mailRouted, if: "event.data.category == 'term_sheet' && event.data.dealId != null" }],
+      idempotency: "event.data.mailMessageId",
+      concurrency: { limit: 2 },
+      retries: 3,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        if (!isDealTermSheet(c.data)) return { status: "skipped", reason: "not_a_deal_term_sheet" };
+        const dealId = c.data.dealId;
+        return c.step.run("ingest-term-sheets", () => getAgents().termSheets(dealId));
+      }),
+  );
+
+  const speedToLead = client.createFunction(
+    {
+      id: "speed-to-lead",
+      name: "Speed-to-lead reply",
+      triggers: [{ event: EVENTS.leadScored }],
+      idempotency: "event.data.leadId",
+      retries: 2,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().speedToLead({ data: c.data, step: c.step });
+      }),
+  );
+
+  const outreachSweep = client.createFunction(
+    {
+      id: "outreach-sweep",
+      name: "Outreach chaser sweep",
+      // The /api/outreach/sweep cron runs it on a schedule; this runs it on request.
+      triggers: [{ event: EVENTS.outreachSweepRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().outreachSweep({ step: c.step });
+      }),
+  );
+
+  return [documentClean, crmMailRouted, termSheets, speedToLead, outreachSweep];
 }

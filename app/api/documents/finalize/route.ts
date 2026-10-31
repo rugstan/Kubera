@@ -4,7 +4,7 @@ import { failureResponse, NO_STORE } from "@/lib/documents/http";
 import { finalizeWithToken } from "@/lib/documents/finalize";
 import { documentServices, hashIp } from "@/lib/documents/server";
 import { guardPost } from "@/lib/security";
-import { runScanCycle, scannerFromEnv } from "@/workers/scan";
+import { announceDocumentClean, runScanCycle, scannerFromEnv } from "@/workers/scan";
 
 export const maxDuration = 120;
 
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     if (!result.alreadyFinalized) {
       after(async () => {
         try {
-          await runScanCycle(deps, scannerFromEnv(), { batchSize: 3 });
+          await runScanCycle(deps, scannerFromEnv(), { batchSize: 3, onClean: announceDocumentClean });
         } catch (err) {
           console.error("[documents] post-finalize scan failed:", err instanceof Error ? err.message : err);
         }

@@ -5,11 +5,13 @@
 //
 // The durable table, `agent_events`, belongs to the agent safety platform
 // (WS-AB, migration slot 06); this file writes to it through one mapping
-// (`toAgentEventRow`) so a column rename there is a one-place change. The
+// (`toCoreAgentEvent`) so a column rename there is a one-place change. The
 // writer fails closed: if the event for an upcoming write cannot be recorded,
 // the write does not happen.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabaseAgentEventStore, type AgentEventInput as CoreAgentEventInput, type AgentEventOutcome, type AgentEventStore } from "@/lib/agents/core/events";
+import { codeSegment } from "@/lib/agents/core/reasons";
 import type { CrmTask } from "./scopes";
 
 /** Versions stamped on every event (registered in the prompt and model registry by WS-AB). */
@@ -91,62 +93,87 @@ export class MemoryAgentEventSink implements AgentEventSink {
   }
 }
 
-export type AgentEventRow = {
-  occurred_at: string;
-  agent: string;
-  task: string;
-  action: string;
-  phase: string;
-  autonomy: string;
-  actor: string;
-  deal_id: string | null;
-  lead_id: string | null;
-  target_object: string | null;
-  target_id: string | null;
-  approval_id: string | null;
-  approver: string | null;
-  idempotency_key: string | null;
-  external_ref: string | null;
-  reason_codes: string[];
-  model: string | null;
-  prompt_version: string | null;
-  tool_version: string;
-  detail: Record<string, unknown>;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuidOrNull = (v: string | null | undefined) => (v && UUID.test(v) ? v : null);
+
+/** Splits a registry id like "crm-tools@1" into the table's slug and semver ("crm-tools", "1.0.0"). */
+export function splitVersionedId(id: string | null | undefined): { id: string | null; version: string | null } {
+  if (!id) return { id: null, version: null };
+  const m = /^([a-z][a-z0-9_.-]{1,62})@(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(id);
+  if (!m) return { id: null, version: null };
+  return { id: m[1]!, version: `${m[2]}.${m[3] ?? 0}.${m[4] ?? 0}` };
+}
+
+/** CRM codes may carry a value after a colon ("category:term_sheet"); the table stores dotted codes ("category.term_sheet"). */
+export function toReasonCode(code: string): string {
+  return code
+    .split(/[:.]/)
+    .map((part) => codeSegment(part))
+    .join(".");
+}
+
+const OUTCOME_BY_PHASE: Record<AgentEventPhase, AgentEventOutcome> = {
+  proposed: "proposed",
+  audit_only: "recorded",
+  approval_requested: "pending_approval",
+  approval_rejected: "rejected",
+  approval_expired: "expired",
+  write_started: "recorded",
+  executed: "executed",
+  skipped: "recorded",
+  failed: "failed",
+  blocked: "blocked",
 };
 
-const uuidOrNull = (v: string | null | undefined) => (v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : null);
-
-export function toAgentEventRow(e: AgentEventInput, now: Date): AgentEventRow {
+/**
+ * Maps a CRM agent event onto the shared agent_events row (lib/agents/core/events.ts,
+ * WS-AB). The CRM-specific fields (action, phase, actor, CRM target) go in `detail`;
+ * the CRM record id is the external message id.
+ */
+export function toCoreAgentEvent(e: AgentEventInput): CoreAgentEventInput {
+  const tool = splitVersionedId(CRM_AGENT_VERSIONS.tool);
+  const prompt = splitVersionedId(e.promptVersion);
+  const actionSegment = codeSegment(e.action);
   return {
-    occurred_at: now.toISOString(),
+    eventType: `crm.${codeSegment(e.phase)}`,
     agent: e.agent,
-    task: e.task,
-    action: e.action,
-    phase: e.phase,
+    task: `crm.${e.task}`,
     autonomy: e.autonomy,
-    actor: e.actor.slice(0, 200),
-    deal_id: uuidOrNull(e.dealId),
-    lead_id: uuidOrNull(e.leadId),
-    target_object: e.targetObject ?? null,
-    target_id: e.targetId ?? null,
-    approval_id: uuidOrNull(e.approvalId),
-    approver: e.approver ?? null,
-    idempotency_key: e.idempotencyKey?.slice(0, 300) ?? null,
-    external_ref: e.externalRef ?? null,
-    reason_codes: e.reasonCodes.slice(0, 20),
-    model: e.model ?? null,
-    prompt_version: e.promptVersion ?? null,
-    tool_version: CRM_AGENT_VERSIONS.tool,
-    detail: e.detail ?? {},
+    dealId: uuidOrNull(e.dealId),
+    leadId: uuidOrNull(e.leadId),
+    promptId: prompt.id,
+    promptVersion: prompt.version,
+    model: e.model ? e.model.slice(0, 100) : null,
+    toolName: `crm.${actionSegment}`,
+    toolVersion: tool.version,
+    approvalId: uuidOrNull(e.approvalId),
+    idempotencyKey: e.idempotencyKey && e.idempotencyKey.length >= 8 ? e.idempotencyKey.slice(0, 300) : null,
+    approverLabel: e.approver ? e.approver.slice(0, 200) : null,
+    outcome: OUTCOME_BY_PHASE[e.phase],
+    externalMessageIds: e.externalRef ? [e.externalRef] : [],
+    reasonCodes: [...new Set(e.reasonCodes.map(toReasonCode))].slice(0, 20),
+    detail: {
+      ...(e.detail ?? {}),
+      action: e.action,
+      phase: e.phase,
+      actor: e.actor.slice(0, 200),
+      targetObject: e.targetObject ?? null,
+      targetId: e.targetId ?? null,
+      ...(e.approvalId && !uuidOrNull(e.approvalId) ? { approvalRef: e.approvalId.slice(0, 200) } : {}),
+    },
   };
 }
 
-/** Appends to `agent_events` (insert only). */
-export function supabaseAgentEventSink(db: SupabaseClient, now: () => Date = () => new Date()): AgentEventSink {
+/** Appends CRM events to an agent_events store (insert only, hash-chained per agent). */
+export function agentEventStoreSink(store: AgentEventStore): AgentEventSink {
   return {
     async record(event) {
-      const { error } = await db.from("agent_events").insert(toAgentEventRow(event, now()));
-      if (error) throw new Error(`agent_events insert failed: ${error.message}`);
+      await store.append(toCoreAgentEvent(event));
     },
   };
+}
+
+/** Appends to `agent_events` (insert only). Throws when the row could not be recorded. */
+export function supabaseAgentEventSink(db: SupabaseClient, now: () => Date = () => new Date()): AgentEventSink {
+  return agentEventStoreSink(supabaseAgentEventStore(db, now));
 }

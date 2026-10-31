@@ -16,6 +16,14 @@ export const EVENTS = {
   mailReceived: "kubera/mail.received",
   /** A processed message was routed (for downstream agents: CRM notes, lender quotes, chasers). */
   mailRouted: "kubera/mail.routed",
+  /** A vault document passed the malware scan (lib/agents/documents DOCUMENT_EVENTS.documentClean). */
+  documentClean: "kubera/document.clean",
+  /** A document extraction finished (spreads, Jev re-sizing, lender matching). */
+  documentExtracted: "kubera/document.extracted",
+  /** A lead was stored and scored; send the speed-to-lead reply (lib/agents/outreach OUTREACH_EVENTS.leadScored). */
+  leadScored: "kubera/lead.scored",
+  /** Run every outreach chaser once now (the /api/outreach/sweep cron also does). */
+  outreachSweepRequested: "kubera/outreach.sweep.requested",
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

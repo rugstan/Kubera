@@ -24,12 +24,21 @@ describe("/api/inngest", () => {
     }
   });
 
-  it("serves the three workflow functions when configured", async () => {
+  it("serves the workflow and agent functions when configured", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { workflowFunctions } = await import("@/lib/workflows/server");
     const fns = workflowFunctions();
-    expect(fns.map((f) => f.id())).toEqual(["outbound-action", "mail-poll", "inbound-mail"]);
+    expect(fns.map((f) => f.id())).toEqual([
+      "outbound-action",
+      "mail-poll",
+      "inbound-mail",
+      "document-extract",
+      "crm-mail-routed",
+      "lender-term-sheets",
+      "speed-to-lead",
+      "outreach-sweep",
+    ]);
   });
 
   it("drops events (without throwing) when no event key is set", async () => {

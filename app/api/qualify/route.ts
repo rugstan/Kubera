@@ -1,4 +1,6 @@
 import { after, NextResponse } from "next/server";
+import { recordHumanReviewQualifier, recordQualifierDecision } from "@/lib/agents/core/decisions";
+import { agentSafety } from "@/lib/agents/core/server";
 import { decide, HUMAN_REVIEW_ENGINE, humanReviewSummary, publicSummary, type JevResult } from "@/lib/ai/jev";
 import { buildConsentEvent, recordConsent } from "@/lib/consent/ledger";
 import { consentPage, readConsentMeta } from "@/lib/consent/request";
@@ -12,6 +14,8 @@ import { privacyServices } from "@/lib/privacy/server";
 import { getMarketSnapshot } from "@/lib/rates";
 import { guardPost, signLeadToken } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { sendWorkflowEvent } from "@/lib/workflows/client";
+import { EVENTS } from "@/lib/workflows/events";
 import { leadSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {
@@ -93,6 +97,28 @@ export async function POST(req: Request) {
       }
     });
   }
+
+  // Agent audit trail (reason codes for the qualifier decision) and the
+  // speed-to-lead trigger; the /api/outreach/sweep cron is the backstop for a
+  // lost event. Neither may fail the submission.
+  after(async () => {
+    try {
+      const events = agentSafety().events;
+      if (events) {
+        if (jev) await recordQualifierDecision(events, { leadId, result: jev, intake });
+        else await recordHumanReviewQualifier(events, { leadId, reason: subject.humanReviewOnly ? "human_review_only" : "ai_processing_opt_out" });
+      }
+    } catch (err) {
+      console.error("qualifier decision log failed", err instanceof Error ? err.message : err);
+    }
+    if (leadId && jev) {
+      try {
+        await sendWorkflowEvent({ name: EVENTS.leadScored, id: `lead-scored:${leadId}`, data: { leadId } });
+      } catch (err) {
+        console.error("lead.scored event failed", err instanceof Error ? err.message : err);
+      }
+    }
+  });
 
   // CRM sync runs after the response so the borrower never waits on Twenty.
   after(async () => {

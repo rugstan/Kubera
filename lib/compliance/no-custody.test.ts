@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { FORBIDDEN_CUSTODY_SQL_REGEX, FORBIDDEN_CUSTODY_TOKENS, forbiddenTokenIn, scanRepository, scanSql, scanTs } from "./no-custody";
+import { FORBIDDEN_CUSTODY_SQL_REGEX, FORBIDDEN_CUSTODY_TOKENS, forbiddenTokenIn, scanSql, scanTs } from "./no-custody";
+import { scanRepository } from "./no-custody-scan";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
 

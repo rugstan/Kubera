@@ -4,7 +4,7 @@ import { settlePortalDocument } from "@/lib/checklists/service";
 import { NO_STORE } from "@/lib/documents/http";
 import { documentServices } from "@/lib/documents/server";
 import { safeEqual } from "@/lib/security";
-import { runScanCycle, scannerFromEnv } from "@/workers/scan";
+import { announceDocumentClean, runScanCycle, scannerFromEnv } from "@/workers/scan";
 
 export const maxDuration = 300;
 
@@ -27,7 +27,7 @@ async function run(req: Request) {
     // Portal uploads: a settled scan moves the checklist file (clean → item received; infected → rejected).
     const desk = deskServices();
     const onSettled = desk ? async (documentId: string) => void (await settlePortalDocument(checklistDeps(desk), documentId)) : undefined;
-    const report = await runScanCycle(deps, scannerFromEnv(), { batchSize: 20, onSettled });
+    const report = await runScanCycle(deps, scannerFromEnv(), { batchSize: 20, onSettled, onClean: announceDocumentClean });
     return NextResponse.json({ ok: true, ...report }, { headers: NO_STORE });
   } catch (err) {
     console.error("document scan failed", err instanceof Error ? err.message : err);

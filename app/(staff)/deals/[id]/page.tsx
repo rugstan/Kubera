@@ -248,6 +248,11 @@ async function OutreachPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRunt
   const lenderName = (id: string) => lenders.find((l: LenderPanelEntry) => l.id === id)?.name ?? "Lender";
   return (
     <Section description="A send locks the package version; the submission waits for broker approval before any link exists." title="Lender outreach">
+      <p className="mb-4 text-sm">
+        <Link className="font-medium text-ink underline underline-offset-2" prefetch={false} href={`/lenders/deals/${deal.id}`}>
+          Match lenders / compare quotes
+        </Link>
+      </p>
       {write ? (
         <form action={sendPackageAction} className="grid gap-4 sm:grid-cols-2">
           <input name="dealId" type="hidden" value={deal.id} />

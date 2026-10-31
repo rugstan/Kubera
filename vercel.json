@@ -7,6 +7,7 @@
     { "path": "/api/cron/approvals-expire", "schedule": "4,19,34,49 * * * *" },
     { "path": "/api/notify/sweep", "schedule": "* * * * *" },
     { "path": "/api/documents/scan", "schedule": "* * * * *" },
-    { "path": "/api/cron/construction-takeouts", "schedule": "41 13 * * *" }
+    { "path": "/api/cron/construction-takeouts", "schedule": "41 13 * * *" },
+    { "path": "/api/outreach/sweep", "schedule": "*/5 * * * *" }
   ]
 }

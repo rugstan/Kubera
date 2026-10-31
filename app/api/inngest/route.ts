@@ -3,7 +3,9 @@ import { inngest, workflowsConfigured } from "@/lib/workflows/client";
 import { workflowFunctions } from "@/lib/workflows/server";
 
 // Inngest calls this endpoint to discover and run Kubera's workflow functions
-// (approval-gated outbound actions, inbound mail polling and processing).
+// (approval-gated outbound actions, inbound mail polling and processing, and
+// the Phase 3 agents: document extraction, CRM notes, lender term sheets,
+// speed-to-lead and the outreach sweep).
 // Requests are verified with INNGEST_SIGNING_KEY by the SDK. Without Inngest
 // configured (no keys and not INNGEST_DEV), it answers 503 and nothing runs.
 

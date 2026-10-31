@@ -16,7 +16,7 @@ Only add material you're licensed to redistribute internally. Government handboo
 
 Retrieval is hybrid: full-text search and vector similarity are ranked separately and fused (reciprocal rank fusion, `match_kb_chunks`). Vectors are 1024-dimensional.
 
-- Set `VOYAGE_API_KEY` (voyage-3.5) or `NVIDIA_API_KEY` (nv-embedqa-e5-v5), or pin one with `EMBEDDINGS_PROVIDER=voyage|nvidia`. With neither, the text and full-text index still load and retrieval is full-text only.
+- Set `VOYAGE_API_KEY` or `NVIDIA_API_KEY`, or pin one with `EMBEDDINGS_PROVIDER=voyage|nvidia`. With neither, the text and full-text index still load and retrieval is full-text only.
 - `npm run kb:ingest` only rewrites sections whose text changed and only re-embeds sections that changed, have no vector, or were embedded by a different model. Sections deleted from a file are removed from the table.
 - `npm run kb:ingest -- --dry-run` shows what would change without writing or calling a model. `--reembed` redoes every vector (after changing `VOYAGE_EMBED_MODEL` / `NVIDIA_EMBED_MODEL`). `--prune-missing` also deletes sources whose file is gone. `--query="..."` runs a retrieval against what is loaded.
 - Every text goes through the model routing guard (purpose `embedding`) before it leaves: restricted values such as SSNs are redacted, and a person who opted out of AI processing is never embedded.

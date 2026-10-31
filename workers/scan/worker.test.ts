@@ -7,7 +7,9 @@ import { LEAD_ID, PDF_BYTES, TEST_ENV, makeVault } from "@/lib/documents/testing
 import { QUARANTINE_BUCKET, VAULT_BUCKET } from "@/lib/documents/types";
 import { EICAR, FakeScanner } from "./fake";
 import { scannerFromEnv } from "./index";
-import { runScanCycle } from "./worker";
+import { MemoryEventSender, setEventSender } from "@/lib/workflows/client";
+import { EVENTS } from "@/lib/workflows/events";
+import { announceDocumentClean, runScanCycle } from "./worker";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -47,6 +49,31 @@ describe("runScanCycle", () => {
     expect(v.storage.has(QUARANTINE_BUCKET, m.path)).toBe(false);
     expect(v.events.names()).toContain("scan_clean");
     expect(await createDownloadLink(v.deps, { documentId: m.documentId, actor: "staff:pat" })).toMatchObject({ ok: true });
+  });
+
+  it("announces clean documents to the document agent, and only clean ones", async () => {
+    const v = makeVault();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const clean = await quarantined(v, PDF_BYTES);
+    await quarantined(v, eicarCsv, "export.csv", "text/csv");
+    const sender = new MemoryEventSender();
+    setEventSender(sender);
+    try {
+      const report = await runScanCycle(v.deps, new FakeScanner(), { onClean: announceDocumentClean });
+      expect(report).toMatchObject({ clean: 1, infected: 1 });
+      expect(sender.events).toEqual([{ name: EVENTS.documentClean, id: `document-clean:${clean.documentId}`, data: { documentId: clean.documentId } }]);
+    } finally {
+      setEventSender(undefined);
+    }
+  });
+
+  it("never undoes a release when the clean announcement fails", async () => {
+    const v = makeVault();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const m = await quarantined(v, PDF_BYTES);
+    const report = await runScanCycle(v.deps, new FakeScanner(), { onClean: async () => Promise.reject(new Error("inngest down")) });
+    expect(report).toMatchObject({ clean: 1 });
+    expect(await v.store.get(m.documentId)).toMatchObject({ status: "clean" });
   });
 
   it("quarantines an infected (EICAR) file for good: object destroyed, never downloadable", async () => {

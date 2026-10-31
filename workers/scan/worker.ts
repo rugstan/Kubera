@@ -11,6 +11,8 @@ import type { VaultDeps } from "@/lib/documents/mint";
 import { recordQuietly } from "@/lib/documents/store";
 import { QUARANTINE_BUCKET, VAULT_BUCKET, type DocumentRow, type VaultBucket } from "@/lib/documents/types";
 import type { MalwareScanner } from "./scanner";
+import { sendWorkflowEvent } from "@/lib/workflows/client";
+import { EVENTS } from "@/lib/workflows/events";
 
 export type ScanReport = {
   skipped?: "scanner-not-configured";
@@ -122,7 +124,19 @@ async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRo
   return Boolean(updated);
 }
 
-export async function runScanCycle(deps: VaultDeps, scanner: MalwareScanner | null, opts: { batchSize?: number; onSettled?: ScanSettledHook } = {}): Promise<ScanReport> {
+/**
+ * Announces a newly clean document to the workflows (the document agent's
+ * `kubera/document.clean` trigger). The event id makes a re-announcement a no-op.
+ */
+export const announceDocumentClean: ScanSettledHook = async (documentId) => {
+  await sendWorkflowEvent({ name: EVENTS.documentClean, id: `document-clean:${documentId}`, data: { documentId } });
+};
+
+export async function runScanCycle(
+  deps: VaultDeps,
+  scanner: MalwareScanner | null,
+  opts: { batchSize?: number; onSettled?: ScanSettledHook; onClean?: ScanSettledHook } = {},
+): Promise<ScanReport> {
   const report = empty();
   report.sweep = await sweepPendingUploads(deps);
   if (!scanner) {
@@ -134,7 +148,12 @@ export async function runScanCycle(deps: VaultDeps, scanner: MalwareScanner | nu
   for (const row of batch) {
     try {
       const failedBefore = report.failed;
+      const cleanBefore = report.clean;
       const settled = (await scanOne(deps, scanner, row, report)) || report.failed > failedBefore;
+      if (report.clean > cleanBefore && opts.onClean) {
+        // A failed announcement never undoes the release; the scan cron does not retry it.
+        await opts.onClean(row.id).catch((err) => console.error(`[scan] clean hook failed for ${row.id}:`, err instanceof Error ? err.message : err));
+      }
       if (settled && opts.onSettled) {
         // Downstream (the checklist item behind a portal upload) must never undo the scan result.
         await opts.onSettled(row.id).catch((err) => console.error(`[scan] settle hook failed for ${row.id}:`, err instanceof Error ? err.message : err));

@@ -17,6 +17,7 @@ export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 export const APPROVAL_KIND_LABELS: Record<string, string> = {
   email: "Email",
   sms: "Text message",
+  voice_call: "Phone call",
   esign_send: "E-sign send",
   crm_update: "CRM update",
   lender_notice: "Lender notice",

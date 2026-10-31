@@ -1,4 +1,5 @@
 import "server-only";
+import { crmApprovalExecutors } from "@/lib/agents/crm/server";
 import { deskServices } from "@/lib/checklists/server";
 import { notifierWithGate } from "@/lib/notify/runtime";
 import { isPortalInviteApproval, portalInviteExecutor, type PortalInviteMailDeps } from "@/lib/principals/portal-mail";
@@ -19,5 +20,6 @@ export function approvalExecutors(): ApprovalExecutor[] {
   const executors: ApprovalExecutor[] = [];
   const portal = portalInviteMailDeps();
   if (portal) executors.push({ name: "portal_invite", matches: isPortalInviteApproval, run: portalInviteExecutor(portal) });
+  executors.push(...crmApprovalExecutors());
   return executors;
 }
