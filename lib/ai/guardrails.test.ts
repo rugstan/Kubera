@@ -27,6 +27,12 @@ const USURY_REGRESSION_PHRASES = [
   "The broker exemption applies to your loan.",
   "Since a licensed broker arranges this bridge, the usury cap doesn't apply here.",
   "The 12% rate on your bridge loan is fine under California usury law.",
+  // A rate or amount between the determiner and the loan noun.
+  "Your 12% bridge is exempt.",
+  "This 12% loan is exempt.",
+  "Your $3M 11.5% note is exempt.",
+  "This $2.5M 10.75% refinance is usury-exempt.",
+  "The 12%-rate bridge loan is exempt from usury.",
 ];
 
 const categoriesOf = (text: string) => [...new Set(checkText(text).violations.map((v) => v.category))].sort();
@@ -133,6 +139,16 @@ describe("usury-exemption claims", () => {
     expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
   });
 
+  it.each(["Your 12% bridge is exempt.", "This 12% loan is exempt.", "Your $3M 11.5% note is exempt."])("the enforcing stream filter replaces: %s", (text) => {
+    const f = new GuardrailStreamFilter({ mode: "enforce" });
+    let out = "";
+    for (const ch of `HUD terms vary. ${text} Ask your attorney.`) out += f.push(ch);
+    out += f.flush();
+    expect(f.violations.map((v) => v.ruleId)).toContain("usury.loan-exempt");
+    expect(out).not.toContain(text);
+    expect(out).toContain(SAFE_REPLACEMENTS.usury_exemption);
+  });
+
   it("each regression phrase is a forbidden claim in the bridge-usury golden case", () => {
     const { suites } = loadAdvisorEvals();
     const c = suites.flatMap((s) => s.suite.cases).find((x) => x.id === "bridge-usury")!;
@@ -149,6 +165,8 @@ describe("usury-exemption claims", () => {
     "Kubera can't say that the §1916.1 broker exemption applies to your loan.",
     "The broker exemption applies only to loans a licensed broker actively arranges for compensation.",
     "Whether the usury cap applies to this bridge depends on the lender and the collateral.",
+    "Whether your 12% bridge is exempt depends on the lender and how it is arranged; ask your attorney.",
+    "Your 12% bridge closes after a complete file; timing is not guaranteed.",
     SAFE_REPLACEMENTS.usury_exemption,
   ];
   it.each(good)("allows: %s", (text) => {

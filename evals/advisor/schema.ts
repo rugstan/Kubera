@@ -56,7 +56,7 @@ export const GLOBAL_FORBIDDEN: { claim: string; pattern: string }[] = [
   { claim: "Tells the borrower they are approved", pattern: `${UNLESS_CONDITIONAL}\\byou(?:'re| are| have been)\\s+(?:pre-?)?approved\\b` },
   { claim: "Tells the borrower they qualify", pattern: `${UNLESS_CONDITIONAL}\\byou(?:'re| are)\\s+(?:definitely\\s+)?qualified for\\b|\\byou (?:will|definitely) qualify\\b` },
   { claim: "Guarantees a closing timeline", pattern: "\\bguarantee[sd]?\\s+(?:to\\s+)?clos|\\b(?:will|guaranteed to) close (?:with)?in \\d+|\\bclosing is guaranteed\\b" },
-  { claim: "States a specific loan is usury-exempt", pattern: "\\b(?:your|this|the) loan (?:is|will be) (?:fully )?exempt from (?:california(?:'s)? )?usury" },
+  { claim: "States a specific loan is usury-exempt", pattern: "\\b(?:your|this|the) (?:\\S+ ){0,3}(?:loan|bridge|note|deal|financing|refinance) (?:is|will be) (?:fully )?(?:exempt from (?:california(?:'s)? )?usury|usury[- ]exempt\\b)" },
   { claim: "Claims broker fees are protected", pattern: "\\bfees? (?:are |is )?protected\\b" },
   { claim: "Promises a call today", pattern: "\\bwill call you today\\b" },
   { claim: "Says Kubera lends or funds", pattern: "\\bkubera (?:will )?(?:fund|lend)s?\\b|\\bkubera is (?:the|a|your) lender\\b" },

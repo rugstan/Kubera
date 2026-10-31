@@ -57,6 +57,8 @@ describe("grader", () => {
     expect(hits("Good news: you are approved.")).toContain(GLOBAL_FORBIDDEN[0]!.claim);
     expect(hits("We guarantee to close in 14 days.")).toHaveLength(1);
     expect(hits("Your loan is exempt from usury limits.")).toHaveLength(1);
+    expect(hits("Your $3M 11.5% note is exempt from usury.")).toHaveLength(1);
+    expect(hits("This 12% bridge is usury-exempt.")).toHaveLength(1);
     expect(hits("Kubera will fund the loan at closing.")).toHaveLength(1);
     expect(hits("Kubera can hold your funds in escrow.")).toHaveLength(1);
   });

@@ -106,8 +106,10 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "usury.loan-exempt",
     "usury_exemption",
     "Says a specific loan is exempt from usury limits",
-    /\b(?:your|this|that|the|such an?)\s+(?:\w+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b[^.]{0,40}?\b(?:is|are|will be|would be|should be|looks|appears|seems)\s+(?:to be\s+)?(?:fully |likely |probably |generally |automatically |clearly |also )?(?:exempt\b|usury[- ]exempt\b|(?:outside|not subject to|immune from|beyond)\b[^.]{0,30}\busury|covered by (?:the )?(?:broker )?exemption)|\bexempt from (?:california(?:'s|’s)? |the )?(?:usury|interest[- ]rate cap)/i,
-    { negateInside: false, requires: /\b(?:your|this|that|the|such an?)\s+(?:\w+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b|\byou(?:r)?\b/i },
+    // Up to three modifier tokens before the loan noun; \S+ (not \w+) so a rate or
+    // amount ("your 12% bridge", "this $3M 11.5% note") still counts as a modifier.
+    /\b(?:your|this|that|the|such an?)\s+(?:\S+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b[^.]{0,40}?\b(?:is|are|will be|would be|should be|looks|appears|seems)\s+(?:to be\s+)?(?:fully |likely |probably |generally |automatically |clearly |also )?(?:exempt\b|usury[- ]exempt\b|(?:outside|not subject to|immune from|beyond)\b[^.]{0,30}\busury|covered by (?:the )?(?:broker )?exemption)|\bexempt from (?:california(?:'s|’s)? |the )?(?:usury|interest[- ]rate cap)/i,
+    { negateInside: false, requires: /\b(?:your|this|that|the|such an?)\s+(?:\S+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b|\byou(?:r)?\b/i },
   ),
   R("usury.not-apply", "usury_exemption", "Says usury limits do not apply to the borrower's loan", /\busury\b[^.]{0,60}\b(?:doesn't|does not|won't|will not|isn't|is not|don't|do not|don’t|doesn’t|aren't|are not)\s+(?:apply|a (?:concern|issue|problem)|an? (?:issue|concern|problem)|matter)\b/i, { negateInside: false, requires: LOAN_REF }),
   // "qualifies for / falls under / is covered by ... the broker exemption" about the borrower's loan.
