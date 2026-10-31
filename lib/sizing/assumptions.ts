@@ -129,7 +129,7 @@ export const SBA = {
   sevenAAnnualServiceFee: 0.0055,
   bankParticipationFee: 0.005,
   thirdPartyReports: 28_000,
-  typicalCloseDays: "45–75 days",
+  typicalCloseDays: "45–75 days after a complete file; not guaranteed",
 } as const;
 
 export const CMBS = {
@@ -163,7 +163,7 @@ export const BRIDGE = {
   lenderFeePct: 0.01,
   exitFeePct: 0.005,
   fixedCosts: 22_000,
-  closeDays: "10–21 days",
+  closeDays: "Many close in 10–21 days after a complete file, subject to appraisal and title; not guaranteed",
 } as const;
 
 /** Advisory fee Kubera models per program, as a share of the loan arranged. */

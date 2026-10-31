@@ -180,10 +180,27 @@ describe("HUD 223(f) market-rate box", () => {
     expectCoverageAt(quote(sizeMultifamily({ ...mf, loanAmount: 25_000_000, noi: 1_500_000 }, rates), "HUD_221D4_223F_MULTIFAMILY"), 1.15);
   });
 
-  it("notes the unchanged 80% cash-out cap on refinances only", () => {
+  it("notes the unchanged 80% cash-out cap on cash-out refinances only", () => {
     expect(HUD.multifamily.s223f.cashOutMaxLtv).toBe(0.8);
-    expect(quote(sizeMultifamily(mf, rates), "HUD_221D4_223F_MULTIFAMILY").notes).toContain("Cash-out refinances stay capped at 80% LTV.");
-    expect(quote(sizeMultifamily({ ...mf, transaction: "PURCHASE" }, rates), "HUD_221D4_223F_MULTIFAMILY").notes.join(" ")).not.toMatch(/Cash-out/);
+    expect(quote(sizeMultifamily({ ...mf, cashOut: true }, rates), "HUD_221D4_223F_MULTIFAMILY").notes).toContain("Cash-out refinances stay capped at 80% LTV.");
+    expect(quote(sizeMultifamily(mf, rates), "HUD_221D4_223F_MULTIFAMILY").notes.join(" ")).not.toMatch(/Cash-out/);
+    expect(quote(sizeMultifamily({ ...mf, transaction: "PURCHASE", cashOut: true }, rates), "HUD_221D4_223F_MULTIFAMILY").notes.join(" ")).not.toMatch(/Cash-out/);
+  });
+
+  it("sizes a cash-out refinance at 80% LTV, not 87% (regression)", () => {
+    const inputs: MultifamilyInputs = { ...mf, value: 10_000_000, noi: 2_000_000, loanAmount: 20_000_000 };
+    const rateTerm = quote(sizeMultifamily(inputs, rates), "HUD_221D4_223F_MULTIFAMILY");
+    expect(rateTerm.binding).toBe("LTV");
+    expectCappedAt(rateTerm, 10_000_000 * 0.87);
+
+    const cashOut = quote(sizeMultifamily({ ...inputs, cashOut: true }, rates), "HUD_221D4_223F_MULTIFAMILY");
+    expect(cashOut.binding).toBe("LTV");
+    expectCappedAt(cashOut, 10_000_000 * 0.8);
+    expect(cashOut.loanAmount).toBeLessThan(rateTerm.loanAmount);
+    expect(hudMultifamilyBox(false, "MARKET_RATE", true).maxLeverage).toBe(0.8);
+    // The affordable box (90%) is capped at the cash-out limit as well; 221(d)(4) is unaffected.
+    expect(hudMultifamilyBox(false, "AFFORDABLE", true).maxLeverage).toBe(0.8);
+    expect(hudMultifamilyBox(true, "MARKET_RATE", true).maxLeverage).toBe(0.87);
   });
 });
 

@@ -107,6 +107,33 @@ describe("multifamily sizer", () => {
   });
 });
 
+describe("closing timelines (Global rule 4)", () => {
+  it("qualifies every quote's timeline as after a complete file and not guaranteed", () => {
+    const seniorTx = ["PURCHASE", "REFINANCE", "NEW_CONSTRUCTION"] as const;
+    const hotelTx = ["PURCHASE", "REFINANCE", "CONSTRUCTION"] as const;
+    const mfTx = ["PURCHASE", "REFINANCE", "CONSTRUCTION"] as const;
+    const quotes = [
+      ...seniorTx.flatMap((transaction) => [
+        ...sizeSenior({ ...senior, transaction }, rates).quotes,
+        ...sizeSenior({ ...senior, transaction, loanAmount: 2_500_000, noi: 420_000, value: 3_200_000, beds: 58, occupancyPct: 72 }, rates).quotes,
+      ]),
+      ...hotelTx.flatMap(
+        (transaction) =>
+          sizeHospitality({ keys: 110, tier: "PREMIUM_FLAG", loanAmount: 20_000_000, noi: 2_900_000, adr: 189, occupancyPct: 76, pipBudget: 3_000_000, value: 22_000_000, transaction, nonRecourseOnly: false, green: false }, rates).quotes,
+      ),
+      ...mfTx.flatMap(
+        (transaction) =>
+          sizeMultifamily({ assetType: "MULTIFAMILY", units: 120, sqft: 0, loanAmount: 20_000_000, noi: 1_700_000, value: 29_000_000, totalCost: 24_000_000, transaction, affordable: false, green: false }, rates).quotes,
+      ),
+    ];
+    expect(new Set(quotes.map((q) => q.id)).size).toBeGreaterThanOrEqual(8);
+    for (const q of quotes) {
+      expect(q.closeTimeline, q.id).toMatch(/after a complete file/);
+      expect(q.closeTimeline, q.id).toMatch(/not guaranteed/);
+    }
+  });
+});
+
 describe("Jev rules engine", () => {
   const base = intakeSchema.parse({ assetType: "ASSISTED_LIVING", transaction: "REFINANCE", loanAmount: 2_500_000, noi: 420_000, value: 3_200_000, unitCount: 58, occupancyPct: 92 });
 
