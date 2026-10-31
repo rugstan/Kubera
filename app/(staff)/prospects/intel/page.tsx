@@ -55,6 +55,7 @@ async function IntelData({ searchParams }: { searchParams: Search }) {
       <Section title="Drafts">
         <Table
           empty="No drafts yet."
+          label="Market note drafts table"
           head={["Week of", "Headline", "Written by", "Status", "Created"]}
           rows={drafts.map((d) => [
             d.weekStart,

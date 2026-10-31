@@ -127,10 +127,14 @@ export function Submit({ children, tone = "primary", name, value }: { children: 
   );
 }
 
-export function Table({ head, rows, empty }: { head: string[]; rows: React.ReactNode[][]; empty: string }) {
+/**
+ * Wide tables scroll inside their own box on narrow screens. The box is a
+ * focusable, named region so keyboard users can scroll it (WCAG 2.1.1).
+ */
+export function Table({ head, rows, empty, label }: { head: string[]; rows: React.ReactNode[][]; empty: string; label?: string }) {
   if (!rows.length) return <p className="text-sm text-titanium">{empty}</p>;
   return (
-    <div className="-mx-1 overflow-x-auto">
+    <div aria-label={label ?? `Table: ${head.join(", ")}`} className="-mx-1 overflow-x-auto" role="region" tabIndex={0}>
       <table className="w-full min-w-[560px] border-collapse text-left text-sm">
         <thead>
           <tr className="border-b border-black/10 text-xs uppercase tracking-wide text-titanium">

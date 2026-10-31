@@ -93,6 +93,7 @@ async function ProspectsData({ searchParams }: { searchParams: Search }) {
             <Table
               empty=""
               head={["When", "Provider", "Result", "Started by"]}
+              label="Recent scans table"
               rows={scans.map((s) => [
                 when(s.createdAt),
                 s.provider,
@@ -117,6 +118,7 @@ async function ProspectsData({ searchParams }: { searchParams: Search }) {
         </form>
         <Table
           empty="No prospects match. Run a scan, or loosen the filters."
+          label="Prospects table"
           head={["Score", "Property", "Owner", "Loan", "Starting point", "Status"]}
           rows={rows.map((p) => [
             <ScoreBar key="s" score={p.score} />,

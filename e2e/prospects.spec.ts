@@ -204,3 +204,27 @@ test("the prospect list reflows at 390px without sideways page scroll", async ({
     expect(scrollWidth, `${p}: page is ${scrollWidth}px wide at a ${innerWidth}px viewport`).toBeLessThanOrEqual(innerWidth);
   }
 });
+
+test("at 375px the prospect tables scroll inside focusable, named regions with no serious axe issues", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await signIn(page, "broker@kubera.test", "/prospects");
+  await expect(page.getByRole("heading", { name: "Refinance-maturity prospects", level: 1 })).toBeVisible();
+  // A scan adds the recent-scans table, so both tables on the list page are checked.
+  await page.getByLabel("ZIP codes (up to 25)").fill("90001");
+  await page.getByRole("button", { name: "Run scan" }).click();
+  await expect(page.getByRole("status").filter({ hasText: /Scan complete/ })).toBeVisible();
+  const list = page.getByRole("region", { name: "Prospects table" });
+  await expect(list).toHaveAttribute("tabindex", "0");
+  await expect(page.getByRole("region", { name: "Recent scans table" })).toHaveAttribute("tabindex", "0");
+  // The table is wider than the phone, so the region really scrolls; a keyboard user can reach it.
+  expect(await list.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  await list.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(() => list.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  expect(await seriousViolations(page)).toEqual([]);
+
+  await page.getByRole("link", { name: "100 Example Ave" }).click();
+  await expect(page.getByRole("heading", { name: "100 Example Ave", level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Score factors table" })).toHaveAttribute("tabindex", "0");
+  expect(await seriousViolations(page)).toEqual([]);
+});

@@ -50,7 +50,7 @@ async function SuppressionData({ searchParams }: { searchParams: Search }) {
         </form>
       </Section>
       <Section title={`Entries (${rows.length})`}>
-        <Table empty="Nothing on the list." head={["Type", "Entry", "Reason", "Added", "By"]} rows={rows.map((r) => [KIND_LABEL[r.kind], r.label, REASON_LABEL[r.reason], when(r.createdAt), r.createdBy.replace(/^staff:/, "")])} />
+        <Table empty="Nothing on the list." label="Do-not-contact table" head={["Type", "Entry", "Reason", "Added", "By"]} rows={rows.map((r) => [KIND_LABEL[r.kind], r.label, REASON_LABEL[r.reason], when(r.createdAt), r.createdBy.replace(/^staff:/, "")])} />
       </Section>
     </>
   );

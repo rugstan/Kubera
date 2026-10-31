@@ -61,6 +61,7 @@ async function ProspectData({ params, searchParams }: { params: Params; searchPa
         <Table
           empty=""
           head={["Factor", "Points", "Why"]}
+          label="Score factors table"
           rows={p.scoreFactors.map((f) => [f.factor, `${f.points} of ${f.max}`, f.detail])}
         />
       </Section>
