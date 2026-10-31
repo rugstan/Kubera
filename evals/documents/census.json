@@ -1,0 +1,238 @@
+{
+  "docType": "CENSUS",
+  "cases": [
+    {
+      "id": "census-al-csv",
+      "description": "Assisted living / memory care census with a resident-name column (must be ignored).",
+      "source": {
+        "format": "csv",
+        "lines": [
+          "Facility,Willow Creek Assisted Living",
+          "Census date,10/01/2026",
+          "Licensed beds,12",
+          "",
+          "Room,Resident Name,Level of Care,Payor,Monthly Rate",
+          "101,Resident A,AL,Private Pay,\"$6,000\"",
+          "102,Resident B,AL,Private Pay,\"$6,000\"",
+          "103,Resident C,AL,Medicaid Waiver,\"$4,000\"",
+          "104,Resident D,AL,Private Pay,\"$6,500\"",
+          "105,Resident E,MC,Private Pay,\"$8,000\"",
+          "106,Resident F,MC,Private Pay,\"$8,000\"",
+          "107,Resident G,MC,LTC Insurance,\"$7,500\"",
+          "108,Resident H,MC,VA,\"$7,000\"",
+          "109,Resident I,AL,Medicaid,\"$4,000\"",
+          "110,Resident J,AL,Private,\"$6,000\"",
+          "111,,AL,Vacant,",
+          "112,,MC,Vacant,"
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "forbiddenText": [
+          "Resident A",
+          "Resident J"
+        ],
+        "scalars": {
+          "propertyName": "Willow Creek Assisted Living",
+          "asOfDate": "2026-10-01",
+          "licensedBeds": 12
+        },
+        "rowCount": 12,
+        "rows": [
+          {
+            "index": 2,
+            "values": {
+              "room": "103",
+              "careLevel": "AL",
+              "payor": "Medicaid Waiver",
+              "monthlyRate": 4000
+            }
+          },
+          {
+            "index": 11,
+            "values": {
+              "room": "112",
+              "payor": "Vacant",
+              "monthlyRate": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "census-snf-xlsx",
+      "description": "Skilled nursing census by room with payer and status columns.",
+      "source": {
+        "format": "xlsx",
+        "sheets": [
+          {
+            "name": "Census",
+            "rows": [
+              [
+                "Total Units",
+                8
+              ],
+              [
+                "As of",
+                "2026-09-30"
+              ],
+              [
+                "Room",
+                "Care Type",
+                "Payer",
+                "Status",
+                "Rate"
+              ],
+              [
+                1,
+                "Skilled Nursing",
+                "Medicare",
+                "Occupied",
+                15000
+              ],
+              [
+                2,
+                "Skilled Nursing",
+                "Medicaid",
+                "Occupied",
+                9000
+              ],
+              [
+                3,
+                "Skilled Nursing",
+                "Medicaid",
+                "Occupied",
+                9000
+              ],
+              [
+                4,
+                "Skilled Nursing",
+                "Medicaid",
+                "Occupied",
+                9000
+              ],
+              [
+                5,
+                "Skilled Nursing",
+                "Managed Care",
+                "Occupied",
+                12000
+              ],
+              [
+                6,
+                "Skilled Nursing",
+                "Private",
+                "Occupied",
+                11000
+              ],
+              [
+                7,
+                "Skilled Nursing",
+                "Medicaid",
+                "Occupied",
+                9000
+              ],
+              [
+                8,
+                "Skilled Nursing",
+                null,
+                "Vacant",
+                null
+              ]
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "asOfDate": "2026-09-30",
+          "totalUnits": 8
+        },
+        "rowCount": 8,
+        "rows": [
+          {
+            "index": 0,
+            "values": {
+              "room": "1",
+              "payor": "Medicare",
+              "monthlyRate": 15000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "census-mc-pdf",
+      "description": "Memory care census with shared rooms (residents per room).",
+      "source": {
+        "format": "pdf",
+        "lines": [
+          [
+            "Facility: Pine Memory Care"
+          ],
+          [
+            "As of: 2026-08-31"
+          ],
+          [
+            "Licensed Beds: 6"
+          ],
+          [
+            "Room",
+            "Level",
+            "Payor",
+            "Residents",
+            "Monthly Rate"
+          ],
+          [
+            "M1",
+            "Memory Care",
+            "Private Pay",
+            "2",
+            "14,000"
+          ],
+          [
+            "M2",
+            "Memory Care",
+            "Private Pay",
+            "1",
+            "7,500"
+          ],
+          [
+            "M3",
+            "Memory Care",
+            "Medicaid",
+            "1",
+            "5,000"
+          ],
+          [
+            "M4",
+            "Memory Care",
+            "Vacant",
+            "0",
+            "-"
+          ]
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "propertyName": "Pine Memory Care",
+          "asOfDate": "2026-08-31",
+          "licensedBeds": 6
+        },
+        "rowCount": 4,
+        "rows": [
+          {
+            "index": 0,
+            "values": {
+              "room": "M1",
+              "residents": 2,
+              "monthlyRate": 14000
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
