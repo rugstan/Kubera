@@ -45,10 +45,17 @@ export function Flash({ notice, error }: { notice?: string; error?: string }) {
   );
 }
 
-export function SignInRequired() {
+/**
+ * Pages whose h1 sits inside the Suspense boundary (a deal or credit box title)
+ * pass `level={1}` so the fallback still gives the page its one h1.
+ */
+type HeadingLevel = { level?: 1 | 2 };
+
+export function SignInRequired({ level = 2 }: HeadingLevel = {}) {
+  const H = level === 1 ? "h1" : "h2";
   return (
     <div className="bento p-6">
-      <h2 className="text-lg font-semibold text-ink">Staff sign-in required</h2>
+      <H className="text-lg font-semibold text-ink">Staff sign-in required</H>
       <p className="mt-2 text-sm text-titanium">The deal desk is available to Kubera staff signed in with multi-factor authentication.</p>
       <Link className="pill pill-primary mt-4 inline-flex" href="/login">
         Sign in
@@ -57,10 +64,11 @@ export function SignInRequired() {
   );
 }
 
-export function NotConfigured() {
+export function NotConfigured({ level = 2 }: HeadingLevel = {}) {
+  const H = level === 1 ? "h1" : "h2";
   return (
     <div className="bento p-6">
-      <h2 className="text-lg font-semibold text-ink">Deal desk storage is not configured</h2>
+      <H className="text-lg font-semibold text-ink">Deal desk storage is not configured</H>
       <p className="mt-2 text-sm text-titanium">Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to load deal records.</p>
     </div>
   );
@@ -119,9 +127,14 @@ export function Check({ label, name, defaultChecked }: { label: string; name: st
   );
 }
 
+/**
+ * A form's submit button. `.pill` keeps labels on one line; here a label wider
+ * than its container wraps instead, so long action names ("Check waiting
+ * outreach for broker decisions") never widen a 390px layout (WCAG 1.4.10).
+ */
 export function Submit({ children, tone = "primary", name, value }: { children: React.ReactNode; tone?: "primary" | "glass"; name?: string; value?: string }) {
   return (
-    <button className={`pill ${tone === "primary" ? "pill-primary" : "pill-glass"} min-h-11`} name={name} type="submit" value={value}>
+    <button className={`pill ${tone === "primary" ? "pill-primary" : "pill-glass"} min-h-11 max-w-full whitespace-normal text-center`} name={name} type="submit" value={value}>
       {children}
     </button>
   );

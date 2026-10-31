@@ -46,16 +46,20 @@ test.describe("borrower portal", () => {
     await expect(page.getByRole("button", { name: /continue/i })).toHaveCount(0);
   });
 
-  test("a well-formed link waits for a click (mail scanners cannot use it) and reports an unavailable portal", async ({ page }) => {
+  test("a well-formed but unknown link waits for a click (mail scanners cannot use it) and opens no session", async ({ page }) => {
     await gotoHydrated(page, `/portal/access?token=${"A".repeat(43)}`);
     const button = page.getByRole("button", { name: /continue to the portal/i });
     await expect(button).toBeVisible();
     await expectAccessible(page);
     await button.click();
-    await expect(page).toHaveURL(/\/portal\?state=unavailable$/);
+    // With no desk at all the portal reports itself unavailable; against the
+    // in-memory demo desk (AUTH_PROVIDER=fake, the suite's default) the token
+    // is simply unknown. Either way no session starts.
+    await expect(page).toHaveURL(/\/portal\?state=unavailable$|\/portal\/access\?error=invalid$/);
+    const unavailable = new URL(page.url()).searchParams.get("state") === "unavailable";
     // During the server-action redirect a transient copy of the page can briefly
     // coexist with the settled one; assert on the settled main content, once.
-    const alert = page.locator("#main-content").getByRole("alert").filter({ hasText: "The portal is not available right now" });
+    const alert = page.locator("#main-content").getByRole("alert").filter({ hasText: unavailable ? "The portal is not available right now" : "This link is not valid" });
     await expect(alert).toHaveCount(1);
     await expect(alert).toBeVisible();
   });

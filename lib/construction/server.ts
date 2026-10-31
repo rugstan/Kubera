@@ -2,6 +2,7 @@ import "server-only";
 import { approvalGate } from "@/lib/approvals/server";
 import { primaryStaffRole, signedInStaff } from "@/lib/auth/staff";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
+import { demoDesks } from "@/lib/deals/demo";
 import { SupabaseDealDeskStore } from "@/lib/deals/store-supabase";
 import { dealDeskTakeoutCreator } from "@/lib/deals/takeout";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -15,7 +16,9 @@ import type { StaffIdentity } from "./types";
 // creator the construction desk uses, and who counts as signed-in staff.
 //
 // Defaults: WS-I's approvals queue and lib/auth session, and WS-T's deal desk
-// as the take-out deal creator whenever Supabase is configured. Tests override:
+// as the take-out deal creator whenever Supabase is configured. In fake-auth
+// mode (local development, e2e) the desk runs on the shared in-memory demo
+// desks (lib/deals/demo.ts), with a demo CSLB lookup. Tests override:
 //   registerStaffGuard(...)   a staff session check
 //   configureConstruction({ gate, deals, store })
 
@@ -83,6 +86,16 @@ function defaultDealCreator(): DealCreator | null {
 
 /** The desk's collaborators, or null when there is no database to keep records in. */
 export function getConstructionDeps(): ConstructionDeps | null {
+  const demo = overrides.store ? null : demoDesks();
+  if (demo) {
+    return {
+      store: demo.construction,
+      gate: overrides.gate ?? approvalGate(),
+      licenses: demo.licenses,
+      deals: overrides.deals ?? dealDeskTakeoutCreator({ store: demo.deals, now: () => new Date() }),
+      now: () => new Date(),
+    };
+  }
   const store = overrides.store ?? defaultStore();
   if (!store) return null;
   return {

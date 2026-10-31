@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { deskServices } from "@/lib/checklists/server";
 import type { DeskServices } from "@/lib/checklists/desk";
 import { PORTAL_COOKIE, portalSessionSecret, verifySession, type PortalSession } from "@/lib/principals/portal";
@@ -14,6 +15,9 @@ export async function portalContext(): Promise<PortalContext | PortalUnavailable
   // Read the request first so the page always renders per request, even when
   // the build ran without Supabase configured.
   const jar = await cookies();
+  // The session check reads the clock (and, in fake-auth mode, seeds the demo
+  // approvals queue), so it must run at request time, not during a prerender.
+  await connection();
   const services = deskServices();
   const secret = portalSessionSecret();
   if (!services || !secret) return { reason: "unconfigured" };

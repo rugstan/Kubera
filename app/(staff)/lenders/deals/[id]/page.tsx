@@ -45,9 +45,9 @@ function toParams(sp: Record<string, string | string[] | undefined>): URLSearchP
 
 async function MatchData({ params, searchParams }: { params: Params; searchParams: Search }) {
   const [{ id }, sp, staff] = await Promise.all([params, searchParams, currentStaff()]);
-  if (!staff) return <SignInRequired />;
+  if (!staff) return <SignInRequired level={1} />;
   const rt = lenderRuntime();
-  if (!rt) return <NotConfigured />;
+  if (!rt) return <NotConfigured level={1} />;
   if (!UUID.test(id)) notFound();
   const deal = await rt.desk.store.getDeal(id);
   if (!deal) notFound();

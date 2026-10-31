@@ -38,11 +38,13 @@ test.describe("deal desk without a staff session", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
-  test("exports and PDFs answer 401, and share links 503 without storage", async ({ request }) => {
+  test("exports and PDFs answer 401, and an unknown share link opens nothing", async ({ request }) => {
     expect((await request.get("/deals/dre/export?kind=threshold")).status()).toBe(401);
     expect((await request.get("/deals/00000000-0000-4000-8000-000000000001/form-159/00000000-0000-4000-8000-000000000002")).status()).toBe(401);
     const share = await request.get(`/api/deals/share/${"a".repeat(43)}`);
-    expect(share.status()).toBe(503);
+    // 404 against the demo desk (AUTH_PROVIDER=fake, the suite's default), 503 with no desk at all.
+    expect([404, 503]).toContain(share.status());
+    expect(await share.text()).not.toMatch(/Package version/);
     expect(share.headers()["cache-control"]).toContain("no-store");
   });
 });
