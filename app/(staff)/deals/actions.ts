@@ -384,7 +384,7 @@ export async function generateForm159Action(f: FormData): Promise<never> {
 export async function sendForm159Action(f: FormData): Promise<never> {
   const id = str(f, "dealId");
   return run(dealPath(id), "write", async ({ staff, rt }) => {
-    const r = await sendForm159({ store: rt.store, provider: rt.esign, gate: rt.gate, now: rt.now, templateId: form159TemplateId(rt.esign) }, str(f, "formId"), staff.actor);
+    const r = await sendForm159({ store: rt.store, provider: rt.esign, gate: rt.gate, effects: rt.effects, now: rt.now, templateId: form159TemplateId(rt.esign) }, str(f, "formId"), staff.actor);
     return r.sent ? "Form 159 sent for signature." : "Form 159 is waiting for broker approval; nothing was sent.";
   });
 }

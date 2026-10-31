@@ -10,12 +10,14 @@ import { createHash } from "node:crypto";
 import { isApproved, type ApprovalDecision, type ApprovalGate } from "@/lib/compliance/approval-gate";
 import { mldsRequirement, type MldsRequirement } from "@/lib/compliance/gates";
 import type { MldsFacts } from "@/lib/compliance/schemas";
+import { EsignSendInProgressError, createRequestOnce, recallOrphan } from "@/lib/esign/send-once";
 import type { EsignEvent, EsignProvider } from "@/lib/esign/types";
+import type { IdempotencyStore } from "@/lib/workflows/idempotency";
 import { civilDateOf } from "./business-days";
 import type { DealRecordSink } from "./deal-record";
 import { MLDS_RETENTION_YEARS, buildMlds, mldsDocument, mldsPrefillFields, type DocumentSpec, type Mlds, type MldsData, type MldsInput } from "./mlds";
 import { nextStatus, type DisclosureStatus, type DisclosureTransition } from "./state";
-import type { DisclosureRecord, DisclosureStore, DocumentStorage, UetaConsent } from "./store";
+import { ConcurrentUpdateError, type DisclosureRecord, type DisclosureStore, type DocumentStorage, type UetaConsent } from "./store";
 import { computeMldsTimer } from "./timer";
 import { UETA_CONSENT_TEXTS } from "./ueta";
 
@@ -28,7 +30,9 @@ export type BlockReason =
   | "approval_pending"
   | "approval_rejected"
   | "approval_expired"
-  | "provider_unavailable";
+  | "provider_unavailable"
+  | "send_in_progress"
+  | "send_outcome_unknown";
 
 export class DisclosureBlockedError extends Error {
   constructor(
@@ -203,6 +207,8 @@ export type SendDeps = {
   store: DisclosureStore;
   provider: EsignProvider | null;
   gate: ApprovalGate;
+  /** Claims each provider call (workflow_effects) so a send creates at most one envelope. */
+  effects: IdempotencyStore;
   now: Clock;
   templateId: string;
   /** Kubera's signer (the broker or a licensee acting for the broker). */
@@ -232,17 +238,23 @@ export async function sendMlds(deps: SendDeps, id: string, actor: string): Promi
     ...mlds.data.borrowers.map((b, i) => ({ role: `Borrower ${i + 1}`, name: b.name, email: b.email, embedded: deps.embedded, verifyByEmail: true })),
     { role: "Broker", name: deps.brokerSigner.name, email: deps.brokerSigner.email, embedded: false, verifyByEmail: true },
   ];
+  const approvalKey = `esign_send:${record.id}:${record.documentSha256}:${attempt}`;
   const decision = await deps.gate.request({
     // Sensitive: needs the approving broker's step-up re-authentication.
     kind: "mlds_send",
-    idempotencyKey: `esign_send:${record.id}:${record.documentSha256}:${attempt}`,
+    idempotencyKey: approvalKey,
     summary: `Send MLDS (RE 882) for ${mlds.data.property.address} to ${mlds.data.borrowers.map((b) => b.name).join(", ")}`,
     templateId: deps.templateId,
     payload: { disclosureId: record.id, documentSha256: record.documentSha256, recipients: recipients.map(({ role, name, email }) => ({ role, name, email })) },
     requestedBy: actor,
   });
   const now = deps.now();
-  if (!isApproved(decision)) {
+  // The approvals queue hands "approved" out once; any later request for the key
+  // answers already_executed. That send (an earlier click, a retry after a crash, or
+  // the mlds_send approval executor) may have reached the provider without being
+  // recorded here, so resume it through the claimed effect instead of giving up.
+  const resumable = decision.status === "rejected" && decision.reason === "already_executed";
+  if (!isApproved(decision) && !resumable) {
     await deps.store.appendEvent({
       disclosureId: record.id,
       occurredAt: now.toISOString(),
@@ -255,20 +267,43 @@ export async function sendMlds(deps: SendDeps, id: string, actor: string): Promi
     return { sent: false, record, decision };
   }
 
-  const created = await deps.provider.createFromTemplate({
-    templateId: deps.templateId,
-    requestName: `MLDS RE 882 · ${mlds.data.property.address}`.slice(0, 100),
-    recipients,
-    fields: mldsPrefillFields(mlds),
-    reference: record.id,
-  });
-  const updated = await transition(
-    deps.store,
-    record,
-    "send",
-    { sentAt: now.toISOString(), provider: deps.provider.name, providerRequestId: created.requestId, signerActions: created.actions },
-    { actor, at: now, detail: { approvalId: decision.approvalId, approvedBy: decision.decidedBy, requestId: created.requestId, attempt } },
-  );
+  let created: Awaited<ReturnType<typeof createRequestOnce>>;
+  try {
+    created = await createRequestOnce({ provider: deps.provider, effects: deps.effects, now: deps.now, workflow: "mlds-send" }, approvalKey, {
+      templateId: deps.templateId,
+      requestName: `MLDS RE 882 · ${mlds.data.property.address}`.slice(0, 100),
+      recipients,
+      fields: mldsPrefillFields(mlds),
+      reference: `${record.id}:${attempt}`,
+    });
+  } catch (err) {
+    if (err instanceof EsignSendInProgressError) throw new DisclosureBlockedError(err.outcomeUnknown ? "send_outcome_unknown" : "send_in_progress", err.message);
+    throw err;
+  }
+  const requestId = created.created.requestId;
+  let updated: DisclosureRecord;
+  try {
+    updated = await transition(
+      deps.store,
+      record,
+      "send",
+      { sentAt: now.toISOString(), provider: deps.provider.name, providerRequestId: requestId, signerActions: created.created.actions },
+      {
+        actor,
+        at: now,
+        detail: { approvalId: decision.approvalId, approvedBy: isApproved(decision) ? decision.decidedBy : null, requestId, attempt, replayed: created.replayed, reconciled: created.reconciled },
+      },
+    );
+  } catch (err) {
+    if (!(err instanceof ConcurrentUpdateError)) throw err;
+    // Someone else changed the disclosure while we were sending.
+    const fresh = await load(deps.store, record.id);
+    if (fresh.providerRequestId === requestId) return { sent: true, record: fresh };
+    // Another send won with a different request, or the terms were regenerated: ours is an orphan.
+    await recallOrphan(deps.provider, requestId, "Superseded by another send of this disclosure");
+    if (fresh.status === "sent" || fresh.status === "signed") return { sent: true, record: fresh };
+    throw new DisclosureBlockedError("invalid_status", `The disclosure changed while it was being sent (now ${fresh.status}); the request was recalled`);
+  }
   await deps.deal?.disclosureChanged(updated, { from: record.status, to: updated.status, at: now });
   return { sent: true, record: updated };
 }

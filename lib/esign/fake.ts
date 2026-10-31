@@ -32,11 +32,29 @@ export class FakeEsignProvider implements EsignProvider {
     this.seq += 1;
     const requestId = `fake_req_${this.seq}`;
     this.requests.set(requestId, { input, status: "in_progress", signed: new Set(), createdAt: this.seq });
+    if (this.failAfterCreate > 0) {
+      this.failAfterCreate -= 1;
+      throw new EsignError("fake: timed out after the request was accepted", 504);
+    }
     return {
       requestId,
       status: "in_progress",
       actions: input.recipients.map((r, i) => ({ actionId: `${requestId}_a${i + 1}`, role: r.role, email: r.email, embedded: Boolean(r.embedded) })),
     };
+  }
+
+  /** Test hook: the next createFromTemplate call creates the request, then throws (a timeout after the provider accepted it). */
+  failAfterCreate = 0;
+
+  async findByReference(reference: string): Promise<CreatedRequest[]> {
+    return [...this.requests.entries()]
+      .filter(([, r]) => r.input.reference === reference)
+      .sort(([, a], [, b]) => b.createdAt - a.createdAt)
+      .map(([requestId, r]) => ({
+        requestId,
+        status: r.status,
+        actions: r.input.recipients.map((x, i) => ({ actionId: `${requestId}_a${i + 1}`, role: x.role, email: x.email, embedded: Boolean(x.embedded) })),
+      }));
   }
 
   private get(requestId: string): FakeRequest {

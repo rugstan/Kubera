@@ -1,3 +1,4 @@
+import { MemoryIdempotencyStore } from "@/lib/workflows/idempotency";
 import { beforeEach, describe, expect, it } from "vitest";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import { generateMlds, openMldsCase, recordUetaConsent, sendMlds } from "@/lib/disclosures/service";
@@ -30,7 +31,7 @@ beforeEach(async () => {
   await generateMlds({ store, storage, render: async () => new Uint8Array([1, 2, 3]), now, approvedTemplate: true }, disclosureId, sampleMldsInput, "staff");
   for (const b of sampleMldsInput.borrowers) await recordUetaConsent({ store, now }, disclosureId, { textVersion: UETA_CONSENT_VERSION, consentedAt: now().toISOString(), email: b.email });
   const sent = await sendMlds(
-    { store, provider, gate: new FakeApprovalGate(), now, templateId: "t", brokerSigner: { name: "N", email: "n@k.co" }, approvedTemplate: true },
+    { store, provider, gate: new FakeApprovalGate(), effects: new MemoryIdempotencyStore(), now, templateId: "t", brokerSigner: { name: "N", email: "n@k.co" }, approvedTemplate: true },
     disclosureId,
     "staff",
   );

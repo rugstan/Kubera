@@ -15,7 +15,9 @@ import { createHash } from "node:crypto";
 import { isApproved, type ApprovalDecision, type ApprovalGate } from "@/lib/compliance/approval-gate";
 import { DRAFT_NOTICE, type DocumentSpec, type Section } from "@/lib/disclosures/mlds";
 import type { DocumentStorage } from "@/lib/disclosures/store";
-import type { EsignEvent, EsignProvider } from "@/lib/esign/types";
+import { EsignSendInProgressError, createRequestOnce, recallOrphan } from "@/lib/esign/send-once";
+import type { CreatedRequest, EsignEvent, EsignProvider } from "@/lib/esign/types";
+import type { IdempotencyStore } from "@/lib/workflows/idempotency";
 import { sba159CategoryOf } from "./ledger";
 import { formatCents, sumCents } from "./money";
 import type { DealDeskStore } from "./store";
@@ -245,7 +247,7 @@ export function form159PrefillFields(data: Form159Data, draft: boolean): Record<
 
 export class Form159BlockedError extends Error {
   constructor(
-    readonly reason: "not_found" | "not_required" | "incomplete" | "template_not_approved" | "provider_unavailable" | "invalid_status",
+    readonly reason: "not_found" | "not_required" | "incomplete" | "template_not_approved" | "provider_unavailable" | "invalid_status" | "send_in_progress",
     message: string,
   ) {
     super(message);
@@ -315,7 +317,7 @@ export async function generateForm159(
 export type SendForm159Result = { sent: true; record: Form159Record } | { sent: false; record: Form159Record; decision: ApprovalDecision };
 
 export async function sendForm159(
-  deps: { store: DealDeskStore; provider: EsignProvider | null; gate: ApprovalGate; now: Clock; templateId: string | null },
+  deps: { store: DealDeskStore; provider: EsignProvider | null; gate: ApprovalGate; now: Clock; templateId: string | null; effects: IdempotencyStore },
   id: string,
   actor: string,
 ): Promise<SendForm159Result> {
@@ -345,17 +347,38 @@ export async function sendForm159(
     requestedBy: actor,
   });
   const now = deps.now();
-  if (!isApproved(decision)) {
+  // The approvals queue hands "approved" out once (later requests: already_executed).
+  // Such a send may have reached the provider without being recorded: resume it
+  // through the claimed effect, which replays or reconciles instead of re-creating.
+  const resumable = decision.status === "rejected" && decision.reason === "already_executed";
+  if (!isApproved(decision) && !resumable) {
     const updated = await deps.store.updateForm159(record.id, { status: "pending_approval", approvalKey, approvalId: "approvalId" in decision ? (decision.approvalId ?? null) : null }, actor, now);
     return { sent: false, record: updated, decision };
   }
-  const created = await deps.provider.createFromTemplate({
-    templateId: deps.templateId,
-    requestName: `SBA Form 159 · ${d.applicant.businessName}`.slice(0, 100),
-    recipients,
-    fields: form159PrefillFields(d, record.draft),
-    reference: record.id,
-  });
+  let created: CreatedRequest;
+  try {
+    // Claimed before the provider call, keyed by the approval key: one envelope per approved send.
+    ({ created } = await createRequestOnce({ provider: deps.provider, effects: deps.effects, now: deps.now, workflow: "form159-send" }, approvalKey, {
+      templateId: deps.templateId,
+      requestName: `SBA Form 159 · ${d.applicant.businessName}`.slice(0, 100),
+      recipients,
+      fields: form159PrefillFields(d, record.draft),
+      reference: `form159:${record.id}`,
+    }));
+  } catch (err) {
+    if (err instanceof EsignSendInProgressError) throw new Form159BlockedError("send_in_progress", err.message);
+    throw err;
+  }
+  const latest = await deps.store.getForm159(record.id);
+  if (latest && (latest.status === "sent" || latest.status === "signed")) {
+    // A concurrent send recorded first; if it recorded a different request, ours is an orphan.
+    if (latest.providerRequestId !== created.requestId) await recallOrphan(deps.provider, created.requestId, "Superseded by another send of this Form 159");
+    return { sent: true, record: latest };
+  }
+  if (latest?.status === "superseded") {
+    await recallOrphan(deps.provider, created.requestId, "Form 159 version superseded while sending");
+    throw new Form159BlockedError("invalid_status", "This Form 159 version was superseded while it was being sent; the request was recalled");
+  }
   const updated = await deps.store.updateForm159(
     record.id,
     { status: "sent", approvalKey, approvalId: decision.approvalId, provider: deps.provider.name, providerRequestId: created.requestId, sentAt: now.toISOString() },

@@ -173,9 +173,11 @@ export class ZohoSignProvider implements EsignProvider {
         ...(r.privateNote ? { private_notes: r.privateNote } : {}),
       };
     });
+    const token = referenceToken(input.reference);
     const data = {
       templates: {
-        request_name: input.requestName,
+        // The reference token makes the request findable (findByReference) after an ambiguous send.
+        request_name: `${input.requestName.slice(0, 100 - token.length - 3)} · ${token}`,
         notes: input.notes ?? `Reference ${input.reference}`,
         field_data: { field_text_data: input.fields, field_boolean_data: {}, field_date_data: {} },
         actions,
@@ -196,6 +198,22 @@ export class ZohoSignProvider implements EsignProvider {
       embedded: Boolean(a.is_embedded),
     }));
     return { requestId, status: STATUS[String(req?.request_status ?? "inprogress")] ?? "in_progress", actions: signerActions };
+  }
+
+  // VERIFY against Zoho Sign's live docs: GET /requests with `data.page_context.search_columns`.
+  async findByReference(reference: string): Promise<CreatedRequest[]> {
+    const token = referenceToken(reference);
+    const query = { page_context: { row_count: 25, start_index: 1, search_columns: { request_name: token }, sort_column: "created_time", sort_order: "DESC" } };
+    const body = await this.json(`/requests?data=${encodeURIComponent(JSON.stringify(query))}`);
+    const rows = ((body.requests as Json[] | undefined) ?? []).filter((r) => String(r.request_name ?? "").includes(token));
+    return rows.map((r) => {
+      const actions = (r.actions as Json[] | undefined) ?? [];
+      return {
+        requestId: String(r.request_id),
+        status: STATUS[String(r.request_status ?? "")] ?? "in_progress",
+        actions: actions.map((a) => ({ actionId: String(a.action_id), role: String(a.role ?? ""), email: String(a.recipient_email ?? ""), embedded: Boolean(a.is_embedded) })),
+      };
+    });
   }
 
   async embeddedSigningUrl(requestId: string, actionId: string, host: string): Promise<string> {
@@ -238,6 +256,11 @@ export class ZohoSignProvider implements EsignProvider {
   parseWebhook(rawBody: string): EsignEvent | null {
     return parseZohoWebhook(rawBody);
   }
+}
+
+/** Short, search-friendly token for our reference (disclosure or Form 159 id plus attempt). */
+export function referenceToken(reference: string): string {
+  return `KCREF${createHash("sha256").update(reference).digest("hex").slice(0, 12)}`;
 }
 
 export function signZohoPayload(rawBody: string, secret: string): string {

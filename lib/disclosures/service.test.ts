@@ -20,6 +20,8 @@ import {
 import { MemoryDisclosureStore, MemoryDocumentStorage } from "./store";
 import { sampleMldsInput } from "./test-fixtures";
 import { UETA_CONSENT_VERSION } from "./ueta";
+import { MemoryIdempotencyStore } from "@/lib/workflows/idempotency";
+import type { ApprovalDecision, ApprovalGate, OutboundAction } from "@/lib/compliance/approval-gate";
 
 const LEAD = "11111111-1111-4111-8111-111111111111";
 const OPP = "33333333-3333-4333-8333-333333333333";
@@ -33,10 +35,12 @@ let provider: FakeEsignProvider;
 let gate: FakeApprovalGate;
 let crmGate: FakeApprovalGate;
 let crmWrites: { twentyOpportunityId: string; title: string }[];
+let effects: MemoryIdempotencyStore;
 
 function sendDeps(over: Partial<SendDeps> = {}): SendDeps {
   return {
     store,
+    effects,
     provider,
     gate,
     now,
@@ -86,6 +90,69 @@ beforeEach(() => {
   gate = new FakeApprovalGate("approved");
   crmGate = new FakeApprovalGate("approved");
   crmWrites = [];
+  effects = new MemoryIdempotencyStore();
+});
+
+/** Mirrors lib/approvals/gate.ts: "approved" is handed out once per key, then already_executed. */
+class ClaimOnceGate implements ApprovalGate {
+  readonly claimed = new Set<string>();
+  async request(action: OutboundAction): Promise<ApprovalDecision> {
+    if (this.claimed.has(action.idempotencyKey)) return { status: "rejected", approvalId: `appr_${action.idempotencyKey}`, decidedBy: "system", reason: "already_executed" };
+    this.claimed.add(action.idempotencyKey);
+    return { status: "approved", approvalId: `appr_${action.idempotencyKey}`, decidedBy: "broker@test", decidedAt: new Date(0) };
+  }
+  async peek(action: OutboundAction): Promise<ApprovalDecision> {
+    return { status: "approved", approvalId: `appr_${action.idempotencyKey}`, decidedBy: "broker@test", decidedAt: new Date(0) };
+  }
+}
+
+describe("sendMlds creates at most one envelope", () => {
+  it("two concurrent sends create one request", async () => {
+    const r = await generated();
+    await consentAll(r.id);
+    const claimGate = new ClaimOnceGate();
+    const results = await Promise.allSettled([sendMlds(sendDeps({ gate: claimGate }), r.id, "staff:a"), sendMlds(sendDeps({ gate: claimGate }), r.id, "staff:b")]);
+    expect(provider.requests.size).toBe(1);
+    expect(results.some((x) => x.status === "fulfilled" && x.value.sent)).toBe(true);
+    for (const x of results) if (x.status === "rejected") expect(x.reason).toMatchObject({ reason: "send_in_progress" });
+    expect((await store.get(r.id))?.status).toBe("sent");
+  });
+
+  it("a retry after the DB update failed replays the created request instead of creating another", async () => {
+    const r = await generated();
+    await consentAll(r.id);
+    const claimGate = new ClaimOnceGate();
+    const realUpdate = store.update.bind(store);
+    let failNext = false;
+    store.update = async (...args: Parameters<typeof store.update>) => {
+      if (failNext && args[2].status === "sent") {
+        failNext = false;
+        throw new Error("db timeout");
+      }
+      return realUpdate(...args);
+    };
+    failNext = true;
+    await expect(sendMlds(sendDeps({ gate: claimGate }), r.id, "staff")).rejects.toThrow(/db timeout/);
+    expect(provider.requests.size).toBe(1);
+    const retry = await sendMlds(sendDeps({ gate: claimGate }), r.id, "staff");
+    expect(retry.sent).toBe(true);
+    expect(provider.requests.size).toBe(1);
+    expect(retry.record.providerRequestId).toBe([...provider.requests.keys()][0]);
+  });
+
+  it("an ambiguous provider failure is reconciled by reference on retry", async () => {
+    const r = await generated();
+    await consentAll(r.id);
+    const claimGate = new ClaimOnceGate();
+    provider.failAfterCreate = 1;
+    await expect(sendMlds(sendDeps({ gate: claimGate }), r.id, "staff")).rejects.toThrow(/timed out/);
+    expect(provider.requests.size).toBe(1);
+    const retry = await sendMlds(sendDeps({ gate: claimGate }), r.id, "staff");
+    expect(retry.sent).toBe(true);
+    expect(provider.requests.size).toBe(1);
+    const events = await store.events(r.id);
+    expect(events.find((e) => e.eventType === "send")?.detail).toMatchObject({ reconciled: true });
+  });
 });
 
 describe("openMldsCase", () => {
