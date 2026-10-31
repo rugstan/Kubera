@@ -1,5 +1,14 @@
 import "server-only";
+import { ASSUMPTIONS_REVIEWED, HUD } from "@/lib/sizing/assumptions";
 import { supabaseAdmin } from "@/lib/supabase/server";
+
+const pct = (n: number, digits = 0) => `${(n * 100).toFixed(digits)}%`;
+const x = (n: number) => `${n.toFixed(2)}x`;
+const s232 = HUD.section232;
+const mf = HUD.multifamily;
+
+/** As-of date the HUD figures in the primer were last checked against sources. */
+export const HUD_FACTS_AS_OF = ASSUMPTIONS_REVIEWED;
 
 // Core program primer, always in the advisor's context. Handbook-level detail
 // (HUD 4232.1, MAP Guide, SOP 50 10, CMBS/STR standards, Title 22) lives in the
@@ -8,10 +17,11 @@ export const PROGRAM_PRIMER = `
 # Kubera Commercial program primer (summary — defer to current handbooks)
 
 ## HUD Section 232 (healthcare: assisted living, board & care / RCFE, memory care, SNF)
-- 232/223(f) refinance or acquisition of existing licensed facilities: up to 35-year fixed, fully amortizing, non-recourse, assumable. Typical max 80% LTV (for-profit), 1.45x minimum DSCR. Generally requires 3+ years since construction completion and stabilized operations.
-- 232 new construction / substantial rehab: construction period plus up to 40-year term.
-- Costs: upfront MIP (~1%), annual MIP (~0.65% for 223(f)), lender financing fee, HUD application fees, third-party reports, legal. Annual audited financial statements (CPA audit, ~$20k/yr) required. HUD LEAN processing typically 120–180 days.
-- The 0.25% Green MIP reduction is a HUD multifamily (223(f), 221(d)(4)) incentive; do not promise it for Section 232 without current HUD guidance.
+- 232/223(f) refinance or acquisition of existing licensed facilities: up to ${s232.refi.termYears}-year fixed, fully amortizing, non-recourse, assumable. Typical max ${pct(s232.refi.maxLtv)} LTV (for-profit), ${x(s232.refi.minDscr)} minimum DSCR. Generally requires ${s232.minYearsSinceCompletion}+ years since construction completion and stabilized operations.
+- 232 new construction / substantial rehab: construction period plus up to ${s232.newConstruction.termYears}-year term, ~${pct(s232.newConstruction.maxLtc)} LTC (for-profit), ${x(s232.newConstruction.minDscr)} DSCR.
+- Costs: upfront MIP (~${pct(s232.refi.upfrontMip)}), annual MIP (~${pct(s232.refi.annualMip, 2)} for 223(f), ~${pct(s232.newConstruction.annualMip, 2)} new construction), lender financing fee, HUD application fees, third-party reports, legal. Annual audited financial statements (CPA audit, ~$20k/yr) required. HUD LEAN processing typically 120–180 days.
+- Section 232 leverage and coverage were not changed by HUD Mortgagee Letter 2025-03 (as of ${HUD_FACTS_AS_OF}). Whether the Sept 2025 flat 0.25% MIP notice reaches Section 232 is unconfirmed; quote the 232 MIP above and say it is being verified.
+- Green certification does not lower HUD MIP on any program (multifamily or Section 232).
 - Under ~$3.5M, HUD's fixed costs often make SBA 504 the cheaper all-in choice.
 
 ## Bridge-to-HUD (senior living)
@@ -29,8 +39,9 @@ export const PROGRAM_PRIMER = `
 - Key metrics: ADR, occupancy, RevPAR (= ADR × occupancy), STR comp-set penetration (RGI), NOI per key, franchise term remaining and PIP scope.
 
 ## Multifamily & commercial
-- HUD 223(f): 35-year fixed, non-recourse; ~85% LTV / 1.176x DSCR market-rate (higher leverage for affordable). HUD 221(d)(4): construction + 40-year fixed, ~85% LTC.
-- HUD multifamily annual MIP ~0.60–0.65% market-rate, ~0.35% affordable, 0.25% Green (with qualifying green certification).
+- HUD 223(f) (as of ${HUD_FACTS_AS_OF}; HUD Mortgagee Letter 2025-03, Jan 2025): ${mf.s223f.termYears}-year fixed, non-recourse; market-rate max ${pct(mf.s223f.maxLtv)} LTV at ${x(mf.s223f.minDscr)} minimum DSCR; affordable or rental-assistance properties ${pct(mf.s223f.maxLtvAffordable)} LTV at ${x(mf.s223f.minDscrAffordable)}. Cash-out refinances remain capped at ${pct(mf.s223f.cashOutMaxLtv)} LTV.
+- HUD 221(d)(4) (as of ${HUD_FACTS_AS_OF}; ML 2025-03): construction + ${mf.s221d4.termYears}-year fixed; market-rate max ${pct(mf.s221d4.maxLtc)} LTC at ${x(mf.s221d4.minDscr)}; affordable or rental-assistance ${pct(mf.s221d4.maxLtcAffordable)} LTC at ${x(mf.s221d4.minDscrAffordable)}. A middle-income 221(d)(4) tier has been reported by a single source; do not quote it until a HUD lender confirms it.
+- HUD multifamily MIP (as of ${HUD_FACTS_AS_OF}; Federal Register, Sept 23, 2025): a flat ${pct(mf.mip.annual, 2)} annual MIP for all FHA multifamily programs on applications submitted or amended on or after Oct 1, 2025; the separate green, affordable and market-rate MIP tiers no longer apply. Upfront premium modeled at ${pct(mf.mip.upfront, 2)} (being verified with HUD lenders).
 - Agency (Fannie Mae / Freddie Mac): 5–12 year fixed, ~30-year amortization, ~80% LTV, 1.25x DSCR, non-recourse.
 - Private bridge, hard money & construction ($750k–$25M): Kubera arranges loans from private lenders and debt funds, which fund at closing as lender of record. Many close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is never guaranteed.
 - Usury: California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code § 1916.1). Whether one applies depends on the lender, the collateral, and how the loan and any later extension or modification are arranged. Never tell a borrower that a specific loan is exempt; refer them to their attorney.

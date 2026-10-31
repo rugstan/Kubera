@@ -1,5 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { FALLBACK_BENCHMARKS, SPREADS } from "@/lib/sizing/assumptions";
+import { FALLBACK_BENCHMARKS, HUD, SPREADS } from "@/lib/sizing/assumptions";
 
 export type Benchmarks = {
   fiveYear: number;
@@ -75,7 +75,7 @@ export function buildTicker(b: Benchmarks, changes: Partial<Record<keyof Benchma
       value: range(b.tenYear + s.hud232.lo, b.tenYear + s.hud232.hi),
       derived: true,
     },
-    { key: "greenMip", label: "HUD Green MIP", value: "0.25%", derived: true },
+    { key: "hudMfMip", label: "HUD Multifamily MIP", value: pct(HUD.multifamily.mip.annual * 100), derived: true },
     {
       key: "sba504",
       label: "SBA 504 25-Yr Eff.",

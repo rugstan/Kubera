@@ -238,7 +238,7 @@ function MultifamilyForm({ v, set }: FormProps<MultifamilyInputs>) {
       <MoneyField label={construction ? "As-stabilized value" : "As-is value"} value={v.value ?? 0} onChange={(n) => set((p) => ({ ...p, value: n || undefined }))} hint="Leave blank to estimate from cap rate" />
       {construction && <MoneyField label="Total project cost (for LTC)" value={v.totalCost ?? 0} onChange={(n) => set((p) => ({ ...p, totalCost: n || undefined }))} />}
       <Toggle label="Affordable / LIHTC" checked={v.affordable} onChange={u("affordable")} />
-      <Toggle label="Green certification" hint="Unlocks 0.25% HUD Green MIP" checked={v.green} onChange={u("green")} />
+      <Toggle label="Green certification" hint="May improve agency pricing; no longer lowers HUD MIP" checked={v.green} onChange={u("green")} />
     </>
   );
 }

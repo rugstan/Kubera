@@ -87,13 +87,14 @@ describe("hospitality sizer", () => {
 });
 
 describe("multifamily sizer", () => {
-  it("applies the 0.25% Green MIP to HUD 223(f)", () => {
+  it("charges the flat 0.25% MIP on HUD 223(f) whether or not the asset is green", () => {
     const r = sizeMultifamily(
       { assetType: "MULTIFAMILY", units: 120, sqft: 0, loanAmount: 20_000_000, noi: 1_700_000, value: 29_000_000, transaction: "REFINANCE", affordable: false, green: true },
       rates,
     );
     const hud = r.quotes.find((q) => q.id === "HUD_221D4_223F_MULTIFAMILY")!;
-    expect(hud.annualFee.amount).toBeCloseTo(hud.loanAmount * HUD.multifamily.mip.green, 0);
+    expect(hud.annualFee.amount).toBeCloseTo(hud.loanAmount * HUD.multifamily.mip.annual, 0);
+    expect(hud.annualFee.label).not.toMatch(/Green/);
   });
 
   it("keeps HUD and agency off commercial assets", () => {
@@ -133,6 +134,12 @@ describe("Jev rules engine", () => {
     const { decision } = decideWithRules({ ...base, loanAmount: 10_000_000, noi: 150_000, value: 3_000_000 });
     expect(decision.leadUrgencyTier).toBe("UNQUALIFIED");
     expect(decision.estimatedBrokerCommissionUsd).toBe(0);
+  });
+
+  it("no longer treats HUD multifamily as a green MIP candidate", () => {
+    const mf = intakeSchema.parse({ assetType: "MULTIFAMILY", transaction: "REFINANCE", loanAmount: 20_000_000, noi: 1_700_000, value: 29_000_000, unitCount: 120, occupancyPct: 95, green: true, nonRecourseOnly: true });
+    const { decision } = decideWithRules(mf);
+    expect(decision.greenMipOrGreen504Candidate).toBe(false);
   });
 
   it("decides in well under 200ms", () => {

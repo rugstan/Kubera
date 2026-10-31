@@ -189,7 +189,8 @@ export function decideWithRules(intake: Intake, rates: Benchmarks = FALLBACK_BEN
     flag = "OPTIMAL_FOR_HUD_232";
   }
 
-  const green = intake.green && sizing.quotes.some((q) => q.eligible && (q.id === "HUD_221D4_223F_MULTIFAMILY" || q.id.startsWith("SBA_")));
+  // Green certification no longer lowers HUD MIP, so only the SBA 504 green debenture cap counts.
+  const green = intake.green && sizing.quotes.some((q) => q.eligible && q.id.startsWith("SBA_"));
 
   let tier: JevLoanDecisionSchema["leadUrgencyTier"];
   const noIncome = intake.noi <= 0 && intake.transaction !== "CONSTRUCTION" && intake.transaction !== "CONVERSION";
