@@ -1,35 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { QUALIFIER_RESULT as RESULT, fillQualifierThroughContact } from "./forms-helpers";
 import { gotoHydrated, mockJsonApi } from "./helpers";
-
-const RESULT = {
-  leadId: null,
-  uploadToken: null,
-  result: {
-    program: "HUD 232/223(f) Refinance",
-    secondary: "SBA 504",
-    flag: "OPTIMAL_FOR_HUD_232",
-    indicativeLoan: 3_000_000,
-    indicativeRatePct: 6.15,
-    term: "35 years",
-    recourse: "Non-recourse",
-    closeTimeline: "6–9 months",
-    callScheduled: false,
-    qualified: true,
-  },
-};
-
-async function fillThroughToContact(page: Page) {
-  await page.getByRole("button", { name: /assisted living/i }).click();
-  await expect(page.getByRole("heading", { name: /the numbers/i })).toBeVisible();
-  await page.getByRole("button", { name: /^continue$/i }).click();
-  await expect(page.getByRole("heading", { name: /timing/i })).toBeVisible();
-  await page.getByRole("button", { name: /^continue$/i }).click();
-  await expect(page.getByLabel(/first name/i)).toBeVisible();
-  await page.getByLabel(/first name/i).fill("Pat");
-  await page.getByLabel(/last name/i).fill("Lee");
-  await page.getByLabel(/^email/i).fill("pat.lee@example.com");
-  await page.getByLabel(/mobile phone|^phone/i).fill("415-555-0132");
-}
 
 test.describe("express qualifier", () => {
   test("happy path: four steps, consent, submit, indicative result", async ({ page }) => {
@@ -37,23 +8,36 @@ test.describe("express qualifier", () => {
     await gotoHydrated(page, "/express");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-    await fillThroughToContact(page);
+    await fillQualifierThroughContact(page, { phone: "415-555-0132" });
 
     const submit = page.getByRole("button", { name: /see my indicative structure/i });
-    await page.getByRole("checkbox").check();
+    await page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i }).check();
     await expect(submit).toBeEnabled();
     await submit.click();
 
     await expect(page.getByText("HUD 232/223(f) Refinance")).toBeVisible();
     // The page owns the single H1; the result heading is an H2 inside it.
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-    await expect(page.getByRole("heading", { level: 2, name: /thanks, pat/i })).toBeVisible();
+    const thanks = page.getByRole("heading", { level: 2, name: /thanks, pat/i });
+    await expect(thanks).toBeVisible();
+    // Focus moves to the result so screen-reader users hear it.
+    await expect(thanks).toBeFocused();
 
     expect(calls).toHaveLength(1);
     expect(calls[0]!.contentType).toContain("application/json");
     expect(calls[0]!.body).toMatchObject({
-      intake: { assetType: "ASSISTED_LIVING", transaction: "REFINANCE", source: "express" },
-      contact: { firstName: "Pat", lastName: "Lee", email: "pat.lee@example.com", consent: true },
+      intake: {
+        assetType: "ASSISTED_LIVING",
+        transaction: "REFINANCE",
+        loanAmount: 3_000_000,
+        noi: 400_000,
+        unitCount: 60,
+        occupancyPct: 88,
+        timelineDays: 90,
+        ownerOperator: true,
+        source: "express",
+      },
+      contact: { firstName: "Pat", lastName: "Lee", email: "pat.lee@example.com", phone: "415-555-0132", consent: true },
       consentMeta: { textVersion: "qualifier-contact-2026-10-31", page: "/express" },
     });
   });
@@ -62,8 +46,9 @@ test.describe("express qualifier", () => {
     // The consent text says consent is not a condition of any service, so it must not gate submit.
     const calls = await mockJsonApi(page, "/api/qualify", { body: RESULT });
     await gotoHydrated(page, "/express");
-    await fillThroughToContact(page);
-    await expect(page.getByRole("checkbox")).not.toBeChecked();
+    await fillQualifierThroughContact(page);
+    const consent = page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i });
+    await expect(consent).not.toBeChecked();
     const submit = page.getByRole("button", { name: /see my indicative structure/i });
     await expect(submit).toBeEnabled();
     await submit.click();
@@ -76,7 +61,7 @@ test.describe("express qualifier", () => {
     // A stored lead returns an upload token, which reveals the upload step.
     await mockJsonApi(page, "/api/qualify", { body: { ...RESULT, leadId: "6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10", uploadToken: "t".repeat(43) } });
     await gotoHydrated(page, "/express");
-    await fillThroughToContact(page);
+    await fillQualifierThroughContact(page);
     await page.getByRole("button", { name: /see my indicative structure/i }).click();
 
     const docType = page.getByRole("combobox", { name: /document type/i });
@@ -105,8 +90,7 @@ test.describe("express qualifier", () => {
   test("shows the server's error message and keeps the form usable", async ({ page }) => {
     await mockJsonApi(page, "/api/qualify", { status: 429, body: { error: "Too many submissions. Please call us directly." } });
     await gotoHydrated(page, "/express");
-    await fillThroughToContact(page);
-    await page.getByRole("checkbox").check();
+    await fillQualifierThroughContact(page);
     await page.getByRole("button", { name: /see my indicative structure/i }).click();
 
     await expect(page.getByRole("alert").filter({ hasText: /too many submissions/i })).toBeVisible();
@@ -116,5 +100,8 @@ test.describe("express qualifier", () => {
   test("preselects the asset from the query string and skips the first step", async ({ page }) => {
     await gotoHydrated(page, "/express?asset=MULTIFAMILY&loan=5000000");
     await expect(page.getByRole("heading", { name: /the numbers/i })).toBeVisible();
+    // Only what the visitor passed is pre-filled.
+    await expect(page.getByLabel(/loan amount requested/i)).toHaveValue("5,000,000");
+    await expect(page.getByLabel(/trailing 12-month noi/i)).toHaveValue("");
   });
 });

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { ExpressHeader } from "@/components/express/ExpressHeader";
 import { Qualifier } from "@/components/express/Qualifier";
 import { LEGAL_PAGES } from "@/components/legal/legal";
-import { Logo } from "@/components/site/Logo";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
 
@@ -29,13 +29,7 @@ export default function ExpressPage() {
     <div className="flex min-h-dvh flex-col">
       {/* Hides the floating Ask button here and on the express host's rewritten `/` (globals.css). */}
       <div data-ask-floating-hidden hidden />
-      <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-6">
-        <Logo />
-        <span className="flex items-center gap-1.5 text-[13px] text-titanium">
-          <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden><path d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5H6V4.5a2 2 0 1 1 4 0V6Z" /></svg>
-          Private &amp; encrypted
-        </span>
-      </header>
+      <ExpressHeader />
       <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16">
         <section className="mb-10 text-center">
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">60-second deal qualifier</h1>

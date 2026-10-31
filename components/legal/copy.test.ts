@@ -85,11 +85,13 @@ describe("notice at collection placement", () => {
     expect(src).toContain(`<NoticeAtCollection point="${point}" />`);
   });
 
-  it("places the qualifier notice on the contact step, before the submit button", () => {
+  it("places the qualifier notice on the contact step, which renders only on the last step", () => {
     const src = read("components/express/Qualifier.tsx");
-    const notice = src.indexOf('<NoticeAtCollection point="qualifier" />');
-    expect(notice).toBeGreaterThan(src.indexOf("{step === 3 && ("));
-    expect(notice).toBeLessThan(src.indexOf("onClick={submit}"));
+    const contactStep = src.slice(src.indexOf("function ContactStep("));
+    expect(contactStep).toContain('<NoticeAtCollection point="qualifier" />');
+    expect(src).toContain("{step === 3 && <ContactStep");
+    // The submit button belongs to the last step only.
+    expect(src).toMatch(/step === 3 \? \(\s*<button[^>]*type="submit"/);
   });
 
   it("places the partner notice before the submit button", () => {
