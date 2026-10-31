@@ -133,9 +133,9 @@ export const PURPOSES = [
   "Comply with law, respond to lawful requests, and enforce our terms.",
 ] as const;
 
-export type CollectionPoint = "qualifier" | "partner" | "upload";
+export type CollectionPoint = "qualifier" | "partner" | "upload" | "privacy_request";
 
-export const COLLECTION_POINTS: Record<CollectionPoint, { categories: readonly CategoryId[]; purpose: string }> = {
+export const COLLECTION_POINTS: Record<CollectionPoint, { categories: readonly CategoryId[]; purpose: string; retention?: string }> = {
   qualifier: {
     categories: ["identifiers", "contact", "loan_request", "consent_records", "device_usage", "inferences"],
     purpose: "to review your financing request, have an advisor contact you, and arrange financing if you go ahead",
@@ -147,6 +147,12 @@ export const COLLECTION_POINTS: Record<CollectionPoint, { categories: readonly C
   upload: {
     categories: ["financial_documents", "loan_request", "device_usage"],
     purpose: "to analyze your request and, with your direction, share your loan package with prospective lenders",
+  },
+  privacy_request: {
+    categories: ["identifiers", "contact"],
+    purpose: "to verify your identity and respond to your privacy request; we use it only for that purpose",
+    // 11 CCR §7101: request records are kept 24 months (see lib/privacy/retention.ts).
+    retention: "which for privacy requests is 24 months after we close the request, as California privacy regulations require",
   },
 };
 
@@ -160,6 +166,7 @@ export function categoryById(id: CategoryId): PiCategory {
 export function categoriesSentence(point: CollectionPoint): string {
   const labels = COLLECTION_POINTS[point].categories.map((id) => categoryById(id).label.toLowerCase());
   if (labels.length <= 1) return labels.join("");
+  if (labels.length === 2) return labels.join(" and ");
   return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
 }
 

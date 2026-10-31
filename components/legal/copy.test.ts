@@ -97,6 +97,7 @@ describe("notice at collection placement", () => {
     ["components/express/Qualifier.tsx", "qualifier"],
     ["components/express/DocumentUpload.tsx", "upload"],
     ["components/partners/PartnerPortal.tsx", "partner"],
+    ["components/privacy/PrivacyRequestForm.tsx", "privacy_request"],
   ])("%s renders the %s notice", (file, point) => {
     const src = read(file);
     expect(src).toContain('from "@/components/legal/NoticeAtCollection"');
@@ -115,6 +116,12 @@ describe("notice at collection placement", () => {
   it("places the partner notice before the submit button", () => {
     const src = read("components/partners/PartnerPortal.tsx");
     expect(src.indexOf('<NoticeAtCollection point="partner" />')).toBeLessThan(src.indexOf('type="submit"'));
+  });
+
+  it("places the privacy request notice before the submit button", () => {
+    const src = read("components/privacy/PrivacyRequestForm.tsx");
+    expect(src.indexOf('<NoticeAtCollection point="privacy_request" />')).toBeGreaterThan(src.indexOf('id={fid("email")}'));
+    expect(src.indexOf('<NoticeAtCollection point="privacy_request" />')).toBeLessThan(src.indexOf('type="submit"'));
   });
 
   it("places the upload notice before the file input", () => {

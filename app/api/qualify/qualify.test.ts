@@ -190,6 +190,24 @@ describe("POST /api/qualify with advisor-only handling", () => {
   });
 });
 
+describe("POST /api/qualify with a hard money intake", () => {
+  it("does not flag a low-LTV hard money request without an ARV as an exit shortfall", async () => {
+    const body = {
+      ...leadBody,
+      intake: { assetType: "RESIDENTIAL_2_4", transaction: "HARD_MONEY", loanAmount: 400_000, noi: 0, value: 1_000_000, unitCount: 3, occupancyPct: 0, source: "express" },
+    };
+    const res = await qualify.POST(request("/api/qualify", body, "qualify"));
+    expect(res.status).toBe(200);
+    const { result } = await res.json();
+    expect(result.program).toBeTruthy();
+    expect(result.flag).not.toBe("EXIT_SHORTFALL_NEEDS_RESTRUCTURE");
+    const lead = state.inserts.find((i) => i.table === "leads")!.row;
+    expect(lead.decision).toMatchObject({ assetVertical: "HARD_MONEY_PRIVATE", primaryProgramFit: "HARD_MONEY" });
+    expect(lead.decision).not.toMatchObject({ sizingOptimizationFlag: "EXIT_SHORTFALL_NEEDS_RESTRUCTURE" });
+    expect(lead.rationale).toEqual(expect.arrayContaining([expect.stringMatching(/sale exit was not tested/)]));
+  });
+});
+
 describe("POST /api/ask for a conversation tied to an opted-out lead", () => {
   function fakeModel() {
     const calls: unknown[] = [];

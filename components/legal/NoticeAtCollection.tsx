@@ -7,7 +7,7 @@ import { categoriesSentence, COLLECTION_POINTS, type CollectionPoint } from "./l
 // The privacy link opens in a new tab so a multi-step form keeps its state.
 
 export function NoticeAtCollection({ point, className = "" }: { point: CollectionPoint; className?: string }) {
-  const { purpose } = COLLECTION_POINTS[point];
+  const { purpose, retention = "generally three years after our last contact" } = COLLECTION_POINTS[point];
   return (
     <div role="note" aria-label="Notice at collection" data-notice-at-collection={point} className={`text-[12px] leading-relaxed text-ink/70 ${className}`}>
       <p>
@@ -17,7 +17,7 @@ export function NoticeAtCollection({ point, className = "" }: { point: Collectio
         <a href="/privacy#retention" target="_blank" rel="noopener" className="font-medium text-accent underline underline-offset-2">
           retention schedule<span className="sr-only"> (opens in a new tab)</span>
         </a>{" "}
-        allows, generally three years after our last contact.{" "}
+        allows, {retention}.{" "}
         <a href="/privacy#notice-at-collection" target="_blank" rel="noopener" className="font-medium text-accent underline underline-offset-2">
           Read the full notice and your California privacy rights<span className="sr-only"> (opens in a new tab)</span>
         </a>

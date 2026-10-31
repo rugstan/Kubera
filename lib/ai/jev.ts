@@ -144,7 +144,8 @@ function sizeHardMoneyIntake(intake: Intake, rates: Benchmarks): SizerResult {
   const term = hm?.termMonths ?? 12;
   return sizeHardMoney(
     {
-      strategy: hm?.strategy ?? "FIX_AND_FLIP",
+      // A rental hold is a bridge whose exit is a long-term (DSCR) refinance.
+      strategy: hm?.strategy === "RENTAL" ? "BRIDGE" : (hm?.strategy ?? "FIX_AND_FLIP"),
       purpose: hm?.purpose ?? "PURCHASE",
       propertyType: hardMoneyPropertyType(intake),
       units: intake.unitCount,
@@ -159,12 +160,28 @@ function sizeHardMoneyIntake(intake: Intake, rates: Benchmarks): SizerResult {
       interestBasis: "OUTSTANDING",
       existingPayoff: hm?.existingPayoff,
       stabilizedNoi: intake.noi > 0 ? intake.noi : undefined,
-      monthlyRent: intake.rental?.monthlyRent,
-      monthlyTaxesInsuranceHoa: intake.rental?.monthlyTaxesInsuranceHoa,
+      // As for DSCR rentals, NOI stands in for rent less taxes, insurance and HOA when no rent detail is given.
+      monthlyRent: intake.rental?.monthlyRent ?? (intake.noi > 0 ? intake.noi / 12 : undefined),
+      monthlyTaxesInsuranceHoa: intake.rental?.monthlyTaxesInsuranceHoa ?? 0,
       fico: intake.creditBand ? BAND_FICO[intake.creditBand] : DEFAULT_FICO,
     },
     rates,
   );
+}
+
+/**
+ * Why a hard money exit could not be tested from the intake, or null when it could.
+ * A sale exit needs an after-repair value (without one the sizer prices the sale at
+ * the as-is price, which can never cover selling and financing costs); a 1–4 unit
+ * refinance exit needs rent or NOI.
+ */
+export function untestedHardMoneyExit(intake: Intake, exit: SizerQuote["exit"]): string | null {
+  if (intake.transaction !== "HARD_MONEY" || !exit) return null;
+  if (exit.kind === "SALE" && !intake.hardMoney?.arv)
+    return "No after-repair value given, so the sale exit was not tested; the desk needs the ARV and rehab budget to confirm it.";
+  if (exit.kind === "DSCR_REFINANCE" && !intake.rental && intake.noi <= 0)
+    return "No rent or NOI given, so the refinance exit was not tested; the desk needs the projected rent to confirm it.";
+  return null;
 }
 
 function sizeConstructionIntake(intake: Intake, rates: Benchmarks): SizerResult {
@@ -316,6 +333,8 @@ export function decideWithRules(intake: Intake, rates: Benchmarks = FALLBACK_BEN
   if ((primaryId && STABILIZATION_FIRST.has(primaryId)) || vertical === "HOTEL_TO_CARE_CONVERSION" ||
       (vertical === "SENIOR_LIVING_CARE" && intake.occupancyPct < HUD.section232.stabilizedOccupancy * 100 && intake.transaction !== "CONSTRUCTION")) {
     flag = "NEEDS_STABILIZATION_OR_PIP_BRIDGE_FIRST";
+  } else if (primary?.exit && untestedHardMoneyExit(intake, primary.exit)) {
+    rationale.push(untestedHardMoneyExit(intake, primary.exit)!);
   } else if (primary?.exit?.result === "FAIL") {
     flag = "EXIT_SHORTFALL_NEEDS_RESTRUCTURE";
     rationale.push(`${primary.exit.label} falls short by ${fmt(primary.exit.shortfall)}.`);

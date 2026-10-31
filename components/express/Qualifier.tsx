@@ -18,6 +18,8 @@ import {
   ASSET_GROUPS,
   EMPTY_VALUES,
   FRANCHISE_TIERS,
+  HARD_MONEY_PURPOSES,
+  HARD_MONEY_STRATEGIES,
   STEPS,
   STEP_FIELDS,
   TIMELINES,
@@ -29,8 +31,10 @@ import {
   qualifierSchema,
   transactionOptions,
   unitLabel,
+  valueLabel,
   type Asset,
   type QualifierValues,
+  type Transaction,
 } from "./schema";
 
 // The ledger records this version id with a hash of the exact words shown.
@@ -218,7 +222,7 @@ function AssetStep({ headingRef, selected, onChoose }: HeadingProps & { selected
 function DealStep({ headingRef, asset, transaction }: HeadingProps & { asset: Asset | ""; transaction: string }) {
   const hotel = isHotel(asset);
   const building = transaction === "CONSTRUCTION" || transaction === "CONVERSION";
-  const valueLabel = transaction === "PURCHASE" ? "Purchase price" : transaction === "REFINANCE" ? "Estimated value" : "Acquisition or land cost";
+  const hardMoney = transaction === "HARD_MONEY";
   return (
     <>
       <StepHeading headingRef={headingRef} n={2}>
@@ -226,10 +230,22 @@ function DealStep({ headingRef, asset, transaction }: HeadingProps & { asset: As
       </StepHeading>
       <RequiredLegend />
       <ChoiceField name="transaction" label="Transaction" required options={transactionOptions(asset)} />
+      {hardMoney && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ChoiceField name="hmStrategy" label="Strategy (optional)" options={HARD_MONEY_STRATEGIES} />
+          <ChoiceField name="hmPurpose" label="Purchase or refinance (optional)" options={HARD_MONEY_PURPOSES} />
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <NumericField name="loanAmount" label="Loan amount requested" format="money" required placeholder="e.g. 3,000,000" />
         <NumericField name="noi" label={building ? "Projected stabilized NOI" : "Trailing 12-month NOI"} format="money" required placeholder="e.g. 400,000" />
-        <NumericField name="value" label={`${valueLabel} (optional)`} format="money" placeholder="e.g. 4,500,000" />
+        <NumericField name="value" label={`${valueLabel(transaction as Transaction | "")} (optional)`} format="money" placeholder="e.g. 4,500,000" />
+        {hardMoney && (
+          <>
+            <NumericField name="rehabBudget" label="Rehab budget (optional)" format="money" placeholder="e.g. 150,000" />
+            <NumericField name="arv" label="After-repair value (optional)" format="money" placeholder="e.g. 1,400,000" hint="What the property should be worth once the work is done." />
+          </>
+        )}
         {(hotel || isConversion(asset)) && (
           <NumericField name="pipBudget" label={`${isConversion(asset) ? "Conversion budget" : "PIP or renovation budget"} (optional)`} format="money" placeholder="e.g. 1,200,000" />
         )}

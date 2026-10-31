@@ -9,6 +9,8 @@ import type { Intake } from "@/lib/validation";
 export type Asset = Intake["assetType"];
 export type Transaction = Intake["transaction"];
 export type FranchiseTier = NonNullable<Intake["franchiseTier"]>;
+export type HardMoneyStrategy = NonNullable<Intake["hardMoney"]>["strategy"];
+export type HardMoneyPurpose = NonNullable<Intake["hardMoney"]>["purpose"];
 
 export const ASSETS: { value: Asset; label: string; group: string }[] = [
   { value: "ASSISTED_LIVING", label: "Assisted living", group: "Senior living and care" },
@@ -40,12 +42,23 @@ export const FRANCHISE_TIERS: { value: FranchiseTier; label: string }[] = [
   { value: "BOUTIQUE_INDEPENDENT", label: "Independent" },
 ];
 
+export const HARD_MONEY_STRATEGIES: { value: HardMoneyStrategy; label: string }[] = [
+  { value: "FIX_AND_FLIP", label: "Fix and flip" },
+  { value: "BRIDGE", label: "Bridge" },
+  { value: "RENTAL", label: "Rental" },
+];
+
+export const HARD_MONEY_PURPOSES: { value: HardMoneyPurpose; label: string }[] = [
+  { value: "PURCHASE", label: "Purchase" },
+  { value: "REFINANCE", label: "Refinance" },
+];
+
 export const STEPS = ["Asset", "Deal", "Terms", "Contact"] as const;
 
 /** Fields validated when a step's Continue button is pressed. */
 export const STEP_FIELDS: readonly (readonly string[])[] = [
   ["assetType"],
-  ["transaction", "loanAmount", "noi", "value", "unitCount", "occupancyPct", "adr", "pipBudget", "franchiseTier"],
+  ["transaction", "loanAmount", "noi", "value", "unitCount", "occupancyPct", "adr", "pipBudget", "franchiseTier", "hmStrategy", "hmPurpose", "rehabBudget", "arv"],
   ["timelineDays", "ownerOperator", "nonRecourseOnly", "green", "notes"],
   ["firstName", "lastName", "email", "phone", "company", "consent"],
 ];
@@ -53,6 +66,14 @@ export const STEP_FIELDS: readonly (readonly string[])[] = [
 export const isSenior = (a: Asset | "") => a === "ASSISTED_LIVING" || a === "MEMORY_CARE" || a === "RCFE" || a === "SNF";
 export const isHotel = (a: Asset | "") => a === "HOTEL_FLAGGED" || a === "HOTEL_BOUTIQUE";
 export const isConversion = (a: Asset | "") => a === "HOTEL_TO_SENIOR_CONVERSION";
+
+/** Label for the optional value field, which means something different per transaction. */
+export function valueLabel(t: Transaction | ""): string {
+  if (t === "PURCHASE") return "Purchase price";
+  if (t === "REFINANCE") return "Estimated value";
+  if (t === "HARD_MONEY") return "Purchase price or as-is value";
+  return "Acquisition or land cost";
+}
 
 export function unitLabel(a: Asset | ""): string {
   if (isSenior(a)) return "Licensed beds";
@@ -84,6 +105,12 @@ export type QualifierValues = {
   adr: number | null;
   pipBudget: number | null;
   franchiseTier: FranchiseTier | "";
+  /** Hard money only (transaction "HARD_MONEY"); all optional. */
+  hmStrategy: HardMoneyStrategy | "";
+  hmPurpose: HardMoneyPurpose | "";
+  rehabBudget: number | null;
+  /** After-repair value. */
+  arv: number | null;
   timelineDays: string;
   ownerOperator: "yes" | "no" | "";
   nonRecourseOnly: boolean;
@@ -109,6 +136,10 @@ export const EMPTY_VALUES: QualifierValues = {
   adr: null,
   pipBudget: null,
   franchiseTier: "",
+  hmStrategy: "",
+  hmPurpose: "",
+  rehabBudget: null,
+  arv: null,
   timelineDays: "",
   ownerOperator: "",
   nonRecourseOnly: false,
@@ -156,6 +187,10 @@ export function qualifierSchema(values: Pick<QualifierValues, "assetType" | "con
     adr: hotel ? z.number({ error: "Enter the average daily rate." }).min(1, "Enter a rate above $0.").max(100_000, "Enter a realistic daily rate.") : z.number().nullable(),
     pipBudget: optionalMoney,
     franchiseTier: hotel ? z.enum(["PREMIUM_FLAG", "ECONOMY_FLAG", "BOUTIQUE_INDEPENDENT"], { error: "Choose the franchise tier." }) : z.string(),
+    hmStrategy: z.enum(["", ...HARD_MONEY_STRATEGIES.map((o) => o.value)] as ["", ...HardMoneyStrategy[]]),
+    hmPurpose: z.enum(["", ...HARD_MONEY_PURPOSES.map((o) => o.value)] as ["", ...HardMoneyPurpose[]]),
+    rehabBudget: optionalMoney,
+    arv: optionalMoney,
     timelineDays: z.enum(TIMELINES.map((t) => t.value) as [string, ...string[]], { error: "Choose when you need to close." }),
     ownerOperator: z.enum(["yes", "no"], { error: "Tell us whether an owner-operator runs the property." }),
     nonRecourseOnly: z.boolean(),
@@ -185,6 +220,19 @@ export function buildQualifyPayload(v: QualifierValues, consentMeta: QualifierPa
   if (isConversion(v.assetType) && transaction === "CONSTRUCTION") transaction = "CONVERSION";
   if (!isConversion(v.assetType) && transaction === "CONVERSION") transaction = "CONSTRUCTION";
   const hotelLike = hotel || isConversion(v.assetType);
+  // Hard money detail is sent only when the visitor gave some; the server sizes defaults otherwise.
+  const hardMoney =
+    transaction === "HARD_MONEY" && (v.hmStrategy || v.hmPurpose || v.rehabBudget || v.arv)
+      ? {
+          strategy: v.hmStrategy || "FIX_AND_FLIP",
+          purpose: v.hmPurpose || "PURCHASE",
+          rehabBudget: v.rehabBudget ?? 0,
+          arv: v.arv || undefined,
+          termMonths: 12,
+          completedProjects: 0,
+          existingPayoff: undefined,
+        }
+      : undefined;
   return {
     intake: {
       assetType: v.assetType,
@@ -197,6 +245,7 @@ export function buildQualifyPayload(v: QualifierValues, consentMeta: QualifierPa
       adr: hotel ? (v.adr ?? undefined) : undefined,
       pipBudget: hotelLike ? v.pipBudget || undefined : undefined,
       franchiseTier: hotel && v.franchiseTier ? v.franchiseTier : undefined,
+      ...(hardMoney ? { hardMoney } : {}),
       timelineDays: Number(v.timelineDays),
       nonRecourseOnly: v.nonRecourseOnly,
       green: v.green,

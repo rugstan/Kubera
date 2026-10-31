@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { leadSchema } from "@/lib/validation";
-import { EMPTY_VALUES, STEP_FIELDS, buildQualifyPayload, prefillFromParams, qualifierSchema, transactionOptions, type QualifierValues } from "./schema";
+import { EMPTY_VALUES, STEP_FIELDS, buildQualifyPayload, prefillFromParams, qualifierSchema, transactionOptions, valueLabel, type QualifierValues } from "./schema";
 
 const META = { textVersion: "qualifier-contact-2026-10-31", page: "/express" };
 
@@ -139,6 +139,26 @@ describe("express payload", () => {
 
   it("refuses unvalidated values", () => {
     expect(() => buildQualifyPayload(EMPTY_VALUES, META)).toThrow();
+  });
+
+  it("sends hard money strategy, purpose, rehab and ARV as intake.hardMoney", () => {
+    const hm = { ...valid, assetType: "RESIDENTIAL_2_4", transaction: "HARD_MONEY", unitCount: 3, value: 900_000 } as const;
+    const payload = buildQualifyPayload({ ...hm, hmStrategy: "FIX_AND_FLIP", hmPurpose: "PURCHASE", rehabBudget: 150_000, arv: 1_400_000 }, META);
+    expect(payload.intake.hardMoney).toMatchObject({ strategy: "FIX_AND_FLIP", purpose: "PURCHASE", rehabBudget: 150_000, arv: 1_400_000 });
+    expect(leadSchema.safeParse({ intake: payload.intake, contact: payload.contact }).success).toBe(true);
+    expect(buildQualifyPayload({ ...hm, hmStrategy: "RENTAL", hmPurpose: "REFINANCE" }, META).intake.hardMoney).toMatchObject({ strategy: "RENTAL", purpose: "REFINANCE", rehabBudget: 0, arv: undefined });
+    // Nothing entered: the server sizes its defaults.
+    expect(buildQualifyPayload(hm, META).intake.hardMoney).toBeUndefined();
+    // Hard money fields left over from an earlier pick are not sent for another transaction.
+    expect(buildQualifyPayload({ ...valid, arv: 1_400_000, hmStrategy: "BRIDGE" }, META).intake.hardMoney).toBeUndefined();
+    expect(STEP_FIELDS[1]).toEqual(expect.arrayContaining(["hmStrategy", "hmPurpose", "rehabBudget", "arv"]));
+  });
+
+  it("labels the value field for the transaction", () => {
+    expect(valueLabel("HARD_MONEY")).toBe("Purchase price or as-is value");
+    expect(valueLabel("PURCHASE")).toBe("Purchase price");
+    expect(valueLabel("REFINANCE")).toBe("Estimated value");
+    expect(valueLabel("CONSTRUCTION")).toBe("Acquisition or land cost");
   });
 
   it("sends zero units for a commercial asset with none entered", () => {

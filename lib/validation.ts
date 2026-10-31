@@ -25,7 +25,8 @@ const percent = (max: number) => z.coerce.number().finite().min(0).max(max);
 
 /** Hard money details (transaction "HARD_MONEY"); every field has a sizing default. */
 export const hardMoneyIntakeSchema = z.object({
-  strategy: z.enum(["FIX_AND_FLIP", "BRIDGE"]).default("FIX_AND_FLIP"),
+  /** RENTAL is a bridge held for a long-term rental (DSCR) take-out; it is sized as a bridge. */
+  strategy: z.enum(["FIX_AND_FLIP", "BRIDGE", "RENTAL"]).default("FIX_AND_FLIP"),
   purpose: z.enum(["PURCHASE", "REFINANCE"]).default("PURCHASE"),
   rehabBudget: money.default(0),
   /** After-repair (or as-stabilized) value. */

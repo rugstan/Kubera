@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 
 // Public privacy request form (/privacy/ai#request). Posts to
@@ -198,6 +199,8 @@ export function PrivacyRequestForm({ privacyEmail, defaultType = "human_review" 
       <div ref={statusRef} tabIndex={-1} aria-live="assertive" className="outline-none">
         {status.kind === "error" ? <p className="rounded-xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{status.message}</p> : null}
       </div>
+
+      <NoticeAtCollection point="privacy_request" />
 
       <TurnstileSlot turnstile={turnstile} />
 

@@ -33,6 +33,15 @@ test.describe("AI use page", () => {
     });
   }
 
+  test("shows the notice at collection before the submit button", async ({ page }) => {
+    await gotoHydrated(page, "/privacy/ai");
+    const notice = page.locator('[data-notice-at-collection="privacy_request"]');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText("to verify your identity and respond to your privacy request");
+    const [noticeBox, submitBox] = await Promise.all([notice.boundingBox(), page.getByRole("button", { name: /send request/i }).boundingBox()]);
+    expect(noticeBox!.y).toBeLessThan(submitBox!.y);
+  });
+
   test("validates the request form and moves focus to the first problem", async ({ page }) => {
     await gotoHydrated(page, "/privacy/ai");
     await page.getByRole("button", { name: /send request/i }).click();

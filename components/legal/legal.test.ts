@@ -54,7 +54,7 @@ describe("personal information categories", () => {
 });
 
 describe("NoticeAtCollection", () => {
-  it.each(["qualifier", "partner", "upload"] as const)("renders the %s notice with the required elements", (point) => {
+  it.each(["qualifier", "partner", "upload", "privacy_request"] as const)("renders the %s notice with the required elements", (point) => {
     const markup = html(createElement(NoticeAtCollection, { point }));
     const t = text(markup);
     expect(markup).toContain(`data-notice-at-collection="${point}"`);
@@ -64,6 +64,15 @@ describe("NoticeAtCollection", () => {
     expect(t).toContain("We do not sell your personal information");
     expect(markup).toContain('href="/privacy#notice-at-collection"');
     expect(markup).toContain('href="/privacy#retention"');
+  });
+
+  it("states the privacy request retention period instead of the general one", () => {
+    const t = text(html(createElement(NoticeAtCollection, { point: "privacy_request" })));
+    expect(t).toContain("We collect identifiers and contact and customer records to verify your identity");
+    expect(t).toContain("we use it only for that purpose");
+    expect(t).toContain("which for privacy requests is 24 months after we close the request");
+    expect(t).not.toContain("three years");
+    expect(text(html(createElement(NoticeAtCollection, { point: "qualifier" })))).toContain("generally three years after our last contact");
   });
 
   it("flags sensitive information only on the upload notice", () => {

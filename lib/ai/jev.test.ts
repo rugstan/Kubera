@@ -39,6 +39,24 @@ describe("Jev: hard money intakes", () => {
     expect(r.rationale.some((x) => /Sale exit falls short/.test(x))).toBe(true);
   });
 
+  it("does not flag an exit shortfall on a low-LTV flip without an ARV", () => {
+    const noArv = intakeSchema.parse({ assetType: "RESIDENTIAL_2_4", transaction: "HARD_MONEY", loanAmount: 400_000, noi: 0, value: 1_000_000, unitCount: 3 });
+    const r = decideWithRules(noArv, rates);
+    expect(r.primaryQuote?.exit?.kind).toBe("SALE");
+    expect(r.decision.sizingOptimizationFlag).not.toBe("EXIT_SHORTFALL_NEEDS_RESTRUCTURE");
+    expect(r.rationale.some((x) => /No after-repair value given, so the sale exit was not tested/.test(x))).toBe(true);
+    // With an ARV the sale exit is tested as before.
+    const withArv = intakeSchema.parse({ ...noArv, hardMoney: { arv: 1_000_000 } });
+    expect(decideWithRules(withArv, rates).decision.sizingOptimizationFlag).toBe("EXIT_SHORTFALL_NEEDS_RESTRUCTURE");
+  });
+
+  it("sizes a rental hold as a bridge with a refinance exit", () => {
+    const rental = intakeSchema.parse({ assetType: "RESIDENTIAL_2_4", transaction: "HARD_MONEY", loanAmount: 500_000, noi: 60_000, value: 800_000, unitCount: 3, hardMoney: { strategy: "RENTAL", arv: 900_000 } });
+    const r = decideWithRules(rental, rates);
+    expect(r.primaryQuote?.name).toBe("Hard money bridge");
+    expect(r.primaryQuote?.exit?.kind).toBe("DSCR_REFINANCE");
+  });
+
   it("notes what it assumed for a bare hard money intake", () => {
     const bare = intakeSchema.parse({ assetType: "COMMERCIAL", transaction: "HARD_MONEY", loanAmount: 1_500_000, noi: 0 });
     expect(intakeAssumptions(bare)).toHaveLength(2);

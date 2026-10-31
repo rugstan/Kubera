@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { QUALIFIER_RESULT as RESULT, fillQualifierThroughContact } from "./forms-helpers";
+import { QUALIFIER_RESULT as RESULT, chooseOption, continueStep, fillContact, fillQualifierThroughContact, fillTerms, pickAsset } from "./forms-helpers";
 import { gotoHydrated, mockJsonApi } from "./helpers";
 
 test.describe("express qualifier", () => {
@@ -95,6 +95,37 @@ test.describe("express qualifier", () => {
 
     await expect(page.getByRole("alert").filter({ hasText: /too many submissions/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /see my indicative structure/i })).toBeEnabled();
+  });
+
+  test("asks hard money borrowers for strategy, rehab and ARV and sends them as intake.hardMoney", async ({ page }) => {
+    const calls = await mockJsonApi(page, "/api/qualify", { body: RESULT });
+    await gotoHydrated(page, "/express");
+    await pickAsset(page, /^2 to 4 unit rental$/i);
+    await expect(page.getByLabel(/after-repair value/i)).toHaveCount(0);
+    await chooseOption(page, /^hard money or fix-and-flip$/i);
+    await expect(page.getByLabel(/purchase price or as-is value/i)).toBeVisible();
+    await page.getByRole("radiogroup", { name: /strategy/i }).locator("label").filter({ hasText: /^fix and flip$/i }).click();
+    await page.getByRole("radiogroup", { name: /purchase or refinance/i }).locator("label").filter({ hasText: /^purchase$/i }).click();
+    await page.getByLabel(/loan amount requested/i).fill("600000");
+    await page.getByLabel(/trailing 12-month noi/i).fill("0");
+    await page.getByLabel(/purchase price or as-is value/i).fill("900000");
+    await page.getByLabel(/rehab budget/i).fill("150000");
+    await page.getByLabel(/after-repair value/i).fill("1400000");
+    await page.getByLabel(/^units/i).fill("3");
+    await page.getByLabel(/^occupancy/i).fill("0");
+    await continueStep(page);
+    await fillTerms(page);
+    await fillContact(page);
+    await page.getByRole("button", { name: /see my indicative structure/i }).click();
+    await expect(page.getByRole("heading", { level: 2, name: /thanks, pat/i })).toBeVisible();
+    expect(calls[0]!.body).toMatchObject({
+      intake: {
+        assetType: "RESIDENTIAL_2_4",
+        transaction: "HARD_MONEY",
+        value: 900_000,
+        hardMoney: { strategy: "FIX_AND_FLIP", purpose: "PURCHASE", rehabBudget: 150_000, arv: 1_400_000 },
+      },
+    });
   });
 
   test("preselects the asset from the query string and skips the first step", async ({ page }) => {
