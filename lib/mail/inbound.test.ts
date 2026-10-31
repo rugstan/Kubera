@@ -64,13 +64,35 @@ function setup(opts: { model?: boolean; keyring?: typeof keyring | null; subject
 }
 
 describe("inbound mail routing on sample emails", () => {
-  it("routes a lender term sheet by its subject reference; keeps the PDF in quarantine only", async () => {
+  it("routes a lender term sheet by its subject reference and files the PDF as a quarantined staff-only TERM_SHEET document", async () => {
     const { run, sink } = setup();
     const { row } = await run("termSheet");
     expect(row.classification.category).toBe("term_sheet");
-    expect(row.route).toMatchObject({ dealId: DEAL_ID, method: "reference", status: "processed", queue: "capital-markets" });
-    expect(row.attachments[0]).toMatchObject({ status: "stored", bucket: QUARANTINE_BUCKET, contentType: "application/pdf", documentId: null });
-    expect(sink.documents).toHaveLength(0);
+    expect(row.route).toMatchObject({ dealId: DEAL_ID, leadId: LEAD_ID, method: "reference", status: "processed", queue: "capital-markets" });
+    expect(row.attachments[0]).toMatchObject({ status: "registered", bucket: QUARANTINE_BUCKET, contentType: "application/pdf", kind: "TERM_SHEET", documentId: sink.documents[0]!.id });
+    expect(sink.documents).toEqual([expect.objectContaining({ leadId: LEAD_ID, kind: "TERM_SHEET", status: "quarantined" })]);
+  });
+
+  it("files only readable formats of a deal-linked term sheet, and nothing for lender mail that is not one", async () => {
+    const { deps, provider, store, sink } = setup();
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
+    const PDF = new TextEncoder().encode("%PDF-1.7\n%%EOF\n");
+    const process = async (mail: Parameters<typeof provider.add>[0]) => {
+      const m = provider.add(mail);
+      const res = await processInboundMessage({ mailbox: m.mailbox, providerMessageId: m.providerMessageId, folderId: m.folderId }, deps);
+      return store.rows.find((r) => r.id === res.mailMessageId)!;
+    };
+    const withLogo = await process({ ...SAMPLE_EMAILS.termSheet, attachments: [{ fileName: "terms.pdf", bytes: PDF }, { fileName: "logo.png", bytes: PNG }] });
+    expect(withLogo.attachments.map((a) => [a.fileName, a.status, a.kind])).toEqual([
+      ["terms.pdf", "registered", "TERM_SHEET"],
+      ["logo.png", "stored", null],
+    ]);
+    // Lender correspondence that is not a term sheet keeps its attachments with the message.
+    const before = sink.documents.length;
+    const other = await process({ ...SAMPLE_EMAILS.termSheet, subject: "KC-1A2B3C4D – Checking in", bodyText: "Following up on our call; nothing new from credit yet." });
+    expect(other.classification.category).not.toBe("term_sheet");
+    expect(other.attachments.every((a) => a.status === "stored")).toBe(true);
+    expect(sink.documents).toHaveLength(before);
   });
 
   it("routes docs@ submissions to the lead's deal and registers quarantined vault documents", async () => {

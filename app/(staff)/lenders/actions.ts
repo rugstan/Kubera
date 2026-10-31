@@ -173,9 +173,16 @@ export async function ingestTermSheetsAction(f: FormData): Promise<never> {
   return run(back, "write", async ({ staff, rt }) => {
     const dealId = str(f, "dealId");
     dealPath(dealId);
-    const r = await ingestTermSheets({ quotes: rt.store, desk: rt.desk.store, mail: rt.mail, gateway: modelGateway(), now: rt.desk.now, indexRates: indexRatesFromEnv(), events: agentSafety().events }, { dealId, actor: staff.actor });
-    if (!r.parsed && !r.errors.length) return r.skipped ? "No new term sheets; every routed term sheet already has a quote." : "No term sheets from lenders@ are routed to this deal yet.";
-    return `Parsed ${r.parsed} term sheet${r.parsed === 1 ? "" : "s"}; ${r.needsReview} need${r.needsReview === 1 ? "s" : ""} review.${r.errors.length ? ` Errors: ${r.errors.slice(0, 2).join("; ")}` : ""}`;
+    const r = await ingestTermSheets(
+      { quotes: rt.store, desk: rt.desk.store, mail: rt.mail, attachments: rt.attachments, gateway: modelGateway(), now: rt.desk.now, indexRates: indexRatesFromEnv(), events: agentSafety().events },
+      { dealId, actor: staff.actor },
+    );
+    const waiting = r.awaiting ? ` ${r.awaiting} attached term sheet${r.awaiting === 1 ? " is" : "s are"} still being scanned or read; try again shortly.` : "";
+    if (!r.parsed && !r.errors.length) {
+      if (r.awaiting) return waiting.trim();
+      return r.skipped ? "No new term sheets; every routed term sheet already has a quote." : "No term sheets from lenders@ are routed to this deal yet.";
+    }
+    return `Parsed ${r.parsed} term sheet${r.parsed === 1 ? "" : "s"}; ${r.needsReview} need${r.needsReview === 1 ? "s" : ""} review.${waiting}${r.errors.length ? ` Errors: ${r.errors.slice(0, 2).join("; ")}` : ""}`;
   });
 }
 

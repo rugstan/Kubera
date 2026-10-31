@@ -1,11 +1,14 @@
 import "server-only";
 import { agentSafety } from "@/lib/agents/core/server";
+import { supabaseExtractionStore } from "@/lib/agents/documents/store";
 import { modelGateway } from "@/lib/ai/gateway";
+import { supabaseDocumentStore } from "@/lib/documents/store";
 import { demoDesks } from "@/lib/deals/demo";
 import { dealDeskRuntime, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { supabaseSpreadStore, type SpreadStore } from "@/lib/spreads/store";
 import { packageSpreadsFromSaved, type SavedPackageSpreads } from "@/lib/spreads/workflow";
+import { vaultTermSheetAttachments, type TermSheetAttachmentSource } from "./attachments";
 import type { OutreachDeps } from "./outreach";
 import type { ExecutiveSummarySpec } from "./package";
 import type { LenderMatchStore, PartnerSource, TermSheetMailSource } from "./store";
@@ -24,6 +27,8 @@ export type LenderRuntime = {
   store: LenderMatchStore;
   partners: PartnerSource;
   mail: TermSheetMailSource;
+  /** Term sheets filed from lenders@ attachments and their extractions; null in demo mode (no filed mail). */
+  attachments: TermSheetAttachmentSource | null;
   outreach: OutreachDeps;
   /** Saved spreads (WS-L), the default source of the desk's metrics. */
   spreads: SpreadStore;
@@ -67,6 +72,7 @@ export function lenderRuntime(): LenderRuntime | null {
       store: demo.lenderStore,
       partners: demo.partners,
       mail: demo.termSheetMail,
+      attachments: null,
       spreads: demo.spreads,
       outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, events: agentSafety().events },
     };
@@ -78,6 +84,7 @@ export function lenderRuntime(): LenderRuntime | null {
     store: new SupabaseLenderMatchStore(db),
     partners: new SupabasePartnerSource(db),
     mail: new SupabaseTermSheetMailSource(db),
+    attachments: vaultTermSheetAttachments({ documents: supabaseDocumentStore(db), extractions: supabaseExtractionStore(db) }),
     spreads: supabaseSpreadStore(db),
     outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, events: agentSafety().events },
   };

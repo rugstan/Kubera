@@ -308,6 +308,8 @@ export const DOC_TYPE_BY_VAULT_KIND: Readonly<Record<string, DocType | undefined
   STR_REPORT: "STR",
   PFS: "PFS",
   PIP_BUDGET: "CONSTRUCTION_BUDGET",
+  // Lender term sheets filed from lenders@ (lib/mail/attachments.ts).
+  TERM_SHEET: "TERM_SHEET",
 };
 
 /** Registered extraction prompt version (lib/agents/documents/prompt.ts extractionPrompt); stored on every extraction row. */

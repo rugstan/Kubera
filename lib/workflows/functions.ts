@@ -97,6 +97,27 @@ export function isDealTermSheet(data: unknown): data is { category: "term_sheet"
   return !!d && d.category === "term_sheet" && typeof d.dealId === "string" && d.dealId.length > 0;
 }
 
+/**
+ * Re-checks after the first pass while an attached term sheet is still being
+ * scanned and extracted (about 6 h in all, the intake's attachment wait). The
+ * last pass reads anything still waiting from the email body alone.
+ */
+export const TERM_SHEET_RECHECK_MS = [2, 5, 10, 20, 30, 60, 120, 120].map((m) => m * 60_000);
+
+/** The lender-term-sheets function body: ingest, then re-check while attachments are pending. */
+export async function lenderTermSheetsHandler(c: Pick<HandlerContext, "data" | "step">, agents: Pick<AgentWorkflowHooks, "termSheets">): Promise<Record<string, unknown>> {
+  if (!isDealTermSheet(c.data)) return { status: "skipped", reason: "not_a_deal_term_sheet" };
+  const dealId = c.data.dealId;
+  let result = await c.step.run("ingest-term-sheets", () => agents.termSheets(dealId));
+  for (const [i, ms] of TERM_SHEET_RECHECK_MS.entries()) {
+    if (!result.awaiting) break;
+    await c.step.sleep(`await-attachments-${i + 1}`, ms);
+    const last = i === TERM_SHEET_RECHECK_MS.length - 1;
+    result = await c.step.run(`ingest-term-sheets-${i + 1}`, () => agents.termSheets(dealId, last ? { attachmentWaitMs: 0 } : {}));
+  }
+  return result;
+}
+
 function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () => AgentWorkflowHooks) {
   const documentClean = client.createFunction(
     {
@@ -162,13 +183,7 @@ function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () 
       concurrency: { limit: 2 },
       retries: 3,
     },
-    async (ctx) =>
-      guard(async () => {
-        const c = context(ctx as unknown as InngestCtx);
-        if (!isDealTermSheet(c.data)) return { status: "skipped", reason: "not_a_deal_term_sheet" };
-        const dealId = c.data.dealId;
-        return c.step.run("ingest-term-sheets", () => getAgents().termSheets(dealId));
-      }),
+    async (ctx) => guard(async () => lenderTermSheetsHandler(context(ctx as unknown as InngestCtx), getAgents())),
   );
 
   const speedToLead = client.createFunction(

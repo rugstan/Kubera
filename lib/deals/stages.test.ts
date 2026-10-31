@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { DealCompliance } from "@/lib/compliance/gates";
+import { evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
 import { MemoryDisclosureStore } from "@/lib/disclosures/store";
 import { advanceDeal, editDeal, stageContext } from "./service";
 import { LockedFieldError, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest } from "./stages";
@@ -11,8 +11,22 @@ import { MemoryStageEventSink } from "./stage-events";
 import { markOutreachSent, recordLenderResponse, sendPackageToLender } from "./packages";
 import { sbaPackagingFee } from "./ledger";
 
-const closingOk = { gates: { closing: { allowed: true, reasons: [] } } } as unknown as DealCompliance;
-const closingBlocked = { gates: { closing: { allowed: false, reasons: ["No deal moves to closing without a signed MLDS (RE 882) on file."] } } } as unknown as DealCompliance;
+const allowed = { allowed: true, reasons: [] };
+const closingOk = { gates: { closing: allowed, borrowerCommitment: allowed, borrowerLoanDocuments: allowed } } as unknown as DealCompliance;
+const closingBlocked = {
+  gates: {
+    closing: { allowed: false, reasons: ["No deal moves to closing without a signed MLDS (RE 882) on file."] },
+    borrowerCommitment: allowed,
+    borrowerLoanDocuments: { allowed: false, reasons: ["A signed MLDS (RE 882) must be on file before any loan document goes to the borrower."] },
+  },
+} as unknown as DealCompliance;
+
+/** Gate A evaluated for a real-property broker loan with the MLDS in `status` (null: none on file). */
+const realPropertyMlds = (status: "sent" | "signed" | "held_for_counsel" | null, facts: { namesKuberaAsBeneficiary?: boolean } = {}) =>
+  evaluateDealCompliance({
+    mlds: { facts: { kuberaRole: "broker", collateral: { realPropertyLien: true, apn: "123-456-789", lienPosition: 1, propertyState: "CA" }, ...facts }, status },
+    now: new Date("2026-11-03T17:00:00Z"),
+  });
 
 const at = (deal: Deal, stage: string): Deal => ({ ...deal, stage });
 
@@ -66,8 +80,9 @@ describe("applyStageEvent", () => {
   it("runs the compliance closing gate and, for SBA, the Form 159 requirement", async () => {
     const { store, now } = setup();
     const hud = at(await newDeal(store, now), "firm_commitment");
-    expect(applyStageEvent({ deal: hud, event: "closing_scheduled", context: {}, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/compliance evaluation/)] });
-    expect(applyStageEvent({ deal: hud, event: "closing_scheduled", context: { compliance: closingBlocked }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/signed MLDS/)] });
+    expect(applyStageEvent({ deal: hud, event: "closing_scheduled", context: {}, now: now() })).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/compliance evaluation/)]) });
+    const blocked = applyStageEvent({ deal: hud, event: "closing_scheduled", context: { compliance: closingBlocked }, now: now() });
+    expect(blocked).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/closing without a signed MLDS/), expect.stringMatching(/before any loan document goes to the borrower/)]) });
     expect(applyStageEvent({ deal: hud, event: "closing_scheduled", context: { compliance: closingOk }, now: now() })).toMatchObject({ ok: true, to: "closing" });
     const closed = applyStageEvent({ deal: at(hud, "closing"), event: "loan_closed", context: { compliance: closingOk }, now: now() });
     expect(closed).toMatchObject({ ok: true, to: "closed", patch: { closedOn: "2026-11-03" } });
@@ -75,6 +90,36 @@ describe("applyStageEvent", () => {
     const sba = at(await newDeal(store, now, { program: "SBA_7A" }), "sba_authorization");
     expect(applyStageEvent({ deal: sba, event: "closing_scheduled", context: { compliance: closingOk, form159Satisfied: false }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/Form 159/)] });
     expect(applyStageEvent({ deal: sba, event: "closing_scheduled", context: { compliance: closingOk, form159Satisfied: true }, now: now() }).ok).toBe(true);
+  });
+
+  it("gate A: every commitment-type event needs a signed MLDS, and closing_scheduled releases loan documents only once signed", () => {
+    for (const p of dealPrograms) {
+      for (const e of stageTemplate(p).events) {
+        if (["commitment", "firm_commitment", "sba_authorization"].includes(e.to)) expect(e.requires, `${p} ${e.key}`).toContain("compliance_borrower_commitment");
+        if (e.to === "closing") expect(e.requires, `${p} ${e.key}`).toContain("compliance_borrower_loan_documents");
+      }
+    }
+  });
+
+  it("refuses a commitment without a signed MLDS or while held for counsel, and allows it once signed", async () => {
+    const { store, now } = setup();
+    const cases = [
+      { deal: at(await newDeal(store, now), "hud_review"), event: "firm_commitment_issued", to: "firm_commitment" },
+      { deal: at(await newDeal(store, now, { program: "BANK_LIFE_CO" }), "underwriting"), event: "commitment_issued", to: "commitment" },
+      { deal: at(await newDeal(store, now, { program: "SBA_504" }), "lender_underwriting"), event: "sba_authorization_issued", to: "sba_authorization" },
+    ];
+    for (const { deal, event, to } of cases) {
+      const run = (compliance: DealCompliance | null | undefined) => applyStageEvent({ deal, event, context: { compliance }, now: now() });
+      expect(run(undefined)).toMatchObject({ ok: false, reasons: [expect.stringMatching(/Run the compliance evaluation \(MLDS\) before recording a commitment/)] });
+      expect(run(realPropertyMlds(null))).toMatchObject({ ok: false, reasons: [expect.stringMatching(/signed MLDS \(RE 882\) must be on file before any commitment/)] });
+      expect(run(realPropertyMlds("sent"))).toMatchObject({ ok: false, reasons: [expect.stringMatching(/before any commitment/)] });
+      expect(run(realPropertyMlds("held_for_counsel"))).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/held for counsel/)]) });
+      expect(run(realPropertyMlds("signed", { namesKuberaAsBeneficiary: true }))).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/held for counsel/)]) });
+      expect(run(realPropertyMlds("signed"))).toMatchObject({ ok: true, to });
+    }
+    // Events that are not commitments do not check the MLDS.
+    const hud = at(await newDeal(store, now), "application");
+    expect(applyStageEvent({ deal: hud, event: "reports_ordered", context: {}, now: now() })).toMatchObject({ ok: true, to: "third_party_reports" });
   });
 
   it("refuses a deal on an unknown template version", async () => {
@@ -130,13 +175,20 @@ describe("advanceDeal (end to end with the records)", () => {
     expect((await advanceDeal(deps, { dealId: deal.id, event: "term_sheet_received", actor: "a" })).ok).toBe(true);
     const acc = await advanceDeal(deps, { dealId: deal.id, event: "term_sheet_accepted", terms: { lenderName: "Cambridge", noteRatePct: 6.2, termMonths: 420 }, actor: "a" });
     expect(acc.deal.termSheetAcceptedAt).not.toBeNull();
-    for (const e of ["reports_ordered", "hud_submitted", "firm_commitment_issued"]) expect((await advanceDeal(deps, { dealId: deal.id, event: e, actor: "a" })).ok).toBe(true);
+    for (const e of ["reports_ordered", "hud_submitted"]) expect((await advanceDeal(deps, { dealId: deal.id, event: e, actor: "a" })).ok).toBe(true);
 
-    // No signed MLDS on a real-property loan: closing is blocked by gate A.
-    const blocked = await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
-    expect(blocked).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/signed MLDS/)]) });
+    // No signed MLDS on a real-property loan: gate A blocks the firm commitment.
+    const noCommitment = await advanceDeal(deps, { dealId: deal.id, event: "firm_commitment_issued", actor: "a" });
+    expect(noCommitment).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/signed MLDS \(RE 882\) must be on file before any commitment/)]) });
+    expect((await store.getDeal(deal.id))!.stage).toBe("hud_review");
 
     await disclosures.insert({ kind: "MLDS_RE882", status: "signed", dealId: deal.id, signedAt: now().toISOString() }, now());
+    expect((await advanceDeal(deps, { dealId: deal.id, event: "firm_commitment_issued", actor: "a" })).ok).toBe(true);
+
+    // MLDS signed but no broker-of-record file: closing is blocked by gate H.
+    const blocked = await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
+    expect(blocked).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/broker-of-record file/)]) });
+
     store.seedLoanBrokerOfRecord(loanRecord(deal.id, { lender: { name: "Cambridge", category: "STATE_BANK", evidenceRef: "DFPI 1" }, noteRatePct: 6.2 }));
     expect((await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" })).ok).toBe(true);
     const closed = await advanceDeal(deps, { dealId: deal.id, event: "loan_closed", actor: "a" });

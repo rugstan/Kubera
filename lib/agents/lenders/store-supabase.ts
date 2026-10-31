@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fromRow, toRow, type Row } from "@/lib/deals/rows";
+import { termSheetAttachments } from "./attachments";
 import type { PartnerRow } from "./credit-box";
 import { LenderStoreError, type LenderMatchStore, type PartnerSource, type TermSheetMail, type TermSheetMailSource } from "./store";
 import type { CreditBox, NewCreditBox, NewQuote, Quote } from "./types";
@@ -148,7 +149,7 @@ export class SupabaseTermSheetMailSource implements TermSheetMailSource {
   async listTermSheetMail(opts: { dealId?: string; limit?: number } = {}): Promise<TermSheetMail[]> {
     let q = this.db
       .from("mail_messages")
-      .select("id, deal_id, from_address, from_name, subject, body_text, received_at, category")
+      .select("id, deal_id, from_address, from_name, subject, body_text, received_at, category, attachments")
       .eq("category", "term_sheet")
       .in("status", ["processed", "needs_review"])
       .eq("suspicious", false)
@@ -167,6 +168,7 @@ export class SupabaseTermSheetMailSource implements TermSheetMailSource {
       bodyText: String(r.body_text ?? ""),
       receivedAt: new Date(String(r.received_at)).toISOString(),
       category: String(r.category),
+      attachments: termSheetAttachments(r.attachments),
     }));
   }
 }

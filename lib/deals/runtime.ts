@@ -81,14 +81,15 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     checklist: checklistFromDesk(),
     stageEvents: stageEventSink(),
     async vaultDocuments(leadId) {
-      // Only files with a clean malware scan (WS-K vault) can go into a lender package.
-      const { data, error } = await db.from("documents").select("id, kind, file_name, created_at").eq("lead_id", leadId).eq("status", "clean").order("created_at");
+      // Only files with a clean malware scan (WS-K vault) can go into a lender package;
+      // another lender's term sheet (filed from lenders@) never does.
+      const { data, error } = await db.from("documents").select("id, kind, file_name, created_at").eq("lead_id", leadId).eq("status", "clean").neq("kind", "TERM_SHEET").order("created_at");
       if (error) throw new Error(`vault documents: ${error.message}`);
       return ((data ?? []) as { id: string; kind: string; file_name: string; created_at: string }[]).map((d) => ({ id: d.id, kind: d.kind, fileName: d.file_name, createdAt: d.created_at }));
     },
     async vaultItems(leadId, documentIds) {
       if (!documentIds.length) return [];
-      const { data, error } = await db.from("documents").select("id, kind, file_name, storage_path, lead_id").eq("lead_id", leadId).eq("status", "clean").in("id", documentIds);
+      const { data, error } = await db.from("documents").select("id, kind, file_name, storage_path, lead_id").eq("lead_id", leadId).eq("status", "clean").neq("kind", "TERM_SHEET").in("id", documentIds);
       if (error) throw new Error(`vault documents: ${error.message}`);
       const rows = (data ?? []) as { id: string; kind: string; file_name: string; storage_path: string }[];
       if (rows.length !== new Set(documentIds).size) throw new Error("Some documents do not belong to this deal's lead or have not passed the malware scan");

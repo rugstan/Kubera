@@ -6,7 +6,10 @@
 //
 // Closing stages call the compliance gate (lib/compliance/gates.ts): no deal
 // reaches `closing` without a signed MLDS where one is required, while held for
-// counsel, or with an uncleared usury / modification file.
+// counsel, or with an uncleared usury / modification file. Gate A also blocks
+// earlier: no commitment is recorded (commitment, firm commitment, SBA
+// authorization) and no loan document is released to the borrower (closing
+// scheduled) before the MLDS is signed, or while the deal is held for counsel.
 
 import { createHash } from "node:crypto";
 import { stageAdvanceGate, type DealCompliance } from "@/lib/compliance/gates";
@@ -21,6 +24,8 @@ export type Requirement =
   | "term_sheet_ref"
   | "terms_snapshot"
   | "compliance_closing"
+  | "compliance_borrower_commitment"
+  | "compliance_borrower_loan_documents"
   | "form159_signed";
 
 export type EventDef = {
@@ -71,6 +76,17 @@ const EVENT_INTO: Record<string, { key: string; label: string }> = {
 
 export const STAGE_TEMPLATE_VERSION = 1;
 
+/** Stages that record a commitment to the borrower (gate A: MLDS signed first). */
+export const COMMITMENT_STAGES: ReadonlySet<string> = new Set(["commitment", "firm_commitment", "sba_authorization"]);
+
+/** Gate A requirements for an event that moves a deal into `to`. */
+function borrowerDocumentRequires(to: string): Requirement[] {
+  if (COMMITMENT_STAGES.has(to)) return ["compliance_borrower_commitment"];
+  // Loan documents go to the borrower for signature once closing is scheduled.
+  if (to === "closing") return ["compliance_borrower_loan_documents"];
+  return [];
+}
+
 function buildTemplate(program: DealProgram): StageTemplate {
   const middle = POST_TERM_SHEET[program];
   const order = ["intake", "engaged", "packaging", "lender_outreach", "term_sheet", ...middle, "closing", "closed"];
@@ -92,16 +108,18 @@ function buildTemplate(program: DealProgram): StageTemplate {
       label: "Term sheet accepted (terms lock)",
       from: ["term_sheet"],
       to: middle[0] ?? "closing",
-      requires: middle.length ? ["term_sheet_ref", "terms_snapshot"] : ["term_sheet_ref", "terms_snapshot", ...closingRequires],
+      requires: middle.length
+        ? ["term_sheet_ref", "terms_snapshot", ...borrowerDocumentRequires(middle[0]!)]
+        : ["term_sheet_ref", "terms_snapshot", ...closingRequires, ...borrowerDocumentRequires("closing")],
       locksTerms: true,
     },
   ];
   for (let i = 1; i < middle.length; i++) {
     const into = EVENT_INTO[middle[i]!]!;
-    events.push({ key: into.key, label: into.label, from: [middle[i - 1]!], to: middle[i]!, requires: [] });
+    events.push({ key: into.key, label: into.label, from: [middle[i - 1]!], to: middle[i]!, requires: borrowerDocumentRequires(middle[i]!) });
   }
   events.push(
-    { key: "closing_scheduled", label: "Closing scheduled", from: [middle.at(-1) ?? "term_sheet"], to: "closing", requires: closingRequires },
+    { key: "closing_scheduled", label: "Closing scheduled", from: [middle.at(-1) ?? "term_sheet"], to: "closing", requires: [...closingRequires, ...borrowerDocumentRequires("closing")] },
     { key: "loan_closed", label: "Loan closed (lender of record funded)", from: ["closing"], to: "closed", requires: closingRequires },
     { key: "withdraw", label: "Borrower withdrew", from: order.filter((s) => s !== "closed"), to: "withdrawn", requires: [] },
     { key: "mark_lost", label: "Deal lost", from: order.filter((s) => s !== "closed"), to: "lost", requires: [] },
@@ -149,7 +167,7 @@ export type StageContext = {
   /** At least one locked package version has been sent to a lender. */
   lockedPackageSent?: boolean;
   termSheetRef?: string | null;
-  /** Compliance evaluation for the deal (gate A/H); required for closing stages. */
+  /** Compliance evaluation for the deal (gate A/H); required for commitment and closing stages. */
   compliance?: DealCompliance | null;
   /** SBA deals: Form 159 is signed by agent, applicant and lender, or no Kubera compensation exists. */
   form159Satisfied?: boolean;
@@ -201,6 +219,12 @@ function requirementReasons(req: Requirement, input: StageEventInput, to: string
     case "compliance_closing":
       if (!c.compliance) return ["Run the compliance evaluation (MLDS and broker-of-record gates) before closing."];
       return stageAdvanceGate(to, c.compliance).reasons;
+    case "compliance_borrower_commitment":
+      if (!c.compliance) return ["Run the compliance evaluation (MLDS) before recording a commitment."];
+      return c.compliance.gates.borrowerCommitment.allowed ? [] : c.compliance.gates.borrowerCommitment.reasons;
+    case "compliance_borrower_loan_documents":
+      if (!c.compliance) return ["Run the compliance evaluation (MLDS) before releasing loan documents to the borrower."];
+      return c.compliance.gates.borrowerLoanDocuments.allowed ? [] : c.compliance.gates.borrowerLoanDocuments.reasons;
     case "form159_signed":
       return c.form159Satisfied ? [] : ["SBA Form 159 must be signed by Kubera, the applicant and the lender before closing."];
   }
