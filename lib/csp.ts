@@ -11,12 +11,22 @@ export type CspEnv = {
   SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   CSP_REPORT_URI?: string;
+  ZOHO_SIGN_DC?: string;
 };
 
 const TURNSTILE = "https://challenges.cloudflare.com";
 const CAL = ["https://app.cal.com", "https://cal.com"];
 const VERCEL_ANALYTICS = "https://va.vercel-scripts.com";
 const SENTRY = ["https://*.ingest.sentry.io", "https://*.ingest.us.sentry.io", "https://*.ingest.de.sentry.io"];
+
+// Zoho Sign data centers (same list lib/esign/zoho-sign.ts accepts). Embedded
+// signing frames and its API calls must reach the configured one.
+const ZOHO_SIGN_DCS = new Set(["com", "eu", "in", "com.au", "jp", "ca", "sa", "com.cn"]);
+
+function zohoSignOrigins(env: CspEnv): string[] {
+  const dc = env.ZOHO_SIGN_DC && ZOHO_SIGN_DCS.has(env.ZOHO_SIGN_DC) ? env.ZOHO_SIGN_DC : "com";
+  return Array.from(new Set(["https://sign.zoho.com", `https://sign.zoho.${dc}`]));
+}
 
 function supabaseOrigins(env: CspEnv): string[] {
   const configured = env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL;
@@ -34,6 +44,7 @@ function supabaseOrigins(env: CspEnv): string[] {
 export function buildCsp(env: CspEnv = process.env): string {
   const dev = env.NODE_ENV !== "production";
   const supabase = supabaseOrigins(env);
+  const zohoSign = zohoSignOrigins(env);
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     // React dev tooling needs eval; production never does.
@@ -41,8 +52,8 @@ export function buildCsp(env: CspEnv = process.env): string {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", ...supabase.filter((s) => s.startsWith("https:"))],
     "font-src": ["'self'", "data:"],
-    "connect-src": ["'self'", ...supabase, TURNSTILE, ...CAL, ...SENTRY, ...(dev ? ["ws:"] : [])],
-    "frame-src": ["'self'", TURNSTILE, ...CAL],
+    "connect-src": ["'self'", ...supabase, TURNSTILE, ...CAL, ...SENTRY, ...zohoSign, ...(dev ? ["ws:"] : [])],
+    "frame-src": ["'self'", TURNSTILE, ...CAL, ...zohoSign],
     "worker-src": ["'self'", "blob:"],
     "manifest-src": ["'self'"],
     "media-src": ["'self'"],

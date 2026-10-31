@@ -42,6 +42,12 @@ export default defineConfig({
       NEXT_PUBLIC_SENTRY_DSN: "",
       JEV_API_URL: "",
       EXPRESS_HOSTS: "kubera.loans,www.kubera.loans",
+      // next start runs with NODE_ENV=production, so the API Origin allowlist
+      // must name the e2e host or real (unmocked) POSTs get 403.
+      ALLOWED_ORIGINS: baseURL,
+      // Bot verification off: the forms send no token and the server skips the check.
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: "",
+      TURNSTILE_SECRET_KEY: "",
     },
   },
 });

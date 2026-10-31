@@ -41,7 +41,7 @@ type Page = {
   close(): Promise<void>;
 };
 type Route = { request(): { method(): string }; fulfill(o: { status: number; contentType: string; body: string }): Promise<void>; fallback(): Promise<void> };
-type Context = { newPage(): Promise<Page>; close(): Promise<void> };
+type Context = { newPage(): Promise<Page>; route(url: string | RegExp, handler: (route: Route) => unknown): Promise<void>; close(): Promise<void> };
 type Browser = { newContext(opts?: Record<string, unknown>): Promise<Context>; close(): Promise<void> };
 type Playwright = { chromium: { launch(opts?: Record<string, unknown>): Promise<Browser> } };
 
@@ -144,6 +144,12 @@ async function main() {
 
     // ---- axe scans -----------------------------------------------------------
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    // The audit server has no model key, so the real availability probe
+    // (GET /api/ask) answers 503 and hides the AI entry points. Treat the
+    // backend as configured here; page-level routes below still override it.
+    await ctx.route(/\/api\/ask$/, (route) =>
+      route.request().method() === "GET" ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ available: true }) }) : route.fallback(),
+    );
     const page = await ctx.newPage();
 
     for (const route of ["/", "/express", "/partners"]) {
@@ -168,7 +174,7 @@ async function main() {
       scans.push(await scan(page, axeSource, `/ sizer tab: ${label}`));
     }
     await go(page, `${BASE}/partners`);
-    for (const label of [/Referral Brokers/, /Operators/, /Third-Party Vendors/]) {
+    for (const label of [/Referral brokers/i, /Operators/i, /Third-party vendors/i]) {
       await page.getByRole("tab", { name: label }).click();
       await page.waitForTimeout(900);
       scans.push(await scan(page, axeSource, `/partners tab: ${String(label)}`));
@@ -261,11 +267,11 @@ async function main() {
     check("sizer tabs: End selects the last tab", (await page.getByRole("tab", { name: "Multifamily & CRE" }).getAttribute("aria-selected")) === "true");
     check("sizer tabs: tabpanel is present and labelled", (await page.locator('[role="tabpanel"][aria-labelledby]').count()) === 1);
     await go(page, `${BASE}/partners`);
-    await page.getByRole("tab", { name: /Wholesale Lenders/ }).focus();
+    await page.getByRole("tab", { name: /Wholesale lenders/i }).focus();
     await page.waitForTimeout(150);
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(300);
-    check("partner tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: /Referral Brokers/ }).getAttribute("aria-selected")) === "true");
+    check("partner tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: /Referral brokers/i }).getAttribute("aria-selected")) === "true");
     await go(page, `${BASE}/partners#operator`);
     await page.waitForTimeout(300);
     check("partner tabs: #operator deep link selects Operators", (await page.getByRole("tab", { name: /Operators/ }).getAttribute("aria-selected")) === "true");

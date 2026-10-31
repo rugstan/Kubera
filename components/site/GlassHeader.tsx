@@ -35,6 +35,7 @@ export function GlassHeader() {
           <button
             type="button"
             onClick={() => openCommandBar()}
+            data-ask-entry
             className="hidden items-center gap-2 rounded-full border border-black/[0.08] bg-white/60 px-3 py-1.5 text-[13px] text-titanium transition hover:text-ink sm:flex"
           >
             <SparkIcon />
@@ -77,7 +78,7 @@ export function GlassHeader() {
               </li>
             ))}
             <li>
-              <button type="button" onClick={() => { setOpen(false); openCommandBar(); }} className="block w-full py-3.5 text-left text-[17px] font-medium text-accent">
+              <button type="button" data-ask-entry onClick={() => { setOpen(false); openCommandBar(); }} className="block w-full py-3.5 text-left text-[17px] font-medium text-accent">
                 Ask Kubera AI
               </button>
             </li>

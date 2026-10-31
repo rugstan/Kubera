@@ -15,9 +15,9 @@ Rules: axe-core 4.14.0, tags wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa.
 | /partners (mobile 390px) | 0 | 0 |
 | / sizer tab: Hospitality & Hotels | 0 | 0 |
 | / sizer tab: Multifamily & CRE | 0 | 0 |
-| /partners tab: /Referral Brokers/ | 0 | 0 |
-| /partners tab: /Operators/ | 0 | 0 |
-| /partners tab: /Third-Party Vendors/ | 0 | 0 |
+| /partners tab: /Referral brokers/i | 0 | 0 |
+| /partners tab: /Operators/i | 0 | 0 |
+| /partners tab: /Third-party vendors/i | 0 | 0 |
 | / with command bar open | 0 | 0 |
 | / (prefers-reduced-motion) | 0 | 0 |
 

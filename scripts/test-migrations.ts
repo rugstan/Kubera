@@ -141,6 +141,17 @@ export async function publicTableRls(db: PGlite): Promise<{ table: string; rls: 
   return res.rows;
 }
 
+/**
+ * Global rule 1: no funds or draw columns anywhere in `public`. Uses the
+ * custody guard function from the disclosures migration when it exists.
+ */
+export async function custodyViolations(db: PGlite): Promise<{ table_name: string; column_name: string }[]> {
+  const exists = await db.query<{ ok: boolean }>(`select to_regprocedure('public.custody_column_violations()') is not null as ok`);
+  if (!exists.rows[0]?.ok) return [];
+  const res = await db.query<{ table_name: string; column_name: string }>(`select * from public.custody_column_violations()`);
+  return res.rows;
+}
+
 export async function runMigrationTests(dir: string = MIGRATIONS_DIR): Promise<MigrationReport> {
   const files = listMigrations(dir);
   const problems = lintMigrationNames(files);
@@ -152,6 +163,7 @@ export async function runMigrationTests(dir: string = MIGRATIONS_DIR): Promise<M
     const tables = await publicTableRls(db);
     const tablesWithoutRls = tables.filter((t) => !t.rls).map((t) => t.table);
     for (const t of tablesWithoutRls) problems.push(`public.${t}: row level security is not enabled`);
+    for (const v of await custodyViolations(db)) problems.push(`public.${v.table_name}.${v.column_name}: funds/draw column (no-custody guard)`);
     return { applied, publicTables: tables.map((t) => t.table), tablesWithoutRls, problems };
   } finally {
     await db.close();

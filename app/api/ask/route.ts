@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { z } from "zod";
 import { dealContextSchema, streamAdvisorTurn } from "@/lib/ai/advisor";
 import { conversationStore, MAX_TURNS, type Conversation } from "@/lib/conversations/store";
@@ -22,6 +22,17 @@ const TURN_LOCK_MS = 120_000;
 
 const error = (status: number, message: string, extra?: Record<string, unknown>) =>
   NextResponse.json({ error: message, ...extra }, { status, headers: { "cache-control": "no-store" } });
+
+/**
+ * Availability probe for components/ask/availability.ts. Side-effect free: no
+ * rate-limit budget, no Turnstile, no model call. 503 hides every AI entry point.
+ */
+export async function GET() {
+  // Evaluate the key per request, never at build time.
+  await connection();
+  if (!process.env.ANTHROPIC_API_KEY) return error(503, "Kubera AI is not configured.");
+  return NextResponse.json({ available: true }, { headers: { "cache-control": "no-store" } });
+}
 
 export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) return error(503, "Kubera AI is not configured.");

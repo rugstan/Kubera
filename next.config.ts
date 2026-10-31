@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
     rates: { stale: 300, revalidate: 900, expire: 86_400 },
   },
   poweredByHeader: false,
+  // Keeps Sentry's server runtime hook out of the bundle so it registers its
+  // diagnostics channel once at startup instead of warning when a DSN is set.
+  serverExternalPackages: ["@sentry/server-runtime-injection"],
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders() },

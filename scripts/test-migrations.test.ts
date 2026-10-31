@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { applyMigrations, createStubbedDb, lintMigrationNames, listMigrations, runMigrationTests } from "./test-migrations.ts";
+import { applyMigrations, createStubbedDb, custodyViolations, lintMigrationNames, listMigrations, runMigrationTests } from "./test-migrations.ts";
 
 function fixtureDir(files: Record<string, string>): string {
   const dir = mkdtempSync(path.join(tmpdir(), "kubera-migrations-"));
@@ -33,6 +33,18 @@ describe("migration harness", () => {
         "partners.crm_attempts",
         "partners.crm_last_attempt_at",
       ]);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("installs the no-custody guard and finds no funds or draw columns", async () => {
+    const db = await createStubbedDb();
+    try {
+      await applyMigrations(db, listMigrations());
+      const fn = await db.query<{ ok: boolean }>(`select to_regprocedure('public.custody_column_violations()') is not null as ok`);
+      expect(fn.rows[0]?.ok).toBe(true);
+      expect(await custodyViolations(db)).toEqual([]);
     } finally {
       await db.close();
     }

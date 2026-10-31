@@ -199,9 +199,11 @@ export function buildMlds(input: MldsInput, opts: { approved?: boolean } = {}): 
 
 /** Kubera's broker block from configuration. Throws when the license data the MLDS must show is missing. */
 export function kuberaBrokerBlock(signer: { name: string; dreLicense: string }): MldsInput["broker"] {
-  const licensedAddress = process.env.DRE_LICENSED_ADDRESS ?? "";
+  // Same address the public /licensing page shows (site.licensedAddress), so the
+  // MLDS header and the website never disagree. DRE_LICENSED_ADDRESS overrides it.
+  const licensedAddress = (process.env.DRE_LICENSED_ADDRESS ?? "").trim() || site.licensedAddress;
   if (!site.dreCorporateLicense) throw new Error("NEXT_PUBLIC_DRE_CORPORATE_LICENSE is required to generate an MLDS");
-  if (!licensedAddress) throw new Error("DRE_LICENSED_ADDRESS is required to generate an MLDS");
+  if (!licensedAddress) throw new Error("DRE_LICENSED_ADDRESS or NEXT_PUBLIC_DRE_LICENSED_ADDRESS is required to generate an MLDS");
   return {
     legalName: site.legalName,
     dreLicense: site.dreCorporateLicense,

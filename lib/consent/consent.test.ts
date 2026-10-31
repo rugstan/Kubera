@@ -13,6 +13,9 @@ const PINNED: Record<string, string> = {
     "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
   ),
   "partner-contact-2026-10-31": sha256("I agree that Kubera Commercial may contact me about this registration by phone, text, or email."),
+  "partner-contact-2026-11-01": sha256(
+    "I agree that Kubera Commercial may contact me about this registration by phone, text, or email. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+  ),
 };
 
 describe("consent texts", () => {

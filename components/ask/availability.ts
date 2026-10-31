@@ -93,12 +93,20 @@ export function resetAskAvailability() {
 export async function probeAskAvailability(fetchImpl: typeof fetch = fetch): Promise<AskAvailability> {
   try {
     const res = await fetchImpl("/api/ask", { method: "GET", cache: "no-store" });
+    // Always drain the body: an unread response stays open in the browser and
+    // keeps the connection (and "network idle") busy.
+    const text = await res.text().catch(() => "");
     if (res.status === 503) {
       markAskUnavailable();
       return "unavailable";
     }
     if (res.ok) {
-      const body = (await res.json().catch(() => null)) as { available?: boolean } | null;
+      let body: { available?: boolean } | null = null;
+      try {
+        body = JSON.parse(text) as { available?: boolean };
+      } catch {
+        body = null;
+      }
       if (body && body.available === false) {
         markAskUnavailable();
         return "unavailable";

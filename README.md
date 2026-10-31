@@ -9,7 +9,7 @@ AI-first commercial debt advisory platform for **kuberacommercial.com** and the 
 | App | Next.js 16 (App Router, React Server Components, Cache Components = stable Partial Prerendering), TypeScript |
 | Design | Tailwind CSS 4, Motion (Framer Motion), Inter / SF Pro |
 | System One | `lib/ai/jev.ts`: typed, deterministic decision engine (<1 ms), with an optional hosted Jev endpoint under a 180 ms budget |
-| System Two | Claude (`claude-opus-5-5`) via `@anthropic-ai/sdk`, streaming, with RAG over Supabase `kb_chunks` |
+| System Two | Claude via `@anthropic-ai/sdk` (model set in `lib/ai/advisor.ts`), streaming, with RAG over Supabase `kb_chunks` |
 | CRM | Twenty CRM REST (people, companies, opportunities, notes) plus a signed webhook |
 | Data | Supabase Postgres + pgvector + private `deal-documents` storage bucket |
 

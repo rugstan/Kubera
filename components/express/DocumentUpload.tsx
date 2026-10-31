@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
+import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 
 const KINDS = [
   { value: "T12", label: "T-12 P&L" },
@@ -20,14 +21,17 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
   const [kind, setKind] = useState("T12");
   const [uploaded, setUploaded] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const turnstile = useTurnstile("documents");
 
   async function upload(file: File) {
     if (file.size > MAX_BYTES) return setStatus(`${file.name} is larger than 50 MB. Split it into smaller files or email it to your advisor.`);
     setStatus(`Uploading ${file.name}…`);
     try {
+      // Turnstile tokens are single use: mint a fresh one for every file.
+      const captcha = await turnstile.getToken();
       const res = await fetch("/api/documents", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...turnstileHeaders(captcha) },
         body: JSON.stringify({ leadId, token, kind, fileName: file.name, contentType: file.type || "application/pdf" }),
       });
       const body = await res.json();
@@ -47,6 +51,7 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
   return (
     <div className="mt-5 space-y-3">
       <NoticeAtCollection point="upload" />
+      <TurnstileSlot turnstile={turnstile} />
       <div className="flex flex-col gap-2 sm:flex-row">
         <select className="field sm:w-56" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Document type">
           {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}

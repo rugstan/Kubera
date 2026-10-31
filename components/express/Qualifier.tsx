@@ -5,12 +5,17 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "@/components/sizer/fields";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
+import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
+import { CONSENT_TEXTS, CURRENT_CONSENT } from "@/lib/consent/texts";
 import { usd } from "@/lib/sizing/programs";
 import { disclosures } from "@/lib/site";
 import type { Intake } from "@/lib/validation";
 import { DocumentUpload } from "./DocumentUpload";
 
 type Asset = Intake["assetType"];
+
+// The ledger records this version id with a hash of the exact words shown.
+const CONSENT = CONSENT_TEXTS[CURRENT_CONSENT.qualifier];
 
 const ASSETS: { value: Asset; label: string; group: string }[] = [
   { value: "ASSISTED_LIVING", label: "Assisted living", group: "Senior living and care" },
@@ -85,6 +90,7 @@ export function Qualifier() {
     notes: "",
   });
   const [contact, setContact] = useState({ firstName: "", lastName: "", email: "", phone: "", company: "", consent: false });
+  const turnstile = useTurnstile("qualify");
 
   const set = <K extends keyof typeof intake>(k: K) => (v: (typeof intake)[K]) => setIntake((p) => ({ ...p, [k]: v }));
   const go = (n: number) => {
@@ -96,9 +102,10 @@ export function Qualifier() {
     setSubmitting(true);
     setError(null);
     try {
+      const token = await turnstile.getToken();
       const res = await fetch("/api/qualify", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...turnstileHeaders(token) },
         body: JSON.stringify({
           intake: {
             ...intake,
@@ -109,6 +116,7 @@ export function Qualifier() {
             source: "express",
           },
           contact,
+          consentMeta: { textVersion: CONSENT.id, page: location.pathname + location.search },
         }),
       });
       const body = await res.json();
@@ -129,7 +137,7 @@ export function Qualifier() {
     <div>
       <div className="mb-8 text-center">
         <p className="eyebrow">60-second deal qualifier</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Let&apos;s structure your deal.</h1>
+        <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Let&apos;s structure your deal.</h2>
       </div>
 
       <ol className="mb-6 grid grid-cols-4 gap-2" aria-label="Progress">
@@ -254,9 +262,10 @@ export function Qualifier() {
                 </div>
                 <label className="flex items-start gap-3 text-[12px] leading-relaxed text-titanium">
                   <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={contact.consent} onChange={(e) => setContact((c) => ({ ...c, consent: e.target.checked }))} />
-                  <span>I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.</span>
+                  <span>{CONSENT.text}</span>
                 </label>
                 <NoticeAtCollection point="qualifier" />
+                <TurnstileSlot turnstile={turnstile} />
                 {error && <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p>}
               </>
             )}
@@ -288,9 +297,9 @@ function Done({ r, firstName }: { r: Result; firstName: string }) {
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       <div className="text-center">
         <p className="eyebrow">{x.qualified ? "Indicative match" : "Request received"}</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
+        <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
           {x.qualified ? `Thanks, ${firstName}. Here's your starting point.` : `Thanks, ${firstName}. An advisor will review this personally.`}
-        </h1>
+        </h2>
       </div>
       {x.qualified && x.program && (
         <div className="bento p-8">

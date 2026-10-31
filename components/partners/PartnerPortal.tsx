@@ -3,10 +3,15 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
+import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { MoneyField, SelectField } from "@/components/sizer/fields";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { CONSENT_TEXTS, CURRENT_CONSENT } from "@/lib/consent/texts";
 
 type PartnerType = "LENDER" | "REFERRAL" | "OPERATOR" | "VENDOR";
+
+// The ledger records this version id with a hash of the exact words shown.
+const CONSENT = CONSENT_TEXTS[CURRENT_CONSENT.partner];
 
 const TYPES: { id: PartnerType; hash: string; title: string; blurb: string }[] = [
   { id: "LENDER", hash: "lender", title: "Wholesale lenders", blurb: "Banks, debt funds, CMBS desks, SBA CDCs and 7(a) lenders, HUD MAP/LEAN lenders. Register your current credit box and broker compensation terms." },
@@ -66,6 +71,7 @@ function Chips<T extends string>({ label, options, value, onChange }: { label: s
 export function PartnerPortal() {
   const [type, setType] = useState<PartnerType>("LENDER");
   const [contact, setContact] = useState({ firstName: "", lastName: "", email: "", phone: "", company: "", consent: false });
+  const turnstile = useTurnstile("partners");
   const [f, setF] = useState<Record<string, unknown>>({});
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +132,12 @@ export function PartnerPortal() {
     setState("sending");
     setError(null);
     try {
-      const res = await fetch("/api/partners", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) });
+      const token = await turnstile.getToken();
+      const res = await fetch("/api/partners", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...turnstileHeaders(token) },
+        body: JSON.stringify({ ...payload(), consentMeta: { textVersion: CONSENT.id, page: location.pathname + location.search } }),
+      });
       const body = await res.json();
       if (!res.ok) throw new Error(body.issues?.[0] ? `Please check ${body.issues[0].path.split(".").pop()}: ${body.issues[0].message}` : body.error ?? "We couldn't send your registration. Please try again, or email partners@kuberacommercial.com.");
       setState("done");
@@ -256,10 +267,11 @@ export function PartnerPortal() {
 
             <label className="flex items-start gap-3 text-[12px] leading-relaxed text-titanium">
               <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={contact.consent} onChange={(e) => setContact((p) => ({ ...p, consent: e.target.checked }))} required />
-              <span>I agree that Kubera Commercial may contact me about this registration by phone, text, or email.</span>
+              <span>{CONSENT.text}</span>
             </label>
 
             <NoticeAtCollection point="partner" />
+            <TurnstileSlot turnstile={turnstile} />
             {error && <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p>}
             <button type="submit" disabled={state === "sending"} className="pill pill-primary disabled:opacity-50">
               {state === "sending" ? "Submitting…" : "Submit registration"}

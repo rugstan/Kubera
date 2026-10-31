@@ -17,8 +17,9 @@ export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; 
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
+      // No entrance state: cards must be visible in the server HTML (no-JS
+      // visitors and crawlers); layout keeps re-sorts animated.
+      initial={false}
       transition={{ type: "spring", stiffness: 260, damping: 30, delay: index * 0.05 }}
       className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent/70" : ""} ${q.eligible ? "" : "opacity-70"}`}
       aria-label={`${q.name} quote`}

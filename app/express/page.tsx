@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Qualifier } from "@/components/express/Qualifier";
+import { LEGAL_PAGES } from "@/components/legal/legal";
 import { Logo } from "@/components/site/Logo";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
@@ -20,6 +21,9 @@ const HOW_IT_WORKS = [
   { title: "Advisor review", body: "A licensed Kubera advisor reviews the result and follows up with next steps. Nothing is a commitment to lend." },
 ] as const;
 
+// The notice at collection already sits on the form itself; the footer links the full pages.
+const EXPRESS_LEGAL_LINKS = LEGAL_PAGES.filter((page) => !page.href.includes("#"));
+
 export default function ExpressPage() {
   return (
     <div className="flex min-h-dvh flex-col">
@@ -30,7 +34,7 @@ export default function ExpressPage() {
           Private &amp; encrypted
         </span>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16">
+      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16">
         <section className="mb-10 text-center">
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">60-second deal qualifier</h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-titanium">
@@ -57,7 +61,21 @@ export default function ExpressPage() {
           <p className="mt-6 text-[13px] leading-relaxed text-titanium">{disclosures.indicative}</p>
         </section>
       </main>
-      <footer className="mx-auto w-full max-w-3xl px-5 pb-10 text-center text-[11px] leading-relaxed text-titanium">{licenseLine()}</footer>
+      <footer className="mx-auto w-full max-w-3xl px-5 pb-10 text-center text-xs leading-relaxed text-titanium">
+        {/* Plain anchors: on kubera.loans these paths 308 to the main site (proxy.ts). */}
+        <nav aria-label="Legal">
+          <ul className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
+            {EXPRESS_LEGAL_LINKS.map((page) => (
+              <li key={page.href}>
+                <a href={page.href} className="underline-offset-2 hover:text-ink hover:underline">
+                  {page.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <p>{licenseLine()}</p>
+      </footer>
     </div>
   );
 }

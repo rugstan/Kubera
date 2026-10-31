@@ -23,6 +23,7 @@ test.describe("partner portal", () => {
       organization: "Rivera Appraisal Group",
       services: ["PHASE_I_ESA"],
       contact: { firstName: "Sam", email: "sam@appraisal.example.com", consent: true },
+      consentMeta: { textVersion: "partner-contact-2026-11-01", page: "/partners" },
     });
   });
 

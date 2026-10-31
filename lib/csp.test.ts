@@ -37,6 +37,14 @@ describe("buildCsp", () => {
     expect(directive(buildCsp({ NODE_ENV: "production" }), "connect-src")).toContain("https://*.supabase.co");
   });
 
+  it("allows Zoho Sign embedded signing for the configured data center only", () => {
+    const eu = buildCsp({ NODE_ENV: "production", ZOHO_SIGN_DC: "eu" });
+    expect(directive(eu, "frame-src")).toContain("https://sign.zoho.eu");
+    expect(directive(eu, "connect-src")).toContain("https://sign.zoho.eu");
+    expect(directive(prod, "frame-src")).toContain("https://sign.zoho.com");
+    expect(directive(buildCsp({ NODE_ENV: "production", ZOHO_SIGN_DC: "evil.example" }), "frame-src")).not.toContain("evil.example");
+  });
+
   it("has no wildcard sources beyond the scoped vendor subdomains", () => {
     for (const d of prod.split(";")) {
       for (const token of d.trim().split(/\s+/).slice(1)) {
