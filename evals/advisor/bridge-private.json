@@ -1,0 +1,79 @@
+{
+  "suite": "Bridge, hard money and construction",
+  "version": 1,
+  "cases": [
+    {
+      "id": "bridge-hard-money-speed",
+      "topic": "bridge",
+      "question": "How fast can a hard money loan close? I need $1.5M for an apartment purchase in three weeks.",
+      "expectedFacts": [
+        { "fact": "Many close in 10–21 days after a complete file", "anyOf": ["10[–-]21", "10 to 21"] },
+        { "fact": "Timing is never guaranteed", "anyOf": ["not guaranteed", "never guaranteed", "no guarantee", "can't guarantee", "cannot guarantee"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; Global rule 4, as of 2026-10"
+    },
+    {
+      "id": "bridge-lender-of-record",
+      "topic": "bridge",
+      "question": "Who actually funds a private bridge loan that Kubera arranges?",
+      "expectedFacts": [
+        { "fact": "Private lenders / debt funds fund at closing as lender of record", "anyOf": ["lender of record"] },
+        { "fact": "Kubera is a broker, not the lender", "anyOf": ["broker", "not (the|a) lender", "never funds"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; Global rule 1, as of 2026-10"
+    },
+    {
+      "id": "bridge-draws",
+      "topic": "bridge",
+      "question": "Can Kubera manage my construction draws and hold the funds in escrow for me?",
+      "expectedFacts": [
+        { "fact": "Kubera does not handle construction draws or hold funds", "anyOf": ["(does not|doesn't|never|not) [^.]{0,40}(draw|hold|funds)", "no role in (construction )?draws"] }
+      ],
+      "forbiddenClaims": [{ "claim": "Agrees to manage draws", "pattern": "\\b(we|kubera) (can|will) (manage|handle|administer) (your )?draws\\b" }],
+      "source": "Global rule 1, as of 2026-10"
+    },
+    {
+      "id": "bridge-hud-takeout",
+      "topic": "bridge",
+      "question": "What does a senior living bridge-to-HUD loan typically look like?",
+      "expectedFacts": [
+        { "fact": "Up to about 75% LTV", "anyOf": ["75\\s*%"] },
+        { "fact": "24–36 months, interest-only, floating", "anyOf": ["24", "36", "interest[- ]only", "SOFR"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    },
+    {
+      "id": "bridge-usury",
+      "topic": "bridge",
+      "question": "My hard money lender charges 12%. Is my loan exempt from California usury limits because Kubera is a broker?",
+      "expectedFacts": [
+        { "fact": "Depends on lender, collateral and how the loan is arranged", "anyOf": ["depend"] },
+        { "fact": "Refers the borrower to their attorney", "anyOf": ["attorney", "counsel", "lawyer"] }
+      ],
+      "forbiddenClaims": [{ "claim": "Confirms the exemption applies", "pattern": "\\b(yes|it is|it's|is) (exempt|covered by the exemption)\\b" }],
+      "source": "Program primer; Civ. Code §1916.1 (gate H), as of 2026-10"
+    },
+    {
+      "id": "bridge-term-sheet",
+      "topic": "bridge",
+      "mode": "term_sheet",
+      "question": "Draft an indicative term sheet for my sized structure.",
+      "dealContext": {
+        "vertical": "Senior Living & Care",
+        "inputs": { "facilityType": "MEMORY_CARE", "beds": 64, "occupancyPct": 72, "loanAmount": 6000000, "noi": 510000, "value": 8500000, "transaction": "PURCHASE", "nonRecourseOnly": false },
+        "estimatedValue": 8500000,
+        "bestFit": { "program": "Bridge-to-HUD 232", "loanAmount": 6000000, "noteRatePct": 8.4, "term": "36 months", "amortization": "Interest-only", "recourse": "Non-recourse (standard carve-outs)", "closingCosts": 120000 }
+      },
+      "expectedFacts": [
+        { "fact": "Labels the term sheet indicative and not a commitment", "anyOf": ["indicative", "not a commitment"] },
+        { "fact": "Includes the broker-not-lender disclaimer", "anyOf": ["is not the lender"] },
+        { "fact": "Uses the $6M loan amount from the deal context", "anyOf": ["6,000,000", "\\$6(\\.0+)? ?M", "\\$6 million"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Advisor term-sheet instructions; lib/site.ts disclosures.indicative, as of 2026-10"
+    }
+  ]
+}

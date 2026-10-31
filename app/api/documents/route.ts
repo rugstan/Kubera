@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { clientIp, rateLimit, verifyLeadToken } from "@/lib/security";
+import { guardPost, verifyLeadToken } from "@/lib/security";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 
 const bodySchema = z.object({
@@ -21,10 +21,15 @@ const bodySchema = z.object({
 
 /** Mints a short-lived signed upload URL into the private document vault. */
 export async function POST(req: Request) {
-  if (!rateLimit(`docs:${clientIp(req)}`, 30, 60 * 60_000)) {
-    return NextResponse.json({ error: "Too many uploads" }, { status: 429 });
-  }
-  const parsed = bodySchema.safeParse(await req.json().catch(() => null));
+  const guard = await guardPost(req, {
+    name: "docs",
+    rate: { limit: 30, windowMs: 60 * 60_000 },
+    rateLimitMessage: "Too many uploads",
+    turnstile: "documents",
+    maxBytes: 8_000,
+  });
+  if (!guard.ok) return guard.response;
+  const parsed = bodySchema.safeParse(guard.body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   const { leadId, token, kind, fileName, contentType } = parsed.data;
   if (!process.env.LEAD_TOKEN_SECRET || !verifyLeadToken(leadId, token)) {
@@ -43,5 +48,5 @@ export async function POST(req: Request) {
     .insert({ lead_id: leadId, kind, storage_path: path, file_name: safeName, content_type: contentType });
   if (insertError) return NextResponse.json({ error: "Could not record document" }, { status: 500 });
 
-  return NextResponse.json({ uploadUrl: data.signedUrl, path });
+  return NextResponse.json({ uploadUrl: data.signedUrl, path }, { headers: { "cache-control": "no-store" } });
 }
