@@ -137,7 +137,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
       </Section>
 
       <Section id="next" title="Have a similar property?">
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {s.related.map((l, i) => (
             <Link key={l.href} href={l.href} className={i === 0 ? "pill pill-primary" : "pill pill-glass"}>
               {l.label}

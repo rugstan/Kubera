@@ -47,7 +47,7 @@ export default function StructuresPage() {
       </Section>
 
       <Section id="next" title="Looking at a similar deal?">
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link href="/#sizer" className="pill pill-primary">Size your loan</Link>
           <Link href="/express" className="pill pill-glass">Start the 60-second qualifier</Link>
           <Link href="/track-record" className="pill pill-glass">How we report closed deals</Link>

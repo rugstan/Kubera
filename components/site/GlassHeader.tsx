@@ -25,35 +25,38 @@ export function GlassHeader() {
   return (
     <header className="glass sticky top-0 z-40 border-b border-black/[0.06]">
       <nav className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-5 md:px-8" aria-label="Primary">
-        <Link href="/" className="flex items-center gap-2" aria-label="Kubera Commercial home">
+        <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Kubera Commercial home">
           <Logo />
         </Link>
-        <ul className="hidden items-center gap-7 text-[13px] text-ink/80 lg:flex">
+        {/* The inline list fits beside the logo, the icon-only Ask pill and the CTA from xl; below that the menu button takes over. */}
+        <ul className="hidden items-center gap-5 text-[13px] text-ink/80 xl:flex">
           {NAV.map((n) => (
             <li key={n.href}>
-              <Link href={n.href} className="transition-colors hover:text-ink">
+              <Link href={n.href} className="whitespace-nowrap transition-colors hover:text-ink">
                 {n.label}
               </Link>
             </li>
           ))}
         </ul>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => openCommandBar()}
             data-ask-entry
-            className="hidden items-center gap-2 rounded-full border border-black/[0.08] bg-white/60 px-3 py-1.5 text-[13px] text-titanium transition hover:text-ink sm:flex"
+            title="Ask Kubera AI"
+            className="hidden items-center gap-2 rounded-full border border-black/[0.08] bg-white/60 whitespace-nowrap px-3 py-1.5 text-[13px] text-titanium transition hover:text-ink sm:flex"
           >
             <SparkIcon />
-            Ask Kubera AI
+            {/* Icon-only from xl, where the inline links need the room (the nav is capped at 1280px); the name stays for screen readers. */}
+            <span className="xl:sr-only">Ask Kubera AI</span>
             <kbd className="rounded-md bg-black/[0.05] px-1.5 py-0.5 font-sans text-[12px]">⌘K</kbd>
           </button>
-          <Link href="/#sizer" className="pill pill-primary !px-4 !py-1.5 !text-[13px]">
+          <Link href="/#sizer" className="pill pill-primary whitespace-nowrap !px-4 !py-1.5 !text-[13px]">
             Size a loan
           </Link>
           <button
             type="button"
-            className="ml-1 grid size-9 place-items-center rounded-full lg:hidden"
+            className="ml-1 grid size-9 place-items-center rounded-full xl:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -74,7 +77,7 @@ export function GlassHeader() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 36 }}
-            className="overflow-hidden border-t border-black/[0.06] px-5 lg:hidden"
+            className="overflow-hidden border-t border-black/[0.06] px-5 xl:hidden"
           >
             {NAV.map((n) => (
               <li key={n.href} className="border-b border-black/[0.04] last:border-none">

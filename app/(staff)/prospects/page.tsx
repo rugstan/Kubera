@@ -145,7 +145,7 @@ async function ProspectsData({ searchParams }: { searchParams: Search }) {
           ])}
         />
         <form action={settleAllAction} className="mt-4">
-          <Submit tone="glass">Check waiting outreach for broker decisions</Submit>
+          <Submit tone="glass">Check waiting outreach</Submit>
         </form>
       </Section>
     </>

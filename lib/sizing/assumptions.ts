@@ -11,12 +11,17 @@ import type { Benchmarks } from "@/lib/rates";
 export const ASSUMPTIONS_REVIEWED = "2026-10-31";
 
 /** Used only when the live benchmark feed is unreachable; the UI labels them "indicative". */
+// VERIFY: hand-set approximations of FRED DGS5, DGS10, SOFR30DAYAVG and DPRIME,
+// reviewed 2026-10-31. Update the values and FALLBACK_BENCHMARKS_AS_OF together.
 export const FALLBACK_BENCHMARKS: Benchmarks = {
   fiveYear: 3.85,
   tenYear: 4.15,
   sofr30: 3.7,
   prime: 6.75,
 };
+
+/** The date FALLBACK_BENCHMARKS were last set. Shown in place of a market date whenever they are used. */
+export const FALLBACK_BENCHMARKS_AS_OF = "2026-10-31";
 
 /** Spreads in percentage points over the named benchmark. */
 export const SPREADS = {

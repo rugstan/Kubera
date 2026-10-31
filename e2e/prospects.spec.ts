@@ -197,9 +197,15 @@ test("the weekly market note is a cited rules digest without an xAI key, and a r
 test("the prospect list reflows at 390px without sideways page scroll", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page, "broker@kubera.test", "/prospects");
+  // Finish signing in first, or the loop below measures the sign-in page.
+  await expect(page).toHaveURL(`${base}/prospects`);
   for (const p of ["/prospects", "/prospects/intel", "/prospects/suppressions"]) {
     await page.goto(`${base}${p}`);
+    await expect(page).toHaveURL(`${base}${p}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // The lists stream in behind Suspense; measure once they (and their buttons) have rendered.
+    await expect(page.getByText(/^Loading\b.*…$/)).toHaveCount(0);
+    if (p === "/prospects") await expect(page.getByRole("button", { name: "Check waiting outreach" })).toBeVisible();
     const { scrollWidth, innerWidth } = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
     expect(scrollWidth, `${p}: page is ${scrollWidth}px wide at a ${innerWidth}px viewport`).toBeLessThanOrEqual(innerWidth);
   }

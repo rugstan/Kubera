@@ -1,5 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { FALLBACK_BENCHMARKS, HUD, SPREADS } from "@/lib/sizing/assumptions";
+import { FALLBACK_BENCHMARKS, FALLBACK_BENCHMARKS_AS_OF, HUD, SPREADS } from "@/lib/sizing/assumptions";
 
 export type Benchmarks = {
   fiveYear: number;
@@ -21,6 +21,10 @@ export type TickerItem = {
 export type MarketSnapshot = {
   benchmarks: Benchmarks;
   items: TickerItem[];
+  /**
+   * Latest observation date when every series is live. When any series fell
+   * back, the fixed date the fallback values were set (never today's date).
+   */
   asOf: string;
   /** False when one or more series fell back to indicative values. */
   live: boolean;
@@ -125,5 +129,7 @@ export async function getMarketSnapshot(): Promise<MarketSnapshot> {
     if (last.date > asOf) asOf = last.date;
   });
 
-  return { benchmarks, items: buildTicker(benchmarks, changes), asOf: asOf || new Date().toISOString().slice(0, 10), live };
+  // A fallback figure has no market date of its own, so a snapshot that uses
+  // any carries the date the fallbacks were set rather than a fresh-looking one.
+  return { benchmarks, items: buildTicker(benchmarks, changes), asOf: live && asOf ? asOf : FALLBACK_BENCHMARKS_AS_OF, live };
 }

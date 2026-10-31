@@ -121,7 +121,7 @@ export default function ContactPage() {
       </Section>
 
       <Section id="not-sure" title="Not sure where to start?">
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link href="/express" className="pill pill-primary">Start the 60-second qualifier</Link>
           <Link href="/#sizer" className="pill pill-glass">Size a loan</Link>
           <Link href="/partners" className="pill pill-glass">Register as a partner</Link>
