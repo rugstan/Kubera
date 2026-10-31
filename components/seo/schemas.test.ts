@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { breadcrumbSchema, faqSchema, serializeJsonLd, siteGraph, type JsonLdNode } from "./schemas";
+import { breadcrumbSchema, faqSchema, financialServiceSchema, postalAddressSchema, serializeJsonLd, siteGraph, type JsonLdNode } from "./schemas";
 
 function walk(value: unknown, visit: (v: unknown, key: string) => void, key = "") {
   visit(value, key);
@@ -26,10 +26,24 @@ describe("site graph", () => {
     }
   });
 
-  it("links provider and publisher to the Organization", () => {
+  it("links parentOrganization and publisher to the Organization", () => {
     const org = byType("Organization")["@id"];
-    expect(byType("FinancialService").provider).toEqual({ "@id": org });
+    expect(byType("FinancialService").parentOrganization).toEqual({ "@id": org });
     expect(byType("WebSite").publisher).toEqual({ "@id": org });
+  });
+
+  it("uses only properties schema.org defines for FinancialService (a LocalBusiness, not a Service)", () => {
+    const fs = byType("FinancialService");
+    // provider and serviceType belong to Service and are unrecognized on Organization subtypes.
+    expect(fs).not.toHaveProperty("provider");
+    expect(fs).not.toHaveProperty("serviceType");
+    const allowed = new Set([
+      "@type", "@id", "name", "url", "image", "description", "knowsAbout", "areaServed",
+      "address", "email", "telephone", "parentOrganization",
+    ]);
+    expect(Object.keys(fs).filter((k) => !allowed.has(k))).toEqual([]);
+    expect(fs.knowsAbout).toEqual(expect.arrayContaining([expect.stringMatching(/brokerage/i)]));
+    expect(fs.areaServed).toEqual({ "@type": "State", name: "California" });
   });
 
   it("has no empty values and absolute urls for image fields", () => {
@@ -46,6 +60,31 @@ describe("site graph", () => {
     const text = JSON.stringify(graph);
     expect(text).toContain("not a lender");
     expect(text).not.toMatch(/guarantee|pre-?approved|\bapproved\b/i);
+  });
+});
+
+describe("FinancialService address", () => {
+  it("omits address when no licensed address is configured", () => {
+    expect(financialServiceSchema("")).not.toHaveProperty("address");
+  });
+
+  it("emits a PostalAddress parsed from the licensed address", () => {
+    expect(financialServiceSchema("100 Main St, Suite 200, Irvine, CA 92618").address).toEqual({
+      "@type": "PostalAddress",
+      streetAddress: "100 Main St, Suite 200",
+      addressLocality: "Irvine",
+      addressRegion: "CA",
+      postalCode: "92618",
+      addressCountry: "US",
+    });
+  });
+
+  it("keeps an unparseable address whole as the street address", () => {
+    expect(postalAddressSchema("Office on file with the DRE")).toEqual({
+      "@type": "PostalAddress",
+      streetAddress: "Office on file with the DRE",
+    });
+    expect(postalAddressSchema("   ")).toBeUndefined();
   });
 });
 

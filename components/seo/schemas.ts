@@ -43,18 +43,53 @@ export function organizationSchema(): JsonLdNode {
   });
 }
 
-export function financialServiceSchema(): JsonLdNode {
+/**
+ * Builds a schema.org PostalAddress from the free-form licensed address
+ * ("123 Main St, Suite 4, Irvine, CA 92618"). When the text does not end in a
+ * "City, ST 12345" pattern the whole string becomes the street address.
+ * (A two-letter state plus ZIP code is a US address, hence addressCountry.)
+ */
+export function postalAddressSchema(raw: string): JsonLdNode | undefined {
+  const text = raw.trim();
+  if (!text) return undefined;
+  const parts = text.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length && /^(usa?|united states( of america)?)$/i.test(parts[parts.length - 1]!)) parts.pop();
+  const regionZip = parts.length >= 3 ? /^([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/.exec(parts[parts.length - 1]!) : null;
+  if (!regionZip) {
+    // Nothing beyond the configured text is guessed.
+    return { "@type": "PostalAddress", streetAddress: text };
+  }
   return {
+    "@type": "PostalAddress",
+    streetAddress: parts.slice(0, -2).join(", "),
+    addressLocality: parts[parts.length - 2],
+    addressRegion: regionZip[1]!.toUpperCase(),
+    postalCode: regionZip[2],
+    addressCountry: "US",
+  };
+}
+
+/**
+ * FinancialService is Organization > LocalBusiness > FinancialService, so only
+ * Organization/LocalBusiness properties apply here: the Service-only
+ * `provider` and `serviceType` are not valid on this type. Programs are listed
+ * with `knowsAbout`, and `parentOrganization` links the Organization node.
+ */
+export function financialServiceSchema(licensedAddress: string = site.licensedAddress): JsonLdNode {
+  return withoutEmpty({
     "@type": "FinancialService",
     "@id": SERVICE_ID(),
     name: `${site.name} loan brokerage`,
     url: canonicalUrl("/"),
     image: canonicalUrl("/opengraph-image"),
     description: SITE_DESCRIPTION,
-    serviceType: SERVICE_TYPES,
-    provider: { "@id": ORGANIZATION_ID() },
+    knowsAbout: SERVICE_TYPES,
+    areaServed: { "@type": "State", name: "California" },
+    address: postalAddressSchema(licensedAddress),
+    email: site.email,
+    telephone: site.phone,
     parentOrganization: { "@id": ORGANIZATION_ID() },
-  };
+  });
 }
 
 export function websiteSchema(): JsonLdNode {
