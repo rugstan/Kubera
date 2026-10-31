@@ -207,11 +207,11 @@ test("staff review low-confidence extractions: correct and approve, or reject", 
   await expect(pfs.getByRole("list", { name: "Checks that failed" })).toContainText(/mismatch/);
 
   // Approving as read is refused while the totals disagree.
-  await pfs.getByRole("button", { name: /^Approve extraction/ }).click();
+  await pfs.getByRole("button", { name: /^Approve with these values/ }).click();
   await expect(pfs.getByRole("alert")).toContainText(/disagree/);
 
   await pfs.getByLabel("Total assets").fill("1900000");
-  await pfs.getByRole("button", { name: /^Approve extraction/ }).click();
+  await pfs.getByRole("button", { name: /^Approve with these values/ }).click();
   await expect(page).toHaveURL(/\/documents\/extractions\?approved=/);
   await expect(page.getByRole("status").filter({ hasText: "Extraction approved" })).toBeVisible();
   await expect(queue.getByRole("article", { name: /Sunrise guarantor PFS/ })).toHaveCount(0);

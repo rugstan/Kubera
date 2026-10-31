@@ -77,7 +77,7 @@ export function ReviewForm({ id, title, fields }: { id: string; title: string; f
           <textarea id={notesId} name="notes" rows={2} maxLength={2000} className="field" />
         </div>
         <div className="mt-3 flex flex-wrap gap-3">
-          <button type="submit" className="pill pill-primary min-h-11 px-5 py-2 text-[15px] disabled:opacity-50" disabled={pending} aria-label={`Approve extraction: ${title}`}>
+          <button type="submit" className="pill pill-primary min-h-11 px-5 py-2 text-[15px] disabled:opacity-50" disabled={pending} aria-label={`Approve with these values: ${title}`}>
             Approve with these values
           </button>
           {!showReject ? (

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { createHash } from "node:crypto";
 import { rateLimiter } from "@/lib/ratelimit";
+import { resolveAuthMode } from "./config";
 import { auditQuietly } from "./audit";
 import { clearSessionCookie, requestFingerprint, writeSessionCookie } from "./dal";
 import { displayName, requiresMfa } from "./policy";
@@ -22,6 +23,9 @@ export function emailKey(email: string): string {
 }
 
 export async function limited(key: string, limit: number, windowMs: number): Promise<boolean> {
+  // Fake mode (demo accounts, refused in production) skips sign-in limits: the
+  // e2e suite signs the same demo broker in many times from one address.
+  if (resolveAuthMode().mode === "fake") return false;
   return !(await rateLimiter().limit(key, { limit, windowMs })).success;
 }
 
