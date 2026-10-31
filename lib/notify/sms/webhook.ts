@@ -5,7 +5,7 @@ import { maskPhone, toE164 } from "../phone";
 import type { Notifier } from "../service";
 import type { NotifyStore, SmsRow } from "../store";
 import type { SmsOptOutSink } from "../optout";
-import { parseKeyword } from "./keywords";
+import { classifyInbound } from "./keywords";
 import { verifyTelnyxSignature } from "./signature";
 
 // Telnyx webhook handler. The route file (app/api/webhooks/telnyx/route.ts)
@@ -107,7 +107,7 @@ async function handleInbound(event: Parsed, deps: TelnyxWebhookDeps): Promise<Re
   if (!from) return { ignored: "no sender" };
 
   const text = (payload.text ?? "").trim();
-  const keyword = parseKeyword(text);
+  const { keyword, embeddedRevocation } = classifyInbound(text);
   const providerMessageId = payload.id ?? event.data.id ?? null;
 
   const { row, fresh } = await deps.store.recordSms({
@@ -131,6 +131,9 @@ async function handleInbound(event: Parsed, deps: TelnyxWebhookDeps): Promise<Re
     await recordSmsConsent(deps.ledger, "revoked", { phone: from, leadId: state.leadId, partnerId: state.partnerId, now, source: providerMessageId ?? row.id });
     optOutNote = await mirrorOptOut(deps, from, true);
     await reply(deps, row, "sms_stop_reply", from, state.leadId ?? null);
+    // A revocation inside a longer message ("Please stop texting me", "cancel the appraisal") is honored
+    // first; staff still get the text so they can follow up on anything else it says.
+    if (embeddedRevocation) await alertStaff(deps, row, from, text, { revoked: true });
   } else if (keyword === "help") {
     await reply(deps, row, "sms_help_reply", from, null);
   } else if (keyword === "start") {
@@ -175,13 +178,16 @@ async function reply(deps: TelnyxWebhookDeps, row: SmsRow, templateId: "sms_stop
   }
 }
 
-async function alertStaff(deps: TelnyxWebhookDeps, row: SmsRow, from: string, text: string) {
+async function alertStaff(deps: TelnyxWebhookDeps, row: SmsRow, from: string, text: string, opts: { revoked?: boolean } = {}) {
+  const guidance = opts.revoked
+    ? "This text was treated as a revocation of text consent (FCC revocation rule): texts to this number are stopped. Follow up on anything else it asks by email or phone, not by text."
+    : "Reply from the CRM or the sending number's inbox. Do not reply by text unless the sender has text consent on file.";
   for (const email of deps.staffEmails) {
     await deps.notifier
       .send({
         templateId: "staff_alert",
         to: { audience: "staff", email },
-        data: { title: "Inbound text message", lines: [`From ${from}`, text.slice(0, 400), "Reply from the CRM or the sending number's inbox. Do not reply by text unless the sender has text consent on file."] },
+        data: { title: opts.revoked ? "Inbound text: consent revoked" : "Inbound text message", lines: [`From ${from}`, text.slice(0, 400), guidance] },
         idempotencyKey: `sms-inbound:${row.id}:${email}`,
       })
       .catch((err) => console.error("[telnyx] inbound staff alert failed", err instanceof Error ? err.message : err));

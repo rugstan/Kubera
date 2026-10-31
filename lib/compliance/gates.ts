@@ -342,6 +342,10 @@ function dedupe(flags: Flag[]): Flag[] {
   });
 }
 
+/** Closing-gate reason when the loan has no broker-of-record (gate H) file. */
+export const BROKER_OF_RECORD_FILE_MISSING =
+  "Record the loan's broker-of-record file (lender, category, note rate, collateral and broker-of-record elements) before closing.";
+
 export function evaluateDealCompliance(input: DealComplianceInput): DealCompliance {
   const mlds = mldsRequirement(input.mlds.facts);
   const caseState: MldsCaseState = { requirement: mlds, status: input.mlds.status };
@@ -359,11 +363,16 @@ export function evaluateDealCompliance(input: DealComplianceInput): DealComplian
   if (usury) flags.push(...usury.flags);
 
   const parsedUsury = input.usury ? usuryFactsSchema.parse(input.usury) : null;
-  const modifications = (input.modifications ?? []).map((m) => {
-    if (!parsedUsury) throw new Error("Modifications require the loan's usury facts (lender, collateral, discount rate)");
-    return evaluateModification(m, { lender: parsedUsury.lender, fedDiscountRatePct: parsedUsury.fedDiscountRatePct, collateral: parsedUsury.collateral });
-  });
+  const pendingModifications = input.modifications ?? [];
+  // Without the loan's usury facts (lender, collateral, discount rate) a
+  // modification cannot be evaluated; it is reported below and blocks closing.
+  const modifications = parsedUsury
+    ? pendingModifications.map((m) => evaluateModification(m, { lender: parsedUsury.lender, fedDiscountRatePct: parsedUsury.fedDiscountRatePct, collateral: parsedUsury.collateral }))
+    : [];
   for (const m of modifications) flags.push(...m.flags);
+  if (!usury) {
+    flags.push({ code: "broker_of_record_incomplete", reason: "No broker-of-record file (gate H) is recorded for this loan." });
+  }
 
   const all = dedupe(flags);
   const heldForCounsel = all.some((f) => f.code === "held_for_counsel") || input.mlds.status === "held_for_counsel";
@@ -371,6 +380,11 @@ export function evaluateDealCompliance(input: DealComplianceInput): DealComplian
   const closingReasons: string[] = [];
   if (heldForCounsel) closingReasons.push("Deal is held for counsel review.");
   if (mlds.required && input.mlds.status !== "signed") closingReasons.push("No deal moves to closing without a signed MLDS (RE 882) on file.");
+  // Gate H elements are recorded on every loan: fail closed when the file is absent.
+  if (!usury) closingReasons.push(BROKER_OF_RECORD_FILE_MISSING);
+  if (!parsedUsury && pendingModifications.length) {
+    closingReasons.push(`${pendingModifications.length} recorded modification(s) cannot be evaluated until the loan's broker-of-record file is recorded.`);
+  }
   if (usury?.blocking) closingReasons.push(...usury.reasons, ...usury.missing.map((m) => `Missing: ${BROKER_ELEMENT_LABELS[m]}`));
   for (const m of modifications) if (m.blocking) closingReasons.push(`A ${m.status === "held_for_counsel" ? "pre-SB 1146" : "broker-arranged"} modification is not cleared.`);
 

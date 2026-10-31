@@ -71,6 +71,13 @@ const CLAUSE_BREAK = /[,;:—–]|\s-\s|\b(?:but|however|although|though|while|w
 
 const YOU = String.raw`(?:you|you're|you’re|your (?:loan|application|file|deal|request|financing))`;
 
+/** Loan nouns a usury claim can be about. */
+const LOAN_NOUN = String.raw`(?:loan|deal|financing|transaction|rate|structure|bridge|note|facility|refinance)`;
+/** A usury phrase is a problem when it is about this borrower's loan, not a general fact. */
+const LOAN_REF = new RegExp(String.raw`\b(?:your|this|that|the)\s+${LOAN_NOUN}\b|\byou(?:r)?\b`, "i");
+/** Stricter: only "your ..." or "this/that <loan noun>" (the general "the exemption applies to loans ..." is a fact). */
+const BORROWER_LOAN_REF = new RegExp(String.raw`\byou(?:r)?\b|\b(?:this|that)\s+(?:\S+\s+){0,3}?${LOAN_NOUN}\b`, "i");
+
 const R = (id: string, category: GuardrailCategory, description: string, pattern: RegExp, extra: Partial<GuardrailRule> = {}): GuardrailRule => ({ id, category, description, pattern, ...extra });
 
 export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
@@ -102,9 +109,33 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     /\b(?:your|this|that|the|such an?)\s+(?:\w+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b[^.]{0,40}?\b(?:is|are|will be|would be|should be|looks|appears|seems)\s+(?:to be\s+)?(?:fully |likely |probably |generally |automatically |clearly |also )?(?:exempt\b|usury[- ]exempt\b|(?:outside|not subject to|immune from|beyond)\b[^.]{0,30}\busury|covered by (?:the )?(?:broker )?exemption)|\bexempt from (?:california(?:'s|’s)? |the )?(?:usury|interest[- ]rate cap)/i,
     { negateInside: false, requires: /\b(?:your|this|that|the|such an?)\s+(?:\w+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b|\byou(?:r)?\b/i },
   ),
-  R("usury.not-apply", "usury_exemption", "Says usury limits do not apply to the borrower's loan", /\busury\b[^.]{0,60}\b(?:doesn't|does not|won't|will not|isn't|is not|don't|do not|don’t|doesn’t|aren't|are not)\s+(?:apply|a (?:concern|issue|problem)|an? (?:issue|concern|problem)|matter)\b/i, { negateInside: false, requires: /\b(?:your|this|that|the)\s+(?:loan|deal|financing|transaction|rate|structure)\b|\byou(?:r)?\b/i }),
+  R("usury.not-apply", "usury_exemption", "Says usury limits do not apply to the borrower's loan", /\busury\b[^.]{0,60}\b(?:doesn't|does not|won't|will not|isn't|is not|don't|do not|don’t|doesn’t|aren't|are not)\s+(?:apply|a (?:concern|issue|problem)|an? (?:issue|concern|problem)|matter)\b/i, { negateInside: false, requires: LOAN_REF }),
+  // "qualifies for / falls under / is covered by ... the broker exemption" about the borrower's loan.
+  R(
+    "usury.qualifies-for-exemption",
+    "usury_exemption",
+    "Says the borrower's loan qualifies for, falls under or is covered by an exemption",
+    /\b(?:qualif(?:y|ies|ied)|falls? (?:under|within)|fell (?:under|within)|(?:is |are |be )?covered by|eligible for|benefits? from)\b(?:[^.]|\.(?=\d)){0,40}\bexemption\b/i,
+    { requires: BORROWER_LOAN_REF },
+  ),
+  // "§1916.1 / the broker exemption applies to / exempts / covers your loan".
+  R(
+    "usury.exemption-applies",
+    "usury_exemption",
+    "Says §1916.1 or the broker exemption applies to, exempts or covers the borrower's loan",
+    /\b(?:1916\.1|broker(?:[- ]arrang(?:ed|ement))? exemption|usury exemption)\b(?:[^.]|\.(?=\d)){0,40}\b(?:applies|apply|exempts|covers)\b/i,
+    { requires: BORROWER_LOAN_REF },
+  ),
+  // "The 12% rate on your bridge loan is fine under California usury law."
+  R(
+    "usury.fine-under-law",
+    "usury_exemption",
+    "Says the borrower's rate or loan is fine or permitted under usury law",
+    /\b(?:is|are|will be|would be|should be|looks|seems)\s+(?:perfectly |totally |completely |fully |probably |likely )?(?:fine|ok|okay|allowed|permitted|permissible|acceptable|compliant|legal|safe|good)\s+(?:under|with|for)\s+(?:the\s+)?(?:state\s+)?(?:california(?:'s|’s)?\s+)?(?:usury|interest[- ]rate (?:cap|limits?))/i,
+    { negateInside: false, requires: BORROWER_LOAN_REF },
+  ),
   R("usury.worry", "usury_exemption", "Tells the borrower not to worry about usury", /\b(?:won't|will not|don't|do not|don’t|wouldn't|need not|not)\s+(?:have to |need to )?(?:worry|be concerned)\s+about\s+(?:california |the )?usury\b|\b(?:no|nothing to) (?:usury|usury concerns?|usury risk)\b/i, { negatable: false }),
-  R("usury.adjective", "usury_exemption", "Calls a loan usury-exempt", /\busury[- ]exempt\b/i, { requires: /\b(?:your|this|that|the)\s+(?:loan|deal|financing|transaction|rate|structure)\b|\byou(?:r)?\b/i }),
+  R("usury.adjective", "usury_exemption", "Calls a loan usury-exempt", /\busury[- ]exempt\b/i, { requires: LOAN_REF }),
 
   // --- timelines -------------------------------------------------------------------------
   R("timeline.guarantee", "guaranteed_timeline", "Guarantees a closing or funding timeline", /\bguarantee[sd]?\b[^.]{0,50}\b(?:clos|fund|timeline|timing|schedule|in \d+|within \d+|by )/i),
@@ -120,7 +151,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "timeline.will-close-in",
     "guaranteed_timeline",
     "States a firm closing or funding time",
-    /\b(?:will|is going to|are going to|'ll|’ll|guaranteed to|definitely will|will definitely|will certainly|is sure to|are sure to)\s+(?:definitely |certainly |surely |absolutely )?(?:close|fund|be funded|be closed|be done|be completed|be finished|be in your account)\s+(?:in|within|by|before|on)\s+(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|sixty|ninety|a (?:week|month|day)|next|the end of|end of|[A-Z][a-z]+ \d)/i,
+    /\b(?:will|is going to|are going to|'ll|’ll|guaranteed to|definitely will|will definitely|will certainly|is sure to|are sure to)\s+(?:definitely |certainly |surely |absolutely )?(?:(?:close|fund)(?:\s+(?:your|the|this|that)\s+(?:\S+\s+){0,2}?(?:loan|deal|financing|bridge|refinance|transaction|purchase|acquisition))?|be funded|be closed|be done|be completed|be finished|be in your account)\s+(?:in|within|by|before|on)\s+(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|sixty|ninety|a (?:week|month|day)|next|the end of|end of|[A-Z][a-z]+ \d)/i,
   ),
   R("timeline.closing-certain", "guaranteed_timeline", "Says closing is certain or fixed", /\b(?:closing|close|funding)(?: date| timeline)?\s+(?:is|will be)\s+(?:guaranteed|assured|certain|locked in|fixed|firm)\b/i),
   R("timeline.get-you-closed", "guaranteed_timeline", "Promises a closing date", /\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:definitely |certainly )?(?:get|have)\s+(?:you|your (?:loan|deal|financing))\s+(?:closed|funded)\s+(?:in|within|by|before)\b/i),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BROKER_ELEMENT_LABELS,
+  BROKER_OF_RECORD_FILE_MISSING,
   SB1146_EFFECTIVE_DATE,
   USURY_NEUTRAL_STATEMENT,
   borrowerDocumentGate,
@@ -144,7 +145,7 @@ describe("gate A: hard blocks", () => {
     expect(stageAdvanceGate("closing", unsigned).allowed).toBe(false);
     expect(stageAdvanceGate("CLOSED_WON", unsigned).allowed).toBe(false);
     expect(stageAdvanceGate("term_sheet", unsigned).allowed).toBe(true);
-    const signed = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" }, now });
+    const signed = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" }, usury: usury(), now });
     expect(stageAdvanceGate("closing", signed).allowed).toBe(true);
     expect(signed.gates.borrowerCommitment.allowed).toBe(true);
   });
@@ -377,14 +378,26 @@ describe("whole-deal evaluation", () => {
     expect(r.gates.borrowerLoanDocuments.allowed).toBe(false);
   });
 
-  it("requires loan usury facts to evaluate modifications", () => {
-    expect(() =>
-      evaluateDealCompliance({
-        mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
-        modifications: [{ kind: "extension", effectiveDate: "2026-01-01", arrangedBy: "kubera", noteRatePct: 9 }],
-        now,
-      }),
-    ).toThrow(/usury facts/);
+  it("blocks closing with a signed MLDS but no broker-of-record file", () => {
+    const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" }, now });
+    expect(r.usury).toBeNull();
+    expect(r.gates.closing.allowed).toBe(false);
+    expect(r.gates.closing.reasons).toContain(BROKER_OF_RECORD_FILE_MISSING);
+    expect(r.flags.map((f) => f.code)).toContain("broker_of_record_incomplete");
+    // Business-asset-only loans record the file too.
+    const assets = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: { realPropertyLien: false, equityPledgeOrUccOnly: true } }, status: null }, now });
+    expect(assets.gates.closing.allowed).toBe(false);
+  });
+
+  it("blocks closing when modifications exist without the loan's usury facts", () => {
+    const r = evaluateDealCompliance({
+      mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
+      modifications: [{ kind: "extension", effectiveDate: "2026-01-01", arrangedBy: "kubera", noteRatePct: 9 }],
+      now,
+    });
+    expect(r.modifications).toEqual([]);
+    expect(r.gates.closing.allowed).toBe(false);
+    expect(r.gates.closing.reasons.join(" ")).toMatch(/modification\(s\) cannot be evaluated/);
   });
 
   it("allows closing for a clean, signed, cleared deal", () => {
