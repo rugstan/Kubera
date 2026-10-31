@@ -1,0 +1,187 @@
+{
+  "suite": "documents.census",
+  "description": "Senior housing census: beds, occupancy and payor mix",
+  "agent": "documents.extraction",
+  "docType": "CENSUS",
+  "subject": "documents.extract",
+  "fallbackSubject": "documents.reference",
+  "minPassRate": 1,
+  "options": {
+    "docType": "CENSUS"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "propertyName": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "asOfDate": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "licensedBeds": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "occupiedBeds": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "occupancyPct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "privatePayPct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "medicaidPct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "medicarePct": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "memoryCareOccupied": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "injection_suspected": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "propertyName",
+      "asOfDate",
+      "licensedBeds",
+      "occupiedBeds",
+      "occupancyPct",
+      "privatePayPct",
+      "medicaidPct",
+      "medicarePct",
+      "memoryCareOccupied",
+      "injection_suspected"
+    ],
+    "additionalProperties": false
+  },
+  "cases": [
+    {
+      "id": "census-sun-valley",
+      "description": "Assisted living and memory care census with private pay and Medi-Cal",
+      "input": {
+        "fileName": "SVG census Oct 2026.pdf",
+        "text": "Sun Valley Gardens — Monthly Census Report\nCensus date: 2026-10-31\nLicensed beds: 96\n\nWing\tLicensed\tOccupied\nAssisted living — East\t40\t37\nAssisted living — West\t32\t29\nMemory care\t24\t22\n\nPayor mix (occupied beds)\nPrivate pay\t71\nMedi-Cal (Medicaid)\t17\nMedicare\t0"
+      },
+      "assert": [
+        {
+          "op": "equals",
+          "path": "licensedBeds",
+          "value": 96
+        },
+        {
+          "op": "equals",
+          "path": "occupiedBeds",
+          "value": 88
+        },
+        {
+          "op": "approx",
+          "path": "occupancyPct",
+          "value": 91.67,
+          "tolerance": 0.01
+        },
+        {
+          "op": "approx",
+          "path": "privatePayPct",
+          "value": 80.68,
+          "tolerance": 0.01
+        },
+        {
+          "op": "approx",
+          "path": "medicaidPct",
+          "value": 19.32,
+          "tolerance": 0.01
+        },
+        {
+          "op": "approx",
+          "path": "medicarePct",
+          "value": 0,
+          "absolute": 0.5
+        },
+        {
+          "op": "equals",
+          "path": "memoryCareOccupied",
+          "value": 22
+        }
+      ],
+      "tags": [
+        "senior-living"
+      ]
+    },
+    {
+      "id": "census-bayside-snf",
+      "description": "Skilled nursing census with Medicare skilled mix",
+      "input": {
+        "fileName": "Bayside census 9-30.pdf",
+        "text": "Bayside Care Center (SNF) — Monthly Census Report\nCensus date: 2026-09-30\nLicensed beds: 120\n\nWing\tLicensed\tOccupied\nSkilled 1\t60\t52\nSkilled 2\t60\t49\n\nPayor mix (occupied beds)\nPrivate pay\t18\nMedi-Cal (Medicaid)\t61\nMedicare\t22"
+      },
+      "assert": [
+        {
+          "op": "equals",
+          "path": "licensedBeds",
+          "value": 120
+        },
+        {
+          "op": "equals",
+          "path": "occupiedBeds",
+          "value": 101
+        },
+        {
+          "op": "approx",
+          "path": "occupancyPct",
+          "value": 84.17,
+          "tolerance": 0.01
+        },
+        {
+          "op": "approx",
+          "path": "medicaidPct",
+          "value": 60.4,
+          "tolerance": 0.01
+        },
+        {
+          "op": "approx",
+          "path": "medicarePct",
+          "value": 21.78,
+          "tolerance": 0.01
+        },
+        {
+          "op": "absent",
+          "path": "memoryCareOccupied"
+        }
+      ],
+      "tags": [
+        "senior-living",
+        "snf"
+      ]
+    }
+  ]
+}
