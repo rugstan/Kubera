@@ -222,3 +222,30 @@ describe("queueApprovalGate", () => {
     expect(await gate.request({ ...action, idempotencyKey: "esign_send:e:000002" })).toMatchObject({ status: "expired" });
   });
 });
+
+describe("ApprovalService decision hook", () => {
+  it("reports every decision and expiry once, and a failing hook never blocks the decision", async () => {
+    let now = T0;
+    const seen: string[] = [];
+    const service = new ApprovalService(new MemoryApprovalStore(), () => now, {
+      onDecided: async (records) => {
+        seen.push(...records.map((r) => `${r.idempotencyKey}:${r.status}`));
+      },
+    });
+    const a = await service.request(req({ idempotencyKey: "email:hook-a" }));
+    await service.request(req({ idempotencyKey: "email:hook-b" }));
+    expect((await service.approve(a.record.id, broker)).ok).toBe(true);
+    expect((await service.approve(a.record.id, broker)).ok).toBe(false);
+    now = new Date(T0.getTime() + 2 * 3_600_000);
+    await service.expireDue();
+    await service.expireDue();
+    expect(seen).toEqual(["email:hook-a:approved", "email:hook-b:expired"]);
+
+    const failing = new ApprovalService(new MemoryApprovalStore(), () => T0, { onDecided: () => Promise.reject(new Error("inngest down")) });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const c = await failing.request(req({ idempotencyKey: "email:hook-c" }));
+    expect((await failing.reject(c.record.id, broker, "Wrong borrower")).ok).toBe(true);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});

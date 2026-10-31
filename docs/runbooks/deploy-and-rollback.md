@@ -19,6 +19,7 @@ Production is a Vercel project built from the `main` branch. Every pull request 
 - [ ] Legal copy: if `NEXT_PUBLIC_LEGAL_APPROVED` is not `"true"`, the draft-pending-counsel banner is expected on legal pages. Do not set it to `"true"` without written counsel sign-off.
 - [ ] Loan advertising still shows the DRE license line (spot check the footer on `/` and `/express`).
 - [ ] Someone who can approve a rollback is available for the next hour.
+- [ ] Phase 2 integrations, when first enabled: work through [workflows-and-messaging.md](./workflows-and-messaging.md) (Inngest sync, Zoho Mail tokens, Langfuse, Telnyx STOP/HELP, crons, `CSLB_LOOKUP_ENABLED` / `CSLB_LOOKUP_BASE_URL`).
 
 ## Deploy
 

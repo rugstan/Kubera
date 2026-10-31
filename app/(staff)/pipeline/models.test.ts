@@ -38,7 +38,7 @@ describe("document viewer rules", () => {
   it("holds quarantined or unscanned files and serves clean ones", () => {
     expect(servable({ scanStatus: "clean", storagePath: "a/b.pdf" })).toEqual({ ok: true });
     expect(servable({ scanStatus: null, storagePath: "a/b.pdf" })).toEqual({ ok: true });
-    for (const s of ["quarantined", "pending", "infected", "scanning"]) expect(servable({ scanStatus: s, storagePath: "a/b.pdf" })).toMatchObject({ ok: false, status: 423 });
+    for (const s of ["quarantined", "pending", "infected", "scanning", "pending_upload", "scan_failed", "rejected", "something_new"]) expect(servable({ scanStatus: s, storagePath: "a/b.pdf" })).toMatchObject({ ok: false, status: 423 });
     expect(servable(null)).toMatchObject({ ok: false, status: 404 });
   });
 

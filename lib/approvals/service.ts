@@ -52,11 +52,29 @@ export type ExecuteResult =
   | { status: "not_approved"; record: ApprovalRecord }
   | { status: "already_executed"; record: ApprovalRecord };
 
+export type ApprovalHooks = {
+  /**
+   * Called after approvals leave `pending` (approved, rejected, cancelled or
+   * expired) so waiting workflows can wake. Failures are logged, never thrown.
+   */
+  onDecided?: (records: ApprovalRecord[]) => Promise<void>;
+};
+
 export class ApprovalService {
   constructor(
     private readonly store: ApprovalStore,
     private readonly now: Clock = () => new Date(),
+    private readonly hooks: ApprovalHooks = {},
   ) {}
+
+  private async notify(records: ApprovalRecord[]): Promise<void> {
+    if (!records.length || !this.hooks.onDecided) return;
+    try {
+      await this.hooks.onDecided(records);
+    } catch (err) {
+      console.warn("[approvals] decision hook failed", err instanceof Error ? err.message : err);
+    }
+  }
 
   /**
    * Requests approval for an outbound action (or returns the existing request
@@ -150,7 +168,9 @@ export class ApprovalService {
 
   /** Moves every pending approval past its expiry to `expired`. Safe to run any time. */
   async expireDue(): Promise<ApprovalRecord[]> {
-    return this.store.expireDue(this.now());
+    const expired = await this.store.expireDue(this.now());
+    await this.notify(expired);
+    return expired;
   }
 
   /**
@@ -188,7 +208,10 @@ export class ApprovalService {
     if (settled.status === "expired") return { ok: false, reason: "expired", record: settled };
     if (settled.status !== "pending") return { ok: false, reason: "already_decided", record: settled };
     const decided = await this.store.decide(record.id, decision, this.now());
-    if (decided) return { ok: true, record: decided };
+    if (decided) {
+      await this.notify([decided]);
+      return { ok: true, record: decided };
+    }
     const latest = await this.settle(await this.require(record.id));
     return { ok: false, reason: latest.status === "expired" ? "expired" : "already_decided", record: latest };
   }
@@ -197,6 +220,7 @@ export class ApprovalService {
   private async settle(r: ApprovalRecord): Promise<ApprovalRecord> {
     if (r.status === "pending" && Date.parse(r.expiresAt) <= this.now().getTime()) {
       const expired = await this.store.expireDue(this.now());
+      await this.notify(expired);
       return expired.find((e) => e.id === r.id) ?? (await this.store.get(r.id)) ?? r;
     }
     return r;

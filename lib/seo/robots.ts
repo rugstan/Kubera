@@ -4,8 +4,24 @@ import { canonicalUrl, isExpressHost, isPreviewDeployment } from "./hosts";
 /** AI search and assistant crawlers that are explicitly welcome on the main site. */
 export const AI_CRAWLERS = ["GPTBot", "OAI-SearchBot", "PerplexityBot", "ClaudeBot", "Google-Extended"] as const;
 
-/** Paths no crawler needs. Add staff/portal prefixes here when those routes ship. */
-export const DISALLOWED_PATHS = ["/api/"];
+/**
+ * Paths no crawler needs: the API, the staff app, the borrower portal and the
+ * sign-in pages (which also send noindex metadata).
+ */
+export const DISALLOWED_PATHS = [
+  "/api/",
+  "/pipeline",
+  "/approvals",
+  "/documents",
+  "/deals",
+  "/checklists",
+  "/construction",
+  "/portal",
+  "/login",
+  "/mfa",
+  "/auth",
+  "/access-denied",
+];
 
 /**
  * robots.txt content for a request host.

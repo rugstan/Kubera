@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 import { gotoHydrated } from "./helpers";
 
 // Deal desk (WS-T). The e2e server has no Supabase, so there is no staff
-// session: every page and export must fail closed and leak no records.
+// session: every page sends the visitor to sign-in (the (staff) layout keeps
+// the requested path), and every export fails closed and leaks no records.
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 type Violation = { id: string; impact: string | null; nodes: { target: string[] }[] };
 
@@ -13,9 +14,9 @@ test.describe("deal desk without a staff session", () => {
   for (const path of PAGES) {
     test(`${path} asks for staff sign-in and is not indexable`, async ({ page }) => {
       await gotoHydrated(page, path);
-      await expect(page.getByRole("heading", { name: "Staff sign-in required" })).toBeVisible();
+      await expect(page).toHaveURL((url) => url.pathname === "/login" && url.searchParams.get("next") === path);
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-      await expect(page.getByRole("navigation", { name: "Deal desk" })).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Deal desk" })).toHaveCount(0);
       await expect(page.getByRole("table")).toHaveCount(0);
     });
   }

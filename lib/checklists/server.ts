@@ -1,5 +1,5 @@
 import "server-only";
-import { closedApprovalGate } from "@/lib/compliance/approval-gate";
+import { approvalGate } from "@/lib/approvals/server";
 import { supabasePortalInviteStore, supabasePrincipalStore } from "@/lib/principals/supabase";
 import { piiKeyring } from "@/lib/privacy/crypto";
 import { sanctionsClient } from "@/lib/screening";
@@ -15,8 +15,8 @@ export { checklistDeps, principalDeps, screeningDeps, type DeskServices } from "
 // service-role client. Without Supabase the desk and portal report
 // "not available" instead of crashing (Global rule 3).
 //
-// The approval gate is closed until WS-I's approvals queue is wired in: portal
-// invitation emails stay pending (the broker can copy the link instead).
+// Outbound actions (the portal invitation email) go through the WS-I approvals
+// queue; without it the gate stays closed and the broker can copy the link.
 
 let override: DeskServices | null | undefined;
 
@@ -38,6 +38,6 @@ export function deskServices(): DeskServices | null {
     storage: supabaseChecklistStorage(db, DOCUMENT_BUCKET),
     sanctions: sanctionsClient(),
     keyring: piiKeyring(),
-    gate: closedApprovalGate,
+    gate: approvalGate(),
   };
 }

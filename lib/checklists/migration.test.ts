@@ -11,11 +11,14 @@ import { CHECKLIST_PROGRAMS } from "./types";
 
 let db: PGlite;
 const DEAL = "11111111-1111-4111-8111-111111111111";
+const OTHER_DEAL = "22222222-2222-4222-8222-222222222222";
 const id = (n: number) => `aaaaaaaa-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 beforeAll(async () => {
   db = await createStubbedDb();
   await applyMigrations(db, listMigrations());
+  // WS-I's deals table exists from slot 01, so the WS-U foreign keys are live.
+  await db.query(`insert into public.deals (id, name) values ($1, 'Harbor View'), ($2, 'Other deal')`, [DEAL, OTHER_DEAL]);
 }, 60_000);
 
 afterAll(async () => {
@@ -61,7 +64,7 @@ describe("WS-U migration", () => {
     expect(await fails(`insert into public.principals (id, deal_id, kind, legal_name, roles) values ($1, $2, 'entity', 'Second LLC', '{borrower_entity}')`, [id(9), DEAL])).toMatch(/principals_one_borrower_per_deal/);
     expect(await fails(`insert into public.principals (id, deal_id, kind, legal_name, roles) values ($1, $2, 'individual', 'Floating Person', '{member}')`, [id(10), DEAL])).toMatch(/principals_borrower_is_root/);
     expect(await fails(`insert into public.principals (id, deal_id, parent_id, kind, legal_name, roles, ownership_pct) values ($1, $2, $3, 'individual', 'Under Ana', '{member}', 10)`, [id(11), DEAL, id(2)])).toMatch(/must sit under an entity/);
-    expect(await fails(`insert into public.principals (id, deal_id, parent_id, kind, legal_name, roles, ownership_pct) values ($1, '22222222-2222-4222-8222-222222222222', $2, 'individual', 'Other Deal', '{member}', 10)`, [id(12), id(1)])).toMatch(/must sit under an entity/);
+    expect(await fails(`insert into public.principals (id, deal_id, parent_id, kind, legal_name, roles, ownership_pct) values ($1, $2, $3, 'individual', 'Other Deal', '{member}', 10)`, [id(12), OTHER_DEAL, id(1)])).toMatch(/must sit under an entity/);
     expect(await fails(`insert into public.principals (id, deal_id, parent_id, kind, legal_name, roles, ownership_pct, home_address) values ($1, $2, $3, 'entity', 'Ent', '{member}', 10, '1 Main')`, [id(13), DEAL, id(1)])).toMatch(/principals_individual_fields/);
   });
 
@@ -124,17 +127,12 @@ describe("WS-U migration", () => {
     }
   });
 
-  it("adds deal foreign keys when WS-I's deals table exists first", async () => {
-    const other = await createStubbedDb();
-    try {
-      await other.exec(`create table public.deals (id uuid primary key default gen_random_uuid()); alter table public.deals enable row level security;`);
-      await applyMigrations(other, listMigrations());
-      const fks = await other.query<{ conname: string }>(`select conname from pg_constraint where contype = 'f' and conname like '%_deal_fk' order by conname`);
-      expect(fks.rows.map((r) => r.conname)).toEqual(
-        ["checklist_item_files_deal_fk", "conditions_deal_fk", "deal_checklist_items_deal_fk", "deal_checklists_deal_fk", "deal_holds_deal_fk", "hm_underwriting_deal_fk", "portal_invites_deal_fk", "principals_deal_fk", "screenings_deal_fk"],
-      );
-    } finally {
-      await other.close();
-    }
-  }, 60_000);
+  it("adds deal foreign keys because WS-I's deals table exists first", async () => {
+    const tables = ["checklist_item_files", "conditions", "deal_checklist_items", "deal_checklists", "deal_holds", "hm_underwriting", "portal_invites", "principals", "screenings"];
+    const fks = await q<{ conname: string }>(
+      `select c.conname from pg_constraint c join pg_class r on r.oid = c.conrelid where c.contype = 'f' and c.confrelid = 'public.deals'::regclass and r.relname = any($1::text[]) order by c.conname`,
+      [tables],
+    );
+    expect(fks.rows.map((r) => r.conname)).toEqual(tables.map((t) => `${t}_deal_fk`));
+  });
 });

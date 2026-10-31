@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { closedApprovalGate, type ApprovalGate } from "@/lib/compliance/approval-gate";
+import { approvalGate as queueGate } from "@/lib/approvals/server";
+import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import { consentLedger, MemoryConsentLedger, type ConsentLedger } from "@/lib/consent/ledger";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { MemoryConsentReader, SupabaseConsentReader, type ConsentReader } from "./consent";
@@ -29,12 +30,13 @@ export type NotifyRuntime = {
 };
 
 /**
- * The broker approval gate. Until WS-I's `approvals` queue lands this is the
- * closed gate: templates that are not pre-approved stay pending and nothing
- * sends. Swap in the lib/approvals gate here when it exists.
+ * The broker approval gate: WS-I's approvals queue, or the closed gate when it
+ * is not configured (templates that are not pre-approved stay pending and
+ * nothing sends). A held notification is retried by sending again with the
+ * same idempotency key once its approval is approved.
  */
 export function approvalGate(): ApprovalGate {
-  return closedApprovalGate;
+  return queueGate();
 }
 
 let cached: NotifyRuntime | undefined;

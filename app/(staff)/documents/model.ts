@@ -31,8 +31,12 @@ export type StaffDocument = {
   scanStatus: string | null;
 };
 
-/** States in which a file must not be handed out (quarantined until a clean scan). */
-const BLOCKED_SCAN_STATES = new Set(["quarantined", "pending", "pending_scan", "scanning", "infected", "rejected", "failed", "uploading"]);
+/**
+ * The only vault state in which a file is handed out. WS-K's documents.status
+ * is one of pending_upload, quarantined, clean, infected, rejected, scan_failed;
+ * anything but "clean" (including states added later) stays held.
+ */
+const SERVABLE_SCAN_STATE = "clean";
 
 /** Columns the vault may use for scan state, in priority order. */
 export const SCAN_STATE_COLUMNS = ["scan_status", "status"] as const;
@@ -49,7 +53,7 @@ export type Servable = { ok: true } | { ok: false; status: 404 | 423; message: s
 
 export function servable(doc: Pick<StaffDocument, "scanStatus" | "storagePath"> | null): Servable {
   if (!doc || !doc.storagePath) return { ok: false, status: 404, message: "Document not found." };
-  if (doc.scanStatus && BLOCKED_SCAN_STATES.has(doc.scanStatus)) {
+  if (doc.scanStatus && doc.scanStatus !== SERVABLE_SCAN_STATE) {
     return { ok: false, status: 423, message: "This file is held in quarantine until its malware scan comes back clean." };
   }
   return { ok: true };

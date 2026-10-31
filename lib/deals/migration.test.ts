@@ -112,6 +112,15 @@ describe("WS-T migration", () => {
     await expect(db.query(`update public.stage_templates set name = 'x'`)).rejects.toThrow(/immutable/);
   });
 
+  it("keeps WS-I's name / loan_amount_usd and the deal desk's title / loan_amount_cents in step", async () => {
+    const id = await deal();
+    expect(await one(`select name, title, loan_amount_usd::float8 as usd from public.deals where id = $1`, [id])).toEqual({ name: "Test deal", title: "Test deal", usd: 1000000 });
+    await db.query(`update public.deals set name = 'Pipeline rename', loan_amount_usd = 2500000 where id = $1`, [id]);
+    expect(await one(`select title, loan_amount_cents::int8::text as cents from public.deals where id = $1`, [id])).toEqual({ title: "Pipeline rename", cents: "250000000" });
+    const fromPipeline = (await one<{ id: string }>(`insert into public.deals (name, loan_amount_usd) values ('From pipeline', 12.34) returning id`)).id;
+    expect(await one(`select title, loan_amount_cents::int8::text as cents, stage from public.deals where id = $1`, [fromPipeline])).toEqual({ title: "From pipeline", cents: "1234", stage: "intake" });
+  });
+
   it("has no funds or draw columns (no-custody guard)", async () => {
     const { rows } = await db.query(`select * from public.custody_column_violations()`);
     expect(rows).toEqual([]);

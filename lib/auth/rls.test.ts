@@ -182,7 +182,8 @@ describe("deals and documents", () => {
 
   it("models Kubera as broker only and links disclosures to deals", async () => {
     await expect(db.query(`insert into public.deals (name, kubera_role) values ('x', 'lender')`)).rejects.toThrow(/deals_kubera_is_broker/);
-    await expect(db.query(`insert into public.deals (name, stage) values ('x', 'servicing')`)).rejects.toThrow(/deals_stage_check/);
+    // Stage keys come from the WS-T stage templates; the integration migration only checks their shape.
+    await expect(db.query(`insert into public.deals (name, stage) values ('x', 'Not a stage')`)).rejects.toThrow(/deals_stage_key/);
     const fk = await rows<{ conname: string; convalidated: boolean }>(
       `select conname, convalidated from pg_constraint where conname in ('disclosures_deal_fk', 'broker_of_record_deal_fk') order by conname`,
     );

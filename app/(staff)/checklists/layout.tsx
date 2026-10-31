@@ -27,9 +27,8 @@ export default function ChecklistsLayout({ children }: { children: React.ReactNo
           </nav>
         </div>
       </header>
-      <main id="main-content" className="mx-auto max-w-6xl px-4 py-8">
-        {children}
-      </main>
+      {/* The (staff) layout owns the <main> landmark. */}
+      <div className="mx-auto max-w-6xl px-4 py-8">{children}</div>
     </>
   );
 }

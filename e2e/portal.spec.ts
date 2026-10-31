@@ -72,8 +72,9 @@ test.describe("staff deal desk", () => {
     test(`stays closed without staff sign-in at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await gotoHydrated(page, "/checklists");
-      await expect(page.getByRole("heading", { level: 1, name: "Deal checklists" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: /staff sign-in is not configured/i })).toBeVisible();
+      // The (staff) layout sends signed-out visitors to staff sign-in.
+      await expect(page).toHaveURL((url) => url.pathname === "/login" && url.searchParams.get("next") === "/checklists");
+      await expect(page.getByRole("heading", { level: 1, name: "Deal checklists" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /create/i })).toHaveCount(0);
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
       await expectAccessible(page);
@@ -82,7 +83,7 @@ test.describe("staff deal desk", () => {
 
   test("a deal page shows nothing without sign-in", async ({ page }) => {
     await gotoHydrated(page, "/checklists/deal?id=11111111-1111-4111-8111-111111111111");
-    await expect(page.getByRole("heading", { name: /staff sign-in is not configured/i })).toBeVisible();
+    await expect(page).toHaveURL((url) => url.pathname === "/login" && url.searchParams.get("next") === "/checklists/deal?id=11111111-1111-4111-8111-111111111111");
     await expect(page.getByText(/principals and ownership/i)).toHaveCount(0);
   });
 });

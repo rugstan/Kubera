@@ -1,5 +1,6 @@
 // Pipeline row shape and pure helpers shared by the server loader and the
-// client table. Stage keys match the deals_stage_check constraint.
+// client table. These are the default stage keys; WS-T stage templates may add
+// others, which fall back to a humanized label and sort last.
 
 export const DEAL_STAGES = [
   { key: "intake", label: "Intake" },

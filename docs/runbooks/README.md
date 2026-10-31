@@ -9,6 +9,8 @@ Operational procedures for Kubera Commercial. Owned by the Platform workstream. 
 | [incident-response.md](./incident-response.md) | Anything that looks like an outage, data exposure, or compromised credential, including California breach notification. |
 | [dns-email.md](./dns-email.md) | Creating or changing DNS: Zoho Mail, Resend subdomains, SPF/DKIM/DMARC, and the no-mail `kubera.loans` domain. |
 | [vendor-mfa-checklist.md](./vendor-mfa-checklist.md) | Onboarding a vendor account, quarterly access review, or offboarding a person. |
+| [document-vault-backup-restore.md](./document-vault-backup-restore.md) | Backing up the document vault, restoring a deleted or corrupted file, or rehearsing a restore. |
+| [workflows-and-messaging.md](./workflows-and-messaging.md) | Turning on Inngest workflows, inbound Zoho Mail, Langfuse tracing, Telnyx SMS, the construction CSLB lookup, or the Phase 2 crons. |
 
 ## Ground rules that apply to every runbook
 

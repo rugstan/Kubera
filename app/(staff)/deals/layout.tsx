@@ -12,10 +12,12 @@ const NAV = [
   { href: "/deals/dre", label: "DRE reporting" },
 ];
 
+// Renders inside the (staff) layout, which owns the page's <main> landmark and
+// the authenticated shell.
 export default function DealDeskLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-canvas">
-      <header className="glass sticky top-0 z-30 border-b border-black/5">
+    <div>
+      <header className="glass rounded-2xl border border-black/5">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link className="font-semibold tracking-tight text-ink" href="/deals">
             Kubera deal desk
@@ -34,9 +36,7 @@ export default function DealDeskLayout({ children }: { children: React.ReactNode
           <p className="ml-auto text-xs text-titanium">Broker records only. Kubera never holds or moves loan funds.</p>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6" id="main-content">
-        {children}
-      </main>
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">{children}</div>
     </div>
   );
 }

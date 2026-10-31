@@ -30,11 +30,6 @@ import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, Si
 
 export const metadata: Metadata = { title: "Deal" };
 
-// Deal ids are unknown at build time and the root layout's command bar reads
-// the pathname outside a Suspense boundary, so this staff-only page may block
-// on the server instead of shipping a static shell.
-export const instant = false;
-
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ notice?: string; error?: string }>;
 

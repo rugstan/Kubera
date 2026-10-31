@@ -101,4 +101,22 @@ describe("e-sign webhook handler", () => {
     expect(res.status).toBe(500);
     expect((await store.get(disclosureId))?.status).toBe("sent");
   });
+
+  it("hands requests that are not disclosures to the deal desk hook (SBA Form 159)", async () => {
+    const completed = (id: string) => {
+      const body = JSON.stringify({
+        requests: { request_id: id, request_status: "completed", request_name: "SBA Form 159" },
+        notifications: { operation_type: "RequestCompleted", performed_by_email: "a@b.co", performed_at: now().getTime() },
+      });
+      return post(body, new Headers({ [ZOHO_SIGNATURE_HEADER]: signZohoPayload(body, "zs-secret") }));
+    };
+    const seen: string[] = [];
+    const res = await handleEsignWebhook(completed("form159-request"), deps({ otherRequest: async (e) => (seen.push(e.requestId), true) }));
+    expect(await res.json()).toEqual({ ok: true, outcome: "other_request" });
+    expect(seen).toEqual(["form159-request"]);
+    expect((await store.get(disclosureId))?.status).toBe("sent");
+
+    const res2 = await handleEsignWebhook(completed("nobody-knows"), deps({ otherRequest: async () => false }));
+    expect(await res2.json()).toEqual({ ok: true, outcome: "unknown_request" });
+  });
 });

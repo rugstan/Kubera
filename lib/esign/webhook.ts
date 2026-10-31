@@ -9,7 +9,7 @@
 import type { DealRecordSink } from "@/lib/disclosures/deal-record";
 import { applyEsignEvent, type Clock } from "@/lib/disclosures/service";
 import type { DisclosureStore, DocumentStorage } from "@/lib/disclosures/store";
-import type { EsignProvider } from "./types";
+import type { EsignEvent, EsignProvider } from "./types";
 
 export const MAX_WEBHOOK_BYTES = 256 * 1024;
 
@@ -19,6 +19,11 @@ export type WebhookDeps = {
   secretConfigured: boolean;
   backends: { store: DisclosureStore; storage: DocumentStorage } | null;
   deal?: DealRecordSink;
+  /**
+   * Requests that are not disclosures (e.g. SBA Form 159 on the deal desk).
+   * Returns true when it recognised and recorded the event.
+   */
+  otherRequest?: (event: EsignEvent) => Promise<boolean>;
   now: Clock;
 };
 
@@ -44,7 +49,10 @@ export async function handleEsignWebhook(req: Request, deps: WebhookDeps): Promi
 
   try {
     const result = await applyEsignEvent({ ...deps.backends, provider: deps.provider, deal: deps.deal, now: deps.now }, event);
-    if (result.outcome === "unknown_request") console.warn(`[esign] webhook for unknown request ${event.requestId} (${event.providerType})`);
+    if (result.outcome === "unknown_request") {
+      if (deps.otherRequest && (await deps.otherRequest(event))) return json({ ok: true, outcome: "other_request" });
+      console.warn(`[esign] webhook for unknown request ${event.requestId} (${event.providerType})`);
+    }
     return json({ ok: true, outcome: result.outcome });
   } catch (err) {
     console.error("[esign] webhook processing failed", err instanceof Error ? err.message : err);

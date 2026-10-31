@@ -4,6 +4,9 @@ import { buildConsentEvent, recordConsent } from "@/lib/consent/ledger";
 import { consentPage, readConsentMeta } from "@/lib/consent/request";
 import { resolveConsentText } from "@/lib/consent/texts";
 import { pushLead, twentyConfigured } from "@/lib/crm/twenty";
+import { sendLeadConfirmation } from "@/lib/notify/lead-confirmation";
+import { notifyRuntime } from "@/lib/notify/runtime";
+import { alertTier1Lead } from "@/lib/notify/tier1";
 import { routingSubject } from "@/lib/privacy/requests";
 import { privacyServices } from "@/lib/privacy/server";
 import { getMarketSnapshot } from "@/lib/rates";
@@ -71,6 +74,24 @@ export async function POST(req: Request) {
         leadId,
       }),
     ))?.id ?? null;
+  }
+
+  // Tier-1 broker alert (target: within 60 s) and the borrower's confirmation
+  // email, after the response. lib/notify applies consent and the approval
+  // gate; the /api/notify/sweep cron is the backstop if this run is lost.
+  if (leadId) {
+    const id = leadId;
+    after(async () => {
+      try {
+        const rt = notifyRuntime();
+        const lead = await rt.leads.get(id);
+        if (!lead) return;
+        const results = await Promise.allSettled([alertTier1Lead(lead, rt.notifier, rt.staff), sendLeadConfirmation(lead, rt.notifier)]);
+        for (const r of results) if (r.status === "rejected") console.error("lead notification failed", r.reason instanceof Error ? r.reason.message : r.reason);
+      } catch (err) {
+        console.error("lead notifications failed", err instanceof Error ? err.message : err);
+      }
+    });
   }
 
   // CRM sync runs after the response so the borrower never waits on Twenty.

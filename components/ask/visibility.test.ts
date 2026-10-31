@@ -8,6 +8,13 @@ describe("isAskButtonRouteHidden", () => {
     expect(isAskButtonRouteHidden("/partners/lenders")).toBe(true);
   });
 
+  it("hides it on staff, portal and sign-in routes", () => {
+    for (const p of ["/pipeline", "/approvals", "/documents/abc", "/deals/123", "/checklists", "/construction", "/portal/profile", "/login", "/mfa", "/auth/confirm", "/access-denied"]) {
+      expect(isAskButtonRouteHidden(p)).toBe(true);
+    }
+    expect(isAskButtonRouteHidden("/accessibility")).toBe(false);
+  });
+
   it("shows it elsewhere", () => {
     expect(isAskButtonRouteHidden("/")).toBe(false);
     expect(isAskButtonRouteHidden("/privacy")).toBe(false);

@@ -9,11 +9,6 @@ import { kindLabel, servable, SIGNED_URL_TTL_SECONDS } from "../model";
 
 export const metadata: Metadata = { title: "Document" };
 
-// The id is only known per request, and the root layout's command bar reads
-// the pathname outside a Suspense boundary, so this authenticated page renders
-// on the server per request instead of from a prerendered shell.
-export const instant = false;
-
 const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Los_Angeles" });
 
 export default function DocumentPage({ params }: { params: Promise<{ id: string }> }) {

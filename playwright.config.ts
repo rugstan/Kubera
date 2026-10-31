@@ -49,6 +49,13 @@ export default defineConfig({
       // Bot verification off: the forms send no token and the server skips the check.
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "",
       TURNSTILE_SECRET_KEY: "",
+      // In-memory staff and portal accounts (lib/auth/fake-provider.ts) so
+      // e2e/staff.spec.ts reuses this server; refused in production deploys.
+      AUTH_PROVIDER: "fake",
+      SUPABASE_ANON_KEY: "",
+      // Interim desk and portal secrets stay blank so .env.local cannot change results.
+      PORTAL_SESSION_SECRET: "",
+      STAFF_ACCESS_TOKEN: "",
     },
   },
 });

@@ -1,7 +1,10 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
-import { closedApprovalGate, type ApprovalGate } from "@/lib/compliance/approval-gate";
+import { approvalGate } from "@/lib/approvals/server";
+import { resolveAuthMode } from "@/lib/auth/config";
+import { primaryStaffRole, signedInStaff, staffDreLicense } from "@/lib/auth/staff";
+import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage, DisclosureStore } from "@/lib/disclosures/store";
 import { SupabaseDisclosureStore, SupabaseDocumentStorage } from "@/lib/disclosures/store-supabase";
 import { esignProvider } from "@/lib/esign";
@@ -18,7 +21,8 @@ import type { PackageItem } from "./types";
 
 // Production wiring for the deal desk. Everything is env-gated (Global rule 3):
 // without Supabase the pages render a "not configured" state; without an
-// approvals queue (WS-I) the closed gate keeps every outbound action pending.
+// approvals queue (WS-I) approvalGate() is the closed gate and keeps every
+// outbound action pending.
 
 export type DealDeskRuntime = {
   store: DealDeskStore;
@@ -49,22 +53,23 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     store: new SupabaseDealDeskStore(db),
     disclosures: new SupabaseDisclosureStore(db),
     storage: new SupabaseDocumentStorage(db),
-    gate: closedApprovalGate,
+    gate: approvalGate(),
     esign: esignProvider(),
     mailer: null,
     baseUrl: site.siteUrl,
     now: () => new Date(),
     async vaultDocuments(leadId) {
-      const { data, error } = await db.from("documents").select("id, kind, file_name, created_at").eq("lead_id", leadId).order("created_at");
+      // Only files with a clean malware scan (WS-K vault) can go into a lender package.
+      const { data, error } = await db.from("documents").select("id, kind, file_name, created_at").eq("lead_id", leadId).eq("status", "clean").order("created_at");
       if (error) throw new Error(`vault documents: ${error.message}`);
       return ((data ?? []) as { id: string; kind: string; file_name: string; created_at: string }[]).map((d) => ({ id: d.id, kind: d.kind, fileName: d.file_name, createdAt: d.created_at }));
     },
     async vaultItems(leadId, documentIds) {
       if (!documentIds.length) return [];
-      const { data, error } = await db.from("documents").select("id, kind, file_name, storage_path, lead_id").eq("lead_id", leadId).in("id", documentIds);
+      const { data, error } = await db.from("documents").select("id, kind, file_name, storage_path, lead_id").eq("lead_id", leadId).eq("status", "clean").in("id", documentIds);
       if (error) throw new Error(`vault documents: ${error.message}`);
       const rows = (data ?? []) as { id: string; kind: string; file_name: string; storage_path: string }[];
-      if (rows.length !== new Set(documentIds).size) throw new Error("Some documents do not belong to this deal's lead");
+      if (rows.length !== new Set(documentIds).size) throw new Error("Some documents do not belong to this deal's lead or have not passed the malware scan");
       // Hash the stored bytes so the locked manifest proves exactly what the lender received.
       return Promise.all(
         rows.map(async (r) => {
@@ -78,8 +83,26 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
   };
 }
 
-/** The signed-in staff member, verified with Supabase Auth (null = sign-in required). */
+/**
+ * The signed-in staff member (null = sign-in required). WS-I's lib/auth session
+ * (profile, roles, MFA) is the source of truth; a DRE broker-officer license on
+ * the profile makes the person the designated officer for gate-H approvals.
+ */
 export async function currentStaff(): Promise<StaffSession | null> {
+  if (resolveAuthMode().mode !== "disabled") {
+    const principal = await signedInStaff();
+    if (!principal) return null;
+    return {
+      userId: principal.userId,
+      email: principal.email.toLowerCase(),
+      name: principal.displayName,
+      role: primaryStaffRole(principal),
+      dreLicense: staffDreLicense(principal),
+      designatedOfficer: principal.profile.dreLicenseType === "broker_officer",
+      actor: `staff:${principal.email.toLowerCase()}`,
+    };
+  }
+  // Without lib/auth configured, a Supabase Auth cookie with staff app_metadata still works.
   const jar = await cookies();
   return resolveStaffSession({ cookies: jar.getAll(), supabase: supabaseAdmin(), supabaseUrl: process.env.SUPABASE_URL });
 }

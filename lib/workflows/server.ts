@@ -1,5 +1,6 @@
 import "server-only";
-import { closedApprovalGate, type ApprovalGate } from "@/lib/compliance/approval-gate";
+import { approvalGate } from "@/lib/approvals/server";
+import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import { inboundMailDeps } from "@/lib/mail/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import type { OutboundExecutor, WorkflowDeps } from "./deps";
@@ -10,11 +11,12 @@ import { MemoryAgentRunStore, supabaseAgentRunStore } from "./runs";
 // Production wiring for the workflow functions served at /api/inngest.
 
 /**
- * Resolves the broker approval gate. Defaults to the closed gate (nothing is
- * ever approved, so nothing sends); the approvals queue (lib/approvals/server.ts
- * `approvalGate`) is plugged in with setApprovalGateResolver at integration.
+ * Resolves the broker approval gate: the approvals queue (lib/approvals/server.ts
+ * `approvalGate`), which is the closed gate when the queue is not configured
+ * (nothing is ever approved, so nothing sends). Tests swap it with
+ * setApprovalGateResolver.
  */
-let gateResolver: () => ApprovalGate = () => closedApprovalGate;
+let gateResolver: () => ApprovalGate = approvalGate;
 
 export function setApprovalGateResolver(resolve: () => ApprovalGate): void {
   gateResolver = resolve;

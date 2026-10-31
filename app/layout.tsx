@@ -1,6 +1,7 @@
 import "@fontsource-variable/inter";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Analytics } from "@/components/analytics/Analytics";
 import { CommandBar } from "@/components/ask/CommandBar";
 import { MotionProvider } from "@/components/ui/MotionProvider";
@@ -32,7 +33,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SkipLink />
         <MotionProvider>
           {children}
-          <CommandBar />
+          {/* CommandBar reads usePathname; its own boundary lets dynamic routes prerender their shell. */}
+          <Suspense fallback={null}>
+            <CommandBar />
+          </Suspense>
         </MotionProvider>
         <Analytics />
       </body>
