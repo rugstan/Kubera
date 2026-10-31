@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AttachmentRecord } from "./attachments";
 import type { MailClassification } from "./classify";
-import type { InboundMailbox } from "./mailboxes";
+import { MAILBOXES, type InboundMailbox } from "./mailboxes";
 import type { DealDirectory, DealMatch, MailRoute } from "./route";
 import type { AuthVerdict } from "./types";
 
@@ -39,33 +39,120 @@ export type MailRow = {
   error: string | null;
 };
 
+/** A message whose processing failed (stored so the poller can retry it). */
+export type MailFailure = {
+  mailbox: InboundMailbox;
+  provider: string;
+  providerMessageId: string;
+  folderId: string;
+  /** From the poll listing; falls back to the failure time. */
+  receivedAt: string | null;
+  error: string;
+  agentRunId: string | null;
+  at: string;
+};
+
+export type FailedMail = { providerMessageId: string; folderId: string; receivedAt: string; attempts: number; lastAttemptAt: string };
+
 export interface MailStore {
   find(mailbox: InboundMailbox, providerMessageId: string): Promise<{ id: string; status: string } | null>;
-  /** Newest received_at stored for the mailbox (polling cursor). */
+  /** Which of `ids` already have a row (any status, failed included). */
+  knownIds(mailbox: InboundMailbox, ids: string[]): Promise<Set<string>>;
+  /** Newest received_at of a successfully stored message (polling cursor; failed rows are retried separately). */
   latestReceivedAt(mailbox: InboundMailbox): Promise<Date | null>;
-  /** Inserts, or returns the existing row for (mailbox, providerMessageId). */
+  /** Inserts, replaces a failed row, or returns the existing row for (mailbox, providerMessageId). */
   save(row: MailRow): Promise<{ id: string; created: boolean }>;
+  /** Stores (or bumps) a failed row. Null when the message has since been processed. */
+  recordFailure(f: MailFailure): Promise<{ id: string; attempts: number } | null>;
+  /** Failed rows with fewer than `maxAttempts` attempts, oldest attempt first. */
+  listFailed(mailbox: InboundMailbox, opts: { maxAttempts: number; limit: number }): Promise<FailedMail[]>;
+}
+
+/** Placeholder classification/route for a failed row (the NOT NULL columns need values). */
+function failedRow(f: MailFailure): MailRow {
+  return {
+    mailbox: f.mailbox,
+    provider: f.provider,
+    providerMessageId: f.providerMessageId,
+    folderId: f.folderId,
+    internetMessageId: null,
+    inReplyTo: null,
+    references: [],
+    fromAddress: "",
+    fromName: null,
+    toAddresses: [],
+    ccAddresses: [],
+    subject: "",
+    receivedAt: f.receivedAt ?? f.at,
+    snippet: "",
+    bodyText: "",
+    bodyEncrypted: null,
+    bodyRestricted: false,
+    attachments: [],
+    automated: false,
+    bulk: false,
+    dmarc: "unknown",
+    classification: { category: "other", summary: "", dealReference: null, propertyName: null, counterparty: null, documentKinds: [], urgency: "normal", needsBroker: true, suspicious: false, confidence: 0, source: "rules", model: null, flags: ["processing_failed"] },
+    route: { dealId: null, leadId: null, method: "none", confidence: 0, queue: MAILBOXES[f.mailbox].queue, status: "needs_review", reviewReasons: ["processing_failed"] },
+    agentRunId: f.agentRunId,
+    processedAt: f.at,
+    error: f.error.slice(0, 2000),
+  };
 }
 
 export class MemoryMailStore implements MailStore {
-  readonly rows: (MailRow & { id: string })[] = [];
+  readonly rows: (MailRow & { id: string; attempts: number })[] = [];
+
+  private status(r: MailRow): string {
+    return r.error ? "failed" : r.route.status;
+  }
 
   async find(mailbox: InboundMailbox, providerMessageId: string) {
     const r = this.rows.find((x) => x.mailbox === mailbox && x.providerMessageId === providerMessageId);
-    return r ? { id: r.id, status: r.route.status } : null;
+    return r ? { id: r.id, status: this.status(r) } : null;
+  }
+
+  async knownIds(mailbox: InboundMailbox, ids: string[]) {
+    const wanted = new Set(ids);
+    return new Set(this.rows.filter((r) => r.mailbox === mailbox && wanted.has(r.providerMessageId)).map((r) => r.providerMessageId));
   }
 
   async latestReceivedAt(mailbox: InboundMailbox) {
-    const times = this.rows.filter((r) => r.mailbox === mailbox).map((r) => Date.parse(r.receivedAt));
+    const times = this.rows.filter((r) => r.mailbox === mailbox && !r.error).map((r) => Date.parse(r.receivedAt));
     return times.length ? new Date(Math.max(...times)) : null;
   }
 
   async save(row: MailRow) {
-    const existing = await this.find(row.mailbox, row.providerMessageId);
-    if (existing) return { id: existing.id, created: false };
+    const i = this.rows.findIndex((x) => x.mailbox === row.mailbox && x.providerMessageId === row.providerMessageId);
+    if (i >= 0) {
+      const existing = this.rows[i]!;
+      if (!existing.error) return { id: existing.id, created: false };
+      this.rows[i] = { ...row, id: existing.id, attempts: existing.attempts };
+      return { id: existing.id, created: true };
+    }
     const id = globalThis.crypto.randomUUID();
-    this.rows.push({ ...row, id });
+    this.rows.push({ ...row, id, attempts: 0 });
     return { id, created: true };
+  }
+
+  async recordFailure(f: MailFailure) {
+    const existing = this.rows.find((x) => x.mailbox === f.mailbox && x.providerMessageId === f.providerMessageId);
+    if (existing && !existing.error) return null;
+    if (existing) {
+      Object.assign(existing, { error: f.error.slice(0, 2000), processedAt: f.at, agentRunId: f.agentRunId, attempts: existing.attempts + 1 });
+      return { id: existing.id, attempts: existing.attempts };
+    }
+    const id = globalThis.crypto.randomUUID();
+    this.rows.push({ ...failedRow(f), id, attempts: 1 });
+    return { id, attempts: 1 };
+  }
+
+  async listFailed(mailbox: InboundMailbox, opts: { maxAttempts: number; limit: number }) {
+    return this.rows
+      .filter((r) => r.mailbox === mailbox && r.error && r.attempts < opts.maxAttempts)
+      .sort((a, b) => a.processedAt.localeCompare(b.processedAt))
+      .slice(0, opts.limit)
+      .map((r) => ({ providerMessageId: r.providerMessageId, folderId: r.folderId, receivedAt: r.receivedAt, attempts: r.attempts, lastAttemptAt: r.processedAt }));
   }
 }
 
@@ -113,25 +200,76 @@ function toDb(row: MailRow) {
 }
 
 export function supabaseMailStore(db: SupabaseClient): MailStore {
+  const table = () => db.from("mail_messages");
   return {
     async find(mailbox, providerMessageId) {
-      const { data, error } = await db.from("mail_messages").select("id, status").eq("mailbox", mailbox).eq("provider_message_id", providerMessageId).maybeSingle();
+      const { data, error } = await table().select("id, status").eq("mailbox", mailbox).eq("provider_message_id", providerMessageId).maybeSingle();
       if (error) throw new Error(`mail_messages lookup failed: ${error.message}`);
       return (data as { id: string; status: string } | null) ?? null;
     },
+    async knownIds(mailbox, ids) {
+      const known = new Set<string>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200);
+        const { data, error } = await table().select("provider_message_id").eq("mailbox", mailbox).in("provider_message_id", chunk);
+        if (error) throw new Error(`mail_messages lookup failed: ${error.message}`);
+        for (const r of (data ?? []) as { provider_message_id: string }[]) known.add(r.provider_message_id);
+      }
+      return known;
+    },
     async latestReceivedAt(mailbox) {
-      const { data, error } = await db.from("mail_messages").select("received_at").eq("mailbox", mailbox).order("received_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await table().select("received_at").eq("mailbox", mailbox).neq("status", "failed").order("received_at", { ascending: false }).limit(1).maybeSingle();
       if (error) throw new Error(`mail_messages cursor failed: ${error.message}`);
       return data ? new Date((data as { received_at: string }).received_at) : null;
     },
     async save(row) {
-      const ins = await db.from("mail_messages").insert(toDb(row)).select("id").single();
+      const ins = await table().insert(toDb(row)).select("id").single();
       if (!ins.error) return { id: (ins.data as { id: string }).id, created: true };
       if (ins.error.code === "23505") {
+        // A failed row is replaced by the successful attempt (conditional on still being failed).
+        const upd = await table().update(toDb(row)).eq("mailbox", row.mailbox).eq("provider_message_id", row.providerMessageId).eq("status", "failed").select("id");
+        if (upd.error) throw new Error(`mail_messages update failed: ${upd.error.message}`);
+        const replaced = (upd.data as { id: string }[] | null)?.[0];
+        if (replaced) return { id: replaced.id, created: true };
         const existing = await this.find(row.mailbox, row.providerMessageId);
         if (existing) return { id: existing.id, created: false };
       }
       throw new Error(`mail_messages insert failed: ${ins.error.message}`);
+    },
+    async recordFailure(f) {
+      const ins = await table().insert({ ...toDb(failedRow(f)), attempts: 1 }).select("id").single();
+      if (!ins.error) return { id: (ins.data as { id: string }).id, attempts: 1 };
+      if (ins.error.code !== "23505") throw new Error(`mail_messages failure insert failed: ${ins.error.message}`);
+      const { data, error } = await table().select("id, status, attempts").eq("mailbox", f.mailbox).eq("provider_message_id", f.providerMessageId).maybeSingle();
+      if (error || !data) throw new Error(`mail_messages failure lookup failed: ${error?.message ?? "row vanished"}`);
+      const row = data as { id: string; status: string; attempts: number };
+      if (row.status !== "failed") return null;
+      const attempts = row.attempts + 1;
+      const upd = await table()
+        .update({ error: f.error.slice(0, 2000), processed_at: f.at, agent_run_id: f.agentRunId, attempts })
+        .eq("id", row.id)
+        .eq("status", "failed")
+        .eq("attempts", row.attempts)
+        .select("id");
+      if (upd.error) throw new Error(`mail_messages failure update failed: ${upd.error.message}`);
+      return { id: row.id, attempts: upd.data?.length ? attempts : row.attempts };
+    },
+    async listFailed(mailbox, opts) {
+      const { data, error } = await table()
+        .select("provider_message_id, folder_id, received_at, attempts, processed_at")
+        .eq("mailbox", mailbox)
+        .eq("status", "failed")
+        .lt("attempts", opts.maxAttempts)
+        .order("processed_at", { ascending: true })
+        .limit(opts.limit);
+      if (error) throw new Error(`mail_messages failed-row lookup failed: ${error.message}`);
+      return ((data ?? []) as { provider_message_id: string; folder_id: string; received_at: string; attempts: number; processed_at: string }[]).map((r) => ({
+        providerMessageId: r.provider_message_id,
+        folderId: r.folder_id,
+        receivedAt: r.received_at,
+        attempts: r.attempts,
+        lastAttemptAt: r.processed_at,
+      }));
     },
   };
 }

@@ -39,6 +39,7 @@ export interface MailProvider {
   readonly name: string;
   configured(mailbox: InboundMailbox): boolean;
   /** Messages received after `since` (oldest first), at most `limit`. */
+  /** Every message newer than `since` (at most `limit` scanned; the newest `limit` when `since` is null), oldest first. */
   listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]>;
   fetchMessage(mailbox: InboundMailbox, ref: MailRef): Promise<MailMessage>;
   fetchAttachment(mailbox: InboundMailbox, ref: MailRef, attachmentId: string): Promise<{ bytes: Uint8Array; contentType: string | null }>;

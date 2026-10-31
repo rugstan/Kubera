@@ -195,28 +195,32 @@ export class ZohoMailClient implements MailProvider {
     };
   }
 
+  /**
+   * Every message newer than `since` (up to `limit` scanned), oldest first.
+   * Zoho lists newest first, so this pages until it reaches `since` instead of
+   * stopping at the newest `limit`; the caller drops already-stored ids.
+   */
   async listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]> {
     const account = await this.accountId(mailbox);
     const folder = await this.inboxFolder(mailbox);
-    const pageSize = Math.min(50, Math.max(1, limit));
+    const pageSize = Math.min(200, Math.max(1, limit));
     const out: MailSummary[] = [];
-    // Newest first; stop at the first message at or before `since`.
-    for (let start = 1; out.length < limit && start <= 1000; start += pageSize) {
+    for (let start = 1; out.length < limit; start += pageSize) {
       const page = await this.json<ZohoListItem[]>(
         mailbox,
         `/accounts/${encodeURIComponent(account)}/messages/view?folderId=${encodeURIComponent(folder)}&start=${start}&limit=${pageSize}&sortBy=date&sortorder=false&includeto=true`,
       );
-      let reachedSeen = false;
+      let reachedSince = false;
       for (const item of page) {
         const s = this.summary(mailbox, item);
         if (since && Date.parse(s.receivedAt) <= since.getTime()) {
-          reachedSeen = true;
+          reachedSince = true;
           break;
         }
         out.push(s);
         if (out.length >= limit) break;
       }
-      if (reachedSeen || page.length < pageSize) break;
+      if (reachedSince || page.length < pageSize) break;
     }
     return out.reverse();
   }

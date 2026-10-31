@@ -69,6 +69,12 @@ describe("WS-Q migration", () => {
     await expect(mail({ internet_message_id: "'UPPER@X'" })).rejects.toThrow(/check constraint/);
   });
 
+  it("stores failed messages with an error and an attempt count for retry", async () => {
+    await expect(mail({ status: "'failed'" })).rejects.toThrow(/mail_messages_failed_has_error/);
+    await expect(mail({ status: "'failed'", error: "'Zoho 503'", attempts: "1", from_address: "''", category: "'other'", classifier_source: "'rules'", confidence: "0" })).resolves.toBeTruthy();
+    await expect(mail({ attempts: "-1" })).rejects.toThrow(/check constraint/);
+  });
+
   it("keys agent runs and effects for idempotency", async () => {
     await db.query("insert into public.agent_runs (workflow, idempotency_key) values ('inbound-mail', 'mail:deals:abc')");
     await expect(db.query("insert into public.agent_runs (workflow, idempotency_key) values ('inbound-mail', 'mail:deals:abc')")).rejects.toThrow(/duplicate key/);
