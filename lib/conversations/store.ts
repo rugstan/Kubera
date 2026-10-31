@@ -33,6 +33,8 @@ export type Conversation = {
   createdAt: string;
   messages: StoredMessage[];
   turnCount: number;
+  /** ai_conversations.lead_id: the lead this conversation is tied to, if any. */
+  leadId?: string | null;
 };
 
 export type ClaimResult = { status: "ok"; conversation: Conversation } | { status: "busy" } | { status: "not_found" };
@@ -52,7 +54,7 @@ export const MAX_TURNS = 20;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type Row = { id: string; created_at: string; messages: StoredMessage[] | null; turn_count: number };
+type Row = { id: string; created_at: string; messages: StoredMessage[] | null; turn_count: number; lead_id?: string | null };
 
 export class SupabaseConversationStore implements ConversationStore {
   constructor(
@@ -64,7 +66,7 @@ export class SupabaseConversationStore implements ConversationStore {
     const { data, error } = await this.db
       .from("ai_conversations")
       .insert({ ip_hash: meta.ipHash, user_agent: meta.userAgent?.slice(0, 512) ?? null, page: meta.page?.slice(0, 512) ?? null })
-      .select("id, created_at, messages, turn_count")
+      .select("id, created_at, messages, turn_count, lead_id")
       .single<Row>();
     if (error || !data) throw new Error(`conversation create failed: ${error?.message ?? "no row"}`);
     return toConversation(data);
@@ -78,7 +80,7 @@ export class SupabaseConversationStore implements ConversationStore {
       .update({ locked_until: new Date(this.now() + lockMs).toISOString() })
       .eq("id", id)
       .or(`locked_until.is.null,locked_until.lt."${nowIso}"`)
-      .select("id, created_at, messages, turn_count")
+      .select("id, created_at, messages, turn_count, lead_id")
       .maybeSingle<Row>();
     if (error) throw new Error(`conversation claim failed: ${error.message}`);
     if (data) return { status: "ok", conversation: toConversation(data) };
@@ -117,7 +119,7 @@ export class SupabaseConversationStore implements ConversationStore {
 }
 
 function toConversation(row: Row): Conversation {
-  return { id: row.id, createdAt: row.created_at, messages: row.messages ?? [], turnCount: row.turn_count };
+  return { id: row.id, createdAt: row.created_at, messages: row.messages ?? [], turnCount: row.turn_count, leadId: row.lead_id ?? null };
 }
 
 /** In-memory store: the test fake and the no-database fallback (per instance). */
@@ -144,7 +146,7 @@ export class MemoryConversationStore implements ConversationStore {
     if (!row) return { status: "not_found" };
     if (row.lockedUntil > this.now()) return { status: "busy" };
     row.lockedUntil = this.now() + lockMs;
-    return { status: "ok", conversation: structuredClone({ id: row.id, createdAt: row.createdAt, messages: row.messages, turnCount: row.turnCount }) };
+    return { status: "ok", conversation: structuredClone({ id: row.id, createdAt: row.createdAt, messages: row.messages, turnCount: row.turnCount, leadId: row.leadId ?? null }) };
   }
 
   async complete(id: string, expectedTurnCount: number, turn: [StoredUserMessage, StoredAssistantMessage]): Promise<void> {

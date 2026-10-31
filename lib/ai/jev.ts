@@ -417,6 +417,13 @@ export async function decide(intake: Intake, rates: Benchmarks = FALLBACK_BENCHM
   };
 }
 
+/**
+ * `leads.engine` for a submission handled under advisor-only handling
+ * (privacy_preferences.human_review_only / ai_processing_opt_out): neither the
+ * rules engine nor the remote model runs, and the row carries no decision.
+ */
+export const HUMAN_REVIEW_ENGINE = "human_review" as const;
+
 const fmt = (n: number) => `$${(n / 1_000_000).toFixed(2)}M`;
 
 /** What a borrower may see. Tier, commission, and lender routing stay internal. */
@@ -433,5 +440,26 @@ export function publicSummary(r: JevResult) {
     closeTimeline: q?.closeTimeline ?? null,
     callScheduled: r.decision.requiresImmediateBrokerCall,
     qualified: r.decision.leadUrgencyTier !== "UNQUALIFIED",
+  };
+}
+
+export type PublicSummary = Omit<ReturnType<typeof publicSummary>, "flag"> & { flag: string };
+
+/**
+ * What a borrower with advisor-only handling on file sees: no program fit and
+ * no indicative numbers, only "an advisor will review this personally".
+ */
+export function humanReviewSummary(): PublicSummary {
+  return {
+    program: null,
+    secondary: null,
+    flag: "ADVISOR_REVIEW",
+    indicativeLoan: 0,
+    indicativeRatePct: null,
+    term: null,
+    recourse: null,
+    closeTimeline: null,
+    callScheduled: false,
+    qualified: false,
   };
 }

@@ -27,6 +27,17 @@ const COPY_FILES = [
   "app/(site)/(legal)/accessibility/page.tsx",
 ];
 
+// Trust pages (/about, /team, /contact, /track-record, /structures) and their components.
+const TRUST_FILES = [
+  "app/(site)/about/page.tsx",
+  "app/(site)/team/page.tsx",
+  "app/(site)/contact/page.tsx",
+  "app/(site)/track-record/page.tsx",
+  "app/(site)/structures/page.tsx",
+  ...list("app/(site)/structures/[slug]"),
+  ...list("components/trust"),
+];
+
 const FORBIDDEN: [RegExp, string][] = [
   [/\bautonomous\b/i, "positioning is advisor-led, AI-assisted"],
   [/\b(?:you(?:'|&apos;)?re|you are|is|are|been|get|getting)\s+(?:pre-?)?approved\b/i, "no approval claims"],
@@ -66,11 +77,18 @@ describe("copy guard", () => {
   });
 
   it("keeps the license placeholder behind the production guard", () => {
-    const allowed = new Set(["lib/site.ts", "app/(site)/(legal)/licensing/page.tsx"]);
-    for (const file of [...COPY_FILES, "app/express/page.tsx", "lib/site.ts"]) {
+    // Only the corporate license is guaranteed by the build guard, so these may
+    // show a placeholder for it; nothing else may render "pending configuration".
+    const allowed = new Set(["lib/site.ts", "app/(site)/(legal)/licensing/page.tsx", "components/trust/LicenseId.tsx"]);
+    for (const file of [...COPY_FILES, ...TRUST_FILES, "app/express/page.tsx", "lib/site.ts"]) {
       if (/pending configuration/i.test(read(file))) expect(allowed.has(file), file).toBe(true);
     }
     expect(read("lib/site.ts")).toMatch(/if \(typeof window === "undefined"\) assertLicenseConfigured\(\);/);
+    // The officer license is optional in production, so it renders only when set.
+    for (const file of TRUST_FILES) {
+      const src = read(file);
+      if (src.includes("<LicenseId id={site.dreOfficerLicense}")) expect(src, file).toMatch(/\{site\.dreOfficerLicense && \(/);
+    }
   });
 });
 

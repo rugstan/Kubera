@@ -430,3 +430,44 @@ describe("rebuildJevFactory", () => {
     expect(jev.primaryQuote).not.toBeNull();
   });
 });
+
+describe("advisor-only (human_review) leads", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  const reviewRow = () => leadRow({ engine: "human_review", decision: {} as FailedLeadRow["decision"], rationale: [], latency_ms: 0 });
+
+  it("re-pushes without rebuilding a decision", async () => {
+    const rebuild = vi.fn(rebuildJev);
+    const seen: unknown[] = [];
+    const crm: CrmPusher = {
+      async pushLead(_i, _c, jev) {
+        seen.push(jev);
+        return { personId: "person-1", opportunityId: "opp-1" };
+      },
+      pushPartner: async () => ({}),
+    };
+    const summary = await run(new FakeStore([reviewRow()]), crm, { rebuildJev: rebuild });
+    expect(summary.leads.succeeded).toBe(1);
+    expect(rebuild).not.toHaveBeenCalled();
+    expect(seen).toEqual([null]);
+  });
+
+  it("creates the deal with no score, probability or commission estimate", async () => {
+    const twenty = fakeTwenty();
+    vi.stubEnv("TWENTY_API_URL", "https://twenty.test");
+    vi.stubEnv("TWENTY_API_KEY", "test-key");
+    vi.stubGlobal("fetch", twenty.fetchImpl);
+    await run(new FakeStore([reviewRow()]), realTwenty);
+    const opp = twenty.sent("opportunities")[0]!;
+    expect(opp.name).toMatch(/^Advisor review/);
+    expect(opp).not.toHaveProperty("probability");
+    expect(opp).not.toHaveProperty("expectedRevenue");
+    expect(String(opp.nextStep)).toMatch(/Advisor-only handling/);
+    const note = (twenty.sent("notes")[0]!.bodyV2 as { markdown: string }).markdown;
+    expect(note).toContain("No automated scoring was run");
+    expect(note).not.toContain("Jev decision");
+  });
+});

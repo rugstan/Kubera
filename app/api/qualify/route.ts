@@ -1,9 +1,11 @@
 import { after, NextResponse } from "next/server";
-import { decide, publicSummary } from "@/lib/ai/jev";
+import { decide, HUMAN_REVIEW_ENGINE, humanReviewSummary, publicSummary, type JevResult } from "@/lib/ai/jev";
 import { buildConsentEvent, recordConsent } from "@/lib/consent/ledger";
 import { consentPage, readConsentMeta } from "@/lib/consent/request";
 import { resolveConsentText } from "@/lib/consent/texts";
 import { pushLead, twentyConfigured } from "@/lib/crm/twenty";
+import { routingSubject } from "@/lib/privacy/requests";
+import { privacyServices } from "@/lib/privacy/server";
 import { getMarketSnapshot } from "@/lib/rates";
 import { guardPost, signLeadToken } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
@@ -24,15 +26,29 @@ export async function POST(req: Request) {
   }
   const { intake, contact } = parsed.data;
   const meta = readConsentMeta(guard.body);
-  const market = await getMarketSnapshot();
-  const jev = await decide(intake, market.benchmarks);
+
+  // Advisor-only handling (POST /api/privacy/request type human_review) means
+  // no automated scoring and nothing sent to AI tools: Jev (rules and the
+  // remote model) is skipped and an advisor reviews the request personally.
+  // routingSubject fails closed when the preference lookup errors.
+  const subject = await routingSubject(privacyServices()?.requests ?? null, contact.email);
+  const humanReview = subject.humanReviewOnly || subject.aiProcessingOptOut;
+  let jev: JevResult | null = null;
+  if (!humanReview) {
+    const market = await getMarketSnapshot();
+    jev = await decide(intake, market.benchmarks);
+  }
 
   const db = supabaseAdmin();
   let leadId: string | null = null;
   if (db) {
+    // decision is NOT NULL in the schema; an empty object records "no decision".
+    const row: Record<string, unknown> = jev
+      ? { source: intake.source, contact, intake, decision: jev.decision, rationale: jev.rationale, engine: jev.engine, latency_ms: jev.latencyMs }
+      : { source: intake.source, contact, intake, decision: {}, rationale: [], engine: HUMAN_REVIEW_ENGINE, latency_ms: 0 };
     const { data, error } = await db
       .from("leads")
-      .insert({ source: intake.source, contact, intake, decision: jev.decision, rationale: jev.rationale, engine: jev.engine, latency_ms: jev.latencyMs })
+      .insert(row)
       .select("id")
       .single();
     if (error) console.error("lead insert failed", error.message);
@@ -84,7 +100,7 @@ export async function POST(req: Request) {
     {
       leadId,
       uploadToken: leadId && process.env.LEAD_TOKEN_SECRET ? signLeadToken(leadId) : null,
-      result: publicSummary(jev),
+      result: jev ? publicSummary(jev) : humanReviewSummary(),
     },
     { headers: { "cache-control": "no-store" } },
   );

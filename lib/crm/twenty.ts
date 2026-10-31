@@ -171,10 +171,17 @@ const PROBABILITY: Record<JevResult["decision"]["leadUrgencyTier"], number> = {
 
 export type CrmRefs = { personId: string; companyId?: string; opportunityId?: string };
 
-export async function pushLead(intake: Intake, contact: Contact, jev: JevResult, opts?: PushOptions): Promise<CrmRefs> {
+/**
+ * Pushes a qualifier submission. `jev` is null when the person asked for
+ * advisor-only handling (privacy_preferences.human_review_only): the deal is
+ * created without any automated score, tier, probability or commission estimate,
+ * and the note tells the advisor to review it personally.
+ */
+export async function pushLead(intake: Intake, contact: Contact, jev: JevResult | null, opts?: PushOptions): Promise<CrmRefs> {
   const cp = checkpoint(opts);
   const companyId = contact.company ? await cp.step("companyId", () => create("companies", { name: contact.company })) : undefined;
   const personId = await cp.step("personId", () => upsertPerson(contact, companyId));
+  if (!jev) return pushReviewLead(cp, intake, contact, personId, companyId, opts);
   const d = jev.decision;
   const q = jev.primaryQuote;
 
@@ -186,7 +193,7 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult,
     probability: PROBABILITY[d.leadUrgencyTier],
     dealType: "NEW_BUSINESS",
     nextStep: leadNextStep(contact, d.requiresImmediateBrokerCall),
-    closeDate: new Date(Date.now() + Math.max(intake.timelineDays, 30) * 86_400_000).toISOString(),
+    closeDate: closeDate(intake),
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
   }));
@@ -209,6 +216,40 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult,
 
   return { personId, companyId, opportunityId };
 }
+
+/** The broker's next step for an advisor-only lead (no Jev flag to act on). */
+export function reviewNextStep(contact: Contact): string {
+  return hasContactConsent(contact)
+    ? "Advisor-only handling requested — review personally; no automated scoring or AI tools"
+    : "Advisor-only handling requested — review personally and email borrower; no automated scoring or AI tools; no phone/SMS consent on file";
+}
+
+async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake, contact: Contact, personId: string, companyId: string | undefined, opts?: PushOptions): Promise<CrmRefs> {
+  const opportunityId = await cp.step("opportunityId", () => create("opportunities", {
+    name: `Advisor review · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
+    amount: { amountMicros: Math.round(intake.loanAmount * 1_000_000), currencyCode: "USD" },
+    stage: "QUALIFICATION",
+    dealType: "NEW_BUSINESS",
+    nextStep: reviewNextStep(contact),
+    closeDate: closeDate(intake),
+    pointOfContactId: personId,
+    ...(companyId ? { companyId } : {}),
+  }));
+  const md = [
+    `## Contact\n- ${consentLine(contact, opts?.consentEventId)}`,
+    "## Advisor-only handling",
+    "- This person asked that an advisor handle their requests personally (privacy request: human review).",
+    "- No automated scoring was run. Do not paste their details into AI tools.",
+    "## Intake",
+    "```json",
+    JSON.stringify(intake, null, 2),
+    "```",
+  ].join("\n");
+  await attachNote(cp, "Qualifier intake — advisor review", md, { targetOpportunityId: opportunityId });
+  return { personId, companyId, opportunityId };
+}
+
+const closeDate = (intake: Intake) => new Date(Date.now() + Math.max(intake.timelineDays, 30) * 86_400_000).toISOString();
 
 export async function pushPartner(reg: PartnerRegistration, opts?: PushOptions): Promise<CrmRefs> {
   const cp = checkpoint(opts);

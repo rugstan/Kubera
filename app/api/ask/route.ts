@@ -2,6 +2,8 @@ import { connection, NextResponse } from "next/server";
 import { z } from "zod";
 import { dealContextSchema, streamAdvisorTurn } from "@/lib/ai/advisor";
 import { conversationStore, MAX_TURNS, type Conversation } from "@/lib/conversations/store";
+import { routingSubject } from "@/lib/privacy/requests";
+import { privacyServices } from "@/lib/privacy/server";
 import { getMarketSnapshot } from "@/lib/rates";
 import { checkTurnstile, guardPost, hashIp } from "@/lib/security";
 
@@ -78,6 +80,7 @@ export async function POST(req: Request) {
   }
 
   try {
+    const subject = await conversationSubject(conversation);
     const stream = await streamAdvisorTurn({
       conversationId: conversation.id,
       history: conversation.messages,
@@ -87,6 +90,7 @@ export async function POST(req: Request) {
       dealContext,
       market: await getMarketSnapshot(),
       store,
+      ...(subject ? { subject } : {}),
     });
     return new Response(stream, {
       headers: {
@@ -101,6 +105,23 @@ export async function POST(req: Request) {
     await store.release(conversation.id);
     return error(503, "Kubera AI is temporarily unavailable.");
   }
+}
+
+/**
+ * The data subject's AI preference when the conversation is tied to a lead, so
+ * the routing guard refuses personal data from someone who opted out of AI
+ * processing (privacy request type human_review). Anonymous conversations have
+ * no known subject.
+ */
+async function conversationSubject(conversation: Conversation): Promise<{ aiProcessingOptOut: boolean } | null> {
+  if (!conversation.leadId) return null;
+  const services = privacyServices();
+  if (!services) return null;
+  const email = await services.leadEmail(conversation.leadId);
+  // A tied lead whose email cannot be read cannot be shown to have no opt-out.
+  if (!email) return { aiProcessingOptOut: true };
+  const subject = await routingSubject(services.requests, email);
+  return { aiProcessingOptOut: subject.aiProcessingOptOut || subject.humanReviewOnly };
 }
 
 function refererPath(req: Request): string | null {

@@ -65,12 +65,15 @@ export default function TeamPage() {
           <p className="text-xl font-semibold">{site.designatedOfficer}</p>
           <p className="mt-1 text-[15px] text-titanium">Designated broker officer of {site.legalName}</p>
           <dl className="mt-5 space-y-3 text-[15px]">
-            <div>
-              <dt className="font-medium text-ink">Officer license</dt>
-              <dd className="text-titanium">
-                <LicenseId id={site.dreOfficerLicense} fallback="Number pending configuration" />
-              </dd>
-            </div>
+            {/* The build guard only requires the corporate license, so the officer row renders only when its number is set (as on /about). */}
+            {site.dreOfficerLicense && (
+              <div>
+                <dt className="font-medium text-ink">Officer license</dt>
+                <dd className="text-titanium">
+                  <LicenseId id={site.dreOfficerLicense} />
+                </dd>
+              </div>
+            )}
             <div>
               <dt className="font-medium text-ink">Corporate license</dt>
               <dd className="text-titanium">

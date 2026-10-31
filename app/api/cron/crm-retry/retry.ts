@@ -12,7 +12,7 @@
 // back so steps that already succeeded are skipped. A failure after the
 // opportunity was created therefore never yields a second company or deal.
 
-import type { JevResult } from "@/lib/ai/jev";
+import { HUMAN_REVIEW_ENGINE, type JevResult } from "@/lib/ai/jev";
 import type { CrmProgress, PushOptions } from "@/lib/crm/twenty";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
 import { leadSchema, partnerSchema } from "@/lib/validation";
@@ -30,9 +30,10 @@ export type FailedLeadRow = {
   id: string;
   contact: unknown;
   intake: unknown;
+  /** Empty object for advisor-only (human_review) leads, which carry no decision. */
   decision: JevResult["decision"];
   rationale: string[];
-  engine: JevResult["engine"];
+  engine: JevResult["engine"] | typeof HUMAN_REVIEW_ENGINE;
   latency_ms: number;
   crm_attempts: number;
   crm_last_attempt_at: string | null;
@@ -67,7 +68,7 @@ export interface RetryStore {
 }
 
 export interface CrmPusher {
-  pushLead(intake: Intake, contact: Contact, jev: JevResult, opts?: PushOptions): Promise<{ personId: string; opportunityId?: string }>;
+  pushLead(intake: Intake, contact: Contact, jev: JevResult | null, opts?: PushOptions): Promise<{ personId: string; opportunityId?: string }>;
   pushPartner(reg: PartnerRegistration, opts?: PushOptions): Promise<{ companyId?: string }>;
 }
 
@@ -75,7 +76,7 @@ export type RetryDeps = {
   store: RetryStore;
   crm: CrmPusher;
   /** Rebuilds the full Jev result (quotes included) from what was persisted. */
-  rebuildJev: (intake: Intake, stored: Pick<FailedLeadRow, "decision" | "rationale" | "engine" | "latency_ms">) => JevResult;
+  rebuildJev: (intake: Intake, stored: Pick<FailedLeadRow, "decision" | "rationale" | "engine" | "latency_ms"> & { engine: JevResult["engine"] }) => JevResult;
   now?: () => number;
   batch?: number;
   budgetMs?: number;
@@ -137,7 +138,10 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
     }
     try {
       const { intake, contact } = parsed.data;
-      const refs = await deps.crm.pushLead(intake, contact, deps.rebuildJev(intake, row), {
+      // Advisor-only leads were never scored; rebuilding a decision would run
+      // the automated scoring the person opted out of.
+      const jev = row.engine === HUMAN_REVIEW_ENGINE ? null : deps.rebuildJev(intake, { ...row, engine: row.engine });
+      const refs = await deps.crm.pushLead(intake, contact, jev, {
         progress: row.crm_progress as CrmProgress | null | undefined,
         onProgress: (progress) => deps.store.saveLeadProgress(row.id, progress),
       });
