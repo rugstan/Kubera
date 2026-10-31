@@ -1,25 +1,27 @@
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { failureResponse, NO_STORE } from "@/lib/documents/http";
+import { mintUpload } from "@/lib/documents/mint";
+import { documentServices, hashIp } from "@/lib/documents/server";
+import { ALLOWED_CONTENT_TYPES, DOCUMENT_KINDS } from "@/lib/documents/types";
 import { guardPost, verifyLeadToken } from "@/lib/security";
-import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 
 const bodySchema = z.object({
   leadId: z.uuid(),
   token: z.string().min(10).max(200),
-  kind: z.enum(["T12", "RENT_ROLL", "CENSUS", "STR_REPORT", "FRANCHISE_AGREEMENT", "PIP_BUDGET", "PFS", "TAX_RETURN", "APPRAISAL", "OTHER"]),
+  kind: z.enum(DOCUMENT_KINDS),
   fileName: z.string().trim().min(1).max(200),
-  contentType: z.enum([
-    "application/pdf",
-    "text/csv",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "image/png",
-    "image/jpeg",
-  ]),
+  contentType: z.enum(ALLOWED_CONTENT_TYPES),
+  /** Exact size in bytes of the file about to be sent; lets quotas be enforced up front. */
+  sizeBytes: z.number().int().positive().optional(),
 });
 
-/** Mints a short-lived signed upload URL into the private document vault. */
+/**
+ * Step 1 of an upload. Records a `pending_upload` row and mints a short-lived
+ * signed URL into the private QUARANTINE bucket, plus an expiring upload token
+ * for POST /api/documents/finalize. The file is not usable until it passes
+ * finalize and the malware scan (see lib/documents and workers/scan).
+ */
 export async function POST(req: Request) {
   const guard = await guardPost(req, {
     name: "docs",
@@ -30,23 +32,21 @@ export async function POST(req: Request) {
   });
   if (!guard.ok) return guard.response;
   const parsed = bodySchema.safeParse(guard.body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  const { leadId, token, kind, fileName, contentType } = parsed.data;
+  if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400, headers: NO_STORE });
+  const { leadId, token, kind, fileName, contentType, sizeBytes } = parsed.data;
   if (!process.env.LEAD_TOKEN_SECRET || !verifyLeadToken(leadId, token)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE });
   }
-  const db = supabaseAdmin();
-  if (!db) return NextResponse.json({ error: "Document vault not configured" }, { status: 503 });
+  const deps = documentServices();
+  if (!deps) return NextResponse.json({ error: "Document vault not configured" }, { status: 503, headers: NO_STORE });
 
-  const safeName = fileName.replace(/[^\w.\- ]+/g, "_");
-  const path = `${leadId}/${kind}/${randomUUID()}-${safeName}`;
-  const { data, error } = await db.storage.from(DOCUMENT_BUCKET).createSignedUploadUrl(path);
-  if (error || !data) return NextResponse.json({ error: "Could not create upload" }, { status: 500 });
-
-  const { error: insertError } = await db
-    .from("documents")
-    .insert({ lead_id: leadId, kind, storage_path: path, file_name: safeName, content_type: contentType });
-  if (insertError) return NextResponse.json({ error: "Could not record document" }, { status: 500 });
-
-  return NextResponse.json({ uploadUrl: data.signedUrl, path }, { headers: { "cache-control": "no-store" } });
+  try {
+    const minted = await mintUpload(deps, { leadId, kind, fileName, contentType, sizeBytes, ipHash: hashIp(guard.ip) });
+    if (!minted.ok) return failureResponse(minted);
+    const { ok: _ok, ...body } = minted;
+    return NextResponse.json(body, { headers: NO_STORE });
+  } catch (err) {
+    console.error("[documents] mint failed:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "Could not record document" }, { status: 500, headers: NO_STORE });
+  }
 }
