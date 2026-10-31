@@ -1,0 +1,416 @@
+{
+  "docType": "T12",
+  "cases": [
+    {
+      "id": "t12-annual-csv",
+      "description": "Two-column annual multifamily statement with parenthesized deductions.",
+      "source": {
+        "format": "csv",
+        "lines": [
+          "Property,Sunset Gardens Apartments",
+          "Period ending,12/31/2025",
+          "Line item,Annual",
+          "Gross potential rent,\"$960,000\"",
+          "Vacancy loss,\"(38,400)\"",
+          "Concessions,\"(9,600)\"",
+          "Bad debt,\"(4,800)\"",
+          "Other income,\"36,000\"",
+          "Total income,\"943,200\"",
+          "Real estate taxes,\"96,000\"",
+          "Insurance,\"48,000\"",
+          "Utilities,\"57,600\"",
+          "Repairs and maintenance,\"40,000\"",
+          "Payroll,\"72,000\"",
+          "Management fee,\"37,728\"",
+          "General and administrative,\"14,400\"",
+          "Marketing,\"6,000\"",
+          "Contract services,\"18,000\"",
+          "Replacement reserves,\"10,000\"",
+          "Total operating expenses,\"399,728\"",
+          "Net operating income,\"543,472\""
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "propertyName": "Sunset Gardens Apartments",
+          "periodEnd": "2025-12-31",
+          "grossPotentialRent": 960000,
+          "vacancyLoss": 38400,
+          "concessions": 9600,
+          "badDebt": 4800,
+          "otherIncome": 36000,
+          "effectiveGrossIncome": 943200,
+          "realEstateTaxes": 96000,
+          "insurance": 48000,
+          "utilities": 57600,
+          "repairsMaintenance": 40000,
+          "payroll": 72000,
+          "management": 37728,
+          "generalAdmin": 14400,
+          "marketing": 6000,
+          "contractServices": 18000,
+          "replacementReserves": 10000,
+          "totalOperatingExpenses": 399728,
+          "noi": 543472
+        }
+      }
+    },
+    {
+      "id": "t12-monthly-xlsx",
+      "description": "Twelve month columns, GL account codes, no total column: annual figures are the sum of the months.",
+      "source": {
+        "format": "xlsx",
+        "sheets": [
+          {
+            "name": "T12",
+            "rows": [
+              [
+                "Brookside Flats",
+                null
+              ],
+              [
+                "Acct",
+                "Description",
+                "Jan-25",
+                "Feb-25",
+                "Mar-25",
+                "Apr-25",
+                "May-25",
+                "Jun-25",
+                "Jul-25",
+                "Aug-25",
+                "Sep-25",
+                "Oct-25",
+                "Nov-25",
+                "Dec-25"
+              ],
+              [
+                "4000",
+                "Rental Income",
+                49000,
+                51000,
+                49000,
+                51000,
+                49000,
+                51000,
+                49000,
+                51000,
+                49000,
+                51000,
+                49000,
+                51000
+              ],
+              [
+                "4100",
+                "Vacancy",
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500,
+                -2500
+              ],
+              [
+                "4500",
+                "Other Income",
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500,
+                1500
+              ],
+              [
+                "4999",
+                "Total Income",
+                48000,
+                50000,
+                48000,
+                50000,
+                48000,
+                50000,
+                48000,
+                50000,
+                48000,
+                50000,
+                48000,
+                50000
+              ],
+              [
+                "6100",
+                "Property Taxes",
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000,
+                6000
+              ],
+              [
+                "6200",
+                "Insurance",
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500,
+                2500
+              ],
+              [
+                "6300",
+                "Utilities",
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000,
+                3000
+              ],
+              [
+                "6400",
+                "Repairs & Maintenance",
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000,
+                2000
+              ],
+              [
+                "6500",
+                "Payroll",
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000,
+                4000
+              ],
+              [
+                "6600",
+                "Management Fees",
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960,
+                1960
+              ],
+              [
+                "6999",
+                "Total Expenses",
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460,
+                19460
+              ],
+              [
+                "7000",
+                "Net Operating Income",
+                28540,
+                30540,
+                28540,
+                30540,
+                28540,
+                30540,
+                28540,
+                30540,
+                28540,
+                30540,
+                28540,
+                30540
+              ]
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "periodEnd": "2025-12-31",
+          "months": 12,
+          "grossPotentialRent": 600000,
+          "vacancyLoss": 30000,
+          "otherIncome": 18000,
+          "effectiveGrossIncome": 588000,
+          "realEstateTaxes": 72000,
+          "insurance": 30000,
+          "utilities": 36000,
+          "repairsMaintenance": 24000,
+          "payroll": 48000,
+          "management": 23520,
+          "totalOperatingExpenses": 233520,
+          "noi": 354480
+        }
+      }
+    },
+    {
+      "id": "t12-hotel-pdf",
+      "description": "Hotel departmental statement as a text-layer PDF.",
+      "source": {
+        "format": "pdf",
+        "lines": [
+          [
+            "Harbor Inn & Suites - Operating Statement"
+          ],
+          [
+            "Property: Harbor Inn & Suites"
+          ],
+          [
+            "For the period ending: December 31, 2025"
+          ],
+          [
+            "Rooms Revenue",
+            "4,200,000"
+          ],
+          [
+            "Food & Beverage Revenue",
+            "600,000"
+          ],
+          [
+            "Other Revenue",
+            "120,000"
+          ],
+          [
+            "Total Revenue",
+            "4,920,000"
+          ],
+          [
+            "Payroll",
+            "1,400,000"
+          ],
+          [
+            "Utilities",
+            "250,000"
+          ],
+          [
+            "Repairs and Maintenance",
+            "200,000"
+          ],
+          [
+            "Insurance",
+            "120,000"
+          ],
+          [
+            "Property Taxes",
+            "180,000"
+          ],
+          [
+            "Franchise Fees",
+            "380,000"
+          ],
+          [
+            "Management Fees",
+            "147,600"
+          ],
+          [
+            "Marketing",
+            "150,000"
+          ],
+          [
+            "General & Administrative",
+            "300,000"
+          ],
+          [
+            "Other Expenses",
+            "572,400"
+          ],
+          [
+            "FF&E Reserve",
+            "196,800"
+          ],
+          [
+            "Total Operating Expenses",
+            "3,896,800"
+          ],
+          [
+            "Net Operating Income",
+            "1,023,200"
+          ]
+        ],
+        "compress": true
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "propertyName": "Harbor Inn & Suites",
+          "periodEnd": "2025-12-31",
+          "roomsRevenue": 4200000,
+          "foodBeverageRevenue": 600000,
+          "otherIncome": 120000,
+          "effectiveGrossIncome": 4920000,
+          "payroll": 1400000,
+          "utilities": 250000,
+          "repairsMaintenance": 200000,
+          "insurance": 120000,
+          "realEstateTaxes": 180000,
+          "franchiseFees": 380000,
+          "management": 147600,
+          "marketing": 150000,
+          "generalAdmin": 300000,
+          "otherExpenses": 572400,
+          "replacementReserves": 196800,
+          "totalOperatingExpenses": 3896800,
+          "noi": 1023200
+        }
+      }
+    }
+  ]
+}

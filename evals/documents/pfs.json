@@ -1,0 +1,158 @@
+{
+  "docType": "PFS",
+  "cases": [
+    {
+      "id": "pfs-413-csv",
+      "description": "SBA 413-style statement; the account number must never be extracted.",
+      "source": {
+        "format": "csv",
+        "lines": [
+          "Personal Financial Statement",
+          "As of,06/30/2026",
+          "Account number,123456789012",
+          "Cash on hand & in banks,\"250,000\"",
+          "Marketable securities,\"400,000\"",
+          "IRA or other retirement account,\"600,000\"",
+          "Real estate,\"2,500,000\"",
+          "Personal property,\"150,000\"",
+          "Total assets,\"3,900,000\"",
+          "Mortgages on real estate,\"1,200,000\"",
+          "Notes payable,\"50,000\"",
+          "Other liabilities,\"25,000\"",
+          "Total liabilities,\"1,275,000\"",
+          "Net worth,\"2,625,000\"",
+          "Salary,\"220,000\"",
+          "Net investment income,\"30,000\"",
+          "Annual debt service,\"96,000\"",
+          "Contingent liabilities,\"500,000\""
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "forbiddenText": [
+          "123456789012"
+        ],
+        "scalars": {
+          "asOfDate": "2026-06-30",
+          "cashOnHand": 250000,
+          "marketableSecurities": 400000,
+          "retirementAccounts": 600000,
+          "realEstateValue": 2500000,
+          "otherAssets": 150000,
+          "totalAssets": 3900000,
+          "realEstateDebt": 1200000,
+          "notesPayable": 50000,
+          "otherLiabilities": 25000,
+          "totalLiabilities": 1275000,
+          "netWorth": 2625000,
+          "annualSalary": 220000,
+          "annualOtherIncome": 30000,
+          "annualPersonalDebtService": 96000,
+          "contingentLiabilities": 500000
+        }
+      }
+    },
+    {
+      "id": "pfs-totals-pdf",
+      "description": "Totals-only statement; net worth is computed from assets and liabilities.",
+      "source": {
+        "format": "pdf",
+        "lines": [
+          [
+            "Personal Financial Statement"
+          ],
+          [
+            "Statement date: 05/15/2026"
+          ],
+          [
+            "Cash",
+            "100,000"
+          ],
+          [
+            "Real estate",
+            "900,000"
+          ],
+          [
+            "Business interests",
+            "500,000"
+          ],
+          [
+            "Total assets",
+            "1,500,000"
+          ],
+          [
+            "Total liabilities",
+            "600,000"
+          ]
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "asOfDate": "2026-05-15",
+          "cashOnHand": 100000,
+          "realEstateValue": 900000,
+          "businessInterests": 500000,
+          "totalAssets": 1500000,
+          "totalLiabilities": 600000,
+          "netWorth": 900000
+        }
+      }
+    },
+    {
+      "id": "pfs-mismatch-xlsx",
+      "description": "Stated total assets do not equal the parts: the statement goes to review.",
+      "source": {
+        "format": "xlsx",
+        "sheets": [
+          {
+            "name": "PFS",
+            "rows": [
+              [
+                "As of",
+                "2026-04-30"
+              ],
+              [
+                "Cash",
+                300000
+              ],
+              [
+                "Stocks and bonds",
+                600000
+              ],
+              [
+                "Real estate",
+                1000000
+              ],
+              [
+                "Total assets",
+                2000000
+              ],
+              [
+                "Total liabilities",
+                400000
+              ],
+              [
+                "Net worth",
+                1600000
+              ]
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "needs_review",
+        "warnings": [
+          "assets_mismatch"
+        ],
+        "lowConfidence": [
+          "totalAssets"
+        ],
+        "scalars": {
+          "totalAssets": 2000000,
+          "netWorth": 1600000
+        }
+      }
+    }
+  ]
+}

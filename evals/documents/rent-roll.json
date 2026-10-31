@@ -1,0 +1,307 @@
+{
+  "docType": "RENT_ROLL",
+  "cases": [
+    {
+      "id": "rent-roll-csv",
+      "description": "Ten units with a tenant-name column (must be ignored), notice and model units, a totals row.",
+      "source": {
+        "format": "csv",
+        "lines": [
+          "Property,Oak Terrace",
+          "Rent Roll as of,09/30/2026",
+          "",
+          "Unit,Unit Type,SqFt,Tenant Name,Status,Market Rent,Contract Rent,Concession,Balance Due,Lease Start,Lease End",
+          "101,1x1,650,J. Smith,Occupied,1500,1450,0,0,01/01/2026,12/31/2026",
+          "102,1x1,650,,Vacant,1500,,,,,",
+          "103,1x1,650,A. Lee,Occupied,1500,1500,0,250,11/01/2025,10/31/2026",
+          "104,2x1,900,B. Cruz,Occupied,1900,1800,50,0,03/01/2026,02/28/2027",
+          "105,2x1,900,C. Diaz,Notice,1900,1850,0,0,10/01/2025,09/30/2026",
+          "106,2x2,1000,D. Wong,Occupied,2100,2000,0,1000,06/01/2026,05/31/2027",
+          "107,2x2,1000,,Model,2100,,,,,",
+          "108,2x2,1000,E. Park,Occupied,2100,1950,100,0,08/01/2026,07/31/2027",
+          "109,3x2,1200,F. Ruiz,Occupied,2600,2600,0,0,02/01/2026,01/31/2027",
+          "110,3x2,1200,G. Kim,Occupied,2600,2450,0,0,12/01/2025,11/30/2026",
+          "Total,,,,,19800,15600,150,1250,,"
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "forbiddenText": [
+          "J. Smith",
+          "G. Kim"
+        ],
+        "scalars": {
+          "propertyName": "Oak Terrace",
+          "asOfDate": "2026-09-30",
+          "totalUnits": 10
+        },
+        "rowCount": 10,
+        "rows": [
+          {
+            "index": 0,
+            "values": {
+              "unit": "101",
+              "unitType": "1x1",
+              "beds": 1,
+              "baths": 1,
+              "sqft": 650,
+              "status": "Occupied",
+              "marketRent": 1500,
+              "inPlaceRent": 1450,
+              "leaseEnd": "2026-12-31"
+            }
+          },
+          {
+            "index": 5,
+            "values": {
+              "unit": "106",
+              "balanceDue": 1000,
+              "inPlaceRent": 2000
+            }
+          },
+          {
+            "index": 7,
+            "values": {
+              "unit": "108",
+              "concession": 100
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "rent-roll-xlsx",
+      "description": "Workbook with bed/bath columns, down and employee units, dashes for empty rents.",
+      "source": {
+        "format": "xlsx",
+        "sheets": [
+          {
+            "name": "Rent Roll",
+            "rows": [
+              [
+                "As of Date",
+                "06/30/2026"
+              ],
+              [],
+              [
+                "Unit No",
+                "Bed",
+                "Bath",
+                "Sq Ft",
+                "Market",
+                "Actual Rent",
+                "Status",
+                "Move In",
+                "Lease Exp",
+                "Past Due"
+              ],
+              [
+                "A1",
+                0,
+                1,
+                450,
+                1200,
+                1150,
+                "Occupied",
+                "2025-04-01",
+                "2027-03-31",
+                0
+              ],
+              [
+                "A2",
+                1,
+                1,
+                600,
+                1500,
+                1500,
+                "Occupied",
+                "2026-01-01",
+                "2026-12-31",
+                0
+              ],
+              [
+                "A3",
+                1,
+                1,
+                600,
+                1500,
+                "-",
+                "Vacant",
+                null,
+                null,
+                null
+              ],
+              [
+                "B1",
+                2,
+                2,
+                950,
+                2000,
+                "-",
+                "Down",
+                null,
+                null,
+                null
+              ],
+              [
+                "B2",
+                2,
+                2,
+                950,
+                2000,
+                0,
+                "Employee",
+                "2024-01-01",
+                null,
+                null
+              ],
+              [
+                "B3",
+                2,
+                2,
+                950,
+                2000,
+                1900,
+                "Occupied",
+                "2025-07-01",
+                "2027-06-30",
+                500
+              ]
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "asOfDate": "2026-06-30",
+          "totalUnits": 6
+        },
+        "rowCount": 6,
+        "rows": [
+          {
+            "index": 0,
+            "values": {
+              "unit": "A1",
+              "beds": 0,
+              "baths": 1,
+              "marketRent": 1200,
+              "inPlaceRent": 1150,
+              "leaseEnd": "2027-03-31"
+            }
+          },
+          {
+            "index": 2,
+            "values": {
+              "unit": "A3",
+              "inPlaceRent": null,
+              "status": "Vacant"
+            }
+          },
+          {
+            "index": 5,
+            "values": {
+              "unit": "B3",
+              "balanceDue": 500
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "rent-roll-pdf",
+      "description": "Text-layer PDF rent roll with placeholder dashes.",
+      "source": {
+        "format": "pdf",
+        "lines": [
+          [
+            "Rent Roll"
+          ],
+          [
+            "Property: Maple Court"
+          ],
+          [
+            "As of: 03/31/2026"
+          ],
+          [
+            "Unit",
+            "Type",
+            "Status",
+            "Market Rent",
+            "Current Rent",
+            "Lease End"
+          ],
+          [
+            "1",
+            "2x1",
+            "Occupied",
+            "1,800",
+            "1,700",
+            "08/31/2026"
+          ],
+          [
+            "2",
+            "2x1",
+            "Occupied",
+            "1,800",
+            "1,800",
+            "01/31/2027"
+          ],
+          [
+            "3",
+            "2x1",
+            "Vacant",
+            "1,800",
+            "-",
+            "-"
+          ],
+          [
+            "4",
+            "3x2",
+            "Occupied",
+            "2,400",
+            "2,300",
+            "04/30/2026"
+          ],
+          [
+            "Total",
+            "4 units",
+            "-",
+            "7,800",
+            "5,800",
+            "-"
+          ]
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "propertyName": "Maple Court",
+          "asOfDate": "2026-03-31",
+          "totalUnits": 4
+        },
+        "rowCount": 4,
+        "rows": [
+          {
+            "index": 0,
+            "values": {
+              "unit": "1",
+              "unitType": "2x1",
+              "marketRent": 1800,
+              "inPlaceRent": 1700,
+              "leaseEnd": "2026-08-31"
+            }
+          },
+          {
+            "index": 3,
+            "values": {
+              "unit": "4",
+              "marketRent": 2400,
+              "inPlaceRent": 2300
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
