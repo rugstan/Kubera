@@ -30,6 +30,16 @@ const COLUMNS = [
       { href: "/partners#vendor", label: "Third-party vendors" },
     ],
   },
+  {
+    title: "Company",
+    links: [
+      { href: "/about", label: "About Kubera" },
+      { href: "/team", label: "Our advisors" },
+      { href: "/track-record", label: "Track record" },
+      { href: "/structures", label: "Representative structures" },
+      { href: "/contact", label: "Contact" },
+    ],
+  },
   { title: "Legal", links: LEGAL_PAGES },
 ];
 
@@ -37,7 +47,7 @@ export function Footer() {
   return (
     <footer className="border-t border-black/[0.06] bg-canvas">
       <div className="mx-auto max-w-[1280px] px-5 py-16 md:px-8">
-        <div className="grid gap-12 sm:grid-cols-2 md:grid-cols-[1.4fr_repeat(4,1fr)]">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-titanium">

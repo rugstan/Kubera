@@ -12,6 +12,8 @@ const NAV = [
   { href: "/#multifamily", label: "Multifamily and CRE" },
   { href: "/#rates", label: "Rates" },
   { href: "/partners", label: "Partners" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export function GlassHeader() {

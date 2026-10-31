@@ -3,6 +3,7 @@
 // trust pages, insights, ...). Titles and descriptions feed llms.txt.
 
 import { programRoutes } from "@/content/programs";
+import { trustRoutes } from "@/content/trust-pages";
 import { canonicalUrl } from "./hosts";
 
 export type SitemapSection = "Tools" | "Programs" | "Company" | "Legal" | "Resources";
@@ -58,7 +59,7 @@ export const legalRoutes: SitemapRoute[] = [
  * Add content workstreams here, e.g. `programRoutes` from `content/programs`.
  * Each source is a plain array so the sitemap stays a static, build-time file.
  */
-export const sitemapSources: SitemapRoute[][] = [coreRoutes, programRoutes, legalRoutes];
+export const sitemapSources: SitemapRoute[][] = [coreRoutes, programRoutes, trustRoutes, legalRoutes];
 
 /** Flattens the sources, normalizes trailing slashes and drops duplicate paths. */
 export function allSitemapRoutes(sources: SitemapRoute[][] = sitemapSources): SitemapRoute[] {
