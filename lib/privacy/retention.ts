@@ -224,7 +224,10 @@ export async function purgeRow(policy: RetentionPolicy, id: RowId, deps: PurgeDe
   let objectsRemoved = 0;
   try {
     if (policy.storagePrefix) {
-      for (const p of await deps.storage.list(policy.storagePrefix.bucket, policy.storagePrefix.prefix(id))) paths.add(`${policy.storagePrefix.bucket}\u0000${p}`);
+      const prefix = policy.storagePrefix.prefix(id);
+      // Never let an empty or root prefix turn into "everything in the bucket".
+      if (!/^[A-Za-z0-9][A-Za-z0-9_-]{7,}\//.test(prefix)) return out("failed", `refusing unsafe storage prefix for ${policy.table} row`);
+      for (const p of await deps.storage.list(policy.storagePrefix.bucket, prefix)) paths.add(`${policy.storagePrefix.bucket}\u0000${p}`);
     }
     const byBucket = new Map<string, string[]>();
     for (const key of paths) {

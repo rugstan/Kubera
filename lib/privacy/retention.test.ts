@@ -176,6 +176,14 @@ describe("runRetention", () => {
     expect(storage.has(DEAL_DOCUMENTS_BUCKET, String(d.storage_path))).toBe(true);
   });
 
+  it("refuses a storage prefix that could match the whole bucket", async () => {
+    storage.put(DEAL_DOCUMENTS_BUCKET, "other-lead/T12/keep.pdf");
+    db.insertRow("leads", { id: "", created_at: OLD, contact: { email: "x@example.com" } });
+    const r = await purgeRow(LEAD_POLICY, "", { db, storage });
+    expect(r).toMatchObject({ status: "failed", detail: expect.stringMatching(/unsafe storage prefix/) });
+    expect(storage.has(DEAL_DOCUMENTS_BUCKET, "other-lead/T12/keep.pdf")).toBe(true);
+  });
+
   it("respects the per-policy limit", async () => {
     for (let i = 0; i < 5; i++) lead(daysAgo(4 * 365 + i), `p${i}@example.com`);
     const summary = await runRetention({ db, storage, now: () => NOW, limitPerPolicy: 2 });
