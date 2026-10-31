@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics/client";
-import type { ProgramQuote } from "@/lib/sizing/types";
+import type { SizerQuote } from "@/lib/sizing/programs/types";
 import { bestSummary } from "./carousel";
 
 /**
@@ -11,7 +11,7 @@ import { bestSummary } from "./carousel";
  * screen), and "See all structures" jumps to the results. Hidden from 769px up,
  * where inputs and results sit side by side.
  */
-export function MobileResultsBar({ best, resultsId, tab }: { best: ProgramQuote | undefined; resultsId: string; tab?: string }) {
+export function MobileResultsBar({ best, resultsId, tab }: { best: SizerQuote | undefined; resultsId: string; tab?: string }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

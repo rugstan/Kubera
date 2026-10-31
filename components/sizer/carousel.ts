@@ -1,5 +1,5 @@
 import { usd } from "@/lib/sizing/programs";
-import type { ProgramQuote } from "@/lib/sizing/types";
+import type { SizerQuote } from "@/lib/sizing/programs/types";
 
 // Pure helpers for the mobile quote carousel and the sticky results bar.
 
@@ -29,7 +29,7 @@ export function clampIndex(i: number, count: number): number {
 export type BestSummary = { label: string; detail: string };
 
 /** The one-line best-fit summary shown in the sticky bar. */
-export function bestSummary(best: Pick<ProgramQuote, "name" | "loanAmount" | "ratePct" | "eligible"> | undefined): BestSummary {
+export function bestSummary(best: Pick<SizerQuote, "name" | "loanAmount" | "ratePct" | "eligible"> | undefined): BestSummary {
   if (!best || !best.eligible) return { label: "No structure fits yet", detail: "Adjust the inputs or compare every structure." };
   return { label: best.name, detail: `${usd(best.loanAmount)} at about ${best.ratePct.toFixed(2)}%` };
 }

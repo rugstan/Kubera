@@ -6,19 +6,34 @@ import { motion } from "motion/react";
 import { openCommandBar } from "@/components/ask/events";
 import type { Benchmarks } from "@/lib/rates";
 import { disclosures } from "@/lib/site";
-import { sizeHospitality, sizeMultifamily, sizeSenior, usd } from "@/lib/sizing/programs";
-import type { HospitalityInputs, MultifamilyInputs, SeniorInputs, SizingResult } from "@/lib/sizing/types";
+import { sizeHospitality, sizeSenior, usd } from "@/lib/sizing/programs";
+import { sizeConstruction } from "@/lib/sizing/programs/construction";
+import { sizeHardMoney } from "@/lib/sizing/programs/hardMoney";
+import { hud223a7FlagFromEnv, sizeMultifamilyPlus } from "@/lib/sizing/programs/multifamily";
+import type { SizerResult } from "@/lib/sizing/programs/types";
+import type { HospitalityInputs, SeniorInputs } from "@/lib/sizing/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "./fields";
+import { ConstructionForm } from "./programs/ConstructionForm";
+import { buildDealContext } from "./programs/dealContext";
+import { CONSTRUCTION_DEFAULT, HARD_MONEY_DEFAULT, MULTIFAMILY_DEFAULT } from "./programs/defaults";
+import { upd, type FormProps } from "./programs/form";
+import { HardMoneyForm } from "./programs/HardMoneyForm";
+import { MultifamilyForm } from "./programs/MultifamilyForm";
 import { QuoteCarousel } from "./QuoteCarousel";
 
-type Tab = "senior" | "hospitality" | "multifamily";
+type Tab = "senior" | "hospitality" | "multifamily" | "hardMoney" | "construction";
 
 const TABS: { id: Tab; label: string; short: string }[] = [
   { id: "senior", label: "Senior Living & Care", short: "Senior Living" },
   { id: "hospitality", label: "Hospitality & Hotels", short: "Hotels" },
   { id: "multifamily", label: "Multifamily & CRE", short: "Multifamily" },
+  { id: "hardMoney", label: "Hard money", short: "Hard money" },
+  { id: "construction", label: "Construction", short: "Construction" },
 ];
+
+// HUD 223(a)(7) stays behind a build-time flag until a HUD lender confirms the box.
+const HUD_223A7_ENABLED = hud223a7FlagFromEnv(process.env.NEXT_PUBLIC_SIZER_HUD_223A7);
 
 const SENIOR_DEFAULT: SeniorInputs = {
   facilityType: "ASSISTED_LIVING",
@@ -46,51 +61,42 @@ const HOTEL_DEFAULT: HospitalityInputs = {
   green: true,
 };
 
-const MF_DEFAULT: MultifamilyInputs = {
-  assetType: "MULTIFAMILY",
-  units: 120,
-  sqft: 110_000,
-  loanAmount: 20_000_000,
-  noi: 1_750_000,
-  value: 29_000_000,
-  totalCost: undefined,
-  transaction: "REFINANCE",
-  affordable: false,
-  green: false,
-};
-
 export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: boolean }) {
   const [tab, setTab] = useState<Tab>("senior");
   const [senior, setSenior] = useState(SENIOR_DEFAULT);
   const [hotel, setHotel] = useState(HOTEL_DEFAULT);
-  const [mf, setMf] = useState(MF_DEFAULT);
+  const [mf, setMf] = useState(MULTIFAMILY_DEFAULT);
+  const [hm, setHm] = useState(HARD_MONEY_DEFAULT);
+  const [build, setBuild] = useState(CONSTRUCTION_DEFAULT);
 
-  const result: SizingResult = useMemo(() => {
+  const result: SizerResult = useMemo(() => {
     if (tab === "senior") return sizeSenior(senior, benchmarks);
     if (tab === "hospitality") return sizeHospitality(hotel, benchmarks);
-    return sizeMultifamily(mf, benchmarks);
-  }, [tab, senior, hotel, mf, benchmarks]);
+    if (tab === "hardMoney") return sizeHardMoney(hm, benchmarks);
+    if (tab === "construction") return sizeConstruction(build, benchmarks);
+    return sizeMultifamilyPlus(mf, benchmarks, { hud223a7: HUD_223A7_ENABLED });
+  }, [tab, senior, hotel, mf, hm, build, benchmarks]);
 
-  const inputs = tab === "senior" ? senior : tab === "hospitality" ? hotel : mf;
+  const inputs = { senior, hospitality: hotel, multifamily: mf, hardMoney: hm, construction: build }[tab];
   const best = result.quotes.find((q) => q.id === result.bestFit);
 
   const dealContext = () =>
-    JSON.stringify({
-      vertical: TABS.find((t) => t.id === tab)?.label,
-      inputs,
-      estimatedValue: Math.round(result.value),
-      bestFit: best && { program: best.name, loanAmount: best.loanAmount, noteRatePct: Number(best.ratePct.toFixed(2)), term: best.termLabel, amortization: best.amortLabel, recourse: best.recourse, annualFee: best.annualFee, annualAudit: best.annualAudit, closingCosts: Math.round(best.closingCosts), tranches: best.tranches.map((t) => ({ label: t.label, amount: Math.round(t.amount), ratePct: Number(t.ratePct.toFixed(2)) })) },
-      alternatives: result.quotes.filter((q) => q.eligible && q.id !== best?.id).map((q) => ({ program: q.name, loanAmount: q.loanAmount, noteRatePct: Number(q.ratePct.toFixed(2)) })),
-      benchmarks,
-    });
+    buildDealContext({ vertical: TABS.find((t) => t.id === tab)?.label ?? "", inputs, result, benchmarks });
 
   const expressHref = useMemo(() => {
-    const p = new URLSearchParams({ loan: String(inputs.loanAmount), noi: String(inputs.noi) });
+    const noi = tab === "senior" ? senior.noi : tab === "hospitality" ? hotel.noi : tab === "multifamily" ? mf.noi : tab === "construction" ? build.stabilizedNoi : (hm.stabilizedNoi ?? 0);
+    const p = new URLSearchParams({ loan: String(inputs.loanAmount), noi: String(noi) });
     if (tab === "senior") p.set("asset", senior.facilityType === "RCFE" ? "RCFE" : senior.facilityType);
     else if (tab === "hospitality") p.set("asset", hotel.tier === "BOUTIQUE_INDEPENDENT" ? "HOTEL_BOUTIQUE" : "HOTEL_FLAGGED");
-    else p.set("asset", mf.assetType);
+    else if (tab === "hardMoney") {
+      p.set("asset", hm.propertyType === "RESIDENTIAL_1_4" ? "RESIDENTIAL_2_4" : hm.propertyType);
+      p.set("transaction", "HARD_MONEY");
+    } else if (tab === "construction") {
+      p.set("asset", build.assetType === "HOTEL" ? "HOTEL_FLAGGED" : build.assetType);
+      p.set("transaction", "CONSTRUCTION");
+    } else p.set("asset", mf.assetType === "MULTIFAMILY" && mf.units < 5 ? "RESIDENTIAL_2_4" : mf.assetType);
     return `/express?${p}`;
-  }, [tab, inputs, senior.facilityType, hotel.tier, mf.assetType]);
+  }, [tab, inputs.loanAmount, senior.facilityType, senior.noi, hotel.tier, hotel.noi, mf.assetType, mf.units, mf.noi, hm.propertyType, hm.stabilizedNoi, build.assetType, build.stabilizedNoi]);
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
@@ -113,7 +119,9 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
         <aside className="bento h-fit space-y-5 p-6 lg:sticky lg:top-20">
           {tab === "senior" && <SeniorForm v={senior} set={setSenior} />}
           {tab === "hospitality" && <HotelForm v={hotel} set={setHotel} />}
-          {tab === "multifamily" && <MultifamilyForm v={mf} set={setMf} />}
+          {tab === "multifamily" && <MultifamilyForm v={mf} set={setMf} hud223a7={HUD_223A7_ENABLED} />}
+          {tab === "hardMoney" && <HardMoneyForm v={hm} set={setHm} />}
+          {tab === "construction" && <ConstructionForm v={build} set={setBuild} />}
           <div className="rounded-2xl bg-black/[0.03] p-4">
             <p className="eyebrow !text-xs">Underwriting snapshot</p>
             <dl className="mt-2 space-y-1 text-[13px]">
@@ -153,8 +161,6 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
   );
 }
 
-type FormProps<T> = { v: T; set: (fn: (prev: T) => T) => void };
-const upd = <T,>(set: FormProps<T>["set"]) => <K extends keyof T>(k: K) => (val: T[K]) => set((p) => ({ ...p, [k]: val }));
 
 function SeniorForm({ v, set }: FormProps<SeniorInputs>) {
   const u = upd(set);
@@ -207,36 +213,6 @@ function HotelForm({ v, set }: FormProps<HospitalityInputs>) {
       <MoneyField label="PIP renovation budget" value={v.pipBudget} onChange={u("pipBudget")} />
       <Toggle label="Non-recourse only" checked={v.nonRecourseOnly} onChange={u("nonRecourseOnly")} />
       <Toggle label="Energy-efficient project" hint="May qualify for the $5.5M green 504 cap" checked={v.green} onChange={u("green")} />
-    </>
-  );
-}
-
-function MultifamilyForm({ v, set }: FormProps<MultifamilyInputs>) {
-  const u = upd(set);
-  const construction = v.transaction === "CONSTRUCTION";
-  return (
-    <>
-      <SelectField label="Asset type" value={v.assetType} onChange={u("assetType")} options={[
-        { value: "MULTIFAMILY", label: "Multifamily" },
-        { value: "MIXED_USE", label: "Mixed-use" },
-        { value: "COMMERCIAL", label: "Commercial (office, retail, industrial)" },
-      ]} />
-      <Segmented label="Transaction" value={v.transaction} onChange={u("transaction")} options={[
-        { value: "PURCHASE", label: "Purchase" },
-        { value: "REFINANCE", label: "Refi" },
-        { value: "CONSTRUCTION", label: "Build" },
-      ]} />
-      {v.assetType === "COMMERCIAL" ? (
-        <RangeField label="Rentable sq ft" value={v.sqft} onChange={u("sqft")} min={5_000} max={500_000} step={1_000} />
-      ) : (
-        <RangeField label="Units" value={v.units} onChange={u("units")} min={5} max={500} />
-      )}
-      <MoneyField label="Loan amount" value={v.loanAmount} onChange={u("loanAmount")} />
-      <MoneyField label={construction ? "As-stabilized NOI" : "In-place NOI"} value={v.noi} onChange={u("noi")} />
-      <MoneyField label={construction ? "As-stabilized value" : "As-is value"} value={v.value ?? 0} onChange={(n) => set((p) => ({ ...p, value: n || undefined }))} hint="Leave blank to estimate from cap rate" />
-      {construction && <MoneyField label="Total project cost (for LTC)" value={v.totalCost ?? 0} onChange={(n) => set((p) => ({ ...p, totalCost: n || undefined }))} />}
-      <Toggle label="Affordable / LIHTC" checked={v.affordable} onChange={u("affordable")} />
-      <Toggle label="Green certification" hint="May improve agency pricing; no longer lowers HUD MIP" checked={v.green} onChange={u("green")} />
     </>
   );
 }

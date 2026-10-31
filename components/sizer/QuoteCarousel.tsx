@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Analytics } from "@/components/analytics/Analytics";
 import { track } from "@/lib/analytics/client";
-import type { ProgramQuote } from "@/lib/sizing/types";
+import type { SizerQuote } from "@/lib/sizing/programs/types";
 import { clampIndex, nearestIndex } from "./carousel";
 import { MobileResultsBar } from "./MobileResultsBar";
-import { QuoteCard } from "./QuoteCard";
+import { ProgramCard } from "./programs/ProgramCard";
 
 /**
  * The sizer's quote cards. At 769px and wider they are the usual responsive
@@ -14,7 +14,7 @@ import { QuoteCard } from "./QuoteCard";
  * row with previous/next buttons and a position indicator, and the sticky
  * MobileResultsBar summarises the best fit. One set of DOM serves both.
  */
-export function QuoteCarousel({ quotes, bestId, tab }: { quotes: ProgramQuote[]; bestId: ProgramQuote["id"] | null; tab: string }) {
+export function QuoteCarousel({ quotes, bestId, tab }: { quotes: SizerQuote[]; bestId: SizerQuote["id"] | null; tab: string }) {
   const listRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
   const [active, setActive] = useState(0);
@@ -70,7 +70,7 @@ export function QuoteCarousel({ quotes, bestId, tab }: { quotes: ProgramQuote[];
             aria-label={`${i + 1} of ${count}`}
             className="flex w-[86%] shrink-0 snap-start [&>*]:w-full min-[769px]:w-auto min-[769px]:shrink"
           >
-            <QuoteCard q={q} best={q.id === bestId} index={i} />
+            <ProgramCard q={q} best={q.id === bestId} index={i} />
           </div>
         ))}
       </div>
