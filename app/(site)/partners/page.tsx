@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { PartnerPortal } from "@/components/partners/PartnerPortal";
+import { pageMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Partner Portal",
-  description: "Register as a wholesale lender, referral broker, operator, or third-party vendor with Kubera Commercial.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Partner portal",
+  description: "Register as a wholesale lender, referral broker, operator or third-party vendor with Kubera Commercial.",
+  path: "/partners",
+});
 
 export default function PartnersPage() {
   return (

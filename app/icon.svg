@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>Kubera Commercial</title>
+  <defs>
+    <linearGradient id="k" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9cd6f"/>
+      <stop offset="1" stop-color="#b8912a"/>
+    </linearGradient>
+  </defs>
+  <rect width="24" height="24" rx="7" fill="#1d1d1f"/>
+  <path d="M8 6v12M8 12l7-6M10.5 10l5 8" stroke="url(#k)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

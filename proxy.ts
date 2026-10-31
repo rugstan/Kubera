@@ -1,30 +1,51 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { NOINDEX_HEADER, expressAction, isExpressHost, isPreviewDeployment } from "@/lib/seo/hosts";
+import { site } from "@/lib/site";
 
 // Next 16 renamed middleware.ts to proxy.ts; behavior is identical.
 //
 // Traffic on the short express domain (kubera.loans) only ever sees the
-// distraction-free qualifier. Its API calls and static assets pass through so
-// the funnel works on its own origin.
-const EXPRESS_HOSTS = new Set(
-  (process.env.EXPRESS_HOSTS ?? "kubera.loans,www.kubera.loans").split(",").map((h) => h.trim().toLowerCase()),
-);
+// distraction-free qualifier at `/`. Its API calls and static assets pass
+// through so the funnel works on its own origin, `/express` 308s to `/`, there
+// is no sitemap, and every response carries `X-Robots-Tag: noindex` so the main
+// site stays the only indexed copy. Preview deployments are noindex too.
+// The routing decisions live in `lib/seo/hosts.ts` where they are unit-tested.
 
-export function proxy(req: NextRequest) {
-  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(":")[0]!.toLowerCase();
-  if (!EXPRESS_HOSTS.has(host)) return NextResponse.next();
-
-  const { pathname } = req.nextUrl;
-  if (pathname.startsWith("/api/") || pathname === "/express") return NextResponse.next();
-  if (pathname === "/") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/express";
-    return NextResponse.rewrite(url);
-  }
-  // Anything else on the express domain belongs on the main site.
-  const target = new URL(pathname + req.nextUrl.search, process.env.NEXT_PUBLIC_SITE_URL ?? "https://kuberacommercial.com");
-  return NextResponse.redirect(target, 308);
+function noindex(res: NextResponse): NextResponse {
+  res.headers.set("X-Robots-Tag", NOINDEX_HEADER);
+  return res;
 }
 
+export function proxy(req: NextRequest) {
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const preview = isPreviewDeployment();
+
+  if (!isExpressHost(host)) {
+    return preview ? noindex(NextResponse.next()) : NextResponse.next();
+  }
+
+  const action = expressAction(req.nextUrl.pathname);
+  switch (action.type) {
+    case "rewrite": {
+      const url = req.nextUrl.clone();
+      url.pathname = action.pathname;
+      return noindex(NextResponse.rewrite(url));
+    }
+    case "redirect": {
+      const target = action.mainSite
+        ? new URL(action.pathname + req.nextUrl.search, site.siteUrl)
+        : Object.assign(req.nextUrl.clone(), { pathname: action.pathname });
+      return noindex(NextResponse.redirect(target, action.status));
+    }
+    case "notFound":
+      return noindex(new NextResponse("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } }));
+    default:
+      return noindex(NextResponse.next());
+  }
+}
+
+// robots.txt is excluded so crawlers always read it unmodified; sitemap.xml is
+// included so the express host can answer 404 for it.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|robots.txt|sitemap.xml).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|robots.txt).*)"],
 };

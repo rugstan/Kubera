@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Bento } from "@/components/home/Bento";
 import { CapitalMarkets } from "@/components/home/CapitalMarkets";
@@ -6,6 +7,15 @@ import { Hero } from "@/components/home/Hero";
 import { Reveal } from "@/components/home/Reveal";
 import { LoanSizer } from "@/components/sizer/LoanSizer";
 import { getMarketSnapshot } from "@/lib/rates";
+import { pageMetadata } from "@/lib/seo/metadata";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Senior living, hotel and CRE debt advisory",
+  absoluteTitle: "Kubera Commercial | Senior Living, Hotel & CRE Debt",
+  description:
+    "Advisor-led, AI-assisted debt advisory for senior living, hotels and multifamily: HUD 232, SBA 504 hotel stacks, CMBS and bridge financing, sized in 60 seconds.",
+  path: "/",
+});
 
 async function SizerWithRates() {
   const snap = await getMarketSnapshot();
