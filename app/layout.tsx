@@ -9,12 +9,12 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
   title: {
-    default: "Kubera Commercial — Senior Living, Hospitality & CRE Debt Advisory",
+    default: "Kubera Commercial | Senior Living, Hotel & CRE Debt",
     template: "%s · Kubera Commercial",
   },
   description:
     "Institutional debt advisory for senior living, hotels, and multifamily: HUD 232, SBA 504 hotel stacks, CMBS, PIP bridge, and private bridge financing — sized in 60 seconds.",
-  openGraph: { type: "website", siteName: site.name, url: site.siteUrl },
+  openGraph: { type: "website", siteName: site.name },
   robots: { index: true, follow: true },
 };
 
