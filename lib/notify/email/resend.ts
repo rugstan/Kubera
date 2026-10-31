@@ -24,6 +24,16 @@ export function resendConfigFromEnv(env: Record<string, string | undefined> = pr
   };
 }
 
+/** Resend accepts only ASCII letters, digits, `_` and `-` in tag names and values (max 256 chars). */
+export function sanitizeResendTag(raw: string): string {
+  const cleaned = raw.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 256);
+  return cleaned || "_";
+}
+
+export function resendTags(tags: Record<string, string>): { name: string; value: string }[] {
+  return Object.entries(tags).map(([name, value]) => ({ name: sanitizeResendTag(name), value: sanitizeResendTag(String(value)) }));
+}
+
 export class ResendEmailClient implements EmailClient {
   readonly name = "resend" as const;
 
@@ -46,7 +56,7 @@ export class ResendEmailClient implements EmailClient {
         html: email.html,
         text: email.text,
         reply_to: email.replyTo ?? this.config.replyTo,
-        ...(email.tags ? { tags: Object.entries(email.tags).map(([name, value]) => ({ name, value })) } : {}),
+        ...(email.tags ? { tags: resendTags(email.tags) } : {}),
       }),
       signal: AbortSignal.timeout(10_000),
       cache: "no-store",

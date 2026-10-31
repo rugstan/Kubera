@@ -63,6 +63,10 @@ export const mailReceivedSchema = z.object({
   providerMessageId: z.string().min(1).max(200),
   folderId: z.string().min(1).max(200),
   receivedAt: z.string().datetime().optional(),
+  /** Failed attempts so far (0 = first try); retries get their own event id and idempotency key. */
+  attempt: z.number().int().min(0).max(100).default(0),
+  /** `<mailbox>:<provider id>:<attempt>`: the inbound-mail function's idempotency key. */
+  dedupeKey: z.string().max(320).optional(),
 });
 export type MailReceived = z.infer<typeof mailReceivedSchema>;
 

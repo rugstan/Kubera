@@ -58,6 +58,12 @@ export interface EsignProvider {
   /** Signed, completed PDF (the borrower's exact copy). */
   downloadSigned(requestId: string): Promise<Uint8Array>;
   recall(requestId: string, reason: string): Promise<void>;
+  /**
+   * Requests created with `reference` (newest first), so an ambiguous send
+   * (timeout after the provider accepted it) is reconciled instead of repeated.
+   * Optional: providers without a lookup cannot reconcile.
+   */
+  findByReference?(reference: string): Promise<CreatedRequest[]>;
   /** Verify the webhook signature over the raw body. Never parse an unverified body. */
   verifyWebhook(rawBody: string, headers: Headers): boolean;
   /** Parse a verified webhook body; null when it is not a signing event. */
@@ -68,6 +74,8 @@ export class EsignError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    /** Worth retrying later (throttled OAuth refresh, network, 5xx). */
+    readonly retryable: boolean = status === undefined || status === 429 || status >= 500,
   ) {
     super(message);
     this.name = "EsignError";

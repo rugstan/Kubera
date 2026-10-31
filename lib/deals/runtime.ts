@@ -13,6 +13,7 @@ import { esignProvider } from "@/lib/esign";
 import { emailClientFromEnv } from "@/lib/notify/email";
 import { notifyRuntime } from "@/lib/notify/runtime";
 import type { EsignProvider } from "@/lib/esign/types";
+import { supabaseIdempotencyStore, type IdempotencyStore } from "@/lib/workflows/idempotency";
 import { site } from "@/lib/site";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 import type { BrokerIdentity } from "./dre";
@@ -36,6 +37,8 @@ export type DealDeskRuntime = {
   disclosures: DisclosureStore;
   storage: DocumentStorage;
   gate: ApprovalGate;
+  /** workflow_effects: claims each e-sign send so it creates at most one envelope. */
+  effects: IdempotencyStore;
   esign: EsignProvider | null;
   /** Outbound mail (Resend, WS-J) for approved lender submissions, lender notices and invoices; null = broker sends manually. */
   mailer: LenderMailer | null;
@@ -65,6 +68,7 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     disclosures: new SupabaseDisclosureStore(db),
     storage: new SupabaseDocumentStorage(db),
     gate: approvalGate(),
+    effects: supabaseIdempotencyStore(db),
     esign: esignProvider(),
     mailer: emailLenderMailer(emailClientFromEnv()),
     baseUrl: site.siteUrl,

@@ -17,6 +17,12 @@ import { InvoiceError, createInvoice, issueInvoice, issueInvoiceMessage, settleI
 import { PackageError, checkOutreachApproval, markOutreachSent, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type SendPackageResult } from "@/lib/deals/packages";
 import { ModificationError, applyModificationTerms, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, withdrawModification } from "@/lib/deals/modifications";
 import { Form159BlockedError, generateForm159, sendForm159 } from "@/lib/deals/form159";
+import { MldsDeskError, generateDealMlds, holdDealMlds, mldsInputFromForm, officeDateTime, openDealMlds, releaseDealMlds, sendDealMlds } from "@/lib/deals/mlds";
+import { ApprovalConflictError } from "@/lib/approvals/service";
+import { gatedCrmSink } from "@/lib/disclosures/deal-record";
+import { DisclosureBlockedError } from "@/lib/disclosures/service";
+import { InvalidTransitionError } from "@/lib/disclosures/state";
+import { mldsTemplateId } from "@/lib/esign";
 import { parseLender } from "@/lib/deals/lenders";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
 import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, kuberaAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
@@ -24,11 +30,12 @@ import { StaffAccessError, requirePermission, type Permission, type StaffSession
 import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from "@/lib/deals/types";
 import type { ModificationFacts } from "@/lib/compliance/schemas";
 
-const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, LockedFieldError, LedgerError, MoneyError, InvoiceError, PackageError, ModificationError, Form159BlockedError];
+const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, LockedFieldError, LedgerError, MoneyError, InvoiceError, PackageError, ModificationError, Form159BlockedError, MldsDeskError, DisclosureBlockedError, InvalidTransitionError];
 
 function messageOf(err: unknown): string {
   if (err instanceof ZodError) return err.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
   if (KNOWN.some((K) => err instanceof K)) return (err as Error).message;
+  if (err instanceof ApprovalConflictError) return "A send for this document is already in the approvals queue with different details; approve or reject that one first.";
   console.error("[deals] action failed", err instanceof Error ? err.message : err);
   return "Something went wrong; nothing further was changed. Try again or check the audit log.";
 }
@@ -384,8 +391,70 @@ export async function generateForm159Action(f: FormData): Promise<never> {
 export async function sendForm159Action(f: FormData): Promise<never> {
   const id = str(f, "dealId");
   return run(dealPath(id), "write", async ({ staff, rt }) => {
-    const r = await sendForm159({ store: rt.store, provider: rt.esign, gate: rt.gate, now: rt.now, templateId: form159TemplateId(rt.esign) }, str(f, "formId"), staff.actor);
+    const r = await sendForm159({ store: rt.store, provider: rt.esign, gate: rt.gate, effects: rt.effects, now: rt.now, templateId: form159TemplateId(rt.esign) }, str(f, "formId"), staff.actor);
     return r.sent ? "Form 159 sent for signature." : "Form 159 is waiting for broker approval; nothing was sent.";
+  });
+}
+
+// MLDS (RE 882) -----------------------------------------------------------------------------------
+// Gate A: real-property deals cannot close without a signed MLDS. Every action
+// runs on the MFA staff session; the send itself also needs a broker's approval
+// with step-up re-authentication (approval kind mlds_send).
+
+const mldsDeps = (rt: DealDeskRuntime) => ({ store: rt.store, disclosures: rt.disclosures, storage: rt.storage, now: rt.now, deal: gatedCrmSink(rt.gate) });
+
+export async function openMldsAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  return run(dealPath(id), "write", async ({ staff, rt }) => {
+    const { requirement, record } = await openDealMlds(mldsDeps(rt), { dealId: id, applicationCompletedAt: officeDateTime(str(f, "applicationCompletedAt")), actor: staff.actor });
+    if (!record) return `No MLDS is required: ${requirement.reasons.join(" ") || "no real-property lien"}`;
+    return record.status === "held_for_counsel" ? "MLDS opened and held for counsel review." : `MLDS opened; deliver it by ${record.dueAt ? new Date(record.dueAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }) : "the due date"}.`;
+  });
+}
+
+export async function generateMldsAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  return run(dealPath(id), "write", async ({ staff, rt }) => {
+    const input = mldsInputFromForm((k) => str(f, k), {
+      broker: brokerIdentity(),
+      representative: { name: staff.name, dreLicense: staff.dreLicense },
+      today: rt.now().toISOString().slice(0, 10),
+    });
+    const record = await generateDealMlds({ ...mldsDeps(rt), render: renderPdf }, { dealId: id, disclosureId: str(f, "disclosureId"), mlds: input, actor: staff.actor });
+    return record.flags.includes("draft_template")
+      ? "MLDS generated on the DRAFT template (pending counsel review); it cannot be sent to borrowers yet."
+      : "MLDS generated. Each borrower now gives e-sign consent in the portal.";
+  });
+}
+
+export async function sendMldsAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  return run(dealPath(id), "write", async ({ staff, rt }) => {
+    const r = await sendDealMlds(
+      { ...mldsDeps(rt), provider: rt.esign, gate: rt.gate, effects: rt.effects, templateId: rt.esign ? mldsTemplateId(rt.esign.name) : null },
+      { dealId: id, disclosureId: str(f, "disclosureId"), brokerSigner: { name: staff.name, email: staff.email }, actor: staff.actor },
+    );
+    if (r.sent) return "MLDS sent for e-signature.";
+    return r.decision.status === "pending"
+      ? "MLDS send is waiting for a broker's approval (with re-authentication) in the approvals queue; it is sent as soon as it is approved."
+      : `MLDS was not sent: the approval is ${r.decision.status}.`;
+  });
+}
+
+export async function holdMldsAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  return run(dealPath(id), "write", async ({ staff, rt }) => {
+    await holdDealMlds(mldsDeps(rt), { dealId: id, disclosureId: str(f, "disclosureId"), reason: str(f, "reason"), actor: staff.actor });
+    return "MLDS held for counsel review. Borrower documents and closing are blocked until it is released.";
+  });
+}
+
+export async function releaseMldsAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  // Clearing a counsel hold is the designated officer's call.
+  return run(dealPath(id), "officer", async ({ rt }) => {
+    await releaseDealMlds(mldsDeps(rt), { dealId: id, disclosureId: str(f, "disclosureId"), counsel: str(f, "counsel"), note: str(f, "note") });
+    return "Counsel hold released; generate the MLDS again.";
   });
 }
 

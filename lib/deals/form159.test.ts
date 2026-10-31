@@ -1,3 +1,4 @@
+import { MemoryIdempotencyStore } from "@/lib/workflows/idempotency";
 import { describe, expect, it } from "vitest";
 import { FakeEsignProvider } from "@/lib/esign/fake";
 import { MemoryDocumentStorage } from "@/lib/disclosures/store";
@@ -124,7 +125,7 @@ describe("Form 159 workflow", () => {
     const { store, now, deal, gate, g } = await generated();
     const provider = new FakeEsignProvider();
     gate.decide(`esign_send:form159:${g.record.id}:${g.record.documentSha256}`, { status: "pending", approvalId: "appr_9" });
-    const pending = await sendForm159({ store, provider, gate, now, templateId: "tpl_159" }, g.record.id, "broker:ana");
+    const pending = await sendForm159({ effects: new MemoryIdempotencyStore(), store, provider, gate, now, templateId: "tpl_159" }, g.record.id, "broker:ana");
     expect(pending.sent).toBe(false);
     expect(pending.record.status).toBe("pending_approval");
     expect(provider.requests.size).toBe(0);
@@ -132,7 +133,7 @@ describe("Form 159 workflow", () => {
     expect(gate.requests[0]).toMatchObject({ kind: "form159_send" });
 
     gate.decide(`esign_send:form159:${g.record.id}:${g.record.documentSha256}`, { status: "approved", approvalId: "appr_9", decidedBy: "broker:lee", decidedAt: now() });
-    const sent = await sendForm159({ store, provider, gate, now, templateId: "tpl_159" }, g.record.id, "broker:ana");
+    const sent = await sendForm159({ effects: new MemoryIdempotencyStore(), store, provider, gate, now, templateId: "tpl_159" }, g.record.id, "broker:ana");
     expect(sent.sent).toBe(true);
     expect(sent.record.status).toBe("sent");
     const req = provider.requests.get(sent.record.providerRequestId!)!;
@@ -155,27 +156,60 @@ describe("Form 159 workflow", () => {
 
   it("refuses to send a draft template, an incomplete form, or without a provider", async () => {
     const draft = await generated(false);
-    await expect(sendForm159({ store: draft.store, provider: new FakeEsignProvider(), gate: draft.gate, now: draft.now, templateId: "t" }, draft.g.record.id, "a")).rejects.toMatchObject({ reason: "template_not_approved" });
+    await expect(sendForm159({ effects: new MemoryIdempotencyStore(), store: draft.store, provider: new FakeEsignProvider(), gate: draft.gate, now: draft.now, templateId: "t" }, draft.g.record.id, "a")).rejects.toMatchObject({ reason: "template_not_approved" });
 
     const ok = await generated(true);
-    await expect(sendForm159({ store: ok.store, provider: null, gate: ok.gate, now: ok.now, templateId: "t" }, ok.g.record.id, "a")).rejects.toBeInstanceOf(Form159BlockedError);
+    await expect(sendForm159({ effects: new MemoryIdempotencyStore(), store: ok.store, provider: null, gate: ok.gate, now: ok.now, templateId: "t" }, ok.g.record.id, "a")).rejects.toBeInstanceOf(Form159BlockedError);
     expect(ok.gate.requests).toHaveLength(0);
 
     const ctx = await sbaDeal();
     await ctx.store.insertFeeEntry(sbaPackagingFee({ dealId: ctx.deal.id, flatCents: 100_000 }), "a", ctx.now());
     const g = await generateForm159({ store: ctx.store, render: fakeRender, now: ctx.now, approvedTemplate: true }, { dealId: ctx.deal.id, lender: { name: "Bank" }, applicant, agent }, "a");
-    await expect(sendForm159({ store: ctx.store, provider: new FakeEsignProvider(), gate: ctx.gate, now: ctx.now, templateId: "t" }, g.record.id, "a")).rejects.toMatchObject({ reason: "incomplete" });
+    await expect(sendForm159({ effects: new MemoryIdempotencyStore(), store: ctx.store, provider: new FakeEsignProvider(), gate: ctx.gate, now: ctx.now, templateId: "t" }, g.record.id, "a")).rejects.toMatchObject({ reason: "incomplete" });
+  });
+
+  it("creates one envelope when a send is retried after the provider accepted it but the update failed", async () => {
+    const { store, now, gate, g } = await generated();
+    const provider = new FakeEsignProvider();
+    const effects = new MemoryIdempotencyStore();
+    const realUpdate = store.updateForm159.bind(store);
+    let fail = true;
+    store.updateForm159 = async (...args: Parameters<typeof store.updateForm159>) => {
+      if (fail && args[1].status === "sent") {
+        fail = false;
+        throw new Error("db timeout");
+      }
+      return realUpdate(...args);
+    };
+    await expect(sendForm159({ effects, store, provider, gate, now, templateId: "tpl" }, g.record.id, "a")).rejects.toThrow(/db timeout/);
+    // The queue gate answers already_executed for a claimed approval: the retry resumes the claimed effect.
+    gate.decide(`esign_send:form159:${g.record.id}:${g.record.documentSha256}`, { status: "rejected", approvalId: "appr_1", decidedBy: "system", reason: "already_executed" });
+    const retry = await sendForm159({ effects, store, provider, gate, now, templateId: "tpl" }, g.record.id, "a");
+    expect(retry.sent).toBe(true);
+    expect(provider.requests.size).toBe(1);
+    expect(retry.record.providerRequestId).toBe([...provider.requests.keys()][0]);
+  });
+
+  it("an ambiguous provider failure is reconciled by reference instead of re-created", async () => {
+    const { store, now, gate, g } = await generated();
+    const provider = new FakeEsignProvider();
+    const effects = new MemoryIdempotencyStore();
+    provider.failAfterCreate = 1;
+    await expect(sendForm159({ effects, store, provider, gate, now, templateId: "tpl" }, g.record.id, "a")).rejects.toThrow(/timed out/);
+    const retry = await sendForm159({ effects, store, provider, gate, now, templateId: "tpl" }, g.record.id, "a");
+    expect(retry.sent).toBe(true);
+    expect(provider.requests.size).toBe(1);
   });
 
   it("retires a declined request so a resend needs a new version and a new approval", async () => {
     const { store, now, gate, g, deal } = await generated();
     const provider = new FakeEsignProvider();
-    const sent = await sendForm159({ store, provider, gate, now, templateId: "tpl" }, g.record.id, "a");
+    const sent = await sendForm159({ effects: new MemoryIdempotencyStore(), store, provider, gate, now, templateId: "tpl" }, g.record.id, "a");
     const event = provider.parseWebhook(provider.webhook(sent.record.providerRequestId!, "declined").body)!;
     expect((await applyForm159EsignEvent({ store, now }, event))!.status).toBe("superseded");
     const v2 = await generateForm159({ store, render: fakeRender, now, approvedTemplate: true }, { dealId: deal.id, lender, applicant, agent, sbaLoanNumber: "9988776655" }, "a");
     expect(v2.record.version).toBe(2);
-    await sendForm159({ store, provider, gate, now, templateId: "tpl" }, v2.record.id, "a");
+    await sendForm159({ effects: new MemoryIdempotencyStore(), store, provider, gate, now, templateId: "tpl" }, v2.record.id, "a");
     expect(new Set(gate.requests.map((r) => r.idempotencyKey)).size).toBe(2);
   });
 });

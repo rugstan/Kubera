@@ -7,7 +7,9 @@
 //
 // Anything ambiguous, suspicious or low-confidence goes to the mailbox's
 // staff queue for review instead of being attached to a deal automatically.
-// A sender that fails DMARC is never matched by address (it may be spoofed).
+// A sender that fails DMARC is never matched by address (it may be spoofed)
+// and its thread match is reviewed. Only a From address with a DMARC pass
+// routes automatically by participant; a CC-only match is always reviewed.
 
 import { LOW_CONFIDENCE, REFERENCE_IN_BODY_ONLY, type MailClassification } from "./classify";
 import { MAILBOXES } from "./mailboxes";
@@ -77,22 +79,35 @@ export async function routeMail(msg: MailMessage, c: MailClassification, dir: De
         leadId = prior.leadId;
         method = "thread";
         confidence = 0.9;
+        // In-Reply-To / References are trivially copied by a spoofer: an
+        // unauthenticated sender's thread match is only a suggestion.
+        if (msg.dmarc === "fail") reasons.push("thread_match_sender_not_authenticated");
       }
     }
   }
 
-  // 3. Participant (never for a sender that failed DMARC).
+  // 3. Participant (never for a sender that failed DMARC). DMARC vouches only
+  // for the From domain, so a match found through a CC address (which anyone
+  // can add) or a From address without a DMARC pass is reviewed, not attached.
   if (method === "none") {
     if (msg.dmarc === "fail") reasons.push("sender_not_authenticated");
     else {
-      const candidates = [msg.fromAddress, ...msg.ccAddresses].filter((a) => a && !OWN_DOMAIN.test(a));
+      const from = msg.fromAddress.toLowerCase();
+      const candidates = [msg.fromAddress, ...msg.ccAddresses].filter((a) => a && !OWN_DOMAIN.test(a)).map((a) => a.toLowerCase());
       for (const email of [...new Set(candidates)]) {
         const found = await dir.byParticipant(email);
-        if (pick(found.deals, "participant", 0.8, "participant")) break;
-        if (found.deals.length === 0 && found.leadIds.length === 1) {
+        let matched = pick(found.deals, "participant", 0.8, "participant");
+        if (!matched && found.deals.length === 0 && found.leadIds.length === 1) {
           leadId = found.leadIds[0]!;
           method = "participant";
           confidence = 0.7;
+          matched = true;
+        }
+        if (matched) {
+          if (email !== from) {
+            reasons.push("matched_by_cc");
+            confidence = Math.min(confidence, 0.5);
+          } else if (msg.dmarc !== "pass") reasons.push("sender_not_verified");
           break;
         }
         if (found.leadIds.length > 1 && found.deals.length === 0) reasons.push("ambiguous_participant");

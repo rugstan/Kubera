@@ -9,6 +9,7 @@ import { FakeMailProvider } from "@/lib/mail/fake";
 import { DEAL_ID, LEAD_ID, SAMPLE_EMAILS } from "@/lib/mail/fixtures";
 import { MemoryDealDirectory } from "@/lib/mail/route";
 import { MemoryMailStore } from "@/lib/mail/store";
+import { MailProviderError } from "@/lib/mail/types";
 import type { OutboundExecutor, WorkflowDeps } from "./deps";
 import { EVENTS } from "./events";
 import { inboundMailHandler, mailPollHandler, outboundActionHandler } from "./handlers";
@@ -109,7 +110,11 @@ describe("mail workflows", () => {
     const res = await mailPollHandler({ data: {}, step }, d);
     expect(res.enqueued).toMatchObject({ docs: 1, lenders: 1, deals: 0 });
     expect(res.enqueued.vendors).toBeUndefined();
-    expect(step.sent.find((e) => e.data.mailbox === "docs")).toEqual({ name: EVENTS.mailReceived, id: `mail:docs:${m.providerMessageId}`, data: { mailbox: "docs", providerMessageId: m.providerMessageId, folderId: "inbox", receivedAt: m.receivedAt } });
+    expect(step.sent.find((e) => e.data.mailbox === "docs")).toEqual({
+      name: EVENTS.mailReceived,
+      id: `mail:docs:${m.providerMessageId}:0`,
+      data: { mailbox: "docs", providerMessageId: m.providerMessageId, folderId: "inbox", receivedAt: m.receivedAt, attempt: 0, dedupeKey: `docs:${m.providerMessageId}:0` },
+    });
     const stepState = JSON.stringify([...step.memo.values()]);
     expect(stepState).not.toContain("pat.lee@example.com");
     expect(stepState).not.toContain("rent roll");
@@ -138,6 +143,48 @@ describe("mail workflows", () => {
     const res = await inboundMailHandler({ data: { mailbox: "docs", providerMessageId: "missing", folderId: "inbox" }, step }, d);
     expect(res).toMatchObject({ status: "failed" });
     expect(runs.runs[0]).toMatchObject({ status: "failed" });
+  });
+
+  it("stores a failed message and the poller re-enqueues it with an attempt-scoped key until it succeeds", async () => {
+    const step = new FakeStep();
+    const { d, provider, store, runs } = mailDeps(step);
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    const realFetch = provider.fetchMessage.bind(provider);
+    provider.fetchMessage = async () => {
+      throw new MailProviderError("Zoho Mail → HTTP 503", 503, true);
+    };
+    const event = { mailbox: "docs", providerMessageId: m.providerMessageId, folderId: m.folderId, receivedAt: m.receivedAt, attempt: 0, dedupeKey: `docs:${m.providerMessageId}:0` };
+    // Retryable: Inngest retries while attempts remain …
+    await expect(inboundMailHandler({ data: event, step: new FakeStep(step.clock), attempt: 0, maxAttempts: 6 }, d)).rejects.toThrow(/503/);
+    expect(store.rows).toHaveLength(0);
+    // … and the last attempt stores the failure instead of dropping the message.
+    const failed = await inboundMailHandler({ data: event, step: new FakeStep(step.clock), attempt: 5, maxAttempts: 6 }, d);
+    expect(failed).toMatchObject({ status: "failed" });
+    expect(store.rows).toHaveLength(1);
+    expect(store.rows[0]).toMatchObject({ error: expect.stringContaining("503"), attempts: 1 });
+    expect(await store.find("docs", m.providerMessageId)).toMatchObject({ status: "failed" });
+
+    // Before the backoff has passed nothing is re-enqueued; afterwards it is, with a new event id and key.
+    let poll = new FakeStep(step.clock);
+    await mailPollHandler({ data: { mailbox: "docs" }, step: poll }, d);
+    expect(poll.sent).toHaveLength(0);
+    step.clock.now += 11 * 60_000;
+    poll = new FakeStep(step.clock);
+    await mailPollHandler({ data: { mailbox: "docs" }, step: poll }, d);
+    expect(poll.sent).toEqual([
+      { name: EVENTS.mailReceived, id: `mail:docs:${m.providerMessageId}:1`, data: expect.objectContaining({ providerMessageId: m.providerMessageId, attempt: 1, dedupeKey: `docs:${m.providerMessageId}:1` }) },
+    ]);
+
+    // The retry succeeds and replaces the failed row.
+    provider.fetchMessage = realFetch;
+    const ok = await inboundMailHandler({ data: poll.sent[0]!.data, step: new FakeStep(step.clock), attempt: 0, maxAttempts: 6 }, d);
+    expect(ok).toMatchObject({ status: "processed", category: "document_submission" });
+    expect(store.rows).toHaveLength(1);
+    expect(store.rows[0]).toMatchObject({ error: null, route: expect.objectContaining({ status: "processed" }) });
+    expect(runs.runs.map((r) => r.idempotencyKey)).toContain(`mail:docs:${m.providerMessageId}:1`);
+    poll = new FakeStep(step.clock);
+    await mailPollHandler({ data: { mailbox: "docs" }, step: poll }, d);
+    expect(poll.sent).toHaveLength(0);
   });
 
   it("skips cleanly when mail is not configured", async () => {

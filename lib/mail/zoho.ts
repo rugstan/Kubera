@@ -10,6 +10,7 @@
 // ZOHO_MAIL_ACCOUNT_ID_<MAILBOX> or is looked up by address via GET /accounts.
 // OAuth scopes: ZohoMail.accounts.READ, ZohoMail.folders.READ, ZohoMail.messages.READ.
 
+import { sharedZohoTokenCache, ZohoAccessTokens, ZohoOAuthError, type ZohoTokenCache } from "@/lib/zoho/oauth";
 import { mailboxAddress, type InboundMailbox } from "./mailboxes";
 import { dmarcVerdict, headerValue, htmlToText, isAutomated, isBulk, messageIds, parseAddress, parseAddressList, parseHeaders } from "./text";
 import { MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
@@ -27,6 +28,10 @@ export type ZohoMailConfig = {
   addresses: Record<InboundMailbox, string>;
   fetch?: typeof fetch;
   now?: () => number;
+  /** Shared access-token store (default: Upstash when configured, else per instance). */
+  tokenCache?: ZohoTokenCache | null;
+  /** Lock-poll wait (tests). */
+  sleep?: (ms: number) => Promise<void>;
 };
 
 const MAILBOX_ENV: Record<InboundMailbox, string> = { deals: "DEALS", docs: "DOCS", lenders: "LENDERS", vendors: "VENDORS", closing: "CLOSING" };
@@ -77,7 +82,7 @@ export class ZohoMailClient implements MailProvider {
   readonly name = "zoho";
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
-  private readonly tokens = new Map<string, { token: string; expiresAt: number }>();
+  private readonly tokens = new Map<string, ZohoAccessTokens>();
   private readonly accounts = new Map<InboundMailbox, string>();
   private readonly inboxes = new Map<InboundMailbox, string>();
 
@@ -98,17 +103,36 @@ export class ZohoMailClient implements MailProvider {
     return `https://mail.zoho.${this.config.dc}/api`;
   }
 
-  private async accessToken(mailbox: InboundMailbox): Promise<string> {
+  private tokenManager(refresh: string): ZohoAccessTokens {
+    let m = this.tokens.get(refresh);
+    if (!m) {
+      m = new ZohoAccessTokens({
+        accountsUrl: this.accountsBase,
+        clientId: this.config.clientId,
+        clientSecret: this.config.clientSecret,
+        refreshToken: refresh,
+        fetch: this.fetchImpl,
+        now: this.now,
+        cache: this.config.tokenCache === undefined ? sharedZohoTokenCache() : this.config.tokenCache,
+        ...(this.config.sleep ? { sleep: this.config.sleep } : {}),
+        label: "mail",
+      });
+      this.tokens.set(refresh, m);
+    }
+    return m;
+  }
+
+  private async accessToken(mailbox: InboundMailbox, stale?: string): Promise<string> {
     const refresh = this.config.refreshTokens[mailbox];
     if (!refresh) throw new MailProviderError(`No Zoho Mail refresh token for ${mailbox}@`, null, false);
-    const cached = this.tokens.get(refresh);
-    if (cached && cached.expiresAt - 60_000 > this.now()) return cached.token;
-    const body = new URLSearchParams({ refresh_token: refresh, client_id: this.config.clientId, client_secret: this.config.clientSecret, grant_type: "refresh_token" });
-    const res = await this.fetchImpl(`${this.accountsBase}/oauth/v2/token`, { method: "POST", body, headers: { "content-type": "application/x-www-form-urlencoded" }, signal: AbortSignal.timeout(15_000) });
-    const json = (await res.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
-    if (!res.ok || !json.access_token) throw new MailProviderError(`Zoho OAuth refresh failed (${res.status}${json.error ? `: ${json.error}` : ""})`, res.status, res.status >= 500);
-    this.tokens.set(refresh, { token: json.access_token, expiresAt: this.now() + (json.expires_in ?? 3600) * 1000 });
-    return json.access_token;
+    try {
+      const token = await this.tokenManager(refresh).get(stale ? { stale } : {});
+      return token;
+    } catch (err) {
+      // Throttled (Zoho caps refreshes per refresh token), network or 5xx: retry with backoff.
+      if (err instanceof ZohoOAuthError) throw new MailProviderError(err.message, err.status, err.retryable);
+      throw err;
+    }
   }
 
   private async request(mailbox: InboundMailbox, path: string, init: { raw?: boolean } = {}): Promise<Response> {
@@ -119,7 +143,8 @@ export class ZohoMailClient implements MailProvider {
     } catch (err) {
       throw new MailProviderError(`Zoho Mail request failed: ${err instanceof Error ? err.message : String(err)}`, null, true);
     }
-    if (res.status === 401) this.tokens.delete(this.config.refreshTokens[mailbox] ?? "");
+    // Evict the rejected token (shared cache too); the retry mints or reads a fresh one.
+    if (res.status === 401) await this.accessToken(mailbox, token).catch(() => undefined);
     if (!res.ok) throw new MailProviderError(`Zoho Mail ${path.split("?")[0]} → HTTP ${res.status}`, res.status, res.status === 401 || res.status === 429 || res.status >= 500);
     return res;
   }
@@ -170,28 +195,32 @@ export class ZohoMailClient implements MailProvider {
     };
   }
 
+  /**
+   * Every message newer than `since` (up to `limit` scanned), oldest first.
+   * Zoho lists newest first, so this pages until it reaches `since` instead of
+   * stopping at the newest `limit`; the caller drops already-stored ids.
+   */
   async listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]> {
     const account = await this.accountId(mailbox);
     const folder = await this.inboxFolder(mailbox);
-    const pageSize = Math.min(50, Math.max(1, limit));
+    const pageSize = Math.min(200, Math.max(1, limit));
     const out: MailSummary[] = [];
-    // Newest first; stop at the first message at or before `since`.
-    for (let start = 1; out.length < limit && start <= 1000; start += pageSize) {
+    for (let start = 1; out.length < limit; start += pageSize) {
       const page = await this.json<ZohoListItem[]>(
         mailbox,
         `/accounts/${encodeURIComponent(account)}/messages/view?folderId=${encodeURIComponent(folder)}&start=${start}&limit=${pageSize}&sortBy=date&sortorder=false&includeto=true`,
       );
-      let reachedSeen = false;
+      let reachedSince = false;
       for (const item of page) {
         const s = this.summary(mailbox, item);
         if (since && Date.parse(s.receivedAt) <= since.getTime()) {
-          reachedSeen = true;
+          reachedSince = true;
           break;
         }
         out.push(s);
         if (out.length >= limit) break;
       }
-      if (reachedSeen || page.length < pageSize) break;
+      if (reachedSince || page.length < pageSize) break;
     }
     return out.reverse();
   }

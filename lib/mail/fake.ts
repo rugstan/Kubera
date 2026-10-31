@@ -57,8 +57,10 @@ export class FakeMailProvider implements MailProvider {
   async listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]> {
     return this.messages
       .filter((m) => m.mailbox === mailbox && (!since || Date.parse(m.receivedAt) > since.getTime()))
-      .sort((a, b) => Date.parse(a.receivedAt) - Date.parse(b.receivedAt))
+      // Like Zoho: the newest `limit`, returned oldest first.
+      .sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt))
       .slice(0, limit)
+      .reverse()
       .map(({ mailbox: mb, providerMessageId, folderId, subject, fromAddress, fromName, toAddresses, ccAddresses, receivedAt, hasAttachments, snippet }) => ({
         mailbox: mb,
         providerMessageId,

@@ -6,14 +6,27 @@
 
 import type { OutboundAction } from "@/lib/compliance/approval-gate";
 import { INBOUND_MAILBOXES, type InboundMailbox } from "@/lib/mail/mailboxes";
-import { isRetryable, pollMailbox, processInboundMessage } from "@/lib/mail/inbound";
+import { isRetryable, pollMailbox, processInboundMessage, recordInboundFailure, retryableFailures } from "@/lib/mail/inbound";
 import { runApprovedAction } from "./approval";
 import type { WorkflowDeps } from "./deps";
 import { EVENTS, mailPollRequestedSchema, mailReceivedSchema, outboundRequestedSchema } from "./events";
 import { modelCallFrom } from "./runs";
 import type { WorkflowStep } from "./step";
 
-export type HandlerContext = { data: unknown; step: WorkflowStep; runId?: string; eventId?: string };
+export type HandlerContext = {
+  data: unknown;
+  step: WorkflowStep;
+  runId?: string;
+  eventId?: string;
+  /** Inngest's zero-based attempt and its cap (the last attempt records a failure instead of throwing). */
+  attempt?: number;
+  maxAttempts?: number;
+};
+
+/** Event id and idempotency key for one processing attempt of a message. */
+export function mailAttemptKey(mailbox: InboundMailbox, providerMessageId: string, attempt: number): string {
+  return `${mailbox}:${providerMessageId}:${attempt}`;
+}
 
 // --- Outbound actions ---------------------------------------------------------------------
 
@@ -87,7 +100,15 @@ export async function mailPollHandler(ctx: HandlerContext, deps: WorkflowDeps): 
     const listed = await ctx.step.run(`list-${mb}`, async () => {
       try {
         const fresh = await pollMailbox(mb, mail);
-        return { refs: fresh.map((m) => ({ providerMessageId: m.providerMessageId, folderId: m.folderId, receivedAt: m.receivedAt })), error: null };
+        // Failed messages are retried with their attempt number in the event id and idempotency key.
+        const retries = await retryableFailures(mb, mail, { now: deps.now() });
+        return {
+          refs: [
+            ...fresh.map((m) => ({ providerMessageId: m.providerMessageId, folderId: m.folderId, receivedAt: m.receivedAt, attempt: 0 })),
+            ...retries.filter((r) => !fresh.some((m) => m.providerMessageId === r.providerMessageId)),
+          ],
+          error: null,
+        };
       } catch (err) {
         return { refs: [], error: err instanceof Error ? err.message.slice(0, 300) : String(err) };
       }
@@ -100,7 +121,10 @@ export async function mailPollHandler(ctx: HandlerContext, deps: WorkflowDeps): 
     if (listed.refs.length) {
       await ctx.step.sendEvent(
         `enqueue-${mb}`,
-        listed.refs.map((r) => ({ name: EVENTS.mailReceived, id: `mail:${mb}:${r.providerMessageId}`, data: { mailbox: mb, ...r } })),
+        listed.refs.map((r) => {
+          const dedupeKey = mailAttemptKey(mb, r.providerMessageId, r.attempt);
+          return { name: EVENTS.mailReceived, id: `mail:${dedupeKey}`, data: { mailbox: mb, ...r, dedupeKey } };
+        }),
       );
     }
     out.enqueued[mb] = listed.refs.length;
@@ -119,7 +143,9 @@ export async function inboundMailHandler(ctx: HandlerContext, deps: WorkflowDeps
   const data = mailReceivedSchema.parse(ctx.data);
   if (!deps.mail) return { status: "skipped", reason: "mail_not_configured", mailMessageId: null };
   const mail = deps.mail;
-  const key = `mail:${data.mailbox}:${data.providerMessageId}`;
+  // One agent_runs row per attempt (the first keeps the original key).
+  const key = data.attempt ? `mail:${mailAttemptKey(data.mailbox, data.providerMessageId, data.attempt)}` : `mail:${data.mailbox}:${data.providerMessageId}`;
+  const lastAttempt = typeof ctx.attempt === "number" && typeof ctx.maxAttempts === "number" ? ctx.attempt >= ctx.maxAttempts - 1 : false;
 
   const runId = await ctx.step.run("start-run", () =>
     deps.runs.start(
@@ -145,8 +171,11 @@ export async function inboundMailHandler(ctx: HandlerContext, deps: WorkflowDeps
         reviewReasons: r.route.reviewReasons,
       };
     } catch (err) {
-      if (isRetryable(err)) throw err;
-      return { status: "failed", error: err instanceof Error ? err.message.slice(0, 500) : String(err) };
+      if (isRetryable(err) && !lastAttempt) throw err;
+      const error = err instanceof Error ? err.message.slice(0, 500) : String(err);
+      // Store the failure so the poller re-enqueues it (with backoff and a fresh key) instead of losing it.
+      await recordInboundFailure(data, mail, error, { agentRunId: runId });
+      return { status: "failed", error };
     }
   });
 

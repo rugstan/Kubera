@@ -138,7 +138,7 @@ export class NewsletterService {
       html: message.html,
       text: message.text,
       idempotencyKey,
-      tags: { template: templateKey, kind: "newsletter-confirmation" },
+      tags: { template: `${NEWSLETTER_CONFIRMATION_TEMPLATE.id}_v${NEWSLETTER_CONFIRMATION_TEMPLATE.version}`, kind: "newsletter-confirmation" },
     });
     await this.deps.store.update(subscriber.id, { confirmationSentAt: this.now().toISOString(), confirmationCount: subscriber.confirmationCount + 1 });
     return { status: "pending_confirmation" };

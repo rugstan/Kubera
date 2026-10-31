@@ -19,10 +19,17 @@ export const INTEL_WEEKLY_CRON = "TZ=America/Los_Angeles 0 7 * * 1";
 /** Every 5 minutes: settle prospect outreach drafts against broker decisions. */
 export const PROSPECT_SETTLE_CRON = "*/5 * * * *";
 
-type InngestCtx = { event: { data: unknown; id?: string }; step: unknown; runId: string };
+type InngestCtx = { event: { data: unknown; id?: string }; step: unknown; runId: string; attempt?: number; maxAttempts?: number };
 
 function context(ctx: InngestCtx): HandlerContext {
-  return { data: ctx.event.data, step: fromInngestStep(ctx.step as InngestStepLike), runId: ctx.runId, ...(ctx.event.id ? { eventId: ctx.event.id } : {}) };
+  return {
+    data: ctx.event.data,
+    step: fromInngestStep(ctx.step as InngestStepLike),
+    runId: ctx.runId,
+    ...(ctx.event.id ? { eventId: ctx.event.id } : {}),
+    ...(typeof ctx.attempt === "number" ? { attempt: ctx.attempt } : {}),
+    ...(typeof ctx.maxAttempts === "number" ? { maxAttempts: ctx.maxAttempts } : {}),
+  };
 }
 
 /** Bad payloads and unknown-outcome effects must not be retried. */
@@ -69,7 +76,9 @@ export function createWorkflowFunctions(getDeps: () => WorkflowDeps, getAgents?:
       id: "inbound-mail",
       name: "Process inbound mail",
       triggers: [{ event: EVENTS.mailReceived }],
-      idempotency: "event.data.mailbox + ':' + event.data.providerMessageId",
+      // Attempt-scoped (`<mailbox>:<id>:<attempt>`): Inngest drops a repeated key for 24 h, so a
+      // failed message re-enqueued by the poller needs a new key to be processed again.
+      idempotency: "event.data.dedupeKey",
       concurrency: { limit: 5 },
       // Bulk-tier classification is cheap; Zoho rate limits are the usual cause of retries.
       throttle: { limit: 60, period: "1m" },

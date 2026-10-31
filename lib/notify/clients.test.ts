@@ -31,6 +31,25 @@ describe("Resend client", () => {
     });
   });
 
+  it("sanitizes tag names and values so Resend never rejects the send", async () => {
+    // Stub mimics Resend: 422 validation_error when a tag has anything but [A-Za-z0-9_-].
+    const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { tags?: { name: string; value: string }[] };
+      const bad = (body.tags ?? []).some((t) => !/^[A-Za-z0-9_-]{1,256}$/.test(t.name) || !/^[A-Za-z0-9_-]{1,256}$/.test(t.value));
+      return bad ? res({ statusCode: 422, name: "validation_error", message: "Tags should only contain ASCII letters, numbers, underscores, or dashes" }, 422) : res({ id: "re_ok" });
+    });
+    const client = new ResendEmailClient({ apiKey: "k", from: "f", replyTo: "r", fetch: fetchMock as unknown as typeof fetch });
+    const out = await client.send({ to: "a@b.co", subject: "s", html: "h", text: "t", tags: { template: "newsletter_confirmation@1", "kind.of": "x y", long: "a".repeat(400) } });
+    expect(out.providerMessageId).toBe("re_ok");
+    const init = (fetchMock.mock.calls[0] as unknown[])[1] as RequestInit;
+    const sent = JSON.parse(String(init.body)) as { tags: { name: string; value: string }[] };
+    expect(sent.tags).toEqual([
+      { name: "template", value: "newsletter_confirmation_1" },
+      { name: "kind_of", value: "x_y" },
+      { name: "long", value: "a".repeat(256) },
+    ]);
+  });
+
   it("raises an EmailError carrying the status", async () => {
     const client = new ResendEmailClient({ apiKey: "k", from: "f", replyTo: "r", fetch: (async () => res("rate limited", 429)) as typeof fetch });
     await expect(client.send({ to: "a@b.co", subject: "s", html: "h", text: "t" })).rejects.toMatchObject({ name: "EmailError", status: 429 });

@@ -1,7 +1,10 @@
 // Inbound mail pipeline for deals@, docs@, lenders@, vendors@ and closing@:
 //
-//   poll    list messages newer than the cursor (minus a lookback window, so a
-//           message that failed earlier is picked up again), skip stored ones
+//   poll    list every message newer than the cursor minus a lookback window
+//           (longer than Inngest's 24 h event dedupe, so a message whose event
+//           was dropped is enqueued again), skip stored ones, take the oldest
+//   retry   failed rows (status 'failed', stored by the workflow when processing
+//           fails) are re-enqueued with an attempt-scoped event id, with backoff
 //   process fetch → classify (bulk tier via the gateway, rules fallback) → route to
 //           a deal/lead → attachments to quarantine (+ vault row) → mail_messages
 //
@@ -24,8 +27,16 @@ import { MailProviderError, type MailMessage, type MailProvider, type MailRef, t
 import type { GatewayResponse } from "@/lib/ai/gateway";
 
 export const MAX_BODY_CHARS = 200_000;
-export const POLL_LOOKBACK_MS = 24 * 60 * 60_000;
+/** Longer than Inngest's 24 h event-id / idempotency dedupe window. */
+export const POLL_LOOKBACK_MS = 72 * 60 * 60_000;
+/** Unstored messages enqueued per mailbox per poll (oldest first; the rest wait for the next poll). */
 export const POLL_LIMIT = 100;
+/** Messages the provider may list per poll while paging back to the lookback start. */
+export const POLL_SCAN_LIMIT = 5_000;
+/** Failed processing attempts before a message is left for staff. */
+export const MAX_MAIL_ATTEMPTS = 6;
+const RETRY_BASE_MS = 10 * 60_000;
+const RETRY_MAX_MS = 6 * 60 * 60_000;
 
 export type InboundDeps = {
   provider: MailProvider;
@@ -41,15 +52,67 @@ export type InboundDeps = {
   now?: () => Date;
 };
 
-/** Messages in `mailbox` not yet stored, oldest first. */
-export async function pollMailbox(mailbox: InboundMailbox, deps: Pick<InboundDeps, "provider" | "store">, opts: { limit?: number; lookbackMs?: number } = {}): Promise<MailSummary[]> {
+/**
+ * Messages in `mailbox` not yet stored, oldest first. The provider pages back
+ * to the lookback start; already-stored ids are dropped before `limit` applies,
+ * so a burst larger than `limit` drains over the next polls.
+ */
+export async function pollMailbox(
+  mailbox: InboundMailbox,
+  deps: Pick<InboundDeps, "provider" | "store">,
+  opts: { limit?: number; lookbackMs?: number; scanLimit?: number } = {},
+): Promise<MailSummary[]> {
   if (!deps.provider.configured(mailbox)) return [];
+  const limit = opts.limit ?? POLL_LIMIT;
   const cursor = await deps.store.latestReceivedAt(mailbox);
   const since = cursor ? new Date(cursor.getTime() - (opts.lookbackMs ?? POLL_LOOKBACK_MS)) : null;
-  const listed = await deps.provider.listNew(mailbox, since, opts.limit ?? POLL_LIMIT);
-  const fresh: MailSummary[] = [];
-  for (const m of listed) if (!(await deps.store.find(mailbox, m.providerMessageId))) fresh.push(m);
-  return fresh;
+  // First poll of a mailbox: only the newest `limit` messages (no backfill of history).
+  const scan = since ? (opts.scanLimit ?? POLL_SCAN_LIMIT) : limit;
+  const listed = await deps.provider.listNew(mailbox, since, scan);
+  if (since && listed.length >= scan) console.warn(`[mail] ${mailbox}@ listed ${scan} messages in the lookback window; older ones wait for the next poll`);
+  const known = listed.length ? await deps.store.knownIds(mailbox, listed.map((m) => m.providerMessageId)) : new Set<string>();
+  return listed
+    .filter((m) => !known.has(m.providerMessageId))
+    .sort((a, b) => Date.parse(a.receivedAt) - Date.parse(b.receivedAt))
+    .slice(0, limit);
+}
+
+/** Wait after the n-th failed attempt before the next one. */
+export function retryBackoffMs(attempts: number): number {
+  return Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** Math.max(0, attempts - 1));
+}
+
+/** Failed messages due for another attempt (attempt = failures so far, so ids stay unique per try). */
+export async function retryableFailures(
+  mailbox: InboundMailbox,
+  deps: Pick<InboundDeps, "provider" | "store">,
+  opts: { now: Date; limit?: number; maxAttempts?: number },
+): Promise<{ providerMessageId: string; folderId: string; receivedAt: string; attempt: number }[]> {
+  if (!deps.provider.configured(mailbox)) return [];
+  const rows = await deps.store.listFailed(mailbox, { maxAttempts: opts.maxAttempts ?? MAX_MAIL_ATTEMPTS, limit: opts.limit ?? POLL_LIMIT });
+  return rows
+    .filter((r) => Date.parse(r.lastAttemptAt) + retryBackoffMs(r.attempts) <= opts.now.getTime())
+    .map((r) => ({ providerMessageId: r.providerMessageId, folderId: r.folderId, receivedAt: r.receivedAt, attempt: r.attempts }));
+}
+
+/** Stores the failure so the poller retries the message (never throws away the error). */
+export async function recordInboundFailure(
+  input: { mailbox: InboundMailbox; receivedAt?: string | null } & MailRef,
+  deps: Pick<InboundDeps, "provider" | "store" | "now">,
+  error: string,
+  ctx: { agentRunId?: string | null } = {},
+): Promise<{ id: string; attempts: number } | null> {
+  const now = deps.now ?? (() => new Date());
+  return deps.store.recordFailure({
+    mailbox: input.mailbox,
+    provider: deps.provider.name,
+    providerMessageId: input.providerMessageId,
+    folderId: input.folderId,
+    receivedAt: input.receivedAt ?? null,
+    error: error.slice(0, 2000) || "unknown error",
+    agentRunId: ctx.agentRunId ?? null,
+    at: now().toISOString(),
+  });
 }
 
 /** Seals the body when it contains restricted values; the stored text is always masked. */
@@ -85,7 +148,8 @@ export type ProcessResult = {
 export async function processInboundMessage(input: { mailbox: InboundMailbox } & MailRef, deps: InboundDeps, ctx: { agentRunId?: string | null; traceId?: string } = {}): Promise<ProcessResult> {
   const now = deps.now ?? (() => new Date());
   const existing = await deps.store.find(input.mailbox, input.providerMessageId);
-  if (existing) return { mailMessageId: existing.id, created: false, skipped: "already_processed", classification: null, route: null, modelCalls: [], fallbackReason: null };
+  // A failed row is processed again (the poller re-enqueued it); anything else is done.
+  if (existing && existing.status !== "failed") return { mailMessageId: existing.id, created: false, skipped: "already_processed", classification: null, route: null, modelCalls: [], fallbackReason: null };
 
   const msg = await deps.provider.fetchMessage(input.mailbox, input);
   // Classify the newest reply only; quoted history belongs to earlier messages.

@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { FEE_ENTRY_LABELS, DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type FeeEntry, type LenderPanelEntry } from "@/lib/deals/types";
 import { FORM159_BLOCKING_FLAGS, type Form159Flag } from "@/lib/deals/form159";
+import { currentDealMlds, mldsSigners } from "@/lib/deals/mlds";
+import type { DisclosureRecord } from "@/lib/disclosures/store";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
 import { panelForDeal } from "@/lib/deals/lenders";
 import { lenderNoticeText } from "@/lib/deals/modifications";
@@ -19,11 +21,16 @@ import {
   editDealAction,
   feeStatusAction,
   generateForm159Action,
+  generateMldsAction,
+  holdMldsAction,
   invoiceAction,
   modificationAction,
+  openMldsAction,
   outreachAction,
+  releaseMldsAction,
   revokeLinkAction,
   sendForm159Action,
+  sendMldsAction,
   sendPackageAction,
   submitModificationAction,
 } from "../actions";
@@ -113,6 +120,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
         </Section>
       ) : null}
 
+      {deal.collateralRealProperty !== false ? <MldsPanel deal={deal} rt={rt} staff={staff} /> : null}
       <OutreachPanel deal={deal} rt={rt} write={write} />
       <LedgerPanel deal={deal} rt={rt} write={write} />
       {isSbaProgram(deal.program) ? <Form159Panel deal={deal} rt={rt} write={write} /> : null}
@@ -540,6 +548,194 @@ async function LedgerPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntim
         </form>
       ) : null}
     </Section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MLDS (RE 882): gate A. Open → generate → borrower consent (portal) → send
+// (approval with re-authentication) → signed webhook → closing allowed.
+
+const MLDS_STATUS_TONE: Record<DisclosureRecord["status"], "neutral" | "good" | "warn" | "bad"> = {
+  required: "warn",
+  generated: "warn",
+  sent: "warn",
+  signed: "good",
+  held_for_counsel: "bad",
+  superseded: "neutral",
+};
+
+function Area({ label, name, hint, defaultValue, rows = 3 }: { label: string; name: string; hint?: string; defaultValue?: string; rows?: number }) {
+  const hintId = hint ? `${name}-hint` : undefined;
+  return (
+    <label className="block sm:col-span-3">
+      <span className="field-label">{label}</span>
+      <textarea aria-describedby={hintId} className="field font-mono text-sm" defaultValue={defaultValue} name={name} rows={rows} />
+      {hint ? (
+        <span className="mt-1 block text-xs text-titanium" id={hintId}>
+          {hint}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+async function MldsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDeskRuntime; staff: StaffSession }) {
+  const write = can(staff, "write");
+  const officer = can(staff, "officer");
+  const mlds = await currentDealMlds(rt.disclosures, deal);
+  const signers = mlds ? mldsSigners(mlds) : [];
+  const ids = mlds ? (
+    <>
+      <input name="dealId" type="hidden" value={deal.id} />
+      <input name="disclosureId" type="hidden" value={mlds.id} />
+    </>
+  ) : null;
+  const canGenerate = write && mlds && (mlds.status === "required" || mlds.status === "generated");
+  return (
+    <Section
+      description="Real-property loans: the borrower signs the Mortgage Loan Disclosure Statement within 3 business days of the completed application, and no deal moves to closing without it."
+      id="mlds"
+      title="MLDS (RE 882)"
+    >
+      {deal.collateralRealProperty === null ? <p className="text-sm text-titanium">Record the collateral in Details first; an MLDS is needed when a lien on real property secures the loan.</p> : null}
+      {!mlds && deal.collateralRealProperty ? (
+        write ? (
+          <form action={openMldsAction} className="grid gap-3 sm:grid-cols-3">
+            <input name="dealId" type="hidden" value={deal.id} />
+            <Field hint="Pacific time. Starts the 3-business-day delivery clock." label="Completed written application received" name="applicationCompletedAt" required type="datetime-local" />
+            <div className="flex items-end">
+              <Submit>Open MLDS</Submit>
+            </div>
+          </form>
+        ) : (
+          <p className="text-sm text-titanium">No MLDS has been opened yet.</p>
+        )
+      ) : null}
+      {mlds ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Badge tone={MLDS_STATUS_TONE[mlds.status]}>{mlds.status.replace(/_/g, " ")}</Badge>
+            {mlds.dueAt ? <span className="text-titanium">Due {when(mlds.dueAt)}</span> : null}
+            {mlds.sentAt ? <span className="text-titanium">Sent {when(mlds.sentAt)}</span> : null}
+            {mlds.signedAt ? <span className="text-titanium">Signed {when(mlds.signedAt)}; keep until {mlds.retainUntil}</span> : null}
+            {mlds.flags.includes("draft_template") ? <Badge tone="bad">Draft template</Badge> : null}
+          </div>
+          {mlds.heldReason ? <p className="text-sm text-red-900">Held for counsel: {mlds.heldReason}</p> : null}
+          {signers.length ? (
+            <Table
+              empty="No borrowers."
+              head={["Borrower", "Email", "E-sign consent"]}
+              label="MLDS borrowers and their e-sign consent"
+              rows={signers.map((b) => [b.name, b.email, b.consentedAt ? <Badge key="c" tone="good">Consented {when(b.consentedAt)}</Badge> : <Badge key="c" tone="warn">Waiting (borrower portal)</Badge>])}
+            />
+          ) : null}
+          {write && mlds.status === "generated" ? (
+            <form action={sendMldsAction}>
+              {ids}
+              <Submit>Send for e-signature</Submit>
+              <p className="mt-1 text-xs text-titanium">Needs every borrower&apos;s consent and a broker&apos;s approval with re-authentication. You sign as the broker.</p>
+            </form>
+          ) : null}
+          {canGenerate ? <MldsGenerateForm deal={deal} mlds={mlds} ids={ids} /> : null}
+          {write && mlds.status !== "held_for_counsel" && mlds.status !== "signed" && mlds.status !== "superseded" ? (
+            <form action={holdMldsAction} className="grid gap-3 sm:grid-cols-3">
+              {ids}
+              <Field label="Reason for counsel hold" name="reason" required />
+              <div className="flex items-end">
+                <Submit tone="glass">Hold for counsel</Submit>
+              </div>
+            </form>
+          ) : null}
+          {officer && mlds.status === "held_for_counsel" ? (
+            <form action={releaseMldsAction} className="grid gap-3 sm:grid-cols-3">
+              {ids}
+              <Field label="Counsel" name="counsel" required />
+              <Field label="Counsel's note" name="note" required />
+              <div className="flex items-end">
+                <Submit tone="glass">Release hold</Submit>
+              </div>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
+    </Section>
+  );
+}
+
+function MldsGenerateForm({ deal, mlds, ids }: { deal: Deal; mlds: DisclosureRecord; ids: React.ReactNode }) {
+  const prior = (mlds.payload as { data?: { borrowers?: { name: string; email: string }[] } } | null)?.data;
+  return (
+    <details className="rounded-2xl border border-black/10 p-4" open={mlds.status === "required"}>
+      <summary className="cursor-pointer text-sm font-medium text-ink">{mlds.status === "required" ? "Generate the MLDS" : "Regenerate with changed figures"}</summary>
+      <form action={generateMldsAction} className="mt-4 grid gap-3 sm:grid-cols-3">
+        {ids}
+        <Area
+          defaultValue={prior?.borrowers?.map((b) => `${b.name} <${b.email}>`).join("\n")}
+          hint={'One borrower per line: Name <email>. Each one consents and signs.'}
+          label="Borrowers"
+          name="borrowers"
+        />
+        <Field defaultValue={deal.propertyAddress} label="Property address" name="propertyAddress" required />
+        <Field label="APN" name="apn" />
+        <Field label="County" name="county" />
+        <Field hint="Lender of record; Kubera is never the lender." label="Lender" name="lenderName" />
+        <Field defaultValue={deal.loanAmountCents !== null ? (deal.loanAmountCents / 100).toFixed(2) : ""} label="Principal (USD)" name="principal" required />
+        <Field label="Interest rate (%)" name="ratePct" required step="0.001" type="number" />
+        <Select
+          label="Rate type"
+          name="rateType"
+          options={[
+            { value: "fixed", label: "Fixed" },
+            { value: "adjustable", label: "Adjustable" },
+            { value: "initial_adjustable", label: "Initial fixed, then adjustable" },
+          ]}
+        />
+        <Field hint="Index, margin, caps (adjustable only)." label="Adjustable terms" name="adjustableTerms" />
+        <Field label="Term (months)" name="termMonths" required type="number" />
+        <Field label="Amortization (months)" name="amortizationMonths" type="number" />
+        <Field label="Payment (USD)" name="paymentAmount" required />
+        <Select
+          label="Payment frequency"
+          name="paymentFrequency"
+          options={[
+            { value: "monthly", label: "Monthly" },
+            { value: "quarterly", label: "Quarterly" },
+            { value: "semi_annual", label: "Semi-annual" },
+            { value: "annual", label: "Annual" },
+          ]}
+        />
+        <Field label="Number of payments" name="paymentCount" required type="number" />
+        <Check label="Interest only" name="interestOnly" />
+        <Check label="Balloon payment" name="balloon" />
+        <Check label="Impounds required" name="impounds" />
+        <Field label="Balloon amount (USD)" name="balloonAmount" />
+        <Field label="Balloon due" name="balloonDue" type="date" />
+        <Field hint="Leave empty if none." label="Prepayment penalty" name="prepayment" />
+        <Field hint="Leave empty if none." label="Late charge" name="lateCharge" />
+        <Field label="Appraisal (USD)" name="costAppraisal" />
+        <Field label="Escrow (USD)" name="costEscrow" />
+        <Field label="Title (USD)" name="costTitle" />
+        <Field label="Notary (USD)" name="costNotary" />
+        <Field label="Recording (USD)" name="costRecording" />
+        <Field label="Credit investigation (USD)" name="costCredit" />
+        <Check label="Credit investigation paid to the broker" name="costCreditToBroker" />
+        <Area hint="One per line: label | amount | broker or others." label="Other costs" name="costOther" rows={2} />
+        <Field label="Broker commission from borrower (USD)" name="commission" />
+        <Field label="Broker processing fee (USD)" name="processing" />
+        <Field label="Other broker fees (USD)" name="otherBrokerFee" />
+        <Field label="Compensation from lender (USD)" name="brokerFromLender" />
+        <Field label="Lender-paid compensation, described" name="brokerFromLenderDescription" />
+        <Field label="Lender origination (USD)" name="lenderOrigination" />
+        <Field label="Lender discount (USD)" name="lenderDiscount" />
+        <Area hint="One per line: label | amount." label="Payoffs from proceeds" name="payoffs" rows={2} />
+        <Area hint="One per line: lienholder | nature | priority | amount." label="Existing liens" name="existingLiens" rows={2} />
+        <Area hint="One per line: lienholder | nature | priority | amount." label="Liens expected after this loan" name="expectedLiens" rows={2} />
+        <p className="text-xs text-titanium sm:col-span-3">Kubera&apos;s name, license and address come from configuration; you sign as the licensee, so your DRE license must be on your profile.</p>
+        <div className="sm:col-span-3">
+          <Submit>{mlds.status === "required" ? "Generate MLDS" : "Regenerate MLDS"}</Submit>
+        </div>
+      </form>
+    </details>
   );
 }
 

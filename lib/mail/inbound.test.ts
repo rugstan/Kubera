@@ -228,6 +228,42 @@ describe("polling", () => {
     expect((await pollMailbox("deals", deps)).map((m) => m.providerMessageId)).toEqual([a.providerMessageId]);
     expect(await pollMailbox("lenders", { ...deps, provider: new FakeMailProvider(["lenders"]) })).toEqual([]);
   });
+
+  it("drains a burst of more than 100 messages in the lookback window: stored ids never count against the limit", async () => {
+    const { provider, store, deps } = setup();
+    const t0 = Date.UTC(2026, 10, 3, 6);
+    // One processed message sets the cursor; 250 newer unstored ones follow, and 150 already stored ones are mixed in.
+    const anchor = provider.add({ ...SAMPLE_EMAILS.newInquiry, providerMessageId: "anchor", receivedAt: new Date(t0).toISOString() });
+    await processInboundMessage({ mailbox: "deals", providerMessageId: anchor.providerMessageId, folderId: anchor.folderId }, deps);
+    const ids: string[] = [];
+    for (let i = 0; i < 400; i++) {
+      const m = provider.add({ ...SAMPLE_EMAILS.newInquiry, providerMessageId: `burst-${i}`, receivedAt: new Date(t0 - 60 * 60_000 + i * 60_000).toISOString() });
+      ids.push(m.providerMessageId);
+    }
+    // Every other message among the newest 300 is already stored (would have eaten a newest-first limit).
+    const preStored = new Set(ids.slice(100).filter((_, i) => i % 2 === 0));
+    for (const id of preStored) {
+      const m = provider.messages.find((x) => x.providerMessageId === id)!;
+      store.rows.push({ ...store.rows[0]!, id: `row-${id}`, providerMessageId: id, receivedAt: m.receivedAt });
+    }
+    const seen = new Set<string>();
+    for (let round = 0; round < 5; round++) {
+      const batch = await pollMailbox("deals", deps);
+      expect(batch.length).toBeLessThanOrEqual(100);
+      for (const m of batch) {
+        expect(seen.has(m.providerMessageId)).toBe(false);
+        seen.add(m.providerMessageId);
+        store.rows.push({ ...store.rows[0]!, id: `row-${m.providerMessageId}`, providerMessageId: m.providerMessageId, receivedAt: m.receivedAt });
+      }
+    }
+    expect([...seen].sort()).toEqual(ids.filter((id) => !preStored.has(id)).sort());
+    expect(seen.size).toBe(250);
+  });
+
+  it("looks back further than Inngest's 24 h dedupe window", async () => {
+    const { POLL_LOOKBACK_MS } = await import("./inbound");
+    expect(POLL_LOOKBACK_MS).toBeGreaterThan(24 * 60 * 60_000);
+  });
 });
 
 describe("attachment sniffing", () => {
