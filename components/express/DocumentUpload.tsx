@@ -18,6 +18,33 @@ const KINDS = [
 
 const MAX_BYTES = 50 * 1024 * 1024;
 
+const TYPE_BY_EXTENSION: Record<string, string> = {
+  pdf: "application/pdf",
+  csv: "text/csv",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+};
+
+/** The declared type must match the file's bytes at finalize, so fall back to the extension, not a guess. */
+function contentTypeOf(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return TYPE_BY_EXTENSION[ext] ?? "application/octet-stream";
+}
+
+async function postJson(url: string, body: unknown, headers: Record<string, string> = {}): Promise<{ ok: boolean; data: Record<string, unknown> }> {
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  return { ok: res.ok, data };
+}
+
+function errorOf(data: Record<string, unknown>, fallback: string): string {
+  return typeof data.error === "string" && data.error ? data.error : fallback;
+}
+
 export function DocumentUpload({ leadId, token }: { leadId: string; token: string }) {
   const [kind, setKind] = useState("T12");
   const [uploaded, setUploaded] = useState<string[]>([]);
@@ -26,26 +53,36 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
 
   async function upload(file: File) {
     if (file.size > MAX_BYTES) return setStatus(`${file.name} is larger than 50 MB. Split it into smaller files or email it to your advisor.`);
+    const retry = `We couldn't upload ${file.name}. Please try again.`;
     setStatus(`Uploading ${file.name}…`);
     try {
+      // Step 1: record the upload and get a signed quarantine URL plus an upload token.
       // Turnstile tokens are single use: mint a fresh one for every file.
       const captcha = await turnstile.getToken();
-      const res = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "content-type": "application/json", ...turnstileHeaders(captcha) },
-        body: JSON.stringify({ leadId, token, kind, fileName: file.name, contentType: file.type || "application/pdf" }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? `We couldn't upload ${file.name}. Please try again.`);
+      const start = await postJson(
+        "/api/documents",
+        { leadId, token, kind, fileName: file.name, contentType: contentTypeOf(file), sizeBytes: file.size },
+        turnstileHeaders(captcha),
+      );
+      if (!start.ok || typeof start.data.uploadUrl !== "string") throw new Error(errorOf(start.data, retry));
+
+      // Step 2: send the file straight to the private quarantine bucket.
       const form = new FormData();
       form.append("cacheControl", "3600");
       form.append("", file);
-      const put = await fetch(body.uploadUrl, { method: "PUT", body: form });
-      if (!put.ok) throw new Error(`We couldn't upload ${file.name}. Please try again.`);
+      const put = await fetch(start.data.uploadUrl, { method: "PUT", body: form });
+      if (!put.ok) throw new Error(retry);
+
+      // Step 3: finalize, so the server checks size, file type and quota now and
+      // queues the malware scan. Only a finalized file counts as uploaded.
+      const done = await postJson("/api/documents/finalize", { documentId: start.data.documentId, token: start.data.uploadToken });
+      const finalStatus = done.data.status;
+      if (!done.ok || (finalStatus !== "quarantined" && finalStatus !== "clean")) throw new Error(errorOf(done.data, retry));
+
       setUploaded((u) => [...u, `${KINDS.find((k) => k.value === kind)?.label}: ${file.name}`]);
       setStatus(null);
     } catch (e) {
-      setStatus((e as Error).message);
+      setStatus(e instanceof TypeError ? `Network error. ${retry}` : (e as Error).message);
     }
   }
 
