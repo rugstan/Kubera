@@ -12,6 +12,10 @@ export type FormFailure = {
   /** Field name -> message, for the fields the server rejected that this form has. */
   fieldErrors: Record<string, string>;
   status?: number;
+  /** The server's own `error` text on a 4xx reply, when it sent one. Callers with no fields to point at can show it. */
+  serverMessage?: string;
+  /** The server's machine-readable `reason` on a 4xx reply, when it sent one (e.g. "expired", "invalid"). */
+  reason?: string;
 };
 
 export type MapOptions = {
@@ -48,14 +52,27 @@ function readIssues(body: unknown): { path: string; message: string }[] {
   });
 }
 
+function readReason(body: unknown): string | undefined {
+  if (body && typeof body === "object" && "reason" in body && typeof body.reason === "string" && body.reason.trim()) return body.reason.trim();
+  return undefined;
+}
+
 function readError(body: unknown): string | undefined {
   if (body && typeof body === "object" && "error" in body && typeof body.error === "string" && body.error.trim()) return body.error.trim();
   return undefined;
 }
 
 export function mapServerFailure(status: number, body: unknown, opts: MapOptions = {}): FormFailure {
-  const email = opts.contactEmail ?? DEFAULT_EMAIL;
   const serverMessage = readError(body);
+  const reason = readReason(body);
+  const failure = mapStatus(status, body, serverMessage, opts);
+  // Only 4xx text is passed through: a 5xx body can carry internals nobody should see.
+  const clientError = status >= 400 && status < 500;
+  return { ...failure, ...(clientError && serverMessage ? { serverMessage } : {}), ...(clientError && reason ? { reason } : {}) };
+}
+
+function mapStatus(status: number, body: unknown, serverMessage: string | undefined, opts: MapOptions): FormFailure {
+  const email = opts.contactEmail ?? DEFAULT_EMAIL;
 
   if (status === 400) {
     const issues = readIssues(body);

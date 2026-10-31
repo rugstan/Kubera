@@ -24,6 +24,14 @@ async function blockingAxeViolations(page: Page): Promise<string[]> {
   return violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
 }
 
+/** At least one noindex robots meta, and nothing telling crawlers to index the page. */
+async function expectNotIndexed(page: Page) {
+  expect(await page.locator('meta[name="robots"][content*="noindex"]').count()).toBeGreaterThan(0);
+  await expect(page.locator('meta[name="robots"][content="index, follow"]')).toHaveCount(0);
+  // Catches any other robots tag that would let the page be indexed.
+  await expect(page.locator('meta[name="robots"]:not([content*="noindex"])')).toHaveCount(0);
+}
+
 test.describe("calculators", () => {
   test("the DSCR calculator reports coverage and the largest loan", async ({ page }) => {
     await gotoHydrated(page, "/calculators/dscr");
@@ -165,7 +173,15 @@ test.describe("California metro pages", () => {
   test("an unknown metro shows the not-found page and is not indexed", async ({ page }) => {
     await page.goto("/california/atlantis");
     await expect(page.getByText("This page could not be found.")).toBeVisible();
-    await expect(page.locator('meta[name="robots"][content="noindex"]')).toHaveCount(1);
+    await expectNotIndexed(page);
+  });
+
+  test("unknown insight and calculator slugs are not indexed either", async ({ page }) => {
+    for (const path of ["/insights/no-such-article", "/calculators/no-such-calculator"]) {
+      await page.goto(path);
+      await expect(page.getByText("This page could not be found.")).toBeVisible();
+      await expectNotIndexed(page);
+    }
   });
 });
 
@@ -211,6 +227,17 @@ test.describe("newsletter", () => {
     await expect(page.getByText(/You are subscribed/)).toBeVisible();
     expect(calls).toHaveLength(1);
     expect(calls[0]!.body).toEqual({ token: "c.6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10.0.example" });
+  });
+
+  test("an expired confirmation link says so and offers a fresh signup", async ({ page }) => {
+    const calls = await mockJsonApi(page, "/api/newsletter/confirm", { status: 400, body: { error: "This confirmation link has expired. Sign up again to get a new one.", reason: "expired" } });
+    await gotoHydrated(page, "/newsletter/confirm?token=c.6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10.1.example");
+    await page.getByRole("button", { name: "Confirm subscription" }).click();
+    const alert = page.locator("p[role=alert]");
+    await expect(alert).toHaveText("This confirmation link has expired. Sign up again to get a new one.");
+    await expect(alert).not.toContainText("check your answers");
+    await expect(page.getByRole("link", { name: "Sign up for the newsletter again" })).toHaveAttribute("href", "/newsletter");
+    expect(calls).toHaveLength(1);
   });
 
   test("a link without a token explains itself", async ({ page }) => {

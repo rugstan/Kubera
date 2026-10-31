@@ -58,6 +58,16 @@ describe("server error mapping", () => {
     expect(f.message).toContain("Timeline: Check this entry.");
   });
 
+  it("passes a 4xx reply's own error text and reason through for callers with no fields", () => {
+    const f = mapServerFailure(400, { error: "This confirmation link has expired. Sign up again to get a new one.", reason: "expired" });
+    expect(f.kind).toBe("validation");
+    expect(f.serverMessage).toBe("This confirmation link has expired. Sign up again to get a new one.");
+    expect(f.reason).toBe("expired");
+    const s = mapServerFailure(500, { error: "boom: stack trace", reason: "db" });
+    expect(s.serverMessage).toBeUndefined();
+    expect(s.reason).toBeUndefined();
+  });
+
   it("explains rate limits, verification failures and server errors in plain language", () => {
     expect(mapServerFailure(429, { error: "Too many submissions. Please call us directly." }).message).toMatch(/too many submissions.*email deals@/i);
     expect(mapServerFailure(403, { error: "Verification failed. Please refresh the page and try again." }).kind).toBe("verification");

@@ -13,7 +13,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const page = getFinancingPage(slug);
-  if (!page) return {};
+  // An unknown slug is a 404, not a page with empty metadata.
+  if (!page) notFound();
   return pageMetadata({ title: page.entry.title, description: page.entry.description, path: financingPath(slug) });
 }
 

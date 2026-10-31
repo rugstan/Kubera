@@ -17,7 +17,8 @@ export const metadata: Metadata = {
   description:
     "Institutional debt advisory for senior living, hotels, and multifamily: HUD 232, SBA 504 hotel stacks, CMBS, PIP bridge, and private bridge financing — sized in 60 seconds.",
   openGraph: { type: "website", siteName: site.name },
-  robots: { index: true, follow: true },
+  // No site-wide robots tag: indexing is the default, and a root "index, follow"
+  // would also land on every not-found page next to Next's injected noindex.
 };
 
 export const viewport: Viewport = {

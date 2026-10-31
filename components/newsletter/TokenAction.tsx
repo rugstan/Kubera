@@ -35,7 +35,7 @@ const COPY: Record<Mode, { heading: string; lead: string; button: string; done: 
 export function TokenAction({ mode }: { mode: Mode }) {
   const token = useSearchParams().get("token")?.trim() ?? "";
   const copy = COPY[mode];
-  const [state, setState] = useState<{ kind: "idle" } | { kind: "working" } | { kind: "done"; message: string } | { kind: "error"; message: string }>({ kind: "idle" });
+  const [state, setState] = useState<{ kind: "idle" } | { kind: "working" } | { kind: "done"; message: string } | { kind: "error"; message: string; signUpAgain: boolean }>({ kind: "idle" });
   const resultRef = useRef<HTMLParagraphElement>(null);
 
   async function run() {
@@ -44,7 +44,18 @@ export function TokenAction({ mode }: { mode: Mode }) {
     if (result.ok) {
       setState({ kind: "done", message: copy.done[result.data.status] ?? "Done." });
     } else {
-      setState({ kind: "error", message: result.failure.message });
+      const { failure } = result;
+      // A 400 here means the link itself is bad (expired, tampered, already
+      // used up). The generic form copy talks about answers this page does not
+      // have, so show the server's own explanation instead.
+      const linkProblem = failure.status === 400;
+      setState({
+        kind: "error",
+        message: linkProblem ? (failure.serverMessage ?? "This link is not valid.") : failure.message,
+        // Offer a fresh signup only on the confirm page; someone unsubscribing
+        // does not want to be pointed back at the signup form.
+        signUpAgain: mode === "confirm" && linkProblem && (failure.reason === "expired" || failure.reason === "invalid"),
+      });
     }
     // Move focus to the outcome so a screen-reader user hears it.
     queueMicrotask(() => resultRef.current?.focus());
@@ -75,6 +86,13 @@ export function TokenAction({ mode }: { mode: Mode }) {
       >
         {state.kind === "done" || state.kind === "error" ? state.message : ""}
       </p>
+      {state.kind === "error" && state.signUpAgain && (
+        <p className="mt-4 text-[15px]">
+          <Link href="/newsletter" className="font-medium text-accent underline underline-offset-2">
+            Sign up for the newsletter again
+          </Link>
+        </p>
+      )}
       {state.kind === "done" && (
         <p className="mt-6 text-[15px]">
           <Link href="/insights" className="font-medium text-accent underline underline-offset-2">

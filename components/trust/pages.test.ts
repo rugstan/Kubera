@@ -125,7 +125,8 @@ describe("structure detail pages", () => {
 
   it("returns not-found for an unknown slug", async () => {
     await expect(StructurePage({ params: Promise.resolve({ slug: "made-up" }) })).rejects.toThrow();
-    expect(await generateMetadata({ params: Promise.resolve({ slug: "made-up" }) })).toEqual({});
+    // Metadata throws too, so an unknown slug is a 404 rather than a page with empty metadata.
+    await expect(generateMetadata({ params: Promise.resolve({ slug: "made-up" }) })).rejects.toThrow();
   });
 });
 
