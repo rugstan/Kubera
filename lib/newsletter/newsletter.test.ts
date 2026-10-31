@@ -132,6 +132,12 @@ describe("double opt-in", () => {
     expect(email.sent).toHaveLength(1);
     expect(email.sent[0]).toMatchObject({ to: "pat@example.com", subject: expect.stringContaining("Confirm") });
     expect(email.sent[0]!.html).toContain(`${BASE}/newsletter/confirm?token=`);
+    // Resend accepts only [A-Za-z0-9_-] in tag names and values; "@" would be a 422.
+    for (const [name, value] of Object.entries(email.sent[0]!.tags ?? {})) {
+      expect(name).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(value).toMatch(/^[A-Za-z0-9_-]+$/);
+    }
+    expect(email.sent[0]!.tags).toMatchObject({ template: "newsletter_confirmation_v1" });
     // Nothing goes to the audience before the click.
     expect(audience.contacts.size).toBe(0);
   });
