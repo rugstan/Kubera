@@ -17,6 +17,16 @@ export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 export const DOCUMENT_KINDS = ["T12", "RENT_ROLL", "CENSUS", "STR_REPORT", "FRANCHISE_AGREEMENT", "PIP_BUDGET", "PFS", "TAX_RETURN", "APPRAISAL", "OTHER"] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
+/**
+ * Kinds only the system files (never a borrower upload): lender term sheets that
+ * arrive at lenders@ (lib/mail/attachments.ts). Staff only: portal members do
+ * not see them (documents_read_member) and they never go into a lender package.
+ */
+export const SYSTEM_DOCUMENT_KINDS = ["TERM_SHEET"] as const;
+export type SystemDocumentKind = (typeof SYSTEM_DOCUMENT_KINDS)[number];
+/** Every kind a vault row can hold. */
+export type VaultDocumentKind = DocumentKind | SystemDocumentKind;
+
 /** Same bucket as DOCUMENT_BUCKET in lib/supabase/server.ts (asserted in tests). */
 export const VAULT_BUCKET = "deal-documents";
 /** Private holding bucket for uploads that have not passed the scan. */
@@ -49,7 +59,7 @@ export type DocumentRow = {
   id: string;
   created_at: string;
   lead_id: string;
-  kind: DocumentKind;
+  kind: VaultDocumentKind;
   storage_path: string;
   file_name: string;
   content_type: string;

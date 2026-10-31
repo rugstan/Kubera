@@ -1,5 +1,7 @@
 // Inbound mail attachments → private quarantine storage, and (for docs@,
 // deals@ and vendors@ mail routed to a lead) a `documents` row in the vault.
+// lenders@ term sheets routed to a deal are filed as staff-only TERM_SHEET
+// documents so the document agent (WS-L) can read them once they scan clean.
 //
 // Every stored attachment lands in the quarantine bucket and its vault row is
 // `quarantined`, so nothing from email is downloadable until the malware
@@ -74,6 +76,13 @@ export function documentKindFor(fileName: string, c: MailClassification): MailDo
   return fromMessage.length === 1 ? fromMessage[0]! : "OTHER";
 }
 
+/** Vault kind of a lenders@ term-sheet attachment (lib/documents/types.ts SYSTEM_DOCUMENT_KINDS). */
+export const TERM_SHEET_KIND = "TERM_SHEET";
+export type AttachmentKind = MailDocumentKind | typeof TERM_SHEET_KIND;
+
+/** Term-sheet formats the document agent reads (images are kept with the message only). */
+const TERM_SHEET_TYPES: ReadonlySet<string> = new Set([ACCEPTED_TYPES.pdf, ACCEPTED_TYPES.csv, ACCEPTED_TYPES.xls, ACCEPTED_TYPES.xlsx]);
+
 export type AttachmentStatus = "stored" | "registered" | "skipped_type" | "skipped_size" | "skipped_limit" | "failed";
 
 export type AttachmentRecord = {
@@ -86,7 +95,7 @@ export type AttachmentRecord = {
   bucket: string | null;
   storagePath: string | null;
   documentId: string | null;
-  kind: MailDocumentKind | null;
+  kind: AttachmentKind | null;
   error: string | null;
 };
 
@@ -94,7 +103,7 @@ export interface AttachmentSink {
   /** Idempotent: storing the same path twice is not an error. */
   store(input: { bucket: string; path: string; bytes: Uint8Array; contentType: string }): Promise<void>;
   /** Registers a quarantined vault document; idempotent on storage path. */
-  registerDocument(input: { leadId: string; kind: MailDocumentKind; bucket: string; path: string; fileName: string; contentType: string; sizeBytes: number; sha256: string }): Promise<{ documentId: string }>;
+  registerDocument(input: { leadId: string; kind: AttachmentKind; bucket: string; path: string; fileName: string; contentType: string; sizeBytes: number; sha256: string }): Promise<{ documentId: string }>;
 }
 
 export async function processAttachments(
@@ -103,7 +112,11 @@ export async function processAttachments(
   route: MailRoute,
   deps: { provider: MailProvider; sink: AttachmentSink },
 ): Promise<AttachmentRecord[]> {
-  const register = MAILBOXES[msg.mailbox].vaultAttachments && route.status === "processed" && Boolean(route.leadId) && !c.suspicious;
+  const box = MAILBOXES[msg.mailbox];
+  const routed = route.status === "processed" && Boolean(route.leadId) && !c.suspicious;
+  const register = box.vaultAttachments && routed;
+  // A term sheet tied to a deal: filed (staff only) for the document agent and the lenders desk.
+  const termSheet = !register && box.termSheetAttachments && routed && c.category === "term_sheet" && Boolean(route.dealId);
   const out: AttachmentRecord[] = [];
   for (const [i, a] of msg.attachments.entries()) {
     const base: AttachmentRecord = { attachmentId: a.attachmentId, fileName: a.fileName, size: a.size, contentType: null, sha256: null, status: "failed", bucket: null, storagePath: null, documentId: null, kind: null, error: null };
@@ -130,8 +143,8 @@ export async function processAttachments(
       const path = attachmentPath(msg.mailbox, msg, sha256, a.fileName);
       await deps.sink.store({ bucket: QUARANTINE_BUCKET, path, bytes, contentType });
       const rec: AttachmentRecord = { ...base, size: bytes.byteLength, contentType, sha256, status: "stored", bucket: QUARANTINE_BUCKET, storagePath: path };
-      if (register && route.leadId) {
-        const kind = documentKindFor(a.fileName, c);
+      if ((register || (termSheet && TERM_SHEET_TYPES.has(contentType))) && route.leadId) {
+        const kind: AttachmentKind = register ? documentKindFor(a.fileName, c) : TERM_SHEET_KIND;
         const { documentId } = await deps.sink.registerDocument({ leadId: route.leadId, kind, bucket: QUARANTINE_BUCKET, path, fileName: sanitizeFileName(a.fileName), contentType, sizeBytes: bytes.byteLength, sha256 });
         Object.assign(rec, { status: "registered", documentId, kind });
       }
@@ -147,13 +160,13 @@ export async function processAttachments(
 
 export class MemoryAttachmentSink implements AttachmentSink {
   readonly objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
-  readonly documents: { id: string; leadId: string; kind: MailDocumentKind; path: string; status: "quarantined"; sha256: string }[] = [];
+  readonly documents: { id: string; leadId: string; kind: AttachmentKind; path: string; status: "quarantined"; sha256: string }[] = [];
 
   async store(input: { bucket: string; path: string; bytes: Uint8Array; contentType: string }): Promise<void> {
     this.objects.set(`${input.bucket}/${input.path}`, { bytes: input.bytes, contentType: input.contentType });
   }
 
-  async registerDocument(input: { leadId: string; kind: MailDocumentKind; path: string; sha256: string }): Promise<{ documentId: string }> {
+  async registerDocument(input: { leadId: string; kind: AttachmentKind; path: string; sha256: string }): Promise<{ documentId: string }> {
     const existing = this.documents.find((d) => d.path === input.path);
     if (existing) return { documentId: existing.id };
     const id = globalThis.crypto.randomUUID();

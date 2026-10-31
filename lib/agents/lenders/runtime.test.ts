@@ -10,7 +10,8 @@ describe("lender runtime", () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     const { lenderRuntime } = await import("./runtime");
     expect(lenderRuntime()).toBeNull();
-  });
+    // The first import loads the deal desk, documents and spreads wiring; slow on a busy machine.
+  }, 20_000);
 
   it("reads optional index levels and ignores implausible ones", async () => {
     const { indexRatesFromEnv } = await import("./runtime");

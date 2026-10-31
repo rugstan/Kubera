@@ -10,6 +10,7 @@ export const DOCUMENT_KIND_LABELS: Record<string, string> = {
   PFS: "Personal financial statement",
   TAX_RETURN: "Tax return",
   APPRAISAL: "Appraisal",
+  TERM_SHEET: "Lender term sheet",
   OTHER: "Other",
 };
 

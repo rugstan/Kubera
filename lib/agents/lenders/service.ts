@@ -9,7 +9,9 @@ import type { Deal, LenderPanelEntry } from "@/lib/deals/types";
 import type { AgentEventStore } from "@/lib/agents/core/events";
 import { recordInjection } from "@/lib/agents/core/inbound";
 import type { ModelGateway } from "@/lib/ai/gateway";
+import type { ExtractionRecord } from "@/lib/agents/documents/store";
 import { AllInError, compareQuotes, computeAllIn, type ComparisonRow } from "./all-in";
+import { ATTACHMENT_WAIT_MS, extractionFromDocument, extractionInjectionSuspected, mergeTermSheetExtractions, type TermSheetAttachmentSource } from "./attachments";
 import { boxFromRegistration, CreditBoxError, editPatch, parseCreditBoxTerms, reviewPatch } from "./credit-box";
 import { matchLenders, type MatchResult } from "./matcher";
 import { defaultAssetClass } from "./package";
@@ -161,14 +163,45 @@ export type IntakeDeps = {
   indexRates?: Record<string, number>;
   /** agent_events (lib/agents/core): injection findings in term-sheet mail are recorded here. */
   events?: Pick<AgentEventStore, "append"> | null;
+  /** Scan and extraction state of the term sheets filed from the mail's attachments (./attachments.ts). */
+  attachments?: TermSheetAttachmentSource | null;
 };
 
 /** Agent id and version stamped on the term-sheet intake's events. */
 export const TERM_SHEET_AGENT = { id: "lenders", version: "1.1.0", task: "term_sheet_intake" } as const;
 /** Low-confidence marker on a quote whose term sheet tried to instruct the parser. */
 export const INJECTION_REVIEW_FIELD = "injection_suspected";
+/** Low-confidence marker on a quote whose attached term sheet could not be read (terms come from the body). */
+export const ATTACHMENT_REVIEW_FIELD = "term_sheet_attachment";
 
-export type IntakeSummary = { parsed: number; needsReview: number; skipped: number; errors: string[]; quotes: Quote[] };
+/** `awaiting`: messages left for a later run because an attached term sheet is still being scanned or extracted. */
+export type IntakeSummary = { parsed: number; needsReview: number; skipped: number; awaiting: number; errors: string[]; quotes: Quote[] };
+
+type AttachmentRead = { wait: true } | { wait: false; extraction: ExtractionRecord | null; fileName: string | null; unreadable: string[] };
+
+const EXTRACTION_RANK: Record<string, number> = { approved: 3, extracted: 2, needs_review: 1 };
+
+/**
+ * The best extraction among the message's filed term sheets. Waits while one
+ * is still pending inside `waitMs` of the message's arrival; after that (or
+ * when every file is unreadable) the body is read alone.
+ */
+async function readAttachments(source: TermSheetAttachmentSource | null | undefined, m: TermSheetMail, now: Date, waitMs: number): Promise<AttachmentRead> {
+  const refs = m.attachments ?? [];
+  if (!refs.length) return { wait: false, extraction: null, fileName: null, unreadable: [] };
+  if (!source) return { wait: false, extraction: null, fileName: null, unreadable: ["the attachment reader is not configured"] };
+  const states = await Promise.all(refs.map(async (r) => ({ ref: r, state: await source.attachmentState(r.documentId) })));
+  const extracted = states
+    .flatMap((s) => (s.state.state === "extracted" ? [{ ref: s.ref, extraction: s.state.extraction }] : []))
+    .sort((a, b) => (EXTRACTION_RANK[b.extraction.status] ?? 0) - (EXTRACTION_RANK[a.extraction.status] ?? 0) || (b.extraction.overall_confidence ?? 0) - (a.extraction.overall_confidence ?? 0))[0];
+  if (extracted) return { wait: false, extraction: extracted.extraction, fileName: extracted.ref.fileName, unreadable: [] };
+  const pending = states.some((s) => s.state.state === "pending");
+  if (pending && waitMs > 0 && now.getTime() - Date.parse(m.receivedAt) < waitMs) return { wait: true };
+  const unreadable = states.map((s) =>
+    s.state.state === "unreadable" ? `${s.ref.fileName}: ${s.state.reason}` : `${s.ref.fileName}: not extracted within ${Math.round(waitMs / 3_600_000)} h`,
+  );
+  return { wait: false, extraction: null, fileName: null, unreadable };
+}
 
 const domainOf = (email: string | null | undefined) => (email ?? "").toLowerCase().split("@")[1]?.trim() ?? "";
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -237,14 +270,19 @@ function placeholderTerms(lenderName: string, deal: Deal): QuoteTerms {
 }
 
 /**
- * Parses routed term-sheet mail into quotes (once per message). Anything with
- * a low-confidence or missing core field goes to the review queue
- * (`needs_review`). When the deal has a sent submission to the same lender,
- * the outreach records the term sheet. Nothing here sends anything.
+ * Parses routed term-sheet mail into quotes (once per message). A term sheet
+ * attached to the message (filed in the vault and extracted by the document
+ * agent) is merged with the body, field by field; while it is still being
+ * scanned or extracted the message waits (`awaiting`) for up to
+ * `attachmentWaitMs`. Anything with a low-confidence or missing core field
+ * goes to the review queue (`needs_review`). When the deal has a sent
+ * submission to the same lender, the outreach records the term sheet.
+ * Nothing here sends anything.
  */
-export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string; limit?: number; actor?: string } = {}): Promise<IntakeSummary> {
+export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string; limit?: number; actor?: string; attachmentWaitMs?: number } = {}): Promise<IntakeSummary> {
   const actor = opts.actor ?? "agent:lenders";
-  const summary: IntakeSummary = { parsed: 0, needsReview: 0, skipped: 0, errors: [], quotes: [] };
+  const waitMs = opts.attachmentWaitMs ?? ATTACHMENT_WAIT_MS;
+  const summary: IntakeSummary = { parsed: 0, needsReview: 0, skipped: 0, awaiting: 0, errors: [], quotes: [] };
   const mail = await deps.mail.listTermSheetMail({ ...(opts.dealId ? { dealId: opts.dealId } : {}), limit: opts.limit ?? 25 });
   const lenders = await deps.desk.listLenders();
   for (const m of mail) {
@@ -259,10 +297,17 @@ export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string
         summary.errors.push(`${m.subject}: deal ${m.dealId} not found`);
         continue;
       }
+      const attached = await readAttachments(deps.attachments, m, deps.now(), waitMs);
+      if (attached.wait) {
+        summary.awaiting += 1;
+        continue;
+      }
       const parsed = await parseTermSheet({ from: m.fromName ? `${m.fromName} <${m.fromAddress}>` : m.fromAddress, subject: m.subject, body: m.bodyText, receivedAt: m.receivedAt }, { gateway: deps.gateway, indexRates: deps.indexRates, traceId: `quote-${m.id}` });
-      const lender = resolveLender(m, parsed.extraction.lenderName, lenders);
-      const lenderName = lender?.name ?? parsed.extraction.lenderName ?? m.fromName ?? m.fromAddress;
-      const built = termsFromExtraction(parsed.extraction, { lenderName, fallbackLoanAmountCents: deal.loanAmountCents });
+      const doc = attached.extraction;
+      const extraction = doc ? mergeTermSheetExtractions(parsed.extraction, extractionFromDocument(doc.fields.scalars)) : parsed.extraction;
+      const lender = resolveLender(m, extraction.lenderName, lenders);
+      const lenderName = lender?.name ?? extraction.lenderName ?? m.fromName ?? m.fromAddress;
+      const built = termsFromExtraction(extraction, { lenderName, fallbackLoanAmountCents: deal.loanAmountCents });
       const outreach = lender ? (await deps.desk.listOutreach(deal.id)).filter((o) => o.lenderId === lender.id && ["sent", "declined", "term_sheet"].includes(o.status)).at(-1) ?? null : null;
       await recordInjection(
         deps.events,
@@ -271,8 +316,10 @@ export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string
       );
       const lowConfidence = [...built.lowConfidenceFields, ...built.missing.filter((f) => !built.lowConfidenceFields.includes(f))];
       if (!lender) lowConfidence.push("lender");
-      // A term sheet that tried to instruct the parser is never trusted as read.
-      if (parsed.guard.flagged) lowConfidence.push(INJECTION_REVIEW_FIELD);
+      // A term sheet (body or attachment) that tried to instruct the parser is never trusted as read.
+      if (parsed.guard.flagged || (doc && extractionInjectionSuspected(doc))) lowConfidence.push(INJECTION_REVIEW_FIELD);
+      // The attachment is the term sheet; without it the body's terms are checked by staff.
+      if (attached.unreadable.length) lowConfidence.push(ATTACHMENT_REVIEW_FIELD);
       const needsReview = lowConfidence.length > 0 || !built.terms;
       const terms = built.terms ?? placeholderTerms(lenderName, deal);
       const { allIn, allInRatePct } = priced(built.terms);
@@ -291,19 +338,24 @@ export async function ingestTermSheets(deps: IntakeDeps, opts: { dealId?: string
           allIn,
           allInRatePct,
           bindingConstraint: terms.bindingConstraint,
-          parser: parsed.parser,
-          parserModel: parsed.model,
+          parser: doc?.model ? "model" : parsed.parser,
+          parserModel: doc?.model ?? parsed.model,
           receivedAt: m.receivedAt,
           expiresOn: terms.expiresOn,
           reviewedAt: null,
           reviewedBy: null,
+          // Warnings first: the stored note is capped at 500 characters.
           reviewNote:
             [
-              parsed.fallbackReason ? `Parsed by rules (${parsed.fallbackReason}).` : null,
               parsed.guard.flagged ? `The email contained text addressed to an AI (${parsed.guard.scan.codes.join(", ")}); it was removed before parsing. Check every term against the original.` : null,
+              doc && extractionInjectionSuspected(doc) ? "The attached term sheet contained text addressed to an AI; it was removed before extraction. Check every term against the original." : null,
+              attached.unreadable.length ? `The attached term sheet could not be read (${attached.unreadable.slice(0, 3).join("; ")}); terms come from the email body.` : null,
+              doc ? `Terms read from the attached term sheet (${attached.fileName}, extraction ${doc.status.replace("_", " ")}) and the email body.` : null,
+              !doc && parsed.fallbackReason ? `Parsed by rules (${parsed.fallbackReason}).` : null,
             ]
               .filter(Boolean)
-              .join(" ") || null,
+              .join(" ")
+              .slice(0, 500) || null,
           idempotencyKey: key,
         },
         actor,

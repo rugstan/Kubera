@@ -6,7 +6,7 @@ import { FakeModelProvider, type FakeReply } from "@/lib/ai/gateway/fake";
 import { noopTracer } from "@/lib/langfuse";
 import { MemoryVaultStorage } from "@/lib/documents/storage";
 import { MemoryDocumentStore, MemoryEventLog } from "@/lib/documents/store";
-import { VAULT_BUCKET, type DocumentKind } from "@/lib/documents/types";
+import { VAULT_BUCKET, type VaultDocumentKind } from "@/lib/documents/types";
 import { MemoryAgentRunStore } from "@/lib/workflows/runs";
 import { createHash } from "node:crypto";
 import { FakeClaudeDocumentClient, type PdfExtractionRequest } from "./claude-pdf";
@@ -30,7 +30,7 @@ export type Harness = {
   claudePdf: FakeClaudeDocumentClient;
   nemo: FakeNemoRetriever | undefined;
   gateway: ModelGateway;
-  addDocument(bytes: Uint8Array, opts?: { kind?: DocumentKind; contentType?: string; fileName?: string; status?: "clean" | "quarantined" }): Promise<string>;
+  addDocument(bytes: Uint8Array, opts?: { kind?: VaultDocumentKind; contentType?: string; fileName?: string; status?: "clean" | "quarantined" }): Promise<string>;
 };
 
 export function harness(opts: {

@@ -39,8 +39,12 @@ export type AgentWorkflowHooks = {
   documentExtracted(data: unknown): Promise<Record<string, unknown>>;
   /** kubera/mail.routed: the CRM agent's note/task for the message (approval-gated writes). */
   crmMailRouted(data: unknown): Promise<Record<string, unknown>>;
-  /** kubera/mail.routed for a term sheet tied to a deal: parse lenders@ term sheets into quotes. */
-  termSheets(dealId: string): Promise<Record<string, unknown>>;
+  /**
+   * kubera/mail.routed for a term sheet tied to a deal: parse lenders@ term sheets into quotes.
+   * `awaiting` counts messages whose attached term sheet is still being scanned or extracted;
+   * `attachmentWaitMs: 0` reads such messages from the body alone.
+   */
+  termSheets(dealId: string, opts?: { attachmentWaitMs?: number }): Promise<Record<string, unknown> & { awaiting?: number }>;
   /** kubera/lead.scored: the speed-to-lead reply. */
   speedToLead(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
   /** kubera/outreach.sweep.requested: run every chaser once. */

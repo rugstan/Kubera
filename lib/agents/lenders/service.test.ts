@@ -4,7 +4,13 @@ import { FakeModelProvider } from "@/lib/ai/gateway/fake";
 import { MemoryTracer } from "@/lib/langfuse";
 import { sendPackageToLender } from "@/lib/deals/packages";
 import { docs, lenderInput, newDeal, setup } from "@/lib/deals/test-fixtures";
+import { buildPdf } from "@/lib/agents/documents/parse/pdf";
+import { harness } from "@/lib/agents/documents/testing";
+import { documentCleanHandler } from "@/lib/agents/documents/workflow";
+import { loadDocumentEvals, sourceBytes } from "@/evals/documents/load";
+import { vaultTermSheetAttachments } from "./attachments";
 import {
+  ATTACHMENT_REVIEW_FIELD,
   addStaffQuote,
   compareDealQuotes,
   dealProfile,
@@ -249,5 +255,126 @@ describe("staff quotes and comparison", () => {
     await setQuoteStatus({ quotes, now: w.now }, b.id, "withdrawn", "broker:ana");
     expect((await compareDealQuotes(deps, w.deal.id)).rows.map((r) => r.id)).toEqual([a.id]);
     await expect(setQuoteStatus({ quotes, now: w.now }, b.id, "active", "broker:ana")).rejects.toThrow(/cannot become active/);
+  });
+});
+
+describe("term sheets attached to lenders@ mail", () => {
+  const FILE = "Ready Capital term sheet.pdf";
+  const LINES = [
+    ["Indicative Term Sheet"],
+    ["Lender", "Ready Capital"],
+    ["Loan Amount", "$12,500,000"],
+    ["Interest Rate", "6.25% fixed"],
+    ["Rate Type", "Fixed"],
+    ["Amortization", "30 years"],
+    ["Interest Only Period", "12 months"],
+    ["Term", "10 years"],
+    ["Origination Fee", "1.00%"],
+    ["Maximum LTV", "65%"],
+    ["Minimum DSCR", "1.25x"],
+    ["Prepayment", "5-4-3-2-1 step-down"],
+    ["Recourse", "Non-recourse with standard carve-outs"],
+  ];
+  const attachedMail = (dealId: string, documentId: string, over: Partial<TermSheetMail> = {}): TermSheetMail => ({
+    id: "mail-pdf",
+    dealId,
+    fromAddress: "chris@readycap.example",
+    fromName: "Chris Moreno",
+    subject: "Sunrise ALF term sheet",
+    bodyText: "Please see attached.",
+    receivedAt: "2026-11-04T16:00:00.000Z",
+    category: "term_sheet",
+    attachments: [{ documentId, fileName: FILE }],
+    ...over,
+  });
+
+  /** A lenders@ term sheet filed in the vault (as lib/mail/attachments.ts does) plus the document agent over it. */
+  async function filed(file: { bytes: Uint8Array; contentType: string } = { bytes: buildPdf(LINES), contentType: "application/pdf" }, status: "clean" | "quarantined" = "clean") {
+    const w = await world();
+    const h = harness({ claudeConfigured: false });
+    const documentId = await h.addDocument(file.bytes, { kind: "TERM_SHEET", contentType: file.contentType, fileName: FILE, status });
+    const quotes = new MemoryLenderMatchStore();
+    const source = new MemoryTermSheetMailSource([attachedMail(w.deal.id, documentId)]);
+    const deps = { quotes, desk: w.desk, mail: source, gateway: null, now: w.now, attachments: vaultTermSheetAttachments({ documents: h.documents, extractions: h.store }) };
+    return { w, h, documentId, quotes, deps };
+  }
+
+  it("a 'see attached' email with a PDF term sheet becomes an active quote with the sheet's rate, term and fees", async () => {
+    const { w, h, documentId, quotes, deps } = await filed();
+    // Clean but not extracted yet: the message waits instead of becoming a placeholder quote.
+    expect(await ingestTermSheets(deps)).toMatchObject({ parsed: 0, awaiting: 1, quotes: [] });
+    expect(await quotes.listQuotes(w.deal.id)).toEqual([]);
+
+    // The document.clean event: the document agent extracts it as a TERM_SHEET (from the vault kind).
+    const extracted = await documentCleanHandler({ documentId }, h.deps);
+    expect(extracted).toMatchObject({ skipped: false, emit: { data: { docType: "TERM_SHEET", status: "extracted" } } });
+
+    const r = await ingestTermSheets(deps);
+    expect(r).toMatchObject({ parsed: 1, needsReview: 0, awaiting: 0, errors: [] });
+    const q = r.quotes[0]!;
+    expect(q).toMatchObject({ status: "active", lenderId: w.lender.id, lenderName: "Ready Capital", lowConfidenceFields: [], mailMessageId: "mail-pdf" });
+    expect(q.terms).toMatchObject({
+      loanAmountCents: 1_250_000_000,
+      rateType: "fixed",
+      ratePct: 6.25,
+      termMonths: 120,
+      amortizationMonths: 360,
+      ioMonths: 12,
+      originationFeePct: 1,
+      exitFeePct: 0,
+      prepay: { kind: "step_down", schedule: [5, 4, 3, 2, 1] },
+      recourse: "non_recourse",
+      maxLtvPct: 65,
+      minDscr: 1.25,
+    });
+    // 1 point on $12.5M, priced into the all-in cost.
+    expect(q.allIn!.upfrontBreakdown.origination).toBe(12_500_000);
+    expect(q.allInRatePct).toBeGreaterThan(6.25);
+    expect(q.reviewNote).toMatch(/attached term sheet \(Ready Capital term sheet\.pdf/);
+    expect(await ingestTermSheets(deps)).toMatchObject({ parsed: 0, skipped: 1 });
+  });
+
+  it("reads the golden XLSX and CSV term sheets from the mail path", async () => {
+    const golden = (id: string) => sourceBytes(loadDocumentEvals().suites.flatMap((s) => s.suite.cases).find((c) => c.id === id)!);
+    const hud = await filed(golden("term-sheet-hud-xlsx"));
+    await documentCleanHandler({ documentId: hud.documentId }, hud.h.deps);
+    const a = (await ingestTermSheets(hud.deps)).quotes[0]!;
+    expect(a.terms).toMatchObject({ loanAmountCents: 2_000_000_000, ratePct: 5.1, termMonths: 420, amortizationMonths: 420, maxLtvPct: 87, minDscr: 1.15, prepay: { kind: "lockout", months: 120 } });
+
+    const bridge = await filed(golden("term-sheet-bridge-csv"));
+    await documentCleanHandler({ documentId: bridge.documentId }, bridge.h.deps);
+    const b = (await ingestTermSheets(bridge.deps)).quotes[0]!;
+    expect(b.terms).toMatchObject({ loanAmountCents: 800_000_000, rateType: "floating", ratePct: 8.55, spreadBps: 425, termMonths: 24, amortizationMonths: null, ioMonths: 24, originationFeePct: 1, exitFeePct: 0.5, minDebtYieldPct: 8, maxLtvPct: 70, recourse: "non_recourse" });
+  });
+
+  it("waits while the attachment is quarantined; an infected file leaves the body's terms for review", async () => {
+    const { h, documentId, deps } = await filed(undefined, "quarantined");
+    expect(await ingestTermSheets(deps)).toMatchObject({ parsed: 0, awaiting: 1 });
+    await h.documents.update(documentId, { status: "infected", scan_signature: "Eicar-Test-Signature" });
+    const r = await ingestTermSheets(deps);
+    expect(r).toMatchObject({ parsed: 1, needsReview: 1, awaiting: 0 });
+    const q = r.quotes[0]!;
+    expect(q.status).toBe("needs_review");
+    expect(q.lowConfidenceFields).toEqual(expect.arrayContaining([ATTACHMENT_REVIEW_FIELD]));
+    expect(q.reviewNote).toMatch(/could not be read \(Ready Capital term sheet\.pdf: document is infected\)/);
+  });
+
+  it("stops waiting after the attachment window and reads the body alone (for review)", async () => {
+    const { deps } = await filed();
+    const r = await ingestTermSheets(deps, { attachmentWaitMs: 0 });
+    expect(r).toMatchObject({ parsed: 1, needsReview: 1, awaiting: 0 });
+    expect(r.quotes[0]!.lowConfidenceFields).toContain(ATTACHMENT_REVIEW_FIELD);
+    expect(r.quotes[0]!.reviewNote).toMatch(/not extracted within 0 h/);
+  });
+
+  it("holds the quote for review when the document agent flagged instruction-like text in the attachment", async () => {
+    const { h, documentId, deps } = await filed();
+    const out = await documentCleanHandler({ documentId }, h.deps);
+    if (out.skipped) throw new Error("not extracted");
+    await h.store.update(out.outcome.extraction.id, { warnings: [...out.outcome.extraction.warnings, "injection_suspected"] });
+    const q = (await ingestTermSheets(deps)).quotes[0]!;
+    expect(q.status).toBe("needs_review");
+    expect(q.lowConfidenceFields).toContain(INJECTION_REVIEW_FIELD);
+    expect(q.reviewNote).toMatch(/attached term sheet contained text addressed to an AI/);
   });
 });

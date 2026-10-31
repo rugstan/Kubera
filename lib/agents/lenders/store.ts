@@ -3,6 +3,7 @@
 // term-sheet mail in public.mail_messages), plus in-memory implementations for
 // tests that mirror the migration's constraints. Supabase: store-supabase.ts.
 
+import type { TermSheetAttachmentRef } from "./attachments";
 import type { CreditBox, NewCreditBox, NewQuote, Quote } from "./types";
 import type { PartnerRow } from "./credit-box";
 
@@ -46,6 +47,8 @@ export type TermSheetMail = {
   bodyText: string;
   receivedAt: string;
   category: string;
+  /** TERM_SHEET vault documents filed from the message's attachments (lib/mail/attachments.ts). */
+  attachments?: TermSheetAttachmentRef[];
 };
 
 export interface TermSheetMailSource {
