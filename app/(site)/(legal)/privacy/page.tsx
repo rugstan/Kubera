@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LegalPage, TableScroll } from "@/components/legal/LegalPage";
-import { COLLECTION_POINTS, PI_CATEGORIES, PURPOSES, SERVICE_PROVIDERS } from "@/components/legal/legal";
+import { COLLECTION_POINTS, PI_CATEGORIES, PURPOSES, RECORD_RETENTION, SERVICE_PROVIDERS } from "@/components/legal/legal";
 import { legalMetadata } from "@/components/legal/metadata";
 import { site } from "@/lib/site";
 
@@ -148,6 +148,25 @@ export default function PrivacyPage() {
               <tr key={c.id}>
                 <th scope="row">{c.label}</th>
                 <td>{c.retention}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableScroll>
+      <p>Some records have their own periods within these categories:</p>
+      <TableScroll label="Retention of specific records">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Record</th>
+              <th scope="col">How long we keep it</th>
+            </tr>
+          </thead>
+          <tbody>
+            {RECORD_RETENTION.map((r) => (
+              <tr key={r.record}>
+                <th scope="row">{r.record}</th>
+                <td>{r.retention}</td>
               </tr>
             ))}
           </tbody>

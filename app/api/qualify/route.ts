@@ -6,6 +6,7 @@ import { buildConsentEvent, recordConsent } from "@/lib/consent/ledger";
 import { consentPage, readConsentMeta } from "@/lib/consent/request";
 import { resolveConsentText } from "@/lib/consent/texts";
 import { pushLead, twentyConfigured } from "@/lib/crm/twenty";
+import { smsConsentLookup } from "@/lib/notify/consent";
 import { sendLeadConfirmation } from "@/lib/notify/lead-confirmation";
 import { notifyRuntime } from "@/lib/notify/runtime";
 import { alertTier1Lead } from "@/lib/notify/tier1";
@@ -131,6 +132,8 @@ export async function POST(req: Request) {
       // instead of creating a second company and opportunity.
       const refs = await pushLead(intake, contact, jev, {
         consentEventId,
+        // A STOP already in the ledger for this number keeps it out of Twenty.
+        smsConsent: smsConsentLookup(notifyRuntime().consent),
         onProgress: async (progress) => {
           if (db && leadId) await db.from("leads").update({ crm_progress: progress }).eq("id", leadId);
         },

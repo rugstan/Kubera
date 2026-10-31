@@ -68,7 +68,7 @@ export function hasCurrentLicense(profile: Profile, today: string): boolean {
   return s === "current" || s === "expiring";
 }
 
-export type Capability = "view_pipeline" | "view_documents" | "view_approvals" | "review_extractions" | "approve" | "reject" | "cancel_approval" | "view_audit";
+export type Capability = "view_pipeline" | "view_documents" | "view_approvals" | "review_extractions" | "review_mail" | "approve" | "reject" | "cancel_approval" | "view_audit";
 
 export type CapabilityCheck = { ok: true } | { ok: false; reason: string };
 
@@ -87,6 +87,9 @@ export function can(principal: StaffPrincipal, capability: Capability, today: st
     case "review_extractions":
       // Correcting and approving extracted figures is underwriting work: analysts, brokers and admins.
       return roles.has("analyst") || roles.has("broker") || roles.has("admin") ? { ok: true } : { ok: false, reason: "Only staff can review extractions." };
+    case "review_mail":
+      // Filing inbound mail to a deal (and its attachments to the vault) is file work: analysts, brokers and admins.
+      return roles.has("analyst") || roles.has("broker") || roles.has("admin") ? { ok: true } : { ok: false, reason: "Only analysts, brokers and administrators can file inbound mail." };
     case "approve": {
       if (!roles.has("broker")) return { ok: false, reason: "Only a broker can approve outbound actions." };
       const lic = licenseStatus(principal.profile, today);

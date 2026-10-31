@@ -4,7 +4,19 @@
 
 import { z } from "zod";
 
-export const LEGAL_HOLD_TABLES = ["leads", "partners", "documents", "ai_conversations", "consent_events", "privacy_requests"] as const;
+export const LEGAL_HOLD_TABLES = [
+  "leads",
+  "partners",
+  "documents",
+  "ai_conversations",
+  "consent_events",
+  "privacy_requests",
+  // Communications (migration 20261105025700): inbound mail, texts, the notification log, newsletter signups.
+  "mail_messages",
+  "sms_messages",
+  "notifications",
+  "newsletter_subscribers",
+] as const;
 export type LegalHoldTable = (typeof LEGAL_HOLD_TABLES)[number];
 
 export const legalHoldSchema = z

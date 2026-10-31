@@ -19,8 +19,9 @@ import { classifyPayload, redactText } from "@/lib/privacy/classification";
 import { encryptField, piiKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { processAttachments, type AttachmentSink } from "./attachments";
 import { classifyMail, MAIL_TRIAGE_AGENT, type MailClassification } from "./classify";
-import type { InboundMailbox } from "./mailboxes";
+import { MAX_MAIL_ATTEMPTS, type InboundMailbox } from "./mailboxes";
 import { routeMail, type DealDirectory, type MailRoute } from "./route";
+import type { ReviewAlertInput } from "./review";
 import type { MailRow, MailStore } from "./store";
 import { stripQuotedReply } from "./text";
 import { MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
@@ -33,8 +34,8 @@ export const POLL_LOOKBACK_MS = 72 * 60 * 60_000;
 export const POLL_LIMIT = 100;
 /** Messages the provider may list per poll while paging back to the lookback start. */
 export const POLL_SCAN_LIMIT = 5_000;
-/** Failed processing attempts before a message is left for staff. */
-export const MAX_MAIL_ATTEMPTS = 6;
+/** Failed processing attempts before a message is left for staff (lib/mail/mailboxes.ts). */
+export { MAX_MAIL_ATTEMPTS };
 const RETRY_BASE_MS = 10 * 60_000;
 const RETRY_MAX_MS = 6 * 60 * 60_000;
 
@@ -49,6 +50,11 @@ export type InboundDeps = {
   keyring?: PiiKeyring | null;
   /** agent_events (lib/agents/core): injection findings in inbound mail are recorded here. */
   events?: Pick<AgentEventStore, "append"> | null;
+  /**
+   * Pages staff (pre-approved staff_alert) when a deals@ / docs@ message lands
+   * in the review queue (lib/mail/review.ts). Must not throw.
+   */
+  reviewAlert?: ((alert: ReviewAlertInput) => Promise<void>) | null;
   now?: () => Date;
 };
 
@@ -138,6 +144,8 @@ export type ProcessResult = {
   route: MailRoute | null;
   modelCalls: GatewayResponse[];
   fallbackReason: string | null;
+  /** Attachments stored in quarantine but not registered as vault documents. */
+  storedAttachments?: number;
 };
 
 /**
@@ -218,7 +226,15 @@ export async function processInboundMessage(input: { mailbox: InboundMailbox } &
     error: null,
   };
   const saved = await deps.store.save(row);
-  return { mailMessageId: saved.id, created: saved.created, classification, route, modelCalls: response ? [response] : [], fallbackReason };
+  return {
+    mailMessageId: saved.id,
+    created: saved.created,
+    classification,
+    route,
+    modelCalls: response ? [response] : [],
+    fallbackReason,
+    storedAttachments: attachments.filter((a) => a.status === "stored").length,
+  };
 }
 
 /** True when a failure should be retried by the workflow engine. */

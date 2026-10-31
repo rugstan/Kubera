@@ -57,6 +57,50 @@ describe("buildSubjectExport", () => {
     expect(withheld.records.leads[0]).not.toHaveProperty("intake");
   });
 
+  it("includes the person's emails, texts, notification log and newsletter signup, keyed by email and phone", async () => {
+    const db = new MemoryPrivacyDb();
+    const lead = db.insertRow("leads", { created_at: "2026-11-01T00:00:00Z", contact: { email: "pat@example.com", phone: "(310) 555-0100" }, intake: {} });
+    db.insertRow("mail_messages", {
+      received_at: "2026-11-02T00:00:00Z",
+      mailbox: "docs",
+      from_address: "Pat@Example.com",
+      subject: "My PFS",
+      body_text: "SSN [REDACTED]",
+      body_encrypted: "pii1.v1.sealed",
+      attachments: [{ fileName: "pfs.pdf", size: 10, contentType: "application/pdf", storagePath: "inbound-mail/docs/x/pfs.pdf", bucket: "deal-documents-quarantine", status: "stored" }],
+      classification: { flags: [] },
+      provider_message_id: "zoho-1",
+    });
+    db.insertRow("mail_messages", { received_at: "2026-11-02T00:00:00Z", from_address: "other@example.com", subject: "Not Pat" });
+    db.insertRow("sms_messages", { created_at: "2026-11-03T00:00:00Z", direction: "inbound", from_number: "+13105550100", to_number: "+14155550000", body: "STOP", keyword: "stop", provider_message_id: "tx-1" });
+    db.insertRow("sms_messages", { created_at: "2026-11-03T00:00:00Z", direction: "inbound", from_number: "+19995550100", to_number: "+14155550000", body: "Someone else" });
+    db.insertRow("notifications", { created_at: "2026-11-01T00:00:00Z", channel: "email", recipient: "pat@example.com", template_id: "lead_confirmation", audience: "borrower", idempotency_key: "k1" });
+    db.insertRow("notifications", { created_at: "2026-11-01T00:00:00Z", channel: "email", recipient: "deals@kuberacommercial.com", template_id: "staff_alert", audience: "staff", lead_id: lead.id });
+    db.insertRow("newsletter_subscribers", { created_at: "2026-11-01T00:00:00Z", email: "pat@example.com", status: "confirmed", resend_contact_id: "rc_1" });
+
+    const doc = await buildSubjectExport(db, "pat@example.com");
+    expect(doc.subject.phones).toEqual(["+13105550100"]);
+    expect(doc.records.emails).toHaveLength(1);
+    expect(doc.records.emails[0]).toMatchObject({ subject: "My PFS", body_text: "SSN [REDACTED]", attachments: [{ fileName: "pfs.pdf", size: 10, contentType: "application/pdf" }] });
+    expect(doc.records.emails[0]).not.toHaveProperty("body_encrypted");
+    expect(doc.records.emails[0]).not.toHaveProperty("provider_message_id");
+    expect(JSON.stringify(doc)).not.toContain("inbound-mail/");
+    expect(doc.withheld).toEqual([expect.objectContaining({ table: "mail_messages", field: "body_encrypted" })]);
+    expect(doc.records.textMessages).toEqual([expect.objectContaining({ body: "STOP", keyword: "stop" })]);
+    expect(doc.records.textMessages[0]).not.toHaveProperty("provider_message_id");
+    expect(doc.records.notificationsSent).toEqual([expect.objectContaining({ template_id: "lead_confirmation" })]);
+    expect(doc.records.newsletter).toEqual([expect.objectContaining({ status: "confirmed" })]);
+    expect(doc.records.newsletter[0]).not.toHaveProperty("resend_contact_id");
+    expect(JSON.stringify(doc)).not.toContain("Someone else");
+  });
+
+  it("uses the phone number given on the request form", async () => {
+    const db = new MemoryPrivacyDb();
+    db.insertRow("sms_messages", { created_at: "2026-11-03T00:00:00Z", direction: "inbound", from_number: "+13105550177", to_number: "+14155550000", body: "HELP" });
+    const doc = await buildSubjectExport(db, "nolead@example.com", { phones: ["310-555-0177"] });
+    expect(doc.records.textMessages).toHaveLength(1);
+  });
+
   it("hashes reproducibly regardless of key order", async () => {
     const { db } = seed();
     const now = new Date("2026-11-20T00:00:00Z");

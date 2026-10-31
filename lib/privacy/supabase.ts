@@ -17,7 +17,17 @@ export function exactIlikePattern(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`).replace(/\*/g, "_");
 }
 
-const sameEmail = (a: unknown, b: string) => typeof a === "string" && normalizeEmail(a) === b;
+const sameEmail = (a: unknown, b: string) => typeof a === "string" && normalizeEmail(a) === normalizeEmail(b);
+
+function dedupeById(rows: ExportRecord[]): ExportRecord[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    const k = String(r.id);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
 
 function fail(what: string, error: { message: string }): never {
   throw new Error(`${what}: ${error.message}`);
@@ -43,6 +53,16 @@ export function supabaseRetentionDb(db: SupabaseClient): RetentionDb {
       const { data, error } = await db.from(q.table).select(q.columns.join(",")).in(q.column, [...q.values]);
       if (error) fail(`${q.table} select failed`, error);
       return (data ?? []) as unknown as Record<string, unknown>[];
+    },
+    async selectByValue(q) {
+      if (!q.value) return [];
+      const cols = [...new Set([...q.columns, q.column])].join(",");
+      const base = db.from(q.table).select(cols);
+      const { data, error } = await (q.caseInsensitive ? base.ilike(q.column, exactIlikePattern(q.value)) : base.eq(q.column, q.value)).limit(q.limit);
+      if (error) fail(`${q.table} lookup failed`, error);
+      const rows = (data ?? []) as unknown as Record<string, unknown>[];
+      // ILIKE treats `*` as a one-character wildcard (see exactIlikePattern): re-check the match.
+      return q.caseInsensitive ? rows.filter((r) => typeof r[q.column] === "string" && (r[q.column] as string).toLowerCase() === q.value.toLowerCase()) : rows;
     },
     async deleteRows(table, ids) {
       const out: DeleteResult = { deleted: [], failed: [] };
@@ -107,6 +127,40 @@ export function supabaseSubjectSource(db: SupabaseClient): SubjectDataSource {
       const { data, error } = await db.from("privacy_preferences").select(cols("privacy_preferences")).eq("subject_email", normalizeEmail(email)).maybeSingle();
       if (error) fail("preferences export failed", error);
       return (data as ExportRecord | null) ?? null;
+    },
+    async mailFrom(email) {
+      const { data, error } = await db.from("mail_messages").select(cols("mail_messages")).ilike("from_address", exactIlikePattern(email)).order("received_at").limit(2000);
+      if (error) fail("mail export failed", error);
+      return ((data ?? []) as unknown as ExportRecord[]).filter((r) => sameEmail(r.from_address, email));
+    },
+    async smsForPhones(phones) {
+      const list = [...phones];
+      const [from, to] = await Promise.all([
+        db.from("sms_messages").select(cols("sms_messages")).in("from_number", list).limit(2000),
+        db.from("sms_messages").select(cols("sms_messages")).in("to_number", list).limit(2000),
+      ]);
+      if (from.error) fail("text export failed", from.error);
+      if (to.error) fail("text export failed", to.error);
+      return dedupeById([...((from.data ?? []) as unknown as ExportRecord[]), ...((to.data ?? []) as unknown as ExportRecord[])]);
+    },
+    async notificationsFor(q) {
+      const queries = [db.from("notifications").select(cols("notifications")).ilike("recipient", exactIlikePattern(q.email)).limit(2000)];
+      if (q.phones.length) queries.push(db.from("notifications").select(cols("notifications")).in("recipient", [...q.phones]).limit(2000));
+      if (q.leadIds.length) queries.push(db.from("notifications").select(cols("notifications")).in("lead_id", [...q.leadIds]).limit(2000));
+      const results = await Promise.all(queries);
+      const rows: ExportRecord[] = [];
+      for (const [i, r] of results.entries()) {
+        if (r.error) fail("notification export failed", r.error);
+        const list = (r.data ?? []) as unknown as ExportRecord[];
+        // The email query is ILIKE: keep exact matches only.
+        rows.push(...(i === 0 ? list.filter((n) => sameEmail(n.recipient, q.email)) : list));
+      }
+      return dedupeById(rows);
+    },
+    async newsletter(email) {
+      const { data, error } = await db.from("newsletter_subscribers").select(cols("newsletter_subscribers")).eq("email", normalizeEmail(email));
+      if (error) fail("newsletter export failed", error);
+      return (data ?? []) as unknown as ExportRecord[];
     },
   };
 }

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { maskPhone, phoneVariants } from "./phone";
 
 // Mirrors an SMS opt-out into Twenty (`person.smsOptOut`), the field brokers
@@ -17,6 +18,18 @@ export interface SmsOptOutSink {
 
 /** Finds Twenty person ids already known for a phone number (from leads / consent rows). */
 export type PersonIdResolver = (phoneE164: string) => Promise<string[]>;
+
+/** Twenty person ids already tied to a phone number through the consent ledger and the leads table. */
+export function supabaseKnownPersonIds(db: SupabaseClient | null): PersonIdResolver {
+  return async (phone) => {
+    if (!db) return [];
+    const { data: consent } = await db.from("consent_events").select("lead_id").eq("phone", phone).not("lead_id", "is", null).limit(50);
+    const leadIds = [...new Set((consent ?? []).map((r) => r.lead_id as string))];
+    if (leadIds.length === 0) return [];
+    const { data: leads } = await db.from("leads").select("twenty_person_id").in("id", leadIds).not("twenty_person_id", "is", null);
+    return [...new Set((leads ?? []).map((r) => r.twenty_person_id as string))];
+  };
+}
 
 export type TwentyOptOutConfig = {
   baseUrl: string;
@@ -78,11 +91,13 @@ export class TwentyOptOutSink implements SmsOptOutSink {
 export class MemoryOptOutSink implements SmsOptOutSink {
   readonly calls: { phone: string; optOut: boolean }[] = [];
   failWith: Error | null = null;
+  /** Phones with a Twenty person; null means every phone has one. */
+  people: Set<string> | null = null;
 
   async setOptOut(phoneE164: string, optOut: boolean) {
     if (this.failWith) throw this.failWith;
     this.calls.push({ phone: phoneE164, optOut });
-    return { updated: 1 };
+    return { updated: !this.people || this.people.has(phoneE164) ? 1 : 0 };
   }
 }
 

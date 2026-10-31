@@ -3,6 +3,8 @@ import { buildConsentEvent, recordConsent } from "@/lib/consent/ledger";
 import { consentPage, readConsentMeta } from "@/lib/consent/request";
 import { resolveConsentText } from "@/lib/consent/texts";
 import { pushPartner, twentyConfigured } from "@/lib/crm/twenty";
+import { smsConsentLookup } from "@/lib/notify/consent";
+import { notifyRuntime } from "@/lib/notify/runtime";
 import { guardPost } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { partnerSchema } from "@/lib/validation";
@@ -56,6 +58,8 @@ export async function POST(req: Request) {
     try {
       const refs = await pushPartner(reg, {
         consentEventId,
+        // A STOP already in the ledger for this number keeps it out of Twenty.
+        smsConsent: smsConsentLookup(notifyRuntime().consent),
         onProgress: async (progress) => {
           if (db && partnerId) await db.from("partners").update({ crm_progress: progress }).eq("id", partnerId);
         },

@@ -5,7 +5,8 @@
 // statuses and counts only, never email bodies, addresses or prompts.
 
 import type { OutboundAction } from "@/lib/compliance/approval-gate";
-import { INBOUND_MAILBOXES, type InboundMailbox } from "@/lib/mail/mailboxes";
+import { INBOUND_MAILBOXES, MAX_MAIL_ATTEMPTS, type InboundMailbox } from "@/lib/mail/mailboxes";
+import { shouldAlertReview } from "@/lib/mail/review";
 import { isRetryable, pollMailbox, processInboundMessage, recordInboundFailure, retryableFailures } from "@/lib/mail/inbound";
 import { runApprovedAction } from "./approval";
 import type { WorkflowDeps } from "./deps";
@@ -154,7 +155,15 @@ export async function inboundMailHandler(ctx: HandlerContext, deps: WorkflowDeps
     ),
   );
 
-  type Processed = Exclude<InboundResult, { status: "skipped"; reason: "mail_not_configured" }> & { modelCalls?: ReturnType<typeof modelCallFrom>[]; fallbackReason?: string | null; routingRefused?: boolean; reviewReasons?: string[] };
+  type Processed = Exclude<InboundResult, { status: "skipped"; reason: "mail_not_configured" }> & {
+    modelCalls?: ReturnType<typeof modelCallFrom>[];
+    fallbackReason?: string | null;
+    routingRefused?: boolean;
+    reviewReasons?: string[];
+    storedAttachments?: number;
+    /** Failed: the stored row and its attempt count (the review queue lists it once retries run out). */
+    failedRow?: { id: string; attempts: number } | null;
+  };
   const processed = await ctx.step.run("process", async (): Promise<Processed> => {
     try {
       const r = await processInboundMessage(data, mail, { agentRunId: runId, traceId: runId });
@@ -169,15 +178,38 @@ export async function inboundMailHandler(ctx: HandlerContext, deps: WorkflowDeps
         fallbackReason: r.fallbackReason,
         routingRefused: r.fallbackReason === "routing_refused",
         reviewReasons: r.route.reviewReasons,
+        storedAttachments: r.storedAttachments ?? 0,
       };
     } catch (err) {
       if (isRetryable(err) && !lastAttempt) throw err;
       const error = err instanceof Error ? err.message.slice(0, 500) : String(err);
       // Store the failure so the poller re-enqueues it (with backoff and a fresh key) instead of losing it.
-      await recordInboundFailure(data, mail, error, { agentRunId: runId });
-      return { status: "failed", error };
+      const failedRow = await recordInboundFailure(data, mail, error, { agentRunId: runId });
+      return { status: "failed", error, failedRow };
     }
   });
+
+  // deals@ and docs@ mail that nobody would otherwise see pages staff (pre-approved staff_alert; ids and counts only).
+  const alertId =
+    processed.status === "needs_review" ? processed.mailMessageId : processed.status === "failed" && processed.failedRow && processed.failedRow.attempts >= MAX_MAIL_ATTEMPTS ? processed.failedRow.id : null;
+  if (alertId && mail.reviewAlert && shouldAlertReview(data.mailbox)) {
+    const alert = mail.reviewAlert;
+    await ctx.step.run("review-alert", async () => {
+      try {
+        await alert({
+          mailMessageId: alertId,
+          mailbox: data.mailbox,
+          category: processed.status === "needs_review" ? processed.category : "unknown",
+          reviewReasons: processed.status === "needs_review" ? (processed.reviewReasons ?? []) : ["processing_failed"],
+          storedAttachments: processed.status === "needs_review" ? (processed.storedAttachments ?? 0) : 0,
+        });
+        return { alerted: true };
+      } catch (err) {
+        console.error("[mail] review alert failed", err instanceof Error ? err.message : err);
+        return { alerted: false };
+      }
+    });
+  }
 
   await ctx.step.run("finish-run", () =>
     deps.runs.finish(

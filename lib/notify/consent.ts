@@ -61,6 +61,15 @@ export function consentState(records: readonly ConsentRecord[], channel: Channel
   };
 }
 
+/**
+ * The latest SMS consent state for an E.164 phone, for CRM pushes
+ * (lib/crm/twenty.ts PushOptions.smsConsent): a revoked number is never
+ * written to Twenty as textable.
+ */
+export function smsConsentLookup(reader: ConsentReader): (phoneE164: string) => Promise<ConsentState["state"]> {
+  return async (phone) => consentState(await reader.history("sms", { phone }), "sms").state;
+}
+
 export function consentAllows(policy: ConsentPolicy, state: ConsentState): boolean {
   if (policy === "none") return true;
   if (policy === "not_revoked") return state.state !== "revoked";

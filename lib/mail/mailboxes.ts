@@ -29,6 +29,9 @@ export const MAILBOXES: Readonly<Record<InboundMailbox, MailboxConfig>> = {
   closing: { id: "closing", queue: "closing", description: "Title, escrow and closing coordination (pre-closing only).", crmSync: true, vaultAttachments: false },
 };
 
+/** Failed processing attempts before a message is left for staff (the review queue lists it). */
+export const MAX_MAIL_ATTEMPTS = 6;
+
 export function mailDomain(env: Record<string, string | undefined> = process.env): string {
   return env.MAIL_DOMAIN?.trim().toLowerCase() || "kuberacommercial.com";
 }

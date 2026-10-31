@@ -8,6 +8,7 @@ import type { ConsentEvent, ConsentLedger, StoredConsentEvent } from "@/lib/cons
 import { MemoryConsentReader } from "./consent";
 import { FakeEmailClient } from "./email/fake";
 import { MemoryOptOutSink } from "./optout";
+import { MemoryOptOutSyncQueue } from "./optout-sync";
 import { Notifier } from "./service";
 import { FakeSmsClient } from "./sms/fake";
 import { MemoryNotifyStore } from "./store";
@@ -48,6 +49,7 @@ export function makeHarness(opts: HarnessOptions = {}) {
   const ledger = new TestLedger();
   const gate = opts.gate ?? new FakeApprovalGate("approved");
   const optOut = new MemoryOptOutSink();
+  const optOutSync = new MemoryOptOutSyncQueue();
   const consent = new MemoryConsentReader(() => ledger.events);
   const notifier = new Notifier({
     email: opts.email === false ? null : email,
@@ -80,7 +82,7 @@ export function makeHarness(opts: HarnessOptions = {}) {
     return event;
   };
 
-  return { clock, store, email, sms, ledger, gate, optOut, consent, notifier, grant };
+  return { clock, store, email, sms, ledger, gate, optOut, optOutSync, consent, notifier, grant };
 }
 
 export type Harness = ReturnType<typeof makeHarness>;

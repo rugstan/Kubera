@@ -8,7 +8,8 @@ import { MemoryConsentReader, SupabaseConsentReader, type ConsentReader } from "
 import { emailClientFromEnv } from "./email";
 import { preApprovedFromEnv } from "./gate";
 import { MemoryLeadSource, SupabaseLeadSource, type LeadSource } from "./leads";
-import { optOutSinkFromEnv, type PersonIdResolver } from "./optout";
+import { optOutSinkFromEnv, supabaseKnownPersonIds } from "./optout";
+import { MemoryOptOutSyncQueue, supabaseOptOutSyncQueue, type OptOutSyncQueue } from "./optout-sync";
 import { Notifier } from "./service";
 import { smsClientFromEnv } from "./sms";
 import type { TelnyxWebhookDeps } from "./sms/webhook";
@@ -81,17 +82,16 @@ export function setNotifyRuntime(runtime: NotifyRuntime | undefined) {
   cached = runtime;
 }
 
-/** Twenty person ids already tied to a phone number through the consent ledger and the leads table. */
-function knownPersonIds(db: SupabaseClient | null): PersonIdResolver {
-  return async (phone) => {
-    if (!db) return [];
-    const { data: consent } = await db.from("consent_events").select("lead_id").eq("phone", phone).not("lead_id", "is", null).limit(50);
-    const leadIds = [...new Set((consent ?? []).map((r) => r.lead_id as string))];
-    if (leadIds.length === 0) return [];
-    const { data: leads } = await db.from("leads").select("twenty_person_id").in("id", leadIds).not("twenty_person_id", "is", null);
-    return [...new Set((leads ?? []).map((r) => r.twenty_person_id as string))];
-  };
+let memoryOptOutSync: MemoryOptOutSyncQueue | undefined;
+
+/** Pending Twenty opt-out syncs (crm_optout_sync), retried by the crm-retry cron. */
+export function optOutSyncQueue(): OptOutSyncQueue {
+  const db = notifyRuntime().db;
+  if (db) return supabaseOptOutSyncQueue(db);
+  memoryOptOutSync ??= new MemoryOptOutSyncQueue();
+  return memoryOptOutSync;
 }
+
 
 export function telnyxWebhookDeps(): TelnyxWebhookDeps {
   const rt = notifyRuntime();
@@ -101,7 +101,8 @@ export function telnyxWebhookDeps(): TelnyxWebhookDeps {
     notifier: rt.notifier,
     ledger: rt.ledger,
     consent: rt.consent,
-    optOut: optOutSinkFromEnv(knownPersonIds(rt.db)),
+    optOut: optOutSinkFromEnv(supabaseKnownPersonIds(rt.db)),
+    optOutSync: optOutSyncQueue(),
     staffEmails: rt.staff.emails,
     now: () => new Date(),
   };
