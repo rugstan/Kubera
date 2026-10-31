@@ -84,20 +84,29 @@ export function invoiceText(inv: Invoice, dealTitle: string): string {
 
 export type InvoiceMailer = { send(msg: { to: string; subject: string; text: string; idempotencyKey: string }): Promise<{ messageId: string }> };
 
-/** Email the invoice once a broker approves it. Without a mailer it stays approved-but-unsent (pending). */
+export type IssueInvoiceResult = { issued: boolean; invoice: Invoice; decision?: ApprovalDecision };
+
+/**
+ * Email the invoice once a broker approves it. The approval is claimed only
+ * when the email goes out in the same call, so a missing mailer is refused up
+ * front (nothing is requested, nothing is used up) and an approval is never
+ * recorded as executed without a send.
+ */
 export async function issueInvoice(
   deps: { store: DealDeskStore; gate: ApprovalGate; now: Clock; mailer?: InvoiceMailer | null },
   id: string,
   actor: string,
-): Promise<{ issued: boolean; invoice: Invoice; decision?: ApprovalDecision }> {
+): Promise<IssueInvoiceResult> {
   const inv = await deps.store.getInvoice(id);
   if (!inv) throw new InvoiceError(`Invoice ${id} not found`);
   if (inv.status === "issued" || inv.status === "settled") return { issued: true, invoice: inv };
   if (inv.status === "void") throw new InvoiceError("Invoice is void");
   if (!inv.billToEmail) throw new InvoiceError("Add the bill-to email before issuing");
+  if (!deps.mailer) throw new InvoiceError("Invoice email is not configured (RESEND_API_KEY); nothing was requested or sent. Send the invoice from your mailbox, then record it as settled against the closing statement.");
   const deal = await deps.store.getDeal(inv.dealId);
   const key = `email:invoice:${inv.id}:${inv.documentSha256}`;
   const text = invoiceText(inv, deal?.title ?? inv.dealId);
+  // A mailer is present: an "approved" answer is claimed here and sent immediately below.
   const decision = await deps.gate.request({
     kind: "email",
     idempotencyKey: key,
@@ -107,13 +116,26 @@ export async function issueInvoice(
     requestedBy: actor,
   });
   const now = deps.now();
-  if (!isApproved(decision) || !deps.mailer) {
-    const invoice = await deps.store.updateInvoice(inv.id, { status: "pending_approval", approvalKey: key, approvalId: "approvalId" in decision ? (decision.approvalId ?? null) : null }, actor, now);
+  if (!isApproved(decision)) {
+    const approvalId = "approvalId" in decision ? (decision.approvalId ?? null) : null;
+    // Only a pending approval keeps the invoice waiting; a rejected / expired / used-up one returns it to draft.
+    const status = decision.status === "pending" ? "pending_approval" : "draft";
+    const invoice = await deps.store.updateInvoice(inv.id, { status, approvalKey: key, approvalId }, actor, now);
     return { issued: false, invoice, decision };
   }
   await deps.mailer.send({ to: inv.billToEmail, subject: `Kubera Commercial invoice ${inv.number}`, text, idempotencyKey: key });
   const invoice = await deps.store.updateInvoice(inv.id, { status: "issued", issuedAt: now.toISOString(), approvalKey: key, approvalId: decision.approvalId }, actor, now);
   return { issued: true, invoice, decision };
+}
+
+/** One line for staff describing what issueInvoice did. */
+export function issueInvoiceMessage(r: IssueInvoiceResult): string {
+  if (r.issued) return `Invoice ${r.invoice.number} emailed.`;
+  const d = r.decision;
+  if (!d || d.status === "pending") return `Invoice ${r.invoice.number} is waiting for broker approval in the approvals queue; nothing was sent. Click Email again once it is approved.`;
+  if (d.status === "expired") return `The approval for invoice ${r.invoice.number} expired; nothing was sent. Void and re-draft the invoice to request a new approval.`;
+  if (d.status === "rejected" && d.reason === "already_executed") return `The approval for invoice ${r.invoice.number} was already used; nothing more was sent. Void and re-draft the invoice to request a new approval.`;
+  return `A broker rejected emailing invoice ${r.invoice.number}${d.status === "rejected" && d.reason ? ` (${d.reason})` : ""}; nothing was sent.`;
 }
 
 /** The closing statement shows the compensation paid through escrow / title. */

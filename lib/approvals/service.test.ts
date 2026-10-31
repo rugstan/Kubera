@@ -206,6 +206,21 @@ describe("queueApprovalGate", () => {
     expect(await gate.request(action)).toMatchObject({ status: "rejected", reason: "already_executed" });
   });
 
+  it("peek answers without claiming, so the approval stays available for the send", async () => {
+    const { service } = setup();
+    const gate = queueApprovalGate(service);
+    const pending = await gate.peek!(action);
+    expect(pending).toMatchObject({ status: "pending" });
+    const id = pending.status === "pending" ? pending.approvalId! : "";
+    await service.approve(id, broker);
+    expect(await gate.peek!(action)).toMatchObject({ status: "approved", approvalId: id });
+    expect(await gate.peek!(action)).not.toHaveProperty("executedAt");
+    expect((await service.get(id))!.executedAt).toBeNull();
+    expect(await gate.request(action)).toMatchObject({ status: "approved" });
+    expect(await gate.peek!(action)).toMatchObject({ status: "approved", executedAt: expect.any(Date) });
+    expect(await gate.request(action)).toMatchObject({ status: "rejected", reason: "already_executed" });
+  });
+
   it("maps rejected, cancelled and expired decisions to non-sending answers", async () => {
     const { service, advance } = setup();
     const gate = queueApprovalGate(service, { ttlMinutes: 5 });

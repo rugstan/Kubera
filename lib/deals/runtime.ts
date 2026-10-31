@@ -8,12 +8,14 @@ import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage, DisclosureStore } from "@/lib/disclosures/store";
 import { SupabaseDisclosureStore, SupabaseDocumentStorage } from "@/lib/disclosures/store-supabase";
 import { esignProvider } from "@/lib/esign";
+import { emailClientFromEnv } from "@/lib/notify/email";
 import { notifyRuntime } from "@/lib/notify/runtime";
 import type { EsignProvider } from "@/lib/esign/types";
 import { site } from "@/lib/site";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 import type { BrokerIdentity } from "./dre";
 import type { Form159Data } from "./form159";
+import { emailLenderMailer } from "./mailer";
 import type { LenderMailer } from "./packages";
 import type { DealDeskDeps } from "./service";
 import { notifierStageSink, type DealStageEventSink } from "./stage-events";
@@ -33,7 +35,7 @@ export type DealDeskRuntime = {
   storage: DocumentStorage;
   gate: ApprovalGate;
   esign: EsignProvider | null;
-  /** Outbound mail adapter for approved lender submissions and notices (WS-J); null = broker sends manually. */
+  /** Outbound mail (Resend, WS-J) for approved lender submissions, lender notices and invoices; null = broker sends manually. */
   mailer: LenderMailer | null;
   baseUrl: string;
   now: () => Date;
@@ -62,7 +64,7 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     storage: new SupabaseDocumentStorage(db),
     gate: approvalGate(),
     esign: esignProvider(),
-    mailer: null,
+    mailer: emailLenderMailer(emailClientFromEnv()),
     baseUrl: site.siteUrl,
     now: () => new Date(),
     checklist: checklistFromDesk(),

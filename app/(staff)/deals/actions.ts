@@ -13,9 +13,9 @@ import { DealError, advanceDeal, createDeal, editDeal } from "@/lib/deals/servic
 import { LockedFieldError } from "@/lib/deals/stages";
 import { LedgerError, agencySplit, assertFeeTransition, brokerFee, hardMoneyPoints, partnerSplit, sbaLenderReferralFee, sbaPackagingFee } from "@/lib/deals/ledger";
 import { MoneyError, dollarsToCents } from "@/lib/deals/money";
-import { InvoiceError, createInvoice, issueInvoice, settleInvoice, voidInvoice } from "@/lib/deals/invoices";
-import { PackageError, markOutreachSent, recordLenderResponse, sendPackageToLender, withdrawOutreach } from "@/lib/deals/packages";
-import { ModificationError, applyModificationTerms, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, withdrawModification } from "@/lib/deals/modifications";
+import { InvoiceError, createInvoice, issueInvoice, issueInvoiceMessage, settleInvoice, voidInvoice } from "@/lib/deals/invoices";
+import { PackageError, checkOutreachApproval, markOutreachSent, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type SendPackageResult } from "@/lib/deals/packages";
+import { ModificationError, applyModificationTerms, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, withdrawModification } from "@/lib/deals/modifications";
 import { Form159BlockedError, generateForm159, sendForm159 } from "@/lib/deals/form159";
 import { parseLender } from "@/lib/deals/lenders";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
@@ -225,8 +225,7 @@ export async function invoiceAction(f: FormData): Promise<never> {
     const invoiceId = str(f, "invoiceId");
     switch (str(f, "op")) {
       case "issue": {
-        const r = await issueInvoice({ store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer }, invoiceId, staff.actor);
-        return r.issued ? "Invoice emailed." : "Invoice is waiting for broker approval; nothing was sent.";
+        return issueInvoiceMessage(await issueInvoice({ store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer }, invoiceId, staff.actor));
       }
       case "settle":
         await settleInvoice({ store: rt.store, now: rt.now }, invoiceId, { settledOn: str(f, "settledOn"), closingStatementRef: str(f, "closingStatementRef") }, staff.actor);
@@ -252,13 +251,15 @@ export async function sendPackageAction(f: FormData): Promise<never> {
       { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer },
       { dealId: id, lenderId: str(f, "lenderId"), items, actor: staff.actor, ttlDays: num(f, "ttlDays"), allowStaleLender: bool(f, "allowStale"), note: opt(f, "note") ?? undefined },
     );
-    if (r.shareUrl) {
-      // Shown once on the next page view; never put in the URL or the logs.
-      (await cookies()).set("deal_share_url", r.shareUrl, { httpOnly: true, secure: true, sameSite: "strict", path: dealPath(id), maxAge: 120 });
-    }
-    const status = r.outreach.status.replace(/_/g, " ");
-    return `Package v${r.pkg.version} locked; submission ${status}.`;
+    await rememberShareUrl(id, r);
+    return outreachMessage(r);
   });
+}
+
+/** The one-time share URL, shown on the next page view; never put in the URL or the logs. */
+async function rememberShareUrl(dealId: string, r: SendPackageResult): Promise<void> {
+  if (!r.shareUrl) return;
+  (await cookies()).set("deal_share_url", r.shareUrl, { httpOnly: true, secure: true, sameSite: "strict", path: dealPath(dealId), maxAge: 120 });
 }
 
 export async function outreachAction(f: FormData): Promise<never> {
@@ -266,6 +267,11 @@ export async function outreachAction(f: FormData): Promise<never> {
   return run(dealPath(id), "write", async ({ staff, rt }) => {
     const outreachId = str(f, "outreachId");
     switch (str(f, "op")) {
+      case "check": {
+        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
+        await rememberShareUrl(id, r);
+        return outreachMessage(r);
+      }
       case "sent":
         await markOutreachSent(rt.store, outreachId, staff.actor, rt.now(), opt(f, "messageId") ?? undefined);
         return "Marked sent.";
@@ -336,7 +342,7 @@ export async function modificationAction(f: FormData): Promise<never> {
         await recordLenderNoticeSent(deps, modId, rt.now(), staff.actor);
         return "Lender notice recorded as sent.";
       case "retry_notice":
-        return `Lender notice: ${(await retryLenderNotice(deps, modId, staff.actor)).status.replace(/_/g, " ")}.`;
+        return lenderNoticeMessage(await retryLenderNotice(deps, modId, staff.actor));
       case "apply_terms": {
         const lockedTerms = Object.fromEntries(
           Object.entries({ noteRatePct: num(f, "noteRatePct"), termMonths: num(f, "termMonths") }).filter(([, v]) => v !== undefined),

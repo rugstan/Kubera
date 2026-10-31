@@ -7,6 +7,7 @@ import { FEE_ENTRY_LABELS, DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type Fe
 import { FORM159_BLOCKING_FLAGS, type Form159Flag } from "@/lib/deals/form159";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
 import { panelForDeal } from "@/lib/deals/lenders";
+import { lenderNoticeText } from "@/lib/deals/modifications";
 import { currentStaff, dealDeskRuntime, deskDeps, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { stageContext } from "@/lib/deals/service";
 import { can, type StaffSession } from "@/lib/deals/session";
@@ -295,6 +296,14 @@ async function OutreachPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRunt
           when(o.sentAt),
           write ? (
             <div className="flex flex-wrap gap-2" key="a">
+              {o.status === "pending_approval" ? (
+                <form action={outreachAction}>
+                  <input name="dealId" type="hidden" value={deal.id} />
+                  <input name="outreachId" type="hidden" value={o.id} />
+                  <input name="op" type="hidden" value="check" />
+                  <Submit tone="glass">Check approval</Submit>
+                </form>
+              ) : null}
               {o.status === "approved" ? (
                 <form action={outreachAction}>
                   <input name="dealId" type="hidden" value={deal.id} />
@@ -469,12 +478,16 @@ async function LedgerPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntim
           </Badge>,
           write && inv.status !== "settled" && inv.status !== "void" ? (
             <div className="flex flex-wrap gap-2" key="a">
-              <form action={invoiceAction}>
-                <input name="dealId" type="hidden" value={deal.id} />
-                <input name="invoiceId" type="hidden" value={inv.id} />
-                <input name="op" type="hidden" value="issue" />
-                <Submit tone="glass">Email (needs approval)</Submit>
-              </form>
+              {rt.mailer && inv.billToEmail ? (
+                <form action={invoiceAction}>
+                  <input name="dealId" type="hidden" value={deal.id} />
+                  <input name="invoiceId" type="hidden" value={inv.id} />
+                  <input name="op" type="hidden" value="issue" />
+                  <Submit tone="glass">{inv.status === "pending_approval" ? "Check approval and email" : "Email (needs approval)"}</Submit>
+                </form>
+              ) : (
+                <p className="self-center text-xs text-titanium">{rt.mailer ? "No bill-to email; send it from your mailbox." : "Invoice email is not configured; send it from your mailbox."}</p>
+              )}
               <form action={invoiceAction} className="flex flex-wrap gap-2">
                 <input name="dealId" type="hidden" value={deal.id} />
                 <input name="invoiceId" type="hidden" value={inv.id} />
@@ -593,9 +606,15 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
         rows={mods.map((m) => [
           m.kind,
           m.facts.effectiveDate,
-          <Badge key="s" tone={m.status === "documented" || m.status === "no_exemption_representation" ? "good" : m.status === "held_for_counsel" || m.status === "blocked" ? "bad" : "warn"}>
-            {m.status.replace(/_/g, " ")}
-          </Badge>,
+          <div className="flex flex-col items-start gap-1" key="s">
+            <Badge tone={m.status === "documented" || m.status === "no_exemption_representation" ? "good" : m.status === "held_for_counsel" || m.status === "blocked" ? "bad" : "warn"}>{m.status.replace(/_/g, " ")}</Badge>
+            {m.status === "pending_lender_notice" && m.lenderNoticeApprovedAt ? (
+              <details className="max-w-md text-xs">
+                <summary className="cursor-pointer text-ink">Notice approved {when(m.lenderNoticeApprovedAt)}: send this text to the lender, then click Notice sent</summary>
+                <pre className="mt-2 whitespace-pre-wrap rounded-xl bg-black/5 p-3 font-sans text-ink">{lenderNoticeText(deal, m)}</pre>
+              </details>
+            ) : null}
+          </div>,
           <div className="flex flex-wrap gap-1" key="f">
             {m.flags.map((f) => (
               <Badge key={f} tone="warn">

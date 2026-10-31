@@ -19,14 +19,30 @@ export type OutboundAction = {
 };
 
 export type ApprovalDecision =
-  | { status: "approved"; approvalId: string; decidedBy: string; decidedAt: Date }
+  /** From peek(): `executedAt` is set when the approved action was already carried out (claimed). */
+  | { status: "approved"; approvalId: string; decidedBy: string; decidedAt: Date; executedAt?: Date }
   | { status: "pending"; approvalId?: string }
   | { status: "rejected"; approvalId: string; decidedBy: string; reason?: string }
   | { status: "expired"; approvalId: string };
 
 export interface ApprovalGate {
-  /** Request (or look up, by idempotency key) the approval for `action`. */
+  /**
+   * Request (or look up, by idempotency key) the approval for `action`. An
+   * "approved" answer is handed out once: it claims the execution, so call this
+   * only right before the action is actually carried out.
+   */
   request(action: OutboundAction): Promise<ApprovalDecision>;
+  /**
+   * Request (or look up) the approval WITHOUT claiming it: for showing status,
+   * or when nothing can be sent right now (no mailer configured). An "approved"
+   * answer here authorizes nothing; call request() immediately before sending.
+   */
+  peek?(action: OutboundAction): Promise<ApprovalDecision>;
+}
+
+/** The gate's non-claiming answer; a gate that cannot peek reports pending (never consumes an approval). */
+export async function peekApproval(gate: ApprovalGate, action: OutboundAction): Promise<ApprovalDecision> {
+  return gate.peek ? gate.peek(action) : { status: "pending" };
 }
 
 let warned = false;
@@ -40,6 +56,9 @@ export const closedApprovalGate: ApprovalGate = {
     }
     return { status: "pending" };
   },
+  async peek(action) {
+    return closedApprovalGate.request(action);
+  },
 };
 
 export function isApproved(decision: ApprovalDecision): decision is Extract<ApprovalDecision, { status: "approved" }> {
@@ -49,6 +68,8 @@ export function isApproved(decision: ApprovalDecision): decision is Extract<Appr
 /** In-memory gate for tests: decisions are scripted per idempotency key or by a default. */
 export class FakeApprovalGate implements ApprovalGate {
   readonly requests: OutboundAction[] = [];
+  /** Non-claiming lookups (peek). */
+  readonly peeks: OutboundAction[] = [];
   private readonly decisions = new Map<string, ApprovalDecision>();
 
   constructor(private readonly defaultStatus: ApprovalDecision["status"] = "approved") {}
@@ -59,9 +80,18 @@ export class FakeApprovalGate implements ApprovalGate {
 
   async request(action: OutboundAction): Promise<ApprovalDecision> {
     this.requests.push(action);
+    return this.decisionFor(action, `appr_${this.requests.length}`);
+  }
+
+  /** Same scripted answer as request(); the fake never claims, so peeks and requests agree. */
+  async peek(action: OutboundAction): Promise<ApprovalDecision> {
+    this.peeks.push(action);
+    return this.decisionFor(action, `appr_peek_${this.peeks.length}`);
+  }
+
+  private decisionFor(action: OutboundAction, approvalId: string): ApprovalDecision {
     const scripted = this.decisions.get(action.idempotencyKey);
     if (scripted) return scripted;
-    const approvalId = `appr_${this.requests.length}`;
     const decision: ApprovalDecision =
       this.defaultStatus === "approved"
         ? { status: "approved", approvalId, decidedBy: "broker@test", decidedAt: new Date(0) }

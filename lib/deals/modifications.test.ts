@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ModificationFacts } from "@/lib/compliance/schemas";
 import { applyStageEvent } from "./stages";
-import { applyModificationTerms, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, updateModificationFacts, withdrawModification } from "./modifications";
+import { queueApprovalGate } from "@/lib/approvals/gate";
+import { ApprovalService } from "@/lib/approvals/service";
+import { MemoryApprovalStore } from "@/lib/approvals/store";
+import { applyModificationTerms, lenderNoticeKey, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, updateModificationFacts, withdrawModification } from "./modifications";
 import type { LenderMailer } from "./packages";
 import { fullElements, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
 
@@ -67,18 +70,23 @@ describe("modification gate (SB 1146)", () => {
     const m = await submitModification({ store, gate, now, mailer: mail }, { dealId: deal.id, facts, actor: "broker:ana", fee: { principalCents: 1, flatCents: 100, payer: "borrower" } });
     expect(m.status).toBe("pending_lender_notice");
     expect(m.flags).toEqual(expect.arrayContaining(["no_exemption_representation", "lender_written_notice_required"]));
-    expect(gate.requests).toHaveLength(1);
-    expect(gate.requests[0]).toMatchObject({ kind: "lender_notice", templateId: "lender_no_exemption_notice_v1", idempotencyKey: `lender_notice:no_exemption:${m.id}` });
+    // Pending: the approval is only looked up (never claimed) until the notice can go out.
+    expect(gate.requests).toHaveLength(0);
+    expect(gate.peeks).toHaveLength(1);
+    expect(gate.peeks[0]).toMatchObject({ kind: "lender_notice", templateId: "lender_no_exemption_notice_v1", idempotencyKey: `lender_notice:no_exemption:${m.id}` });
     expect(mail.sent).toHaveLength(0);
     // Kubera did not arrange it, so no arranging fee is recorded.
     expect(await store.listFeeEntries(deal.id)).toHaveLength(0);
 
     gate.decide(`lender_notice:no_exemption:${m.id}`, { status: "expired", approvalId: "appr_1" });
-    expect((await retryLenderNotice({ store, gate, now, mailer: mail }, m.id, "a")).status).toBe("pending_lender_notice");
+    const expired = await retryLenderNotice({ store, gate, now, mailer: mail }, m.id, "a");
+    expect(expired).toMatchObject({ notice: "expired", modification: { status: "pending_lender_notice" } });
     expect(mail.sent).toHaveLength(0);
 
     gate.decide(`lender_notice:no_exemption:${m.id}`, { status: "approved", approvalId: "appr_2", decidedBy: "broker:lee", decidedAt: now() });
-    const done = await retryLenderNotice({ store, gate, now, mailer: mail }, m.id, "a");
+    const result = await retryLenderNotice({ store, gate, now, mailer: mail }, m.id, "a");
+    expect(result.notice).toBe("sent");
+    const done = result.modification;
     expect(done.status).toBe("no_exemption_representation");
     expect(done.lenderNoticeSentAt).not.toBeNull();
     expect(mail.sent).toHaveLength(1);
@@ -99,6 +107,69 @@ describe("modification gate (SB 1146)", () => {
     const ctx = setup();
     const deal = await newDeal(ctx.store, ctx.now);
     await expect(submitModification({ store: ctx.store, gate: ctx.gate, now: ctx.now }, { dealId: deal.id, facts: ext(), actor: "a" })).rejects.toMatchObject({ reason: "no_loan_record" });
+  });
+});
+
+describe("lender notice on the real approval queue", () => {
+  const broker = { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" };
+
+  async function queued() {
+    const ctx = await world();
+    const service = new ApprovalService(new MemoryApprovalStore(), ctx.now);
+    const gate = queueApprovalGate(service);
+    const lenderOnly = ext({ arrangedBy: "lender_or_servicer_only", elements: { negotiationLog: [], businessPurposeCertified: false } });
+    return { ...ctx, service, gate, lenderOnly };
+  }
+
+  it("without a mailer, an approved notice is recorded for staff and the approval is not used up", async () => {
+    const { store, gate, service, now, deal, lenderOnly } = await queued();
+    const m = await submitModification({ store, gate, now, mailer: null }, { dealId: deal.id, facts: lenderOnly, actor: "broker:ana" });
+    expect(m.status).toBe("pending_lender_notice");
+    const approval = (await service.getByKey(lenderNoticeKey(m.id)))!;
+    expect(approval.status).toBe("pending");
+
+    expect((await retryLenderNotice({ store, gate, now, mailer: null }, m.id, "a")).notice).toBe("pending");
+    expect((await service.approve(approval.id, broker)).ok).toBe(true);
+
+    const first = await retryLenderNotice({ store, gate, now, mailer: null }, m.id, "a");
+    expect(first).toMatchObject({ notice: "approved_send_manually", why: "no_mailer" });
+    expect(first.notice === "approved_send_manually" && first.text).toMatch(/makes no representation that any exemption/);
+    expect(first.modification).toMatchObject({ status: "pending_lender_notice", lenderNoticeApprovalId: approval.id });
+    expect(first.modification.lenderNoticeApprovedAt).not.toBeNull();
+    expect(lenderNoticeMessage(first)).toMatch(/approved the lender notice/);
+    // Not claimed: the queue does not claim a notice that never went out.
+    expect((await service.get(approval.id))!.executedAt).toBeNull();
+
+    // Checking again gives the same answer (no silent already_executed).
+    expect((await retryLenderNotice({ store, gate, now, mailer: null }, m.id, "a")).notice).toBe("approved_send_manually");
+
+    // Staff send it and record it: the approval is executed now.
+    const done = await recordLenderNoticeSent({ store, gate, now, mailer: null }, m.id, now(), "broker:ana");
+    expect(done.status).toBe("no_exemption_representation");
+    expect((await service.get(approval.id))!.executedAt).not.toBeNull();
+  });
+
+  it("with a mailer, the approval is claimed only by the send, once", async () => {
+    const { store, gate, service, now, deal, lenderOnly, m: mail } = await queued();
+    const m = await submitModification({ store, gate, now, mailer: mail }, { dealId: deal.id, facts: lenderOnly, actor: "broker:ana" });
+    const approval = (await service.getByKey(lenderNoticeKey(m.id)))!;
+    await service.approve(approval.id, broker);
+    const sent = await retryLenderNotice({ store, gate, now, mailer: mail }, m.id, "a");
+    expect(sent.notice).toBe("sent");
+    expect(sent.modification.status).toBe("no_exemption_representation");
+    expect(mail.sent).toHaveLength(1);
+    expect((await service.get(approval.id))!.executedAt).not.toBeNull();
+    expect((await retryLenderNotice({ store, gate, now, mailer: mail }, m.id, "a")).notice).toBe("not_required");
+    expect(mail.sent).toHaveLength(1);
+  });
+
+  it("reports a rejected notice", async () => {
+    const { store, gate, service, now, deal, lenderOnly } = await queued();
+    const m = await submitModification({ store, gate, now }, { dealId: deal.id, facts: lenderOnly, actor: "broker:ana" });
+    await service.reject((await service.getByKey(lenderNoticeKey(m.id)))!.id, broker, "Wrong lender");
+    const r = await retryLenderNotice({ store, gate, now }, m.id, "a");
+    expect(r).toMatchObject({ notice: "rejected", reason: "Wrong lender" });
+    expect(lenderNoticeMessage(r)).toMatch(/rejected/);
   });
 });
 

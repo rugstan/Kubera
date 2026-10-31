@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { GuardError } from "./store";
-import { canonicalManifest, lockPackageVersion, manifestDigest, markOutreachSent, outreachApprovalKey, recordLenderResponse, sendPackageToLender, withdrawOutreach, type LenderMailer } from "./packages";
+import { queueApprovalGate } from "@/lib/approvals/gate";
+import { ApprovalService } from "@/lib/approvals/service";
+import { MemoryApprovalStore } from "@/lib/approvals/store";
+import { canonicalManifest, checkOutreachApproval, lockPackageVersion, manifestDigest, markOutreachSent, outreachApprovalKey, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type LenderMailer } from "./packages";
 import { hashShareToken, resolveShareLink, tokenMatches } from "./share-links";
 import { docs, lenderInput, newDeal, setup } from "./test-fixtures";
 
@@ -124,6 +127,77 @@ describe("package lock and version on send", () => {
 
     const cmbs = await store.insertLender(lenderInput({ name: "CMBS only", programs: ["HOTEL_CMBS"] }), "a", now());
     await expect(sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: cmbs.id, items: docs(1), actor: "a" })).rejects.toMatchObject({ reason: "lender_program" });
+  });
+});
+
+describe("checking a pending submission", () => {
+  const broker = { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" };
+
+  async function queued() {
+    const w = await world();
+    const service = new ApprovalService(new MemoryApprovalStore(), w.now);
+    return { ...w, service, gate: queueApprovalGate(service) };
+  }
+
+  it("mints the share link once a broker approves, without re-submitting the package", async () => {
+    const { store, gate, service, now, deal, lender } = await queued();
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Rush, please" });
+    expect(first.outreach.status).toBe("pending_approval");
+    expect(outreachMessage(first)).toMatch(/Check approval/);
+    const approval = (await service.getByKey(first.outreach.approvalKey))!;
+    expect(approval.summary).toContain("note: Rush, please");
+    expect(approval.payload).not.toHaveProperty("note");
+
+    // Still pending: nothing changes.
+    expect((await checkOutreachApproval({ store, gate, now, baseUrl: base }, first.outreach.id, "a")).outreach.status).toBe("pending_approval");
+
+    // A re-send with another note reuses the same approval instead of conflicting.
+    const again = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Different note" });
+    expect(again.outreach.id).toBe(first.outreach.id);
+
+    await service.approve(approval.id, broker);
+    const packagesBefore = (await store.listPackages(deal.id)).length;
+    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base }, first.outreach.id, "broker:ana");
+    expect(r.outreach).toMatchObject({ status: "approved", approvalId: approval.id });
+    expect(r.shareUrl).toMatch(/\/api\/deals\/share\//);
+    expect((await store.listPackages(deal.id)).length).toBe(packagesBefore);
+    expect(store.links.size).toBe(1);
+    // Checking again does nothing more (the approval was used by the link).
+    const later = await checkOutreachApproval({ store, gate, now, baseUrl: base }, first.outreach.id, "broker:ana");
+    expect(later.shareUrl).toBeUndefined();
+    expect(store.links.size).toBe(1);
+  });
+
+  it("emails the lender on approval when a mailer is configured", async () => {
+    const { store, gate, service, now, deal, lender } = await queued();
+    const m = mailer();
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    await service.approve((await service.getByKey(first.outreach.approvalKey))!.id, broker);
+    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m }, first.outreach.id, "a");
+    expect(r.outreach.status).toBe("sent");
+    expect(m.sent).toHaveLength(1);
+  });
+
+  it("shows a rejected or expired approval on the submission", async () => {
+    const { store, gate, service, now, clock, deal, lender, other } = await queued();
+    const a = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    await service.reject((await service.getByKey(a.outreach.approvalKey))!.id, broker, "Not this lender");
+    const rejected = await checkOutreachApproval({ store, gate, now, baseUrl: base }, a.outreach.id, "a");
+    expect(rejected.outreach).toMatchObject({ status: "rejected", responseNote: "Not this lender" });
+    expect(outreachMessage(rejected)).toMatch(/rejected/);
+
+    const b = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: other.id, items: docs(1), actor: "a" });
+    clock.advance(25 * 60 * 60 * 1000);
+    const expired = await checkOutreachApproval({ store, gate, now, baseUrl: base }, b.outreach.id, "a");
+    expect(expired.outreach.status).toBe("expired");
+    expect(store.links.size).toBe(0);
+  });
+
+  it("explains a changed lender contact instead of failing generically", async () => {
+    const { store, gate, now, deal, lender } = await queued();
+    const a = await sendPackageToLender({ store, gate, now, baseUrl: base }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    await store.updateLender(lender.id, { contactEmail: "new@cambridge.example" }, "a", now());
+    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base }, a.outreach.id, "a")).rejects.toThrow(/contact email changed/);
   });
 });
 

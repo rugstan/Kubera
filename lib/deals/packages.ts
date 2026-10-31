@@ -6,11 +6,11 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { isApproved, type ApprovalGate } from "@/lib/compliance/approval-gate";
+import { isApproved, type ApprovalDecision, type ApprovalGate } from "@/lib/compliance/approval-gate";
 import { lenderStaleness } from "./lenders";
 import { createShareLink, shareLinkUrl } from "./share-links";
 import type { DealDeskStore } from "./store";
-import type { Clock, DealPackage, LenderOutreach, PackageItem } from "./types";
+import type { Clock, Deal, DealPackage, LenderOutreach, LenderPanelEntry, PackageItem } from "./types";
 
 export const LENDER_SUBMISSION_TEMPLATE_ID = "lender_package_submission_v1";
 
@@ -99,10 +99,9 @@ export function outreachApprovalKey(dealId: string, lenderId: string, version: n
   return `lender_submission:${dealId}:${lenderId}:v${version}`;
 }
 
-export async function sendPackageToLender(
-  deps: { store: DealDeskStore; gate: ApprovalGate; now: Clock; baseUrl: string; mailer?: LenderMailer | null },
-  input: SendPackageInput,
-): Promise<SendPackageResult> {
+type OutreachDeps = { store: DealDeskStore; gate: ApprovalGate; now: Clock; baseUrl: string; mailer?: LenderMailer | null };
+
+export async function sendPackageToLender(deps: OutreachDeps, input: SendPackageInput): Promise<SendPackageResult> {
   const { store } = deps;
   const deal = await store.getDeal(input.dealId);
   if (!deal) throw new PackageError("deal_not_found", `Deal ${input.dealId} not found`);
@@ -117,26 +116,69 @@ export async function sendPackageToLender(
 
   const { pkg } = await lockPackageVersion(store, deal.id, input.items, input.actor, now);
   const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);
-  let outreach = await store.getOutreachByKey(approvalKey);
+  const outreach = await store.getOutreachByKey(approvalKey);
   if (outreach && ["approved", "sent", "declined", "term_sheet", "withdrawn"].includes(outreach.status)) return { outreach, pkg };
+  return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach?.staleLenderOverride ?? staleness.stale, note: input.note, ttlDays: input.ttlDays, actor: input.actor });
+}
 
-  const decision = await deps.gate.request({
-    kind: "lender_notice",
-    idempotencyKey: approvalKey,
-    summary: `Send "${deal.title}" package v${pkg.version} (${pkg.manifest.length} document${pkg.manifest.length === 1 ? "" : "s"}) to ${lender.name}`,
-    templateId: LENDER_SUBMISSION_TEMPLATE_ID,
-    payload: {
-      dealId: deal.id,
-      lenderId: lender.id,
-      packageId: pkg.id,
-      packageVersion: pkg.version,
-      manifestSha256: pkg.manifestSha256,
-      to: lender.contactEmail,
-      note: input.note ?? null,
-      staleLenderOverride: staleness.stale,
-    },
-    requestedBy: input.actor,
-  });
+/**
+ * Re-runs the broker decision for a submission waiting on approval (same
+ * approval key, same locked package; the manifest is not rebuilt). Approved →
+ * share link minted (and emailed when a mailer is configured); rejected or
+ * expired → the submission shows it.
+ */
+export async function checkOutreachApproval(deps: OutreachDeps, outreachId: string, actor: string, opts: { ttlDays?: number } = {}): Promise<SendPackageResult> {
+  const { store } = deps;
+  const outreach = await findOutreach(store, outreachId);
+  const pkg = await store.getPackage(outreach.packageId);
+  if (!pkg) throw new PackageError("invalid_status", "The locked package for this submission is missing");
+  if (outreach.status !== "pending_approval") return { outreach, pkg };
+  const [deal, lender] = await Promise.all([store.getDeal(outreach.dealId), store.getLender(outreach.lenderId)]);
+  if (!deal) throw new PackageError("deal_not_found", `Deal ${outreach.dealId} not found`);
+  if (!lender) throw new PackageError("lender_not_found", `Lender ${outreach.lenderId} not found`);
+  return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach.staleLenderOverride, ttlDays: opts.ttlDays, actor });
+}
+
+async function decideOutreach(
+  deps: OutreachDeps,
+  input: { deal: Deal; lender: LenderPanelEntry; pkg: DealPackage; outreach: LenderOutreach | null; staleLenderOverride: boolean; note?: string | null; ttlDays?: number; actor: string },
+): Promise<SendPackageResult> {
+  const { store } = deps;
+  const { deal, lender, pkg } = input;
+  let outreach = input.outreach;
+  const now = deps.now();
+  const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);
+  const note = input.note?.trim();
+
+  let decision: ApprovalDecision;
+  try {
+    decision = await deps.gate.request({
+      kind: "lender_notice",
+      idempotencyKey: approvalKey,
+      // The staff note is shown to the approving broker but is not part of the
+      // hashed payload, so re-checking (or re-sending with another note) never conflicts.
+      summary: `Send "${deal.title}" package v${pkg.version} (${pkg.manifest.length} document${pkg.manifest.length === 1 ? "" : "s"}) to ${lender.name}${note ? ` — note: ${note.slice(0, 200)}` : ""}`,
+      templateId: LENDER_SUBMISSION_TEMPLATE_ID,
+      payload: {
+        dealId: deal.id,
+        lenderId: lender.id,
+        packageId: pkg.id,
+        packageVersion: pkg.version,
+        manifestSha256: pkg.manifestSha256,
+        to: lender.contactEmail,
+        staleLenderOverride: input.staleLenderOverride,
+      },
+      requestedBy: input.actor,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "ApprovalConflictError") {
+      throw new PackageError(
+        "invalid_status",
+        `${lender.name}'s contact email changed after approval was requested for package v${pkg.version}. Withdraw this submission and send the package again so a broker approves the new recipient.`,
+      );
+    }
+    throw err;
+  }
 
   const base = {
     dealId: deal.id,
@@ -145,15 +187,17 @@ export async function sendPackageToLender(
     packageVersion: pkg.version,
     approvalKey,
     requestedBy: input.actor,
-    staleLenderOverride: staleness.stale,
+    staleLenderOverride: input.staleLenderOverride,
   };
   if (!isApproved(decision)) {
+    // A used-up approval ("already_executed") cannot send again: show it as rejected.
     const status = decision.status === "pending" ? "pending_approval" : decision.status;
     const approvalId = "approvalId" in decision ? (decision.approvalId ?? null) : null;
+    const responseNote = decision.status === "rejected" && decision.reason ? decision.reason.slice(0, 500) : null;
     outreach = outreach
-      ? await store.updateOutreach(outreach.id, { status, approvalId }, input.actor, now)
+      ? await store.updateOutreach(outreach.id, { status, approvalId, ...(responseNote ? { responseNote } : {}) }, input.actor, now)
       : await store.insertOutreach(
-          { ...base, status, approvalId, approvedBy: null, shareLinkId: null, sentAt: null, externalMessageId: null, responseNote: null, termSheetRef: null },
+          { ...base, status, approvalId, approvedBy: null, shareLinkId: null, sentAt: null, externalMessageId: null, responseNote, termSheetRef: null },
           now,
         );
     return { outreach, pkg };
@@ -185,6 +229,25 @@ export async function sendPackageToLender(
     return { outreach, pkg };
   }
   return { outreach, pkg, shareUrl: url };
+}
+
+/** One line for staff describing a submission after a send or an approval check. */
+export function outreachMessage(r: SendPackageResult): string {
+  const v = `Package v${r.pkg.version}`;
+  switch (r.outreach.status) {
+    case "pending_approval":
+      return `${v} locked; the submission is waiting for broker approval. Nothing was sent; use Check approval once a broker decides.`;
+    case "approved":
+      return r.shareUrl ? `${v} approved; the share link is shown below once. Send it from your mailbox, then click Mark sent.` : `${v} is approved; the share link was already shown. Mark it sent once delivered.`;
+    case "sent":
+      return `${v} sent to the lender.`;
+    case "rejected":
+      return `A broker rejected sending ${v}${r.outreach.responseNote ? ` (${r.outreach.responseNote})` : ""}; nothing was sent.`;
+    case "expired":
+      return `The approval for ${v} expired; nothing was sent. Withdraw it and send again to request a new approval.`;
+    default:
+      return `${v}: submission ${r.outreach.status.replace(/_/g, " ")}.`;
+  }
 }
 
 /** The broker delivered an approved submission from their own mailbox. */

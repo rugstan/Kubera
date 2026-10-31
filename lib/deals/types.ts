@@ -315,6 +315,9 @@ export type ModificationRecord = {
   evaluation: ModificationEvaluation;
   flags: string[];
   lenderNoticeApprovalKey: string | null;
+  /** The broker approved the lender notice (set when no mailer sent it, so staff send it and record "Notice sent"). */
+  lenderNoticeApprovalId: string | null;
+  lenderNoticeApprovedAt: string | null;
   lenderNoticeSentAt: string | null;
   officerApprovedBy: string | null;
   officerApprovedAt: string | null;

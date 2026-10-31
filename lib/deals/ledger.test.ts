@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { agencySplit, brokerFee, canTransitionFee, changeFee, hardMoneyPoints, LedgerError, partnerSplit, summarizeLedger, validateFeeEntry } from "./ledger";
 import { dollarsToCents, formatCents, MoneyError, percentOf } from "./money";
-import { createInvoice, issueInvoice, settleInvoice, voidInvoice, INVOICE_TERMS } from "./invoices";
+import { queueApprovalGate } from "@/lib/approvals/gate";
+import { ApprovalService } from "@/lib/approvals/service";
+import { MemoryApprovalStore } from "@/lib/approvals/store";
+import { createInvoice, issueInvoice, issueInvoiceMessage, settleInvoice, voidInvoice, InvoiceError, INVOICE_TERMS } from "./invoices";
 import { lenderStaleness, panelForDeal, parseLender } from "./lenders";
 import { lenderInput, newDeal, setup } from "./test-fixtures";
 import type { FeeEntry } from "./types";
@@ -122,6 +125,45 @@ describe("invoices", () => {
     expect(settled.status).toBe("settled");
     expect((await store.listFeeEntries(deal.id)).find((e) => e.id === fee.id)!.status).toBe("settled");
     await expect(voidInvoice({ store, now }, inv.id, "oops", "a")).rejects.toThrow(/settled/);
+  });
+
+  it("on the real approval queue: no mailer is refused before any approval is requested or claimed", async () => {
+    const { store, now, deal, fee } = await earned();
+    const service = new ApprovalService(new MemoryApprovalStore(), now);
+    const gate = queueApprovalGate(service);
+    const inv = await createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [fee.id], billTo: { kind: "borrower", name: "Sunrise", email: "cfo@sunrise.example" }, actor: "a" });
+    const key = `email:invoice:${inv.id}:${inv.documentSha256}`;
+
+    await expect(issueInvoice({ store, gate, now, mailer: null }, inv.id, "a")).rejects.toThrow(InvoiceError);
+    await expect(issueInvoice({ store, gate, now, mailer: null }, inv.id, "a")).rejects.toThrow(/not configured/);
+    expect(await service.getByKey(key)).toBeNull();
+    expect((await store.getInvoice(inv.id))!.status).toBe("draft");
+
+    // With a mailer: pending → broker approves → one send, and the approval is executed by that send.
+    const sent: string[] = [];
+    const mailer = { async send(m: { text: string }) { sent.push(m.text); return { messageId: "1" }; } };
+    const pending = await issueInvoice({ store, gate, now, mailer }, inv.id, "a");
+    expect(pending.invoice.status).toBe("pending_approval");
+    expect(issueInvoiceMessage(pending)).toMatch(/waiting for broker approval/);
+    const approval = (await service.getByKey(key))!;
+    expect(approval.status).toBe("pending");
+    await service.approve(approval.id, { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" });
+    const issued = await issueInvoice({ store, gate, now, mailer }, inv.id, "a");
+    expect(issued.issued).toBe(true);
+    expect(sent).toHaveLength(1);
+    expect((await service.get(approval.id))!.executedAt).not.toBeNull();
+    expect((await issueInvoice({ store, gate, now, mailer }, inv.id, "a")).issued).toBe(true);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("a rejected email approval returns the invoice to draft with a clear message", async () => {
+    const { store, gate, now, deal, fee } = await earned();
+    const inv = await createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [fee.id], billTo: { kind: "borrower", name: "Sunrise", email: "cfo@sunrise.example" }, actor: "a" });
+    gate.decide(`email:invoice:${inv.id}:${inv.documentSha256}`, { status: "rejected", approvalId: "x", decidedBy: "b", reason: "Wrong amount" });
+    const mailer = { async send() { return { messageId: "1" }; } };
+    const r = await issueInvoice({ store, gate, now, mailer }, inv.id, "a");
+    expect(r.invoice.status).toBe("draft");
+    expect(issueInvoiceMessage(r)).toMatch(/rejected.*Wrong amount/);
   });
 
   it("voiding returns entries to earned for re-invoicing", async () => {
