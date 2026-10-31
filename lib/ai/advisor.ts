@@ -11,7 +11,10 @@ import { z } from "zod";
 import type { ConversationMode, ConversationStore, StoredAssistantMessage, StoredMessage, StoredUserMessage } from "@/lib/conversations/store";
 import type { MarketSnapshot } from "@/lib/rates";
 import { disclosures, site } from "@/lib/site";
+import { GuardrailStreamFilter, guardrailMode, summarizeViolations, type GuardrailMode, type GuardrailViolation } from "./guardrails";
 import { PROGRAM_PRIMER, retrieve, type KbChunk } from "./knowledge";
+import { guardrailSink } from "./review/server";
+import type { GuardrailSink } from "./review/sink";
 import { prepareForRoute } from "./routing";
 
 // "System Two" — Claude for structuring questions and term sheet drafts.
@@ -206,6 +209,21 @@ function noteStream(note: string): ReadableStream<Uint8Array> {
 
 // --- Turn runner ------------------------------------------------------------------
 
+/**
+ * Records guardrail hits for staff review. The reply is already filtered, so a
+ * failing sink is logged and otherwise ignored.
+ */
+async function reportGuardrailHits(input: AdvisorTurnInput, mode: GuardrailMode, violations: readonly GuardrailViolation[]): Promise<void> {
+  console.warn("[advisor] guardrail hit", { conversation: input.conversationId, mode, rules: [...new Set(violations.map((v) => v.ruleId))] });
+  try {
+    const sink = input.guardrailSink === undefined ? guardrailSink() : input.guardrailSink;
+    // The reply is the second message of the turn that was just appended.
+    await sink?.record({ conversationId: input.conversationId, messageIndex: input.history.length + 1, mode, violations });
+  } catch (err) {
+    console.error("guardrail sink failed", err instanceof Error ? err.message : err);
+  }
+}
+
 export type AdvisorTurnInput = {
   conversationId: string;
   /** Prior turns as stored server-side (the lock is already held). */
@@ -217,9 +235,13 @@ export type AdvisorTurnInput = {
   market: MarketSnapshot;
   store: ConversationStore;
   model?: AdvisorModel;
-  retrieveExcerpts?: (query: string) => Promise<KbChunk[]>;
+  retrieveExcerpts?: (query: string, subject?: { aiProcessingOptOut?: boolean }) => Promise<KbChunk[]>;
   /** The data subject's AI preference, when the lead is known (lib/privacy/requests.ts routingSubject). */
   subject?: { aiProcessingOptOut?: boolean };
+  /** Output guardrails (lib/ai/guardrails.ts) always run; "monitor" records hits without rewriting. Default: AI_GUARDRAILS_MODE. */
+  guardrailMode?: GuardrailMode;
+  /** Where guardrail hits are recorded for staff review (null = none). Default: the Supabase review store when configured. */
+  guardrailSink?: GuardrailSink | null;
   now?: () => Date;
 };
 
@@ -240,7 +262,8 @@ export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<Readab
 
   let excerpts: KbChunk[] = [];
   try {
-    excerpts = await (input.retrieveExcerpts ?? retrieve)(input.message);
+    // The subject is passed so a data subject who opted out of AI processing is never embedded externally.
+    excerpts = await (input.retrieveExcerpts ?? ((q, subject) => retrieve(q, 5, subject)))(input.message, input.subject);
   } catch (err) {
     console.error("advisor retrieval failed", err instanceof Error ? err.message : err);
   }
@@ -260,6 +283,9 @@ export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<Readab
   }
 
   const encoder = new TextEncoder();
+  // Everything the borrower sees passes the output guardrails first; what is stored is what was shown.
+  const mode = input.guardrailMode ?? guardrailMode();
+  const guard = new GuardrailStreamFilter({ mode });
   let text = "";
   let settled = false;
   let cancelled = false;
@@ -271,13 +297,23 @@ export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<Readab
       await input.store.release(input.conversationId);
       return;
     }
-    const reply: StoredAssistantMessage = { role: "assistant", content: text, stopReason, ...(servedBy ? { model: servedBy } : {}), at: now().toISOString() };
+    const report = guard.violations.length ? summarizeViolations(guard.violations, mode) : null;
+    const reply: StoredAssistantMessage = {
+      role: "assistant",
+      content: text,
+      stopReason,
+      ...(servedBy ? { model: servedBy } : {}),
+      ...(report ? { guardrail: { mode, categories: report.categories, count: report.violations.length } } : {}),
+      at: now().toISOString(),
+    };
     try {
       await input.store.complete(input.conversationId, input.turnCount, [turn, reply]);
     } catch (err) {
       console.error("conversation persist failed", err instanceof Error ? err.message : err);
       await input.store.release(input.conversationId);
+      return;
     }
+    if (report) await reportGuardrailHits(input, mode, guard.violations);
   };
 
   return new ReadableStream<Uint8Array>({
@@ -288,8 +324,13 @@ export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<Readab
       };
       try {
         for await (const event of stream) {
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") emit(event.delta.text);
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            const safe = guard.push(event.delta.text);
+            if (safe) emit(safe);
+          }
         }
+        const rest = guard.flush();
+        if (rest) emit(rest);
         const final = await stream.finalMessage();
         if (final.stop_reason === "refusal") emit(`${text ? "\n\n" : ""}${REFUSAL_NOTE}`);
         else if (final.stop_reason === "max_tokens") emit(`\n\n${TRUNCATED_NOTE}`);

@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "kb:ingest": "node --experimental-strip-types scripts/ingest-kb.ts",
+    "kb:ingest": "tsx scripts/ingest-kb.ts",
     "evals": "tsx --conditions=react-server scripts/run-evals.ts",
     "a11y": "node --experimental-strip-types scripts/axe.ts",
     "test:migrations": "node --experimental-strip-types scripts/test-migrations.ts",
