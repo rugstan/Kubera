@@ -107,6 +107,17 @@ export type MultifamilyInputs = {
   /** Total project cost, used for LTC on construction. */
   totalCost?: number;
   transaction: "PURCHASE" | "REFINANCE" | "CONSTRUCTION";
+  /** Affordable / LIHTC: HUD's affordable box (same as rental assistance). */
   affordable: boolean;
+  /** Project-based rental assistance (e.g. Section 8 HAP): HUD's affordable box. */
+  rentalAssistance?: boolean;
+  /** 221(d)(4) middle-income tier; ignored unless the tier is enabled in assumptions. */
+  middleIncome?: boolean;
   green: boolean;
+};
+
+/** Switches for program rules that are not yet confirmed and stay off by default. */
+export type SizingOptions = {
+  /** Size qualifying 221(d)(4) deals on the middle-income box. Defaults to `HUD.multifamily.middleIncome221d4.enabled`. */
+  middleIncomeTier?: boolean;
 };

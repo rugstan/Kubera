@@ -9,6 +9,7 @@ import {
   SBA,
   SPREADS,
   mid,
+  type HudMultifamilyTier,
 } from "./assumptions";
 import { bindingLimit, debtConstant, round, type Constraint } from "./finance";
 import type {
@@ -19,6 +20,7 @@ import type {
   ProgramQuote,
   Recourse,
   SeniorInputs,
+  SizingOptions,
   SizingResult,
   Tranche,
 } from "./types";
@@ -260,6 +262,9 @@ function sizeSba(a: SbaArgs): ProgramQuote {
   return quote;
 }
 
+/** Shown whenever a borrower flags green certification on a HUD quote. */
+export const GREEN_MIP_NOTE = "Green certification no longer lowers HUD mortgage insurance premiums.";
+
 const hudCommonClosing = (loan: number, upfrontMip: number): FeeLine[] => [
   { label: "Upfront MIP", amount: loan * upfrontMip },
   { label: "Lender financing fee", amount: loan * HUD.lenderFinancingFeePct },
@@ -302,8 +307,8 @@ export function sizeSenior(i: SeniorInputs, rates: Benchmarks): SizingResult {
     if (!isNC && occ < HUD.section232.stabilizedOccupancy)
       warnings.push("Census below stabilized levels — HUD 223(f) typically needs a bridge to stabilize first.");
     if (!isNC) warnings.push(`Requires ≥${HUD.section232.minYearsSinceCompletion} years since construction completion.`);
-    if (i.green && !HUD.section232.greenMipEligible)
-      warnings.push("HUD's 0.25% Green MIP applies to multifamily programs, not Section 232.");
+    const notes: string[] = [];
+    if (i.green && !HUD.greenLowersMip) notes.push(GREEN_MIP_NOTE);
 
     quotes.push(
       buildQuote({
@@ -328,6 +333,7 @@ export function sizeSenior(i: SeniorInputs, rates: Benchmarks): SizingResult {
         closeTimeline: isNC ? "9–12 months" : "120–180 days (LEAN)",
         advisoryFeePct: BROKER_FEE_PCT.HUD,
         eligible: isNC || occ >= 0.8,
+        notes,
         warnings,
         accent: "gold",
       }),
@@ -494,9 +500,96 @@ export function sizeHospitality(i: HospitalityInputs, rates: Benchmarks): Sizing
 }
 
 // ---------------------------------------------------------------------------
+// HUD multifamily boxes (223(f) and 221(d)(4))
+
+export type HudMultifamilyBox = {
+  program: "223F" | "221D4";
+  tier: HudMultifamilyTier;
+  leverageBasis: "LTV" | "LTC";
+  maxLeverage: number;
+  minDscr: number;
+  termYears: number;
+  annualMip: number;
+  upfrontMip: number;
+};
+
+export const HUD_TIER_LABEL: Record<HudMultifamilyTier, string> = {
+  MARKET_RATE: "Market-rate",
+  AFFORDABLE: "Affordable",
+  RENTAL_ASSISTANCE: "Rental-assistance",
+  MIDDLE_INCOME: "Middle-income",
+};
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+/** "2025-10-01" → "Oct 1, 2025". Pure string formatting, so it is safe in prerendered and client code. */
+export function isoDateLabel(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${MONTHS[(m ?? 1) - 1]} ${d}, ${y}`;
+}
+
+const HUD_MIP_EFFECTIVE_LABEL = isoDateLabel(HUD.multifamily.mip.effectiveForApplicationsOnOrAfter);
+
+function pctLabel(n: number, digits = 0): string {
+  return `${(n * 100).toFixed(digits)}%`;
+}
+
+/**
+ * Which HUD multifamily box a deal falls in. Rental assistance and affordable
+ * share the affordable box; the 221(d)(4) middle-income tier applies only to
+ * new construction and only when the tier is switched on.
+ */
+export function hudMultifamilyTier(
+  i: Pick<MultifamilyInputs, "affordable" | "rentalAssistance" | "middleIncome" | "transaction">,
+  options: SizingOptions = {},
+): { tier: HudMultifamilyTier; warnings: string[] } {
+  if (i.rentalAssistance) return { tier: "RENTAL_ASSISTANCE", warnings: [] };
+  if (i.affordable) return { tier: "AFFORDABLE", warnings: [] };
+  if (i.middleIncome) {
+    const enabled = options.middleIncomeTier ?? HUD.multifamily.middleIncome221d4.enabled;
+    if (i.transaction !== "CONSTRUCTION")
+      return { tier: "MARKET_RATE", warnings: ["The middle-income tier applies to 221(d)(4) new construction only; sized on the market-rate box."] };
+    if (!enabled)
+      return { tier: "MARKET_RATE", warnings: ["The 221(d)(4) middle-income tier is not yet confirmed with a HUD lender; sized on the market-rate box."] };
+    return { tier: "MIDDLE_INCOME", warnings: [] };
+  }
+  return { tier: "MARKET_RATE", warnings: [] };
+}
+
+/** Max leverage, min DSCR and MIP for a HUD multifamily program and tier. MIP is flat across tiers; green has no effect. */
+export function hudMultifamilyBox(construction: boolean, tier: HudMultifamilyTier): HudMultifamilyBox {
+  const { mip } = HUD.multifamily;
+  const fees = { annualMip: mip.annual, upfrontMip: mip.upfront };
+  if (construction) {
+    const p = HUD.multifamily.s221d4;
+    const mi = HUD.multifamily.middleIncome221d4;
+    const [maxLeverage, minDscr] =
+      tier === "AFFORDABLE" || tier === "RENTAL_ASSISTANCE"
+        ? [p.maxLtcAffordable, p.minDscrAffordable]
+        : tier === "MIDDLE_INCOME"
+          ? [mi.maxLtc, mi.minDscr]
+          : [p.maxLtc, p.minDscr];
+    return { program: "221D4", tier, leverageBasis: "LTC", maxLeverage, minDscr, termYears: p.termYears, ...fees };
+  }
+  const p = HUD.multifamily.s223f;
+  // The middle-income tier is a 221(d)(4) rule; 223(f) falls back to market-rate.
+  const effective: HudMultifamilyTier = tier === "MIDDLE_INCOME" ? "MARKET_RATE" : tier;
+  const affordable = effective === "AFFORDABLE" || effective === "RENTAL_ASSISTANCE";
+  return {
+    program: "223F",
+    tier: effective,
+    leverageBasis: "LTV",
+    maxLeverage: affordable ? p.maxLtvAffordable : p.maxLtv,
+    minDscr: affordable ? p.minDscrAffordable : p.minDscr,
+    termYears: p.termYears,
+    ...fees,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Multifamily, mixed-use & commercial
 
-export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks): SizingResult {
+export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options: SizingOptions = {}): SizingResult {
   const isConstruction = i.transaction === "CONSTRUCTION";
   const cap = i.assetType === "MULTIFAMILY" ? CAP_RATES.multifamily : i.assetType === "MIXED_USE" ? CAP_RATES.mixedUse : CAP_RATES.commercial;
   const valueEstimated = !i.value;
@@ -506,40 +599,46 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks): Sizing
   const quotes: ProgramQuote[] = [];
 
   {
-    const p = isConstruction ? HUD.multifamily.s221d4 : HUD.multifamily.s223f;
-    const m = HUD.multifamily.mip;
-    const mip = i.green ? m.green : i.affordable ? m.affordable : isConstruction ? m.market221d4 : m.market223f;
+    const { tier, warnings: tierWarnings } = hudMultifamilyTier(i, options);
+    const box = hudMultifamilyBox(isConstruction, tier);
     const rate = rates.tenYear + mid(SPREADS.hudMultifamily) + (isConstruction ? 0.15 : 0);
-    const minDscr = i.affordable ? p.minDscrAffordable : p.minDscr;
-    const leverage =
-      "maxLtc" in p ? (i.affordable ? p.maxLtcAffordable : p.maxLtc) : i.affordable ? p.maxLtvAffordable : p.maxLtv;
-    const warnings: string[] = [];
+    const warnings: string[] = [...tierWarnings];
     if (!residential) warnings.push("HUD multifamily programs require a residential asset.");
     if (i.assetType === "MIXED_USE") warnings.push("Commercial space is capped by HUD (typically ≤25% of NRA).");
     if (i.loanAmount < HUD.smallLoanThreshold) warnings.push("Under $3.5M, HUD's fixed costs weigh heavily on all-in cost.");
     if (!isConstruction) warnings.push("223(f) requires ≥3 years since completion and stabilized occupancy.");
+    const notes = [
+      `${HUD_TIER_LABEL[tier]} box: ${pctLabel(box.maxLeverage)} ${box.leverageBasis}, ${box.minDscr.toFixed(2)}x DSCR.`,
+      `Flat ${pctLabel(box.annualMip, 2)} annual MIP for applications submitted on or after ${HUD_MIP_EFFECTIVE_LABEL}.`,
+      ...(!isConstruction && i.transaction === "REFINANCE"
+        ? [`Cash-out refinances stay capped at ${pctLabel(HUD.multifamily.s223f.cashOutMaxLtv)} LTV.`]
+        : []),
+      ...(i.green && !HUD.greenLowersMip ? [GREEN_MIP_NOTE] : []),
+    ];
     quotes.push(
       buildQuote({
         id: "HUD_221D4_223F_MULTIFAMILY",
         name: isConstruction ? "HUD 221(d)(4)" : "HUD 223(f)",
-        short: `${p.termYears}-yr fixed, non-recourse`,
+        short: `${box.termYears}-yr fixed, non-recourse`,
         requested: i.loanAmount,
         limits: {
-          [isConstruction ? "LTC" : "LTV"]: (isConstruction ? cost : value) * leverage,
-          DSCR: i.noi / minDscr / (debtConstant(rate, p.termYears) + mip),
+          [box.leverageBasis]: (isConstruction ? cost : value) * box.maxLeverage,
+          DSCR: i.noi / box.minDscr / (debtConstant(rate, box.termYears) + box.annualMip),
         },
-        tranches: singleTranche(isConstruction ? "HUD 221(d)(4) insured loan" : "HUD 223(f) insured loan", rate, p.termYears),
-        annualFee: (loan) => ({ label: `Annual MIP (${(mip * 100).toFixed(2)}%${i.green ? " Green" : ""})`, amount: loan * mip }),
+        tranches: singleTranche(isConstruction ? "HUD 221(d)(4) insured loan" : "HUD 223(f) insured loan", rate, box.termYears),
+        annualFee: (loan) => ({ label: `Annual MIP (${(box.annualMip * 100).toFixed(2)}%)`, amount: loan * box.annualMip }),
         annualAudit: HUD.annualAuditCost,
-        closing: (loan) => hudCommonClosing(loan, mip),
+        closing: (loan) => hudCommonClosing(loan, box.upfrontMip),
         noi: i.noi,
-        value,
+        value: isConstruction ? cost : value,
+        leverageBasis: box.leverageBasis,
         termLabel: isConstruction ? "Construction + 40 yrs fixed" : "35 yrs fixed",
-        amortLabel: `${p.termYears} years, fully amortizing`,
+        amortLabel: `${box.termYears} years, fully amortizing`,
         recourse: "Non-recourse",
         closeTimeline: isConstruction ? "8–12 months" : "120–180 days",
         advisoryFeePct: BROKER_FEE_PCT.HUD,
         eligible: residential,
+        notes,
         warnings,
         accent: "gold",
       }),
@@ -547,7 +646,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks): Sizing
   }
 
   {
-    const rate = rates.tenYear + mid(SPREADS.agency) + (i.green ? -0.1 : 0);
+    const rate = rates.tenYear + mid(SPREADS.agency) - (i.green ? AGENCY.greenRateDiscountPct : 0);
     const warnings: string[] = [];
     if (!residential) warnings.push("Agency debt is for multifamily housing only.");
     if (isConstruction) warnings.push("Agency lenders need a stabilized asset — pair with construction debt first.");
@@ -596,7 +695,8 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks): Sizing
         annualAudit: 0,
         closing: (loan) => bridgeClosing(loan, BROKER_FEE_PCT.BRIDGE),
         noi: i.noi,
-        value,
+        value: isConstruction ? cost : value,
+        leverageBasis: isConstruction ? "LTC" : "LTV",
         termLabel: `${b.termMonths} months + extensions`,
         amortLabel: "Interest-only",
         recourse: "Non-recourse (standard carve-outs)",

@@ -44,23 +44,61 @@ export const HUD = {
   applicationFeePct: 0.003,
   lenderFinancingFeePct: 0.01,
   section232: {
-    // 232/223(f): 35-yr term, 80% LTV for-profit, 1.45x DSCR.
+    // Section 232 (healthcare) is NOT changed by HUD Mortgagee Letter 2025-03.
+    // VERIFY: 232/223(f) 80% LTV (for-profit), 1.45x DSCR, 35-yr term; annual MIP 0.65%, upfront 1%.
+    //   Source: HUD Handbook 4232.1 / prior MIP schedule; as of 2026-10-31. Re-check whether the
+    //   Federal Register 2025-18379 flat 0.25% MIP notice reaches Section 232 before changing MIP.
     refi: { termYears: 35, maxLtv: 0.8, minDscr: 1.45, annualMip: 0.0065, upfrontMip: 0.01 },
-    // 232 new construction: 40 yrs after construction, 75% for-profit, 1.45x.
+    // VERIFY: 232 new construction: 40 yrs after construction, 75% LTC for-profit, 1.45x, annual MIP 0.77%.
+    //   Source: HUD Handbook 4232.1 / prior MIP schedule; as of 2026-10-31 (same 0.25% notice question).
     newConstruction: { termYears: 40, maxLtc: 0.75, minDscr: 1.45, annualMip: 0.0077, upfrontMip: 0.01 },
     minYearsSinceCompletion: 3,
     stabilizedOccupancy: 0.85,
     practicalMinBeds: 25,
-    // VERIFY: HUD's green MIP reduction has applied to multifamily (223(f),
-    // 221(d)(4)), not to Section 232 healthcare. Flip only on written HUD guidance.
-    greenMipEligible: false,
   },
+  /**
+   * Green certification no longer lowers any HUD MIP: Federal Register 2025-18379
+   * removed the green, affordable and broadly-affordable MIP categories.
+   */
+  greenLowersMip: false,
   multifamily: {
-    s223f: { termYears: 35, maxLtv: 0.85, maxLtvAffordable: 0.87, minDscr: 1.176, minDscrAffordable: 1.15 },
-    s221d4: { termYears: 40, maxLtc: 0.85, maxLtcAffordable: 0.87, minDscr: 1.176, minDscrAffordable: 1.15 },
-    mip: { market223f: 0.006, market221d4: 0.0065, affordable: 0.0035, green: 0.0025 },
+    // VERIFY: market-rate 87% LTV / 1.15x DSCR; affordable or rental-assistance 90% / 1.11x.
+    //   Source: HUD Mortgagee Letter 2025-03 (eff. ~2025-01-08; via Dwight Capital, NewPoint,
+    //   CohnReznick, hud.loans); as of 2026-10-31. Cash-out 223(f) LTV unchanged at 80% (CohnReznick).
+    s223f: {
+      termYears: 35,
+      maxLtv: 0.87,
+      minDscr: 1.15,
+      maxLtvAffordable: 0.9,
+      minDscrAffordable: 1.11,
+      cashOutMaxLtv: 0.8,
+    },
+    // VERIFY: market-rate 87% LTC / 1.15x DSCR; affordable or rental-assistance 90% / 1.11x.
+    //   Source: HUD Mortgagee Letter 2025-03 (eff. ~2025-01-08; via Dwight Capital, NewPoint); as of 2026-10-31.
+    s221d4: {
+      termYears: 40,
+      maxLtc: 0.87,
+      minDscr: 1.15,
+      maxLtcAffordable: 0.9,
+      minDscrAffordable: 1.11,
+    },
+    /**
+     * 221(d)(4) middle-income tier (50% of units at up to 120% AMI, 10-year use
+     * restriction). Off until a HUD lender confirms it: the terms rest on a single source.
+     */
+    // VERIFY: 90% LTC / 1.11x. Source: adroccap.com (ties it to ML 2026-1) and Dwight Capital
+    //   (lender report), single source; as of 2026-10-31. Keep `enabled` false until confirmed.
+    middleIncome221d4: { enabled: false, maxLtc: 0.9, minDscr: 1.11, minRestrictedUnitShare: 0.5, maxAmiPct: 120 },
+    // VERIFY: flat 0.25% annual MIP for every FHA multifamily program, for applications
+    //   submitted or amended on or after 2025-10-01. Source: Federal Register 2025-18379
+    //   (Sept 23, 2025); as of 2026-10-31. Upfront (first-year) premium 0.25% rests on a
+    //   secondary source (multifamily.loans); configurable, confirm with a HUD lender.
+    mip: { annual: 0.0025, upfront: 0.0025, effectiveForApplicationsOnOrAfter: "2025-10-01" },
   },
 } as const;
+
+/** The HUD multifamily underwriting box a deal falls in. Affordable and rental-assistance share one box. */
+export type HudMultifamilyTier = "MARKET_RATE" | "AFFORDABLE" | "RENTAL_ASSISTANCE" | "MIDDLE_INCOME";
 
 export const SBA = {
   bankFirstPct: 0.5,
@@ -107,6 +145,9 @@ export const AGENCY = {
   minDscr: 1.25,
   originationPct: 0.01,
   fixedCosts: 45_000,
+  // VERIFY: Fannie Mae Green Rewards pricing discount (~0.10%). Source: lender summaries
+  //   (LSG; Greystone 2020 term sheet), unverified; as of 2026-10-31.
+  greenRateDiscountPct: 0.1,
 } as const;
 
 export const BRIDGE = {
