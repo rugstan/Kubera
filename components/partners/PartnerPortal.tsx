@@ -215,6 +215,7 @@ function LenderFields() {
       <NumericField name="maxLoan" label="Max loan" format="money" required placeholder="e.g. 25,000,000" />
       <ChipsField name="verticals" label="Appetite" hint="Optional. Choose every asset class you lend on." options={VERTICALS} className="md:col-span-3" />
       <NumericField name="maxLtv" label="Max LTV / LTC" format="decimal" suffix="%" required placeholder="e.g. 75" />
+      <NumericField name="maxLtc" label="Max LTC, construction (optional)" format="decimal" suffix="%" placeholder="e.g. 70" />
       <NumericField name="minDscr" label="Min DSCR (optional)" format="decimal" placeholder="e.g. 1.25" />
       <NumericField name="minDebtYield" label="Min debt yield (optional)" format="decimal" suffix="%" placeholder="e.g. 9" />
       <TextField name="flagRequirements" label="Franchise flag requirements (optional)" placeholder="e.g. Marriott, Hilton select-service only" className="md:col-span-2" />

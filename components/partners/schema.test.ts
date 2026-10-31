@@ -104,6 +104,15 @@ describe("partner payloads", () => {
     expect(buildPartnerPayload("OPERATOR", { ...operator, markets: "LA" }, META)).toMatchObject({ markets: "LA" });
   });
 
+  it("carries the construction LTC credit-box field the server accepts and the lenders desk imports", () => {
+    const body = buildPartnerPayload("LENDER", { ...lender, maxLtc: 70 }, META);
+    expect(body.maxLtc).toBe(70);
+    const parsed = partnerSchema.safeParse(body);
+    expect(parsed.success && parsed.data.partnerType === "LENDER" && parsed.data.maxLtc).toBe(70);
+    expect(issues("LENDER", { ...lender, maxLtc: 120 }).maxLtc).toMatch(/0 to 100/);
+    expect(buildPartnerPayload("LENDER", lender, META).maxLtc).toBeUndefined();
+  });
+
   it("omits optional numbers that were left blank", () => {
     const body = buildPartnerPayload("LENDER", lender, META);
     expect(body.minDscr).toBeUndefined();
