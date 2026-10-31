@@ -114,6 +114,8 @@ export type MultifamilyInputs = {
   /** 221(d)(4) middle-income tier; ignored unless the tier is enabled in assumptions. */
   middleIncome?: boolean;
   green: boolean;
+  /** Cash-out refinance (REFINANCE only): HUD 223(f) caps it at the cash-out LTV. */
+  cashOut?: boolean;
 };
 
 /** Switches for program rules that are not yet confirmed and stay off by default. */

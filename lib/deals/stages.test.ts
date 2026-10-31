@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { DealCompliance } from "@/lib/compliance/gates";
+import { evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
+import type { DisclosureStatus } from "@/lib/disclosures/state";
 import { MemoryDisclosureStore } from "@/lib/disclosures/store";
 import { advanceDeal, editDeal, stageContext } from "./service";
 import { LockedFieldError, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest } from "./stages";
-import { dealPrograms, type Deal } from "./types";
+import { dealPrograms, type Deal, type DealProgram } from "./types";
 import { checklistDesk, docs, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
 import { dispositionScreening } from "@/lib/screening/service";
 import { dealStatusHoldSink } from "./holds";
@@ -11,8 +12,17 @@ import { MemoryStageEventSink } from "./stage-events";
 import { markOutreachSent, recordLenderResponse, sendPackageToLender } from "./packages";
 import { sbaPackagingFee } from "./ledger";
 
-const closingOk = { gates: { closing: { allowed: true, reasons: [] } } } as unknown as DealCompliance;
-const closingBlocked = { gates: { closing: { allowed: false, reasons: ["No deal moves to closing without a signed MLDS (RE 882) on file."] } } } as unknown as DealCompliance;
+const ok = { allowed: true, reasons: [] };
+const closingOk = { gates: { borrowerCommitment: ok, borrowerLoanDocuments: ok, closing: ok } } as unknown as DealCompliance;
+const closingBlocked = { gates: { borrowerCommitment: ok, borrowerLoanDocuments: ok, closing: { allowed: false, reasons: ["No deal moves to closing without a signed MLDS (RE 882) on file."] } } } as unknown as DealCompliance;
+
+/** Real gate A/H evaluation of a real-property-secured brokered loan with the MLDS in `status`. */
+const complianceWithMlds = (status: DisclosureStatus | null, over: { namesKuberaAsBeneficiary?: boolean } = {}): DealCompliance =>
+  evaluateDealCompliance({
+    mlds: { facts: { kuberaRole: "broker", program: "HUD_232", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false }, ...over }, status },
+    now: new Date("2026-11-03T17:00:00.000Z"),
+  });
+const acceptedTerms = { lenderName: "Cambridge", noteRatePct: 6.1, termMonths: 420 };
 
 const at = (deal: Deal, stage: string): Deal => ({ ...deal, stage });
 
@@ -54,8 +64,8 @@ describe("applyStageEvent", () => {
   it("locks the accepted terms at term-sheet acceptance", async () => {
     const { store, now } = setup();
     const deal = at(await newDeal(store, now), "term_sheet");
-    expect(applyStageEvent({ deal, event: "term_sheet_accepted", context: { termSheetRef: "ts" }, terms: { lenderName: "X" }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/noteRatePct, termMonths/)] });
-    const r = applyStageEvent({ deal, event: "term_sheet_accepted", context: { termSheetRef: "ts" }, terms: { lenderName: "Cambridge", noteRatePct: 6.1, termMonths: 420, junk: 1 }, now: now() });
+    expect(applyStageEvent({ deal, event: "term_sheet_accepted", context: { termSheetRef: "ts", compliance: closingOk }, terms: { lenderName: "X" }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/noteRatePct, termMonths/)] });
+    const r = applyStageEvent({ deal, event: "term_sheet_accepted", context: { termSheetRef: "ts", compliance: closingOk }, terms: { lenderName: "Cambridge", noteRatePct: 6.1, termMonths: 420, junk: 1 }, now: now() });
     if (!r.ok) throw new Error(r.reasons.join());
     expect(r.to).toBe("application");
     expect(r.patch.termSheetAcceptedAt).toBe(now().toISOString());
@@ -75,6 +85,51 @@ describe("applyStageEvent", () => {
     const sba = at(await newDeal(store, now, { program: "SBA_7A" }), "sba_authorization");
     expect(applyStageEvent({ deal: sba, event: "closing_scheduled", context: { compliance: closingOk, form159Satisfied: false }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/Form 159/)] });
     expect(applyStageEvent({ deal: sba, event: "closing_scheduled", context: { compliance: closingOk, form159Satisfied: true }, now: now() }).ok).toBe(true);
+  });
+
+  it("attaches gate A's borrower-commitment check to term-sheet acceptance and every commitment stage", () => {
+    for (const p of dealPrograms) {
+      const t = stageTemplate(p);
+      expect(t.events.find((e) => e.key === "term_sheet_accepted")!.requires).toContain("compliance_commitment");
+      for (const e of t.events.filter((x) => ["commitment", "firm_commitment", "sba_authorization"].includes(x.to))) expect(e.requires).toContain("compliance_commitment");
+      expect(t.events.find((e) => e.key === "closing_scheduled")!.requires).toEqual(expect.arrayContaining(["compliance_loan_documents", "compliance_closing"]));
+    }
+  });
+
+  it.each(["required", "sent", "held_for_counsel"] as const)("refuses term-sheet acceptance and commitment events while the MLDS is %s", async (status) => {
+    const { store, now } = setup();
+    const compliance = complianceWithMlds(status);
+    expect(compliance.gates.borrowerCommitment.allowed).toBe(false);
+    const cases: [DealProgram, string, string][] = [
+      ["HUD_232", "term_sheet", "term_sheet_accepted"],
+      ["HUD_232", "hud_review", "firm_commitment_issued"],
+      ["AGENCY", "underwriting", "commitment_issued"],
+      ["PRIVATE_BRIDGE", "underwriting", "commitment_issued"],
+      ["SBA_504", "lender_underwriting", "sba_authorization_issued"],
+    ];
+    for (const [program, stage, event] of cases) {
+      const deal = at(await newDeal(store, now, { program }), stage);
+      const r = applyStageEvent({ deal, event, context: { termSheetRef: "ts", compliance }, terms: acceptedTerms, now: now() });
+      expect(r, `${program} ${event}`).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(status === "held_for_counsel" ? /held for counsel/ : /signed MLDS/)]) });
+      // Without any compliance evaluation the events fail closed.
+      expect(applyStageEvent({ deal, event, context: { termSheetRef: "ts" }, terms: acceptedTerms, now: now() })).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/compliance evaluation/)]) });
+    }
+  });
+
+  it("refuses commitment events while the deal is held for counsel even with a signed MLDS, and allows them once signed and clear", async () => {
+    const { store, now } = setup();
+    const deal = at(await newDeal(store, now, { program: "AGENCY" }), "underwriting");
+    const held = complianceWithMlds("signed", { namesKuberaAsBeneficiary: true });
+    expect(applyStageEvent({ deal, event: "commitment_issued", context: { compliance: held }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/held for counsel/)] });
+    expect(applyStageEvent({ deal, event: "commitment_issued", context: { compliance: complianceWithMlds("signed") }, now: now() })).toMatchObject({ ok: true, to: "commitment" });
+    expect(applyStageEvent({ deal: at(deal, "term_sheet"), event: "term_sheet_accepted", context: { termSheetRef: "ts", compliance: complianceWithMlds("signed") }, terms: acceptedTerms, now: now() })).toMatchObject({ ok: true, to: "application" });
+  });
+
+  it("refuses scheduling closing (loan documents to the borrower) without a signed MLDS", async () => {
+    const { store, now } = setup();
+    const deal = at(await newDeal(store, now), "firm_commitment");
+    const r = applyStageEvent({ deal, event: "closing_scheduled", context: { compliance: complianceWithMlds("sent") }, now: now() });
+    expect(r).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/before any loan document goes to the borrower/)]) });
   });
 
   it("refuses a deal on an unknown template version", async () => {
@@ -128,15 +183,23 @@ describe("advanceDeal (end to end with the records)", () => {
     expect((await advanceDeal(deps, { dealId: deal.id, event: "package_sent", actor: "a" })).ok).toBe(true);
     await recordLenderResponse(store, sent.outreach.id, { status: "term_sheet", termSheetRef: "vault://ts.pdf" }, "a", now());
     expect((await advanceDeal(deps, { dealId: deal.id, event: "term_sheet_received", actor: "a" })).ok).toBe(true);
-    const acc = await advanceDeal(deps, { dealId: deal.id, event: "term_sheet_accepted", terms: { lenderName: "Cambridge", noteRatePct: 6.2, termMonths: 420 }, actor: "a" });
+    const terms = { lenderName: "Cambridge", noteRatePct: 6.2, termMonths: 420 };
+
+    // MLDS sent but not signed on a real-property loan: gate A refuses term-sheet acceptance.
+    const mlds = await disclosures.insert({ kind: "MLDS_RE882", status: "sent", dealId: deal.id }, now());
+    const refused = await advanceDeal(deps, { dealId: deal.id, event: "term_sheet_accepted", terms, actor: "a" });
+    expect(refused).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/signed MLDS/)]) });
+    expect((await store.getDeal(deal.id))!.stage).toBe("term_sheet");
+
+    await disclosures.update(mlds.id, mlds.version, { status: "signed", signedAt: now().toISOString() }, now());
+    const acc = await advanceDeal(deps, { dealId: deal.id, event: "term_sheet_accepted", terms, actor: "a" });
     expect(acc.deal.termSheetAcceptedAt).not.toBeNull();
     for (const e of ["reports_ordered", "hud_submitted", "firm_commitment_issued"]) expect((await advanceDeal(deps, { dealId: deal.id, event: e, actor: "a" })).ok).toBe(true);
 
-    // No signed MLDS on a real-property loan: closing is blocked by gate A.
+    // No broker-of-record file: closing is blocked by gate H.
     const blocked = await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
-    expect(blocked).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/signed MLDS/)]) });
+    expect(blocked).toMatchObject({ ok: false, reasons: expect.arrayContaining([expect.stringMatching(/broker-of-record file/)]) });
 
-    await disclosures.insert({ kind: "MLDS_RE882", status: "signed", dealId: deal.id, signedAt: now().toISOString() }, now());
     store.seedLoanBrokerOfRecord(loanRecord(deal.id, { lender: { name: "Cambridge", category: "STATE_BANK", evidenceRef: "DFPI 1" }, noteRatePct: 6.2 }));
     expect((await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" })).ok).toBe(true);
     const closed = await advanceDeal(deps, { dealId: deal.id, event: "loan_closed", actor: "a" });

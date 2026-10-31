@@ -6,7 +6,11 @@
 //
 // Closing stages call the compliance gate (lib/compliance/gates.ts): no deal
 // reaches `closing` without a signed MLDS where one is required, while held for
-// counsel, or with an uncleared usury / modification file.
+// counsel, or with an uncleared usury / modification file. Gate A also blocks
+// every step that puts a commitment or loan documents in front of the borrower
+// (term-sheet acceptance, the commitment / firm commitment / SBA authorization
+// stages, and scheduling closing) until the MLDS is signed: those events carry
+// `compliance_commitment` / `compliance_loan_documents`.
 
 import { createHash } from "node:crypto";
 import { stageAdvanceGate, type DealCompliance } from "@/lib/compliance/gates";
@@ -20,6 +24,8 @@ export type Requirement =
   | "locked_package_sent"
   | "term_sheet_ref"
   | "terms_snapshot"
+  | "compliance_commitment"
+  | "compliance_loan_documents"
   | "compliance_closing"
   | "form159_signed";
 
@@ -71,6 +77,13 @@ const EVENT_INTO: Record<string, { key: string; label: string }> = {
 
 export const STAGE_TEMPLATE_VERSION = 1;
 
+/**
+ * Stages whose entry means a lender commitment (or the SBA authorization the
+ * lender commits on) goes to the borrower. Events into them run gate A's
+ * borrower-commitment check: no commitment before a signed MLDS.
+ */
+export const COMMITMENT_STAGES: ReadonlySet<string> = new Set(["commitment", "firm_commitment", "sba_authorization"]);
+
 function buildTemplate(program: DealProgram): StageTemplate {
   const middle = POST_TERM_SHEET[program];
   const order = ["intake", "engaged", "packaging", "lender_outreach", "term_sheet", ...middle, "closing", "closed"];
@@ -81,6 +94,8 @@ function buildTemplate(program: DealProgram): StageTemplate {
   }));
 
   const closingRequires: Requirement[] = isSbaProgram(program) ? ["compliance_closing", "form159_signed"] : ["compliance_closing"];
+  // Scheduling closing sends the loan documents to the borrower for signature.
+  const closingScheduledRequires: Requirement[] = ["compliance_loan_documents", ...closingRequires];
   const events: EventDef[] = [
     { key: "engagement_signed", label: "Engagement / fee agreement signed", from: ["intake"], to: "engaged", requires: ["engagement_agreement"] },
     { key: "packaging_started", label: "Packaging started", from: ["engaged"], to: "packaging", requires: [] },
@@ -92,16 +107,18 @@ function buildTemplate(program: DealProgram): StageTemplate {
       label: "Term sheet accepted (terms lock)",
       from: ["term_sheet"],
       to: middle[0] ?? "closing",
-      requires: middle.length ? ["term_sheet_ref", "terms_snapshot"] : ["term_sheet_ref", "terms_snapshot", ...closingRequires],
+      // Accepting the term sheet commits the borrower to the lender's terms: no
+      // commitment goes to the borrower before a signed MLDS (gate A).
+      requires: middle.length ? ["term_sheet_ref", "terms_snapshot", "compliance_commitment"] : ["term_sheet_ref", "terms_snapshot", "compliance_commitment", ...closingScheduledRequires],
       locksTerms: true,
     },
   ];
   for (let i = 1; i < middle.length; i++) {
     const into = EVENT_INTO[middle[i]!]!;
-    events.push({ key: into.key, label: into.label, from: [middle[i - 1]!], to: middle[i]!, requires: [] });
+    events.push({ key: into.key, label: into.label, from: [middle[i - 1]!], to: middle[i]!, requires: COMMITMENT_STAGES.has(middle[i]!) ? ["compliance_commitment"] : [] });
   }
   events.push(
-    { key: "closing_scheduled", label: "Closing scheduled", from: [middle.at(-1) ?? "term_sheet"], to: "closing", requires: closingRequires },
+    { key: "closing_scheduled", label: "Closing scheduled", from: [middle.at(-1) ?? "term_sheet"], to: "closing", requires: closingScheduledRequires },
     { key: "loan_closed", label: "Loan closed (lender of record funded)", from: ["closing"], to: "closed", requires: closingRequires },
     { key: "withdraw", label: "Borrower withdrew", from: order.filter((s) => s !== "closed"), to: "withdrawn", requires: [] },
     { key: "mark_lost", label: "Deal lost", from: order.filter((s) => s !== "closed"), to: "lost", requires: [] },
@@ -149,7 +166,10 @@ export type StageContext = {
   /** At least one locked package version has been sent to a lender. */
   lockedPackageSent?: boolean;
   termSheetRef?: string | null;
-  /** Compliance evaluation for the deal (gate A/H); required for closing stages. */
+  /**
+   * Compliance evaluation for the deal (gate A/H); required for term-sheet
+   * acceptance, the commitment stages and closing. null/absent fails closed.
+   */
   compliance?: DealCompliance | null;
   /** SBA deals: Form 159 is signed by agent, applicant and lender, or no Kubera compensation exists. */
   form159Satisfied?: boolean;
@@ -184,6 +204,20 @@ export type StageAdvance =
   | { ok: true; from: string; to: string; event: EventDef; patch: Partial<Deal> }
   | { ok: false; from: string; event: string; reasons: string[] };
 
+/** One reason for every compliance requirement of an event when the evaluation is missing (deduplicated). */
+function complianceNotEvaluated(to: string): string {
+  return `Run the compliance evaluation (MLDS and broker-of-record gates) before moving the deal to ${STAGE_LABELS[to] ?? to}.`;
+}
+
+/** Gate A borrower-document check; fails closed when compliance is not evaluated or the gate is absent. */
+function borrowerGateReasons(compliance: DealCompliance | null | undefined, gate: "borrowerCommitment" | "borrowerLoanDocuments", to: string): string[] {
+  const decision = compliance?.gates?.[gate];
+  if (!decision) return [complianceNotEvaluated(to)];
+  if (decision.allowed) return [];
+  const what = gate === "borrowerCommitment" ? "a commitment" : "loan documents";
+  return decision.reasons.length ? decision.reasons : [`A signed MLDS (RE 882) must be on file before ${what} go to the borrower.`];
+}
+
 function requirementReasons(req: Requirement, input: StageEventInput, to: string): string[] {
   const c = input.context;
   switch (req) {
@@ -198,8 +232,12 @@ function requirementReasons(req: Requirement, input: StageEventInput, to: string
       const missing = ["lenderName", "noteRatePct", "termMonths"].filter((k) => t[k] === undefined || t[k] === null || t[k] === "");
       return missing.length ? [`Accepted terms are missing: ${missing.join(", ")}.`] : [];
     }
+    case "compliance_commitment":
+      return borrowerGateReasons(c.compliance, "borrowerCommitment", to);
+    case "compliance_loan_documents":
+      return borrowerGateReasons(c.compliance, "borrowerLoanDocuments", to);
     case "compliance_closing":
-      if (!c.compliance) return ["Run the compliance evaluation (MLDS and broker-of-record gates) before closing."];
+      if (!c.compliance) return [complianceNotEvaluated(to)];
       return stageAdvanceGate(to, c.compliance).reasons;
     case "form159_signed":
       return c.form159Satisfied ? [] : ["SBA Form 159 must be signed by Kubera, the applicant and the lender before closing."];

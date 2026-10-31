@@ -23,7 +23,6 @@ export type MultifamilyPlusInputs = MultifamilyInputs & {
   stabilizedNoi?: number;
   /** Guarantor credit score for the DSCR investor boxes. */
   fico: number;
-  cashOut?: boolean;
   /** 2–4 units: gross monthly rent and monthly taxes, insurance and HOA. */
   monthlyRent?: number;
   monthlyTaxesInsuranceHoa?: number;

@@ -99,8 +99,8 @@ describe("copy guard across every new box", () => {
     }
   });
 
-  it("qualifies every new timeline as not guaranteed", () => {
-    for (const q of quotes.filter((x) => !["HUD_221D4_223F_MULTIFAMILY", "WHITE_LABEL_CRE_BRIDGE"].includes(x.id))) {
+  it("qualifies every timeline (new boxes and the HUD / bridge quotes beside them) as not guaranteed", () => {
+    for (const q of quotes) {
       expect(q.closeTimeline, q.id).toMatch(/after a complete file.*not guaranteed/);
     }
   });

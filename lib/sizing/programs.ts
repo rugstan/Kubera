@@ -330,7 +330,7 @@ export function sizeSenior(i: SeniorInputs, rates: Benchmarks): SizingResult {
         termLabel: isNC ? "Construction + 40 yrs fixed" : "35 yrs fixed",
         amortLabel: `${p.termYears} years, fully amortizing`,
         recourse: "Non-recourse",
-        closeTimeline: isNC ? "9–12 months" : "120–180 days (LEAN)",
+        closeTimeline: isNC ? "9–12 months after a complete file; not guaranteed" : "120–180 days (LEAN) after a complete file; not guaranteed",
         advisoryFeePct: BROKER_FEE_PCT.HUD,
         eligible: isNC || occ >= 0.8,
         notes,
@@ -377,7 +377,7 @@ export function sizeSenior(i: SeniorInputs, rates: Benchmarks): SizingResult {
         termLabel: `${b.termMonths} months + extensions`,
         amortLabel: "Interest-only",
         recourse: "Non-recourse (standard carve-outs)",
-        closeTimeline: "21–45 days",
+        closeTimeline: "21–45 days after a complete file; not guaranteed",
         advisoryFeePct: BROKER_FEE_PCT.BRIDGE,
         eligible: !isNC,
         notes: ["Refinance into HUD 232/223(f) once census and T-12 stabilize."],
@@ -452,7 +452,7 @@ export function sizeHospitality(i: HospitalityInputs, rates: Benchmarks): Sizing
         termLabel: "10 yrs fixed · defeasance",
         amortLabel: "30 years",
         recourse: "Non-recourse (standard carve-outs)",
-        closeTimeline: "60–90 days",
+        closeTimeline: "60–90 days after a complete file; not guaranteed",
         advisoryFeePct: BROKER_FEE_PCT.CMBS,
         eligible: !isConstruction && i.loanAmount >= CMBS.minLoan,
         warnings,
@@ -556,8 +556,12 @@ export function hudMultifamilyTier(
   return { tier: "MARKET_RATE", warnings: [] };
 }
 
-/** Max leverage, min DSCR and MIP for a HUD multifamily program and tier. MIP is flat across tiers; green has no effect. */
-export function hudMultifamilyBox(construction: boolean, tier: HudMultifamilyTier): HudMultifamilyBox {
+/**
+ * Max leverage, min DSCR and MIP for a HUD multifamily program and tier. MIP is
+ * flat across tiers; green has no effect. A 223(f) cash-out refinance stays
+ * capped at the cash-out LTV (80%) whatever the tier allows.
+ */
+export function hudMultifamilyBox(construction: boolean, tier: HudMultifamilyTier, cashOutRefinance = false): HudMultifamilyBox {
   const { mip } = HUD.multifamily;
   const fees = { annualMip: mip.annual, upfrontMip: mip.upfront };
   if (construction) {
@@ -579,7 +583,7 @@ export function hudMultifamilyBox(construction: boolean, tier: HudMultifamilyTie
     program: "223F",
     tier: effective,
     leverageBasis: "LTV",
-    maxLeverage: affordable ? p.maxLtvAffordable : p.maxLtv,
+    maxLeverage: cashOutRefinance ? Math.min(affordable ? p.maxLtvAffordable : p.maxLtv, p.cashOutMaxLtv) : affordable ? p.maxLtvAffordable : p.maxLtv,
     minDscr: affordable ? p.minDscrAffordable : p.minDscr,
     termYears: p.termYears,
     ...fees,
@@ -600,7 +604,8 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
 
   {
     const { tier, warnings: tierWarnings } = hudMultifamilyTier(i, options);
-    const box = hudMultifamilyBox(isConstruction, tier);
+    const cashOutRefinance = !isConstruction && i.transaction === "REFINANCE" && Boolean(i.cashOut);
+    const box = hudMultifamilyBox(isConstruction, tier, cashOutRefinance);
     const rate = rates.tenYear + mid(SPREADS.hudMultifamily) + (isConstruction ? 0.15 : 0);
     const warnings: string[] = [...tierWarnings];
     if (!residential) warnings.push("HUD multifamily programs require a residential asset.");
@@ -610,9 +615,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
     const notes = [
       `${HUD_TIER_LABEL[tier]} box: ${pctLabel(box.maxLeverage)} ${box.leverageBasis}, ${box.minDscr.toFixed(2)}x DSCR.`,
       `Flat ${pctLabel(box.annualMip, 2)} annual MIP for applications submitted on or after ${HUD_MIP_EFFECTIVE_LABEL}.`,
-      ...(!isConstruction && i.transaction === "REFINANCE"
-        ? [`Cash-out refinances stay capped at ${pctLabel(HUD.multifamily.s223f.cashOutMaxLtv)} LTV.`]
-        : []),
+      ...(cashOutRefinance ? [`Cash-out refinances stay capped at ${pctLabel(HUD.multifamily.s223f.cashOutMaxLtv)} LTV.`] : []),
       ...(i.green && !HUD.greenLowersMip ? [GREEN_MIP_NOTE] : []),
     ];
     quotes.push(
@@ -635,7 +638,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
         termLabel: isConstruction ? "Construction + 40 yrs fixed" : "35 yrs fixed",
         amortLabel: `${box.termYears} years, fully amortizing`,
         recourse: "Non-recourse",
-        closeTimeline: isConstruction ? "8–12 months" : "120–180 days",
+        closeTimeline: isConstruction ? "8–12 months after a complete file; not guaranteed" : "120–180 days after a complete file; not guaranteed",
         advisoryFeePct: BROKER_FEE_PCT.HUD,
         eligible: residential,
         notes,
@@ -670,7 +673,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
         termLabel: "5–12 yrs fixed (10 shown)",
         amortLabel: "30 years",
         recourse: "Non-recourse (standard carve-outs)",
-        closeTimeline: "45–60 days",
+        closeTimeline: "45–60 days after a complete file; not guaranteed",
         advisoryFeePct: BROKER_FEE_PCT.AGENCY,
         eligible: residential && !isConstruction,
         warnings,

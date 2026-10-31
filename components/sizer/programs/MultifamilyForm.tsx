@@ -58,7 +58,7 @@ export function MultifamilyForm({ v, set, hud223a7 }: FormProps<MultifamilyPlusI
           <PercentField label="Physical occupancy" value={(v.occupancyPct ?? 95) / 100} onChange={(n) => set((p) => ({ ...p, occupancyPct: Math.round(n * 100) }))} min={50} max={100} step={1} />
           <MoneyField label="Stabilized NOI (bridge exit test)" value={v.stabilizedNoi ?? 0} onChange={optional("stabilizedNoi")} hint="Leave blank to test on in-place NOI" />
           <CreditBandField fico={v.fico} onChange={u("fico")} />
-          {v.transaction === "REFINANCE" && <Toggle label="Cash-out refinance" hint="Lowers DSCR loan leverage" checked={Boolean(v.cashOut)} onChange={u("cashOut")} />}
+          {v.transaction === "REFINANCE" && <Toggle label="Cash-out refinance" hint="Lowers HUD 223(f) and DSCR loan leverage" checked={Boolean(v.cashOut)} onChange={u("cashOut")} />}
         </FieldGroup>
       )}
 
