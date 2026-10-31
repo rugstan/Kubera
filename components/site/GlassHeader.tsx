@@ -7,9 +7,9 @@ import { openCommandBar } from "@/components/ask/events";
 import { Logo } from "./Logo";
 
 const NAV = [
-  { href: "/#senior-living", label: "Senior Living" },
+  { href: "/#senior-living", label: "Senior living" },
   { href: "/#hospitality", label: "Hospitality" },
-  { href: "/#multifamily", label: "Multifamily & CRE" },
+  { href: "/#multifamily", label: "Multifamily and CRE" },
   { href: "/#rates", label: "Rates" },
   { href: "/partners", label: "Partners" },
 ];

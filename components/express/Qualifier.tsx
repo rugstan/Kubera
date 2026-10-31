@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "@/components/sizer/fields";
+import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 import { usd } from "@/lib/sizing/programs";
 import { disclosures } from "@/lib/site";
 import type { Intake } from "@/lib/validation";
@@ -12,28 +13,30 @@ import { DocumentUpload } from "./DocumentUpload";
 type Asset = Intake["assetType"];
 
 const ASSETS: { value: Asset; label: string; group: string }[] = [
-  { value: "ASSISTED_LIVING", label: "Assisted Living", group: "Senior Living & Care" },
-  { value: "MEMORY_CARE", label: "Memory Care", group: "Senior Living & Care" },
-  { value: "RCFE", label: "RCFE / Board & Care", group: "Senior Living & Care" },
-  { value: "SNF", label: "Skilled Nursing", group: "Senior Living & Care" },
-  { value: "HOTEL_FLAGGED", label: "Flagged Hotel", group: "Hospitality" },
-  { value: "HOTEL_BOUTIQUE", label: "Boutique / Motel", group: "Hospitality" },
-  { value: "HOTEL_TO_SENIOR_CONVERSION", label: "Hotel → Senior Living", group: "Hospitality" },
-  { value: "MULTIFAMILY", label: "Multifamily", group: "Multifamily & CRE" },
-  { value: "MIXED_USE", label: "Mixed-Use", group: "Multifamily & CRE" },
-  { value: "COMMERCIAL", label: "Commercial / Bridge", group: "Multifamily & CRE" },
+  { value: "ASSISTED_LIVING", label: "Assisted living", group: "Senior living and care" },
+  { value: "MEMORY_CARE", label: "Memory care", group: "Senior living and care" },
+  { value: "RCFE", label: "RCFE / board and care", group: "Senior living and care" },
+  { value: "SNF", label: "Skilled nursing", group: "Senior living and care" },
+  { value: "HOTEL_FLAGGED", label: "Flagged hotel", group: "Hospitality" },
+  { value: "HOTEL_BOUTIQUE", label: "Boutique hotel / motel", group: "Hospitality" },
+  { value: "HOTEL_TO_SENIOR_CONVERSION", label: "Hotel → senior living", group: "Hospitality" },
+  { value: "MULTIFAMILY", label: "Multifamily", group: "Multifamily and CRE" },
+  { value: "MIXED_USE", label: "Mixed-use", group: "Multifamily and CRE" },
+  { value: "COMMERCIAL", label: "Commercial / bridge", group: "Multifamily and CRE" },
 ];
+
+const GROUPS = ["Senior living and care", "Hospitality", "Multifamily and CRE"] as const;
 
 const isSenior = (a: Asset) => ["ASSISTED_LIVING", "MEMORY_CARE", "RCFE", "SNF"].includes(a);
 const isHotel = (a: Asset) => a === "HOTEL_FLAGGED" || a === "HOTEL_BOUTIQUE";
 const unitLabel = (a: Asset) => (isSenior(a) ? "Licensed beds" : isHotel(a) || a === "HOTEL_TO_SENIOR_CONVERSION" ? "Rooms / keys" : a === "COMMERCIAL" ? "Tenants (optional)" : "Units");
 
 const FLAG_COPY: Record<string, string> = {
-  OPTIMAL_FOR_HUD_232: "Your profile fits HUD 232's long-term, non-recourse sweet spot.",
-  LOAN_UNDER_3_5M_USE_SBA_504_TO_AVOID_HUD_COSTS: "At this size, SBA 504 should beat HUD on all-in cost — no annual audit, far lower closing costs.",
-  USE_2026_SBA_10M_STACK_FOR_LARGE_HOTEL_OR_CARE_FACILITY: "A combined SBA 7(a) + 504 stack can finance this project with 15–20% down.",
-  NEEDS_STABILIZATION_OR_PIP_BRIDGE_FIRST: "A bridge loan first, then permanent debt once operations stabilize, should maximize proceeds.",
-  OPTIMAL_AS_STRUCTURED: "This structure is a strong fit as submitted.",
+  OPTIMAL_FOR_HUD_232: "Your request looks like a match for HUD 232's long-term, non-recourse financing, subject to lender underwriting.",
+  LOAN_UNDER_3_5M_USE_SBA_504_TO_AVOID_HUD_COSTS: "At this size, SBA 504 often costs less all-in than HUD — no annual HUD audit and lower closing costs.",
+  USE_2026_SBA_10M_STACK_FOR_LARGE_HOTEL_OR_CARE_FACILITY: "A combined SBA 7(a) + 504 stack may finance this project with 15–20% down, subject to SBA eligibility and lender approval.",
+  NEEDS_STABILIZATION_OR_PIP_BRIDGE_FIRST: "A bridge loan first, then permanent debt once operations stabilize, can often increase proceeds.",
+  OPTIMAL_AS_STRUCTURED: "This structure looks workable as submitted. An advisor will test it with lenders.",
 };
 
 type Result = {
@@ -109,7 +112,7 @@ export function Qualifier() {
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.issues?.[0] ? `${body.issues[0].path}: ${body.issues[0].message}` : body.error ?? "Submission failed");
+      if (!res.ok) throw new Error(body.issues?.[0] ? `Please check ${body.issues[0].path.split(".").pop()}: ${body.issues[0].message}` : body.error ?? "We couldn't send your request. Please try again, or email us.");
       setDone(body as Result);
     } catch (e) {
       setError((e as Error).message);
@@ -125,7 +128,7 @@ export function Qualifier() {
   return (
     <div>
       <div className="mb-8 text-center">
-        <p className="eyebrow">60-second smart deal qualifier</p>
+        <p className="eyebrow">60-second deal qualifier</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Let&apos;s structure your deal.</h1>
       </div>
 
@@ -152,7 +155,7 @@ export function Qualifier() {
             {step === 0 && (
               <>
                 <h2 className="text-2xl font-semibold">What are you financing?</h2>
-                {["Senior Living & Care", "Hospitality", "Multifamily & CRE"].map((g) => (
+                {GROUPS.map((g) => (
                   <div key={g}>
                     <p className="field-label">{g}</p>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -208,7 +211,7 @@ export function Qualifier() {
 
             {step === 2 && (
               <>
-                <h2 className="text-2xl font-semibold">Timing &amp; preferences</h2>
+                <h2 className="text-2xl font-semibold">Timing and preferences</h2>
                 <SelectField
                   label="When do you need to close?"
                   value={String(intake.timelineDays)}
@@ -233,7 +236,7 @@ export function Qualifier() {
 
             {step === 3 && (
               <>
-                <h2 className="text-2xl font-semibold">Where should we send your structure?</h2>
+                <h2 className="text-2xl font-semibold">Where should an advisor reach you?</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {(["firstName", "lastName", "email", "phone", "company"] as const).map((k) => (
                     <div key={k} className={k === "company" ? "sm:col-span-2" : ""}>
@@ -253,6 +256,7 @@ export function Qualifier() {
                   <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-accent)]" checked={contact.consent} onChange={(e) => setContact((c) => ({ ...c, consent: e.target.checked }))} />
                   <span>I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.</span>
                 </label>
+                <NoticeAtCollection point="qualifier" />
                 {error && <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p>}
               </>
             )}
@@ -269,7 +273,7 @@ export function Qualifier() {
             </button>
           ) : (
             <button type="button" onClick={submit} disabled={!contactValid || submitting} className="pill pill-primary !py-2.5 disabled:opacity-40">
-              {submitting ? "Structuring…" : "See my structure"}
+              {submitting ? "Sending…" : "See my indicative structure"}
             </button>
           )}
         </div>
@@ -283,22 +287,22 @@ function Done({ r, firstName }: { r: Result; firstName: string }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       <div className="text-center">
-        <p className="eyebrow">{x.qualified ? "Structure matched" : "Received"}</p>
+        <p className="eyebrow">{x.qualified ? "Indicative match" : "Request received"}</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
           {x.qualified ? `Thanks, ${firstName}. Here's your starting point.` : `Thanks, ${firstName}. An advisor will review this personally.`}
         </h1>
       </div>
       {x.qualified && x.program && (
         <div className="bento p-8">
-          <p className="text-sm text-titanium">Recommended program</p>
+          <p className="text-sm text-titanium">Indicative program fit</p>
           <p className="mt-1 text-3xl font-semibold tracking-tight">{x.program}</p>
           <p className="mt-3 text-[15px] text-ink/80">{FLAG_COPY[x.flag]}</p>
           <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
               ["Indicative loan", usd(x.indicativeLoan)],
-              ["Est. rate", x.indicativeRatePct ? `${x.indicativeRatePct.toFixed(2)}%` : "—"],
+              ["Indicative rate", x.indicativeRatePct ? `${x.indicativeRatePct.toFixed(2)}%` : "—"],
               ["Term", x.term ?? "—"],
-              ["Typical close", x.closeTimeline ?? "—"],
+              ["Typical timeline*", x.closeTimeline ?? "—"],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-[12px] text-titanium">{k}</dt>
@@ -307,14 +311,19 @@ function Done({ r, firstName }: { r: Result; firstName: string }) {
             ))}
           </dl>
           {x.secondary && <p className="mt-5 text-[13px] text-titanium">Alternative we&apos;ll also price: {x.secondary}</p>}
+          <p className="mt-4 text-[12px] leading-relaxed text-titanium">* {disclosures.timeline}</p>
         </div>
       )}
       <div className="bento p-6">
-        <p className="font-medium">{x.callScheduled ? "A senior advisor will call you today." : "An advisor will follow up within one business day."}</p>
+        <p className="font-medium">
+          {x.callScheduled ? "We've flagged your request for priority review by a senior advisor." : "A licensed advisor will review your request and follow up, usually within one business day."}
+        </p>
         <p className="mt-1 text-sm text-titanium">Speed things up by sharing your T-12, rent roll or census, and STR report. Files go to an encrypted, private vault.</p>
         {r.leadId && r.uploadToken ? <DocumentUpload leadId={r.leadId} token={r.uploadToken} /> : null}
       </div>
-      <p className="text-[11px] leading-relaxed text-titanium">{disclosures.indicative}</p>
+      <p className="text-[11px] leading-relaxed text-titanium">
+        {disclosures.indicative} An indicative match is not a loan approval or commitment; only a lender can approve a loan, in writing.
+      </p>
     </motion.div>
   );
 }

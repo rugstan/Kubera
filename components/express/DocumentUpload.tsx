@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 
 const KINDS = [
   { value: "T12", label: "T-12 P&L" },
@@ -21,7 +22,7 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
   const [status, setStatus] = useState<string | null>(null);
 
   async function upload(file: File) {
-    if (file.size > MAX_BYTES) return setStatus("Files must be under 50 MB.");
+    if (file.size > MAX_BYTES) return setStatus(`${file.name} is larger than 50 MB. Split it into smaller files or email it to your advisor.`);
     setStatus(`Uploading ${file.name}…`);
     try {
       const res = await fetch("/api/documents", {
@@ -30,12 +31,12 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
         body: JSON.stringify({ leadId, token, kind, fileName: file.name, contentType: file.type || "application/pdf" }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Upload failed");
+      if (!res.ok) throw new Error(body.error ?? `We couldn't upload ${file.name}. Please try again.`);
       const form = new FormData();
       form.append("cacheControl", "3600");
       form.append("", file);
       const put = await fetch(body.uploadUrl, { method: "PUT", body: form });
-      if (!put.ok) throw new Error("Upload failed");
+      if (!put.ok) throw new Error(`We couldn't upload ${file.name}. Please try again.`);
       setUploaded((u) => [...u, `${KINDS.find((k) => k.value === kind)?.label}: ${file.name}`]);
       setStatus(null);
     } catch (e) {
@@ -45,6 +46,7 @@ export function DocumentUpload({ leadId, token }: { leadId: string; token: strin
 
   return (
     <div className="mt-5 space-y-3">
+      <NoticeAtCollection point="upload" />
       <div className="flex flex-col gap-2 sm:flex-row">
         <select className="field sm:w-56" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Document type">
           {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
