@@ -197,6 +197,11 @@ test("the weekly market note is a cited rules digest without an xAI key, and a r
 test("the prospect list reflows at 390px without sideways page scroll", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page, "broker@kubera.test", "/prospects");
+  // Scan first: the prospect list and its "check waiting outreach" form only render once prospects exist.
+  await page.getByLabel("ZIP codes (up to 25)").fill("90001 91201");
+  await page.getByRole("button", { name: "Run scan" }).click();
+  await expect(page.getByRole("status").filter({ hasText: /Scan complete/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Check waiting outreach for broker decisions" })).toBeVisible();
   for (const p of ["/prospects", "/prospects/intel", "/prospects/suppressions"]) {
     await page.goto(`${base}${p}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

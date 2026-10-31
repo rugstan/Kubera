@@ -15,6 +15,7 @@ import { notifyRuntime } from "@/lib/notify/runtime";
 import type { EsignProvider } from "@/lib/esign/types";
 import { site } from "@/lib/site";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
+import { demoDesks, type DemoDesks } from "./demo";
 import type { BrokerIdentity } from "./dre";
 import type { Form159Data } from "./form159";
 import { emailLenderMailer } from "./mailer";
@@ -27,7 +28,9 @@ import { SupabaseDealDeskStore } from "./store-supabase";
 import type { PackageItem } from "./types";
 
 // Production wiring for the deal desk. Everything is env-gated (Global rule 3):
-// without Supabase the pages render a "not configured" state; without an
+// in fake-auth mode (local development, e2e) the desk runs on the shared
+// in-memory demo desks (./demo.ts); otherwise, without Supabase the pages
+// render a "not configured" state; without an
 // approvals queue (WS-I) approvalGate() is the closed gate and keeps every
 // outbound action pending.
 
@@ -52,6 +55,8 @@ export type DealDeskRuntime = {
 let warned = false;
 
 export function dealDeskRuntime(): DealDeskRuntime | null {
+  const demo = demoDesks();
+  if (demo) return demoRuntime(demo);
   const db = supabaseAdmin();
   if (!db) {
     if (!warned) {
@@ -92,6 +97,29 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
           return { documentId: r.id, label: r.file_name, kind: r.kind, storagePath: r.storage_path, sha256 };
         }),
       );
+    },
+  };
+}
+
+/** The deal desk on the in-memory demo desks: the demo approvals queue gates every outbound action; there is no vault. */
+function demoRuntime(demo: DemoDesks): DealDeskRuntime {
+  return {
+    store: demo.deals,
+    disclosures: demo.disclosures,
+    storage: demo.storage,
+    gate: approvalGate(),
+    esign: esignProvider(),
+    mailer: emailLenderMailer(emailClientFromEnv()),
+    baseUrl: site.siteUrl,
+    now: () => new Date(),
+    checklist: checklistFromDesk(),
+    stageEvents: null,
+    async vaultDocuments() {
+      return [];
+    },
+    async vaultItems(_leadId, documentIds) {
+      if (documentIds.length) throw new Error("The demo desk has no document vault");
+      return [];
     },
   };
 }

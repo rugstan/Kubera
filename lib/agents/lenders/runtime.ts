@@ -1,6 +1,7 @@
 import "server-only";
 import { agentSafety } from "@/lib/agents/core/server";
 import { modelGateway } from "@/lib/ai/gateway";
+import { demoDesks } from "@/lib/deals/demo";
 import { dealDeskRuntime, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { supabaseSpreadStore, type SpreadStore } from "@/lib/spreads/store";
@@ -10,8 +11,10 @@ import type { ExecutiveSummarySpec } from "./package";
 import type { LenderMatchStore, PartnerSource, TermSheetMailSource } from "./store";
 import { SupabaseLenderMatchStore, SupabasePartnerSource, SupabaseTermSheetMailSource } from "./store-supabase";
 
-// Production wiring for lender matching. Env-gated (Global rule 3): without
-// Supabase the lenders desk renders "not configured"; without an Anthropic
+// Production wiring for lender matching. Env-gated (Global rule 3): in
+// fake-auth mode it runs on the shared in-memory demo desks
+// (lib/deals/demo.ts); otherwise, without Supabase the lenders desk renders
+// "not configured"; without an Anthropic
 // key term sheets are parsed by rules and all land in the review queue; the
 // approval gate and mailer come from the deal desk runtime, so with no
 // approvals queue every submission stays pending and nothing is sent.
@@ -57,6 +60,17 @@ export function indexRatesFromEnv(env: Record<string, string | undefined> = proc
 
 export function lenderRuntime(): LenderRuntime | null {
   const desk = dealDeskRuntime();
+  const demo = demoDesks();
+  if (desk && demo) {
+    return {
+      desk,
+      store: demo.lenderStore,
+      partners: demo.partners,
+      mail: demo.termSheetMail,
+      spreads: demo.spreads,
+      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, events: agentSafety().events },
+    };
+  }
   const db = supabaseAdmin();
   if (!desk || !db) return null;
   return {

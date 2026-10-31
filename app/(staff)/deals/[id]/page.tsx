@@ -46,9 +46,9 @@ export default function DealPage({ params, searchParams }: { params: Params; sea
 
 async function DealData({ params, searchParams }: { params: Params; searchParams: Search }) {
   const [{ id }, sp, staff] = await Promise.all([params, searchParams, currentStaff()]);
-  if (!staff) return <SignInRequired />;
+  if (!staff) return <SignInRequired level={1} />;
   const rt = dealDeskRuntime();
-  if (!rt) return <NotConfigured />;
+  if (!rt) return <NotConfigured level={1} />;
   if (!UUID.test(id)) notFound();
   const deal = await rt.store.getDeal(id);
   if (!deal) notFound();

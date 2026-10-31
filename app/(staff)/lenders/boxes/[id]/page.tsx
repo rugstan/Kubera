@@ -40,9 +40,9 @@ function ReviewButton({ id, version, op, label, children }: { id: string; versio
 
 async function BoxData({ params, searchParams }: { params: Params; searchParams: Search }) {
   const [{ id }, sp, staff] = await Promise.all([params, searchParams, currentStaff()]);
-  if (!staff) return <SignInRequired />;
+  if (!staff) return <SignInRequired level={1} />;
   const rt = lenderRuntime();
-  if (!rt) return <NotConfigured />;
+  if (!rt) return <NotConfigured level={1} />;
   if (!UUID.test(id)) notFound();
   const [box, lenders] = await Promise.all([rt.store.getBox(id), rt.desk.store.listLenders()]);
   if (!box) notFound();

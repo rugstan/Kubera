@@ -16,6 +16,7 @@
 // The broker can instead copy the link and send it from their own mailbox.
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { resolveAuthMode } from "@/lib/auth/config";
 import type { ApprovalDecision, ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { PortalInvite, PortalInviteStore } from "./store";
 
@@ -34,9 +35,17 @@ export class PortalLinkError extends Error {
   }
 }
 
+/**
+ * Public, demo-only session secret for fake-auth mode (local development and
+ * e2e), where the portal runs on the in-memory demo desks (lib/deals/demo.ts).
+ * It signs sessions for invented data only; fake mode is refused in production.
+ */
+export const DEMO_PORTAL_SESSION_SECRET = "kubera-demo-portal-session-secret-not-for-production";
+
 export function portalSessionSecret(env: Record<string, string | undefined> = process.env): string | null {
   const s = env.PORTAL_SESSION_SECRET?.trim();
-  return s && s.length >= 32 ? s : null;
+  if (s && s.length >= 32) return s;
+  return resolveAuthMode(env).mode === "fake" ? DEMO_PORTAL_SESSION_SECRET : null;
 }
 
 export function portalConfig(env: Record<string, string | undefined> = process.env) {
