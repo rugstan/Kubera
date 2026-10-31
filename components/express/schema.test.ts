@@ -1,0 +1,136 @@
+import { describe, expect, it } from "vitest";
+import { leadSchema } from "@/lib/validation";
+import { EMPTY_VALUES, STEP_FIELDS, buildQualifyPayload, prefillFromParams, qualifierSchema, transactionOptions, type QualifierValues } from "./schema";
+
+const META = { textVersion: "qualifier-contact-2026-10-31", page: "/express" };
+
+const valid: QualifierValues = {
+  ...EMPTY_VALUES,
+  assetType: "ASSISTED_LIVING",
+  transaction: "REFINANCE",
+  loanAmount: 3_000_000,
+  noi: 400_000,
+  unitCount: 60,
+  occupancyPct: 88,
+  timelineDays: "90",
+  ownerOperator: "yes",
+  firstName: "Pat",
+  lastName: "Lee",
+  email: "pat.lee@example.com",
+};
+
+const issuesFor = (v: QualifierValues) => {
+  const r = qualifierSchema(v).safeParse(v);
+  return r.success ? {} : Object.fromEntries(r.error.issues.map((i) => [String(i.path[0]), i.message]));
+};
+
+describe("express form defaults", () => {
+  it("pre-fills nothing realistic", () => {
+    expect(EMPTY_VALUES.loanAmount).toBeNull();
+    expect(EMPTY_VALUES.noi).toBeNull();
+    expect(EMPTY_VALUES.unitCount).toBeNull();
+    expect(EMPTY_VALUES.occupancyPct).toBeNull();
+    expect(EMPTY_VALUES.adr).toBeNull();
+    expect(EMPTY_VALUES.transaction).toBe("");
+    expect(EMPTY_VALUES.timelineDays).toBe("");
+    expect(EMPTY_VALUES.ownerOperator).toBe("");
+    expect(EMPTY_VALUES.assetType).toBe("");
+  });
+
+  it("every field belongs to exactly one step", () => {
+    const all = STEP_FIELDS.flat();
+    expect(new Set(all).size).toBe(all.length);
+    expect(Object.keys(EMPTY_VALUES).sort()).toEqual([...all].sort());
+  });
+
+  it("only carries over values the visitor entered on the sizer link", () => {
+    const params = new URLSearchParams({ asset: "MULTIFAMILY", loan: "5000000", noi: "abc" });
+    expect(prefillFromParams((k) => params.get(k))).toEqual({ assetType: "MULTIFAMILY", loanAmount: 5_000_000, noi: null });
+    expect(prefillFromParams(() => null)).toEqual({ loanAmount: null, noi: null });
+    const bad = new URLSearchParams({ asset: "NOT_AN_ASSET" });
+    expect(prefillFromParams((k) => bad.get(k)).assetType).toBeUndefined();
+  });
+});
+
+describe("express validation", () => {
+  it("accepts a complete submission", () => {
+    expect(issuesFor(valid)).toEqual({});
+  });
+
+  it("reports each missing answer with a message that says what to do", () => {
+    const issues = issuesFor({ ...EMPTY_VALUES, assetType: "ASSISTED_LIVING" });
+    expect(issues.transaction).toMatch(/choose/i);
+    expect(issues.loanAmount).toMatch(/enter the loan amount/i);
+    expect(issues.noi).toMatch(/net operating income/i);
+    expect(issues.unitCount).toMatch(/licensed beds/i);
+    expect(issues.occupancyPct).toMatch(/occupancy/i);
+    expect(issues.timelineDays).toMatch(/when you need to close/i);
+    expect(issues.ownerOperator).toMatch(/owner-operator/i);
+    expect(issues.firstName).toMatch(/first name/i);
+    expect(issues.email).toMatch(/email/i);
+  });
+
+  it("enforces the server's loan floor and percent range before sending", () => {
+    expect(issuesFor({ ...valid, loanAmount: 100_000 }).loanAmount).toBe("Minimum $250,000.");
+    expect(issuesFor({ ...valid, occupancyPct: 140 }).occupancyPct).toMatch(/0 to 100/);
+    expect(issuesFor({ ...valid, email: "not-an-email" }).email).toMatch(/valid email/i);
+  });
+
+  it("accepts a zero NOI (a property with no income yet)", () => {
+    expect(issuesFor({ ...valid, noi: 0 }).noi).toBeUndefined();
+  });
+
+  it("requires hotel fields only for hotels", () => {
+    expect(issuesFor({ ...valid, assetType: "HOTEL_FLAGGED", adr: null, franchiseTier: "" })).toMatchObject({ adr: expect.stringMatching(/daily rate/i), franchiseTier: expect.stringMatching(/franchise/i) });
+    expect(issuesFor({ ...valid, assetType: "HOTEL_FLAGGED", adr: 145, franchiseTier: "PREMIUM_FLAG" })).toEqual({});
+    expect(issuesFor({ ...valid, assetType: "MULTIFAMILY" }).adr).toBeUndefined();
+  });
+
+  it("treats the unit count as optional for commercial assets only", () => {
+    expect(issuesFor({ ...valid, assetType: "COMMERCIAL", unitCount: null }).unitCount).toBeUndefined();
+    expect(issuesFor({ ...valid, assetType: "MULTIFAMILY", unitCount: null }).unitCount).toMatch(/units/i);
+  });
+
+  it("requires a phone number once contact permission is ticked, and validates any phone given", () => {
+    expect(issuesFor({ ...valid, consent: true, phone: "" }).phone).toMatch(/mobile number/i);
+    expect(issuesFor({ ...valid, consent: true, phone: "415-555-0132" }).phone).toBeUndefined();
+    expect(issuesFor({ ...valid, consent: false, phone: "" }).phone).toBeUndefined();
+    expect(issuesFor({ ...valid, phone: "12345" }).phone).toMatch(/area code/i);
+  });
+});
+
+describe("express payload", () => {
+  it("builds a body the server's lead schema accepts", () => {
+    const payload = buildQualifyPayload({ ...valid, value: 4_500_000, consent: true, phone: "415-555-0132" }, META);
+    const parsed = leadSchema.safeParse({ intake: payload.intake, contact: payload.contact });
+    expect(parsed.success).toBe(true);
+    expect(payload.intake).toMatchObject({ assetType: "ASSISTED_LIVING", transaction: "REFINANCE", source: "express", timelineDays: 90, ownerOperator: true, value: 4_500_000 });
+    expect(payload.contact).toMatchObject({ firstName: "Pat", consent: true, phone: "415-555-0132" });
+    expect(payload.consentMeta).toEqual(META);
+  });
+
+  it("sends hotel fields only for hotels and omits blank optionals", () => {
+    const hotel = buildQualifyPayload({ ...valid, assetType: "HOTEL_FLAGGED", adr: 145, franchiseTier: "PREMIUM_FLAG", pipBudget: 1_200_000 }, META);
+    expect(hotel.intake).toMatchObject({ adr: 145, franchiseTier: "PREMIUM_FLAG", pipBudget: 1_200_000 });
+    const senior = buildQualifyPayload({ ...valid, adr: 145, franchiseTier: "PREMIUM_FLAG", pipBudget: 5 }, META);
+    expect(senior.intake.adr).toBeUndefined();
+    expect(senior.intake.franchiseTier).toBeUndefined();
+    expect(senior.intake.pipBudget).toBeUndefined();
+    expect(senior.intake.value).toBeUndefined();
+  });
+
+  it("maps a no answer and the construction/conversion label to the right enum", () => {
+    expect(buildQualifyPayload({ ...valid, ownerOperator: "no" }, META).intake.ownerOperator).toBe(false);
+    expect(buildQualifyPayload({ ...valid, assetType: "HOTEL_TO_SENIOR_CONVERSION", transaction: "CONSTRUCTION" }, META).intake.transaction).toBe("CONVERSION");
+    expect(buildQualifyPayload({ ...valid, assetType: "MULTIFAMILY", transaction: "CONVERSION" }, META).intake.transaction).toBe("CONSTRUCTION");
+    expect(transactionOptions("HOTEL_TO_SENIOR_CONVERSION").map((o) => o.value)).toEqual(["PURCHASE", "REFINANCE", "CONVERSION"]);
+  });
+
+  it("refuses unvalidated values", () => {
+    expect(() => buildQualifyPayload(EMPTY_VALUES, META)).toThrow();
+  });
+
+  it("sends zero units for a commercial asset with none entered", () => {
+    expect(buildQualifyPayload({ ...valid, assetType: "COMMERCIAL", unitCount: null }, META).intake.unitCount).toBe(0);
+  });
+});

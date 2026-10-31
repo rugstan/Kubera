@@ -1,5 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { chooseOption } from "./forms-helpers";
 import { gotoHydrated, mockJsonApi } from "./helpers";
+
+async function fillVendor(page: Page) {
+  await page.getByLabel(/first name/i).fill("Sam");
+  await page.getByLabel(/last name/i).fill("Rivera");
+  await page.getByLabel(/^email/i).fill("sam@appraisal.example.com");
+  await page.getByLabel(/^company/i).fill("Rivera Appraisal Group");
+  await chooseOption(page, /^phase i esa$/i);
+}
 
 test.describe("partner portal", () => {
   test("vendor registration posts a valid payload and confirms", async ({ page }) => {
@@ -7,12 +16,9 @@ test.describe("partner portal", () => {
     await gotoHydrated(page, "/partners#vendor");
 
     await expect(page.getByRole("tab", { name: /vendor/i })).toHaveAttribute("aria-selected", "true");
-    await page.getByLabel(/first name/i).fill("Sam");
-    await page.getByLabel(/last name/i).fill("Rivera");
-    await page.getByLabel(/^email/i).fill("sam@appraisal.example.com");
-    await page.getByLabel(/^organization/i).fill("Rivera Appraisal Group");
-    await page.getByRole("button", { name: /phase i esa/i }).click();
-    await page.getByRole("checkbox").check();
+    await fillVendor(page);
+    await page.getByLabel(/^phone/i).fill("415-555-0132");
+    await page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i }).check();
     await page.getByRole("button", { name: /submit registration/i }).click();
 
     await expect(page.getByText(/you.re in the queue/i)).toBeVisible();
@@ -22,7 +28,7 @@ test.describe("partner portal", () => {
       partnerType: "VENDOR",
       organization: "Rivera Appraisal Group",
       services: ["PHASE_I_ESA"],
-      contact: { firstName: "Sam", email: "sam@appraisal.example.com", consent: true },
+      contact: { firstName: "Sam", email: "sam@appraisal.example.com", phone: "415-555-0132", consent: true },
       consentMeta: { textVersion: "partner-contact-2026-11-01", page: "/partners" },
     });
   });
@@ -37,16 +43,24 @@ test.describe("partner portal", () => {
     await expect(page.getByLabel(/beds \/ keys under management/i)).toBeVisible();
   });
 
-  test("surfaces a server validation error", async ({ page }) => {
+  test("keeps what was typed when switching tabs", async ({ page }) => {
+    await gotoHydrated(page, "/partners");
+    await page.getByLabel(/first name/i).fill("Sam");
+    await page.getByLabel(/^email/i).fill("sam@appraisal.example.com");
+    await page.getByRole("tab", { name: /vendor/i }).click();
+    await expect(page.getByLabel(/first name/i)).toHaveValue("Sam");
+    await expect(page.getByLabel(/^email/i)).toHaveValue("sam@appraisal.example.com");
+  });
+
+  test("surfaces a server validation error on the field it names", async ({ page }) => {
     await mockJsonApi(page, "/api/partners", { status: 400, body: { error: "Invalid registration", issues: [{ path: "contact.email", message: "Invalid email" }] } });
     await gotoHydrated(page, "/partners#vendor");
-    await page.getByLabel(/first name/i).fill("Sam");
-    await page.getByLabel(/last name/i).fill("Rivera");
-    await page.getByLabel(/^email/i).fill("sam@appraisal.example.com");
-    await page.getByLabel(/^organization/i).fill("Rivera Appraisal Group");
-    await page.getByRole("button", { name: /phase i esa/i }).click();
-    await page.getByRole("checkbox").check();
+    await fillVendor(page);
     await page.getByRole("button", { name: /submit registration/i }).click();
-    await expect(page.getByRole("alert").filter({ hasText: /email/i })).toBeVisible();
+
+    const email = page.getByLabel(/^email/i);
+    await expect(email).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("#f-email-error")).toContainText(/valid email/i);
+    await expect(page.getByRole("alert").filter({ hasText: /highlighted fields/i })).toBeVisible();
   });
 });

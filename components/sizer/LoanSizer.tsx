@@ -10,7 +10,7 @@ import { sizeHospitality, sizeMultifamily, sizeSenior, usd } from "@/lib/sizing/
 import type { HospitalityInputs, MultifamilyInputs, SeniorInputs, SizingResult } from "@/lib/sizing/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "./fields";
-import { QuoteCard } from "./QuoteCard";
+import { QuoteCarousel } from "./QuoteCarousel";
 
 type Tab = "senior" | "hospitality" | "multifamily";
 
@@ -126,11 +126,7 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
         </aside>
 
         <div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {result.quotes.map((q, i) => (
-              <QuoteCard key={`${tab}-${q.id}`} q={q} best={q.id === result.bestFit} index={i} />
-            ))}
-          </div>
+          <QuoteCarousel quotes={result.quotes} bestId={result.bestFit} tab={tab} />
 
           <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl bg-ink p-6 text-white md:flex-row md:items-center">
             <div>

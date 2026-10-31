@@ -1,0 +1,222 @@
+import { z } from "zod";
+import type { Intake } from "@/lib/validation";
+
+// The express qualifier's form model: option lists, per-step field groups, the
+// Zod schema (a function of the answers, so hotel-only fields are validated
+// only for hotels) and the builder that turns form values into the
+// /api/qualify payload. Pure, so it is unit-tested without a browser.
+
+export type Asset = Intake["assetType"];
+export type Transaction = Intake["transaction"];
+export type FranchiseTier = NonNullable<Intake["franchiseTier"]>;
+
+export const ASSETS: { value: Asset; label: string; group: string }[] = [
+  { value: "ASSISTED_LIVING", label: "Assisted living", group: "Senior living and care" },
+  { value: "MEMORY_CARE", label: "Memory care", group: "Senior living and care" },
+  { value: "RCFE", label: "RCFE / board and care", group: "Senior living and care" },
+  { value: "SNF", label: "Skilled nursing", group: "Senior living and care" },
+  { value: "HOTEL_FLAGGED", label: "Flagged hotel", group: "Hospitality" },
+  { value: "HOTEL_BOUTIQUE", label: "Boutique hotel / motel", group: "Hospitality" },
+  { value: "HOTEL_TO_SENIOR_CONVERSION", label: "Hotel to senior living", group: "Hospitality" },
+  { value: "MULTIFAMILY", label: "Multifamily", group: "Multifamily and CRE" },
+  { value: "MIXED_USE", label: "Mixed-use", group: "Multifamily and CRE" },
+  { value: "COMMERCIAL", label: "Commercial / bridge", group: "Multifamily and CRE" },
+];
+
+export const ASSET_GROUPS = ["Senior living and care", "Hospitality", "Multifamily and CRE"] as const;
+
+export const TIMELINES = [
+  { value: "21", label: "Within 3 weeks" },
+  { value: "45", label: "30 to 60 days" },
+  { value: "90", label: "60 to 90 days" },
+  { value: "150", label: "3 to 6 months" },
+  { value: "270", label: "6+ months, or exploring" },
+] as const;
+
+export const FRANCHISE_TIERS: { value: FranchiseTier; label: string }[] = [
+  { value: "PREMIUM_FLAG", label: "Marriott, Hilton, IHG or Hyatt" },
+  { value: "ECONOMY_FLAG", label: "Economy or midscale flag" },
+  { value: "BOUTIQUE_INDEPENDENT", label: "Independent" },
+];
+
+export const STEPS = ["Asset", "Deal", "Terms", "Contact"] as const;
+
+/** Fields validated when a step's Continue button is pressed. */
+export const STEP_FIELDS: readonly (readonly string[])[] = [
+  ["assetType"],
+  ["transaction", "loanAmount", "noi", "value", "unitCount", "occupancyPct", "adr", "pipBudget", "franchiseTier"],
+  ["timelineDays", "ownerOperator", "nonRecourseOnly", "green", "notes"],
+  ["firstName", "lastName", "email", "phone", "company", "consent"],
+];
+
+export const isSenior = (a: Asset | "") => a === "ASSISTED_LIVING" || a === "MEMORY_CARE" || a === "RCFE" || a === "SNF";
+export const isHotel = (a: Asset | "") => a === "HOTEL_FLAGGED" || a === "HOTEL_BOUTIQUE";
+export const isConversion = (a: Asset | "") => a === "HOTEL_TO_SENIOR_CONVERSION";
+
+export function unitLabel(a: Asset | ""): string {
+  if (isSenior(a)) return "Licensed beds";
+  if (isHotel(a) || isConversion(a)) return "Rooms / keys";
+  if (a === "COMMERCIAL") return "Tenants";
+  return "Units";
+}
+
+export function transactionOptions(a: Asset | ""): { value: Transaction; label: string }[] {
+  return [
+    { value: "PURCHASE", label: "Purchase" },
+    { value: "REFINANCE", label: "Refinance" },
+    isConversion(a) ? { value: "CONVERSION", label: "Conversion" } : { value: "CONSTRUCTION", label: "Construction" },
+  ];
+}
+
+export type QualifierValues = {
+  assetType: Asset | "";
+  transaction: Transaction | "";
+  loanAmount: number | null;
+  noi: number | null;
+  value: number | null;
+  unitCount: number | null;
+  occupancyPct: number | null;
+  adr: number | null;
+  pipBudget: number | null;
+  franchiseTier: FranchiseTier | "";
+  timelineDays: string;
+  ownerOperator: "yes" | "no" | "";
+  nonRecourseOnly: boolean;
+  green: boolean;
+  notes: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  company: string;
+  consent: boolean;
+};
+
+/** Nothing realistic is pre-filled: numbers are empty (inputs show placeholders) and choices are unselected. */
+export const EMPTY_VALUES: QualifierValues = {
+  assetType: "",
+  transaction: "",
+  loanAmount: null,
+  noi: null,
+  value: null,
+  unitCount: null,
+  occupancyPct: null,
+  adr: null,
+  pipBudget: null,
+  franchiseTier: "",
+  timelineDays: "",
+  ownerOperator: "",
+  nonRecourseOnly: false,
+  green: false,
+  notes: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  company: "",
+  consent: false,
+};
+
+const MAX_MONEY = 1_000_000_000;
+const money = (required: string, tooBig = "Enter an amount under $1 billion.") =>
+  z.number({ error: required }).min(0, "Enter zero or a positive amount.").max(MAX_MONEY, tooBig);
+const optionalMoney = z.number().min(0, "Enter zero or a positive amount.").max(MAX_MONEY, "Enter an amount under $1 billion.").nullable();
+
+const phoneDigits = (s: string) => s.replace(/\D/g, "");
+
+export function qualifierSchema(values: Pick<QualifierValues, "assetType" | "consent">) {
+  const asset = values.assetType;
+  const hotel = isHotel(asset);
+  const commercial = asset === "COMMERCIAL";
+  const phone = z
+    .string()
+    .trim()
+    .max(40, "Use 40 characters or fewer.")
+    .refine((v) => v === "" || (phoneDigits(v).length >= 10 && phoneDigits(v).length <= 15), "Enter a phone number with area code, for example 415-555-0100.")
+    .refine((v) => !values.consent || v !== "", "Add a mobile number so we can use the contact permission you ticked, or untick the box.");
+
+  return z.object({
+    assetType: z.enum(ASSETS.map((a) => a.value) as [Asset, ...Asset[]], { error: "Choose what you're financing." }),
+    transaction: z.enum(["PURCHASE", "REFINANCE", "CONSTRUCTION", "CONVERSION"], { error: "Choose the type of transaction." }),
+    loanAmount: z
+      .number({ error: "Enter the loan amount you're requesting." })
+      .min(250_000, "Minimum $250,000.")
+      .max(MAX_MONEY, "Enter an amount under $1 billion."),
+    noi: money("Enter your net operating income, or 0 if the property has no income yet."),
+    value: optionalMoney,
+    unitCount: commercial
+      ? z.number().int("Enter a whole number.").min(0, "Enter zero or more.").max(10_000, "Enter 10,000 or fewer.").nullable()
+      : z.number({ error: `Enter the number of ${unitLabel(asset).toLowerCase()}.` }).int("Enter a whole number.").min(1, "Enter at least 1.").max(10_000, "Enter 10,000 or fewer."),
+    occupancyPct: z.number({ error: "Enter current occupancy as a percentage." }).min(0, "Enter a percentage from 0 to 100.").max(100, "Enter a percentage from 0 to 100."),
+    adr: hotel ? z.number({ error: "Enter the average daily rate." }).min(1, "Enter a rate above $0.").max(100_000, "Enter a realistic daily rate.") : z.number().nullable(),
+    pipBudget: optionalMoney,
+    franchiseTier: hotel ? z.enum(["PREMIUM_FLAG", "ECONOMY_FLAG", "BOUTIQUE_INDEPENDENT"], { error: "Choose the franchise tier." }) : z.string(),
+    timelineDays: z.enum(TIMELINES.map((t) => t.value) as [string, ...string[]], { error: "Choose when you need to close." }),
+    ownerOperator: z.enum(["yes", "no"], { error: "Tell us whether an owner-operator runs the property." }),
+    nonRecourseOnly: z.boolean(),
+    green: z.boolean(),
+    notes: z.string().trim().max(2_000, "Use 2,000 characters or fewer."),
+    firstName: z.string().trim().min(1, "Enter your first name.").max(80, "Use 80 characters or fewer."),
+    lastName: z.string().trim().min(1, "Enter your last name.").max(80, "Use 80 characters or fewer."),
+    email: z.string().trim().min(1, "Enter your email address.").max(200, "Use 200 characters or fewer.").pipe(z.email("Enter a valid email address, like name@company.com.")),
+    phone,
+    company: z.string().trim().max(160, "Use 160 characters or fewer."),
+    consent: z.boolean(),
+  });
+}
+
+export type QualifierPayload = {
+  intake: Intake;
+  contact: { firstName: string; lastName: string; email: string; phone: string; company: string; consent: boolean };
+  consentMeta: { textVersion: string; page: string };
+};
+
+/** Converts validated form values to the /api/qualify body. Throws if called with unvalidated values. */
+export function buildQualifyPayload(v: QualifierValues, consentMeta: QualifierPayload["consentMeta"]): QualifierPayload {
+  if (!v.assetType || !v.transaction || v.loanAmount === null || v.noi === null) throw new Error("buildQualifyPayload needs validated values");
+  const hotel = isHotel(v.assetType);
+  // The transaction option's value follows the asset ("Construction" vs "Conversion"); reconcile if the asset changed after it was picked.
+  let transaction: Transaction = v.transaction;
+  if (isConversion(v.assetType) && transaction === "CONSTRUCTION") transaction = "CONVERSION";
+  if (!isConversion(v.assetType) && transaction === "CONVERSION") transaction = "CONSTRUCTION";
+  const hotelLike = hotel || isConversion(v.assetType);
+  return {
+    intake: {
+      assetType: v.assetType,
+      transaction,
+      loanAmount: v.loanAmount,
+      noi: v.noi,
+      value: v.value || undefined,
+      unitCount: v.unitCount ?? 0,
+      occupancyPct: v.occupancyPct ?? 0,
+      adr: hotel ? (v.adr ?? undefined) : undefined,
+      pipBudget: hotelLike ? v.pipBudget || undefined : undefined,
+      franchiseTier: hotel && v.franchiseTier ? v.franchiseTier : undefined,
+      timelineDays: Number(v.timelineDays),
+      nonRecourseOnly: v.nonRecourseOnly,
+      green: v.green,
+      ownerOperator: v.ownerOperator === "yes",
+      notes: v.notes.trim(),
+      source: "express",
+    },
+    contact: {
+      firstName: v.firstName.trim(),
+      lastName: v.lastName.trim(),
+      email: v.email.trim(),
+      phone: v.phone.trim(),
+      company: v.company.trim(),
+      consent: v.consent,
+    },
+    consentMeta,
+  };
+}
+
+/** Query-string prefill from the sizer's "Get real terms" link. Only values the visitor entered are carried over. */
+export function prefillFromParams(get: (key: string) => string | null): Partial<QualifierValues> {
+  const asset = ASSETS.find((a) => a.value === get("asset"))?.value;
+  const positive = (key: string) => {
+    const n = Number(get(key));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  return { ...(asset ? { assetType: asset } : {}), loanAmount: positive("loan"), noi: positive("noi") };
+}
