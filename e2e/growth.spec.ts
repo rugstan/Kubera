@@ -178,14 +178,14 @@ test.describe("California metro pages", () => {
 
   test("an unknown metro shows the not-found page and is not indexed", async ({ page }) => {
     await page.goto("/california/atlantis");
-    await expect(page.getByText("This page could not be found.")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /couldn.t find that page/i })).toBeVisible();
     await expectNotIndexed(page);
   });
 
   test("unknown insight and calculator slugs are not indexed either", async ({ page }) => {
     for (const path of ["/insights/no-such-article", "/calculators/no-such-calculator"]) {
       await page.goto(path);
-      await expect(page.getByText("This page could not be found.")).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: /couldn.t find that page/i })).toBeVisible();
       await expectNotIndexed(page);
     }
   });
