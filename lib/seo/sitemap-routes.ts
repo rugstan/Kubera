@@ -2,7 +2,13 @@
 // Other workstreams add their pages by appending a source below (programs,
 // trust pages, insights, ...). Titles and descriptions feed llms.txt.
 
+import { calculatorRoutes } from "@/content/calculators";
+import { glossaryRoutes } from "@/content/glossary";
+import { insightRoutes } from "@/content/insights";
+import { marketRoutes } from "@/content/markets/california";
+import { newsletterRoutes } from "@/content/newsletter";
 import { programRoutes } from "@/content/programs";
+import { ratesRoutes } from "@/content/rates";
 import { trustRoutes } from "@/content/trust-pages";
 import { canonicalUrl } from "./hosts";
 
@@ -60,7 +66,19 @@ export const legalRoutes: SitemapRoute[] = [
  * Add content workstreams here, e.g. `programRoutes` from `content/programs`.
  * Each source is a plain array so the sitemap stays a static, build-time file.
  */
-export const sitemapSources: SitemapRoute[][] = [coreRoutes, programRoutes, trustRoutes, legalRoutes];
+export const sitemapSources: SitemapRoute[][] = [
+  coreRoutes,
+  programRoutes,
+  trustRoutes,
+  // Growth pages (WS-P): insights, rates, calculators, glossary, California metro guides, newsletter signup.
+  insightRoutes,
+  ratesRoutes,
+  calculatorRoutes,
+  glossaryRoutes,
+  marketRoutes,
+  newsletterRoutes,
+  legalRoutes,
+];
 
 /** Flattens the sources, normalizes trailing slashes and drops duplicate paths. */
 export function allSitemapRoutes(sources: SitemapRoute[][] = sitemapSources): SitemapRoute[] {
