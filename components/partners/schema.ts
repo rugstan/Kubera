@@ -72,6 +72,7 @@ export type PartnerFormValues = {
   maxLoan: number | null;
   verticals: string[];
   maxLtv: number | null;
+  maxLtc: number | null;
   minDscr: number | null;
   minDebtYield: number | null;
   brokerFeeProtectionPct: number | null;
@@ -107,6 +108,7 @@ export const EMPTY_PARTNER_VALUES: PartnerFormValues = {
   maxLoan: null,
   verticals: [],
   maxLtv: null,
+  maxLtc: null,
   minDscr: null,
   minDebtYield: null,
   brokerFeeProtectionPct: null,
@@ -137,6 +139,7 @@ export const FIELD_LABELS: Record<string, string> = {
   maxLoan: "Max loan",
   verticals: "Appetite",
   maxLtv: "Max LTV / LTC",
+  maxLtc: "Max LTC (construction)",
   minDscr: "Min DSCR",
   minDebtYield: "Min debt yield",
   brokerFeeProtectionPct: "Broker compensation you pay",
@@ -207,6 +210,7 @@ export function partnerFormSchema(type: PartnerType, values: Pick<PartnerFormVal
             .max(MAX_MONEY, "Enter an amount under $1 billion."),
           verticals: z.array(z.string()),
           maxLtv: pct("Enter your maximum LTV or LTC as a percentage.", 100),
+          maxLtc: pct("Enter a number", 100).nullable(),
           minDscr: pct("Enter a number", 5).nullable(),
           minDebtYield: pct("Enter a number", 50).nullable(),
           brokerFeeProtectionPct: pct("Enter the broker compensation you pay, as a percentage (0 if none).", 10),
@@ -249,7 +253,7 @@ export function partnerFormSchema(type: PartnerType, values: Pick<PartnerFormVal
 
 /** Fields that exist for each type (used to jump to the right place on a server rejection). */
 export const TYPE_FIELDS: Record<PartnerType, readonly (keyof PartnerFormValues)[]> = {
-  LENDER: ["organization", "lenderKind", "minLoan", "maxLoan", "verticals", "maxLtv", "minDscr", "minDebtYield", "brokerFeeProtectionPct", "flagRequirements", "states", "website"],
+  LENDER: ["organization", "lenderKind", "minLoan", "maxLoan", "verticals", "maxLtv", "maxLtc", "minDscr", "minDebtYield", "brokerFeeProtectionPct", "flagRequirements", "states", "website"],
   REFERRAL: ["organization", "licenseType", "licenseNumber", "markets", "acceptsAgreement"],
   OPERATOR: ["organization", "operatorKind", "unitsUnderManagement", "licenseNumbers", "flagsApproved", "markets"],
   VENDOR: ["organization", "services", "markets", "typicalTurnaroundDays"],
@@ -274,6 +278,7 @@ export function buildPartnerPayload(type: PartnerType, v: PartnerFormValues, con
         verticals: v.verticals,
         states: v.states.trim(),
         maxLtv: v.maxLtv ?? 0,
+        maxLtc: optionalNumber(v.maxLtc),
         minDscr: optionalNumber(v.minDscr),
         minDebtYield: optionalNumber(v.minDebtYield),
         flagRequirements: v.flagRequirements.trim(),
