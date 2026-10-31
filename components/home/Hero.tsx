@@ -4,7 +4,7 @@ import { Reveal } from "./Reveal";
 const PROOF = [
   { k: "35–40 yr", v: "HUD 232 fixed, non-recourse" },
   { k: "$20M+", v: "SBA 504 + 7(a) hotel stacks" },
-  { k: "10–21 days", v: "White-label bridge closings" },
+  { k: "10–21 days", v: "Typical private bridge close" },
   { k: "60 sec", v: "AI loan sizing & routing" },
 ];
 

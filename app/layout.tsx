@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s · Kubera Commercial",
   },
   description:
-    "Institutional debt advisory for senior living, hotels, and multifamily: HUD 232, SBA 504 hotel stacks, CMBS, PIP bridge, and white-label bridge financing — sized in 60 seconds.",
+    "Institutional debt advisory for senior living, hotels, and multifamily: HUD 232, SBA 504 hotel stacks, CMBS, PIP bridge, and private bridge financing — sized in 60 seconds.",
   openGraph: { type: "website", siteName: site.name, url: site.siteUrl },
   robots: { index: true, follow: true },
 };

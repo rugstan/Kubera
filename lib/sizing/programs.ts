@@ -585,8 +585,8 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks): Sizing
     quotes.push(
       buildQuote({
         id: "WHITE_LABEL_CRE_BRIDGE",
-        name: isConstruction ? "White-Label Construction" : "White-Label Bridge",
-        short: `${b.termMonths}-mo interest-only, table funded`,
+        name: isConstruction ? "Private Construction" : "Private Bridge",
+        short: `${b.termMonths}-mo interest-only, private lender`,
         requested: i.loanAmount,
         limits: isConstruction
           ? { LTC: cost * BRIDGE.construction.maxLtc, DEBT_YIELD: i.noi / BRIDGE.construction.minDebtYieldOnCost }
@@ -603,8 +603,8 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks): Sizing
         closeTimeline: BRIDGE.closeDays,
         advisoryFeePct: BROKER_FEE_PCT.BRIDGE,
         eligible: true,
-        notes: ["Arranged under Kubera's California DRE broker authority; private lender funds at closing."],
-        warnings: i.loanAmount > 25_000_000 ? ["Above the $25M white-label range — syndicated with a debt fund."] : [],
+        notes: ["Arranged by Kubera as broker; the private lender funds at closing and is the lender of record."],
+        warnings: i.loanAmount > 25_000_000 ? ["Above the typical $25M private-bridge range — usually syndicated with a debt fund."] : [],
       }),
     );
   }

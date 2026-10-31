@@ -24,7 +24,8 @@ export function licenseLine(): string {
   const officer = site.dreOfficerLicense
     ? `Designated Officer: ${site.designatedOfficer}, DRE #${site.dreOfficerLicense}`
     : `Designated Officer: ${site.designatedOfficer}`;
-  return [site.legalName, corp, officer, site.nmls && `NMLS #${site.nmls}`]
+  // 10 CCR §2847.3 requires this statement in loan advertising.
+  return [site.legalName, "Real estate broker, California Department of Real Estate", corp, officer, site.nmls && `NMLS #${site.nmls}`]
     .filter(Boolean)
     .join(" · ");
 }

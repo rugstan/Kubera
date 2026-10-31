@@ -32,10 +32,12 @@ export const PROGRAM_PRIMER = `
 - HUD 223(f): 35-year fixed, non-recourse; ~85% LTV / 1.176x DSCR market-rate (higher leverage for affordable). HUD 221(d)(4): construction + 40-year fixed, ~85% LTC.
 - HUD multifamily annual MIP ~0.60–0.65% market-rate, ~0.35% affordable, 0.25% Green (with qualifying green certification).
 - Agency (Fannie Mae / Freddie Mac): 5–12 year fixed, ~30-year amortization, ~80% LTV, 1.25x DSCR, non-recourse.
-- White-label bridge & construction ($750k–$25M): Kubera arranges private table-funded loans as a California-licensed real estate broker, closing in 10–21 days. Loans made or arranged by a licensed broker and secured by real property are exempt from California usury limits (Cal. Civ. Code § 1916.1).
+- Private bridge, hard money & construction ($750k–$25M): Kubera arranges loans from private lenders and debt funds, which fund at closing as lender of record. Many close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is never guaranteed.
+- Usury: California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code § 1916.1). Whether one applies depends on the lender, the collateral, and how the loan and any later extension or modification are arranged. Never tell a borrower that a specific loan is exempt; refer them to their attorney.
 
 ## California regulatory
-- Kubera Commercial, Inc. is a California DRE-licensed real estate corporation; arranging loans secured by real property for compensation requires a broker license (Bus. & Prof. Code § 10131(d)).
+- Kubera Commercial, Inc. is a California DRE-licensed real estate corporation; arranging loans secured by real property for compensation requires a broker license (Bus. & Prof. Code § 10131(d)). Kubera is a broker, not a lender: it never funds loans, holds borrower or investor money, services loans, or handles construction draws.
+- For loans it arranges that are secured by real property, Kubera provides a California Mortgage Loan Disclosure Statement (DRE form RE 882), including on commercial loans.
 - Title 22 (Cal. Code Regs.) governs RCFE licensing through CDSS Community Care Licensing; licensing timelines matter for hotel-to-RCFE conversions and HUD 232 eligibility.
 `.trim();
 

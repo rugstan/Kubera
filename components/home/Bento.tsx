@@ -70,10 +70,10 @@ export function Bento() {
 
         <Reveal className="md:col-span-2" delay={0.1}>
           <article id="multifamily" className="bento flex h-full flex-col p-8">
-            <p className="eyebrow">White-label · $750k–$25M</p>
-            <h3 className="mt-3 text-2xl font-semibold tracking-tight">Table Funding &amp; Private Bridge</h3>
+            <p className="eyebrow">Private capital · $750k–$25M</p>
+            <h3 className="mt-3 text-2xl font-semibold tracking-tight">Private Bridge &amp; Hard Money</h3>
             <p className="mt-3 text-[15px] leading-relaxed text-titanium">
-              Close in 10–21 days. Arranged under Kubera&apos;s California DRE broker authority, exempt from state usury limits under Civil Code § 1916.1.
+              Many private loans close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is not guaranteed. Kubera arranges these loans as a California real estate broker; the private lender funds and is the lender of record.
             </p>
             <Link href="/#sizer" className="mt-auto pt-6 text-[15px] font-medium text-accent hover:underline">Size a bridge loan →</Link>
           </article>

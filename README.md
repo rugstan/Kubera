@@ -1,6 +1,6 @@
 # Kubera Commercial
 
-AI-first commercial debt advisory platform for **kuberacommercial.com** and the **kubera.loans** express funnel. It covers senior living and healthcare (HUD 232, SBA 504, Bridge-to-HUD), hospitality (SBA 504 + 7(a) stacks, CMBS, PIP bridge), and multifamily/CRE (HUD 223(f)/221(d)(4), Agency, white-label bridge).
+AI-first commercial debt advisory platform for **kuberacommercial.com** and the **kubera.loans** express funnel. It covers senior living and healthcare (HUD 232, SBA 504, Bridge-to-HUD), hospitality (SBA 504 + 7(a) stacks, CMBS, PIP bridge), and multifamily/CRE (HUD 223(f)/221(d)(4), Agency, private bridge and hard money).
 
 ## Stack
 
