@@ -1,0 +1,285 @@
+// Per-program stage templates: the stages a deal moves through, the events
+// that advance it, the requirements each event checks, and the fields locked
+// once the borrower accepts a term sheet. Templates are code (versioned); a
+// published copy lives in `stage_templates` so every deal records the exact
+// version it runs on.
+//
+// Closing stages call the compliance gate (lib/compliance/gates.ts): no deal
+// reaches `closing` without a signed MLDS where one is required, while held for
+// counsel, or with an uncleared usury / modification file.
+
+import { createHash } from "node:crypto";
+import { stageAdvanceGate, type DealCompliance } from "@/lib/compliance/gates";
+import { DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type DealProgram } from "./types";
+
+export type StageDef = { key: string; label: string; terminal?: boolean };
+
+export type Requirement =
+  | "engagement_agreement"
+  | "locked_package_sent"
+  | "term_sheet_ref"
+  | "terms_snapshot"
+  | "compliance_closing"
+  | "form159_signed";
+
+export type EventDef = {
+  key: string;
+  label: string;
+  from: string[];
+  to: string;
+  requires: Requirement[];
+  /** Accepting the term sheet freezes the template's locked fields. */
+  locksTerms?: boolean;
+};
+
+export type StageTemplate = {
+  program: DealProgram;
+  version: number;
+  name: string;
+  stages: StageDef[];
+  events: EventDef[];
+  lockedFields: string[];
+};
+
+/** Deal fields frozen at term-sheet acceptance (plus every key of `lockedTerms`). */
+export const LOCKED_DEAL_FIELDS = ["program", "loanAmountCents", "lockedTerms"] as const;
+
+/** Economic terms captured in the `lockedTerms` snapshot. */
+export const TERM_SNAPSHOT_KEYS = [
+  "lenderName",
+  "noteRatePct",
+  "termMonths",
+  "amortizationMonths",
+  "interestOnlyMonths",
+  "prepayment",
+  "recourse",
+  "brokerCompensationCents",
+] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  intake: "Intake",
+  engaged: "Engaged",
+  packaging: "Packaging",
+  lender_outreach: "Lender outreach",
+  term_sheet: "Term sheet",
+  application: "Lender application",
+  third_party_reports: "Third-party reports",
+  plan_and_cost_review: "Plan and cost review",
+  hud_review: "HUD review",
+  firm_commitment: "Firm commitment",
+  lender_underwriting: "Lender underwriting",
+  sba_authorization: "SBA authorization",
+  underwriting: "Underwriting",
+  commitment: "Commitment",
+  closing: "Closing",
+  closed: "Closed",
+  withdrawn: "Withdrawn",
+  lost: "Lost",
+};
+
+/** Middle of the pipeline (between term-sheet acceptance and closing), per program. */
+const POST_TERM_SHEET: Record<DealProgram, string[]> = {
+  HUD_232: ["application", "third_party_reports", "hud_review", "firm_commitment"],
+  HUD_MULTIFAMILY: ["application", "third_party_reports", "hud_review", "firm_commitment"],
+  SBA_7A: ["application", "lender_underwriting", "sba_authorization"],
+  SBA_504: ["application", "lender_underwriting", "sba_authorization"],
+  HOTEL_CMBS: ["application", "third_party_reports", "underwriting", "commitment"],
+  PIP_BRIDGE: ["application", "underwriting", "commitment"],
+  AGENCY: ["application", "third_party_reports", "underwriting", "commitment"],
+  BANK_LIFE_CO: ["application", "underwriting", "commitment"],
+  PRIVATE_BRIDGE: ["underwriting", "commitment"],
+  HARD_MONEY: ["underwriting"],
+  CONSTRUCTION: ["application", "plan_and_cost_review", "underwriting", "commitment"],
+};
+
+const EVENT_INTO: Record<string, { key: string; label: string }> = {
+  application: { key: "application_submitted", label: "Lender application submitted" },
+  third_party_reports: { key: "reports_ordered", label: "Third-party reports ordered" },
+  plan_and_cost_review: { key: "plan_and_cost_review_ordered", label: "Plan and cost review ordered" },
+  hud_review: { key: "hud_submitted", label: "Submitted to HUD" },
+  firm_commitment: { key: "firm_commitment_issued", label: "HUD firm commitment issued" },
+  lender_underwriting: { key: "lender_underwriting_started", label: "Lender underwriting started" },
+  sba_authorization: { key: "sba_authorization_issued", label: "SBA authorization issued" },
+  underwriting: { key: "underwriting_started", label: "Underwriting started" },
+  commitment: { key: "commitment_issued", label: "Lender commitment issued" },
+};
+
+export const STAGE_TEMPLATE_VERSION = 1;
+
+function buildTemplate(program: DealProgram): StageTemplate {
+  const middle = POST_TERM_SHEET[program];
+  const order = ["intake", "engaged", "packaging", "lender_outreach", "term_sheet", ...middle, "closing", "closed"];
+  const stages: StageDef[] = [...order, "withdrawn", "lost"].map((key) => ({
+    key,
+    label: STAGE_LABELS[key] ?? key,
+    ...(key === "closed" || key === "withdrawn" || key === "lost" ? { terminal: true } : {}),
+  }));
+
+  const closingRequires: Requirement[] = isSbaProgram(program) ? ["compliance_closing", "form159_signed"] : ["compliance_closing"];
+  const events: EventDef[] = [
+    { key: "engagement_signed", label: "Engagement / fee agreement signed", from: ["intake"], to: "engaged", requires: ["engagement_agreement"] },
+    { key: "packaging_started", label: "Packaging started", from: ["engaged"], to: "packaging", requires: [] },
+    { key: "package_sent", label: "Locked package sent to a lender", from: ["packaging"], to: "lender_outreach", requires: ["locked_package_sent"] },
+    { key: "term_sheet_received", label: "Term sheet received", from: ["lender_outreach"], to: "term_sheet", requires: ["term_sheet_ref"] },
+    { key: "term_sheet_declined", label: "Term sheet declined; back to outreach", from: ["term_sheet"], to: "lender_outreach", requires: [] },
+    {
+      key: "term_sheet_accepted",
+      label: "Term sheet accepted (terms lock)",
+      from: ["term_sheet"],
+      to: middle[0] ?? "closing",
+      requires: middle.length ? ["term_sheet_ref", "terms_snapshot"] : ["term_sheet_ref", "terms_snapshot", ...closingRequires],
+      locksTerms: true,
+    },
+  ];
+  for (let i = 1; i < middle.length; i++) {
+    const into = EVENT_INTO[middle[i]!]!;
+    events.push({ key: into.key, label: into.label, from: [middle[i - 1]!], to: middle[i]!, requires: [] });
+  }
+  events.push(
+    { key: "closing_scheduled", label: "Closing scheduled", from: [middle.at(-1) ?? "term_sheet"], to: "closing", requires: closingRequires },
+    { key: "loan_closed", label: "Loan closed (lender of record funded)", from: ["closing"], to: "closed", requires: closingRequires },
+    { key: "withdraw", label: "Borrower withdrew", from: order.filter((s) => s !== "closed"), to: "withdrawn", requires: [] },
+    { key: "mark_lost", label: "Deal lost", from: order.filter((s) => s !== "closed"), to: "lost", requires: [] },
+  );
+  return {
+    program,
+    version: STAGE_TEMPLATE_VERSION,
+    name: `${DEAL_PROGRAM_LABELS[program]} · v${STAGE_TEMPLATE_VERSION}`,
+    stages,
+    events,
+    lockedFields: [...LOCKED_DEAL_FIELDS, ...TERM_SNAPSHOT_KEYS.map((k) => `lockedTerms.${k}`)],
+  };
+}
+
+const TEMPLATES = new Map<DealProgram, StageTemplate>();
+
+export function stageTemplate(program: DealProgram): StageTemplate {
+  let t = TEMPLATES.get(program);
+  if (!t) {
+    t = buildTemplate(program);
+    TEMPLATES.set(program, t);
+  }
+  return t;
+}
+
+/** Stable digest of a template (published with the `stage_templates` row). */
+export function templateDigest(t: StageTemplate): string {
+  return createHash("sha256").update(JSON.stringify({ program: t.program, version: t.version, stages: t.stages, events: t.events, lockedFields: t.lockedFields })).digest("hex");
+}
+
+export function stageLabel(program: DealProgram, key: string): string {
+  return stageTemplate(program).stages.find((s) => s.key === key)?.label ?? key;
+}
+
+export function availableEvents(template: StageTemplate, stage: string): EventDef[] {
+  return template.events.filter((e) => e.from.includes(stage));
+}
+
+// ---------------------------------------------------------------------------
+// Advancing
+
+/** Facts the requirements are checked against (loaded by the caller). */
+export type StageContext = {
+  engagementAgreementRef?: string | null;
+  /** At least one locked package version has been sent to a lender. */
+  lockedPackageSent?: boolean;
+  termSheetRef?: string | null;
+  /** Compliance evaluation for the deal (gate A/H); required for closing stages. */
+  compliance?: DealCompliance | null;
+  /** SBA deals: Form 159 is signed by agent, applicant and lender, or no Kubera compensation exists. */
+  form159Satisfied?: boolean;
+};
+
+export type StageEventInput = {
+  deal: Deal;
+  event: string;
+  context: StageContext;
+  /** Economic terms accepted with the term sheet (term_sheet_accepted only). */
+  terms?: Record<string, unknown>;
+  now: Date;
+};
+
+export type StageAdvance =
+  | { ok: true; from: string; to: string; event: EventDef; patch: Partial<Deal> }
+  | { ok: false; from: string; event: string; reasons: string[] };
+
+function requirementReasons(req: Requirement, input: StageEventInput, to: string): string[] {
+  const c = input.context;
+  switch (req) {
+    case "engagement_agreement":
+      return c.engagementAgreementRef ? [] : ["Record the signed engagement / fee agreement first."];
+    case "locked_package_sent":
+      return c.lockedPackageSent ? [] : ["Send a locked package version to at least one lender (through the approval gate) first."];
+    case "term_sheet_ref":
+      return c.termSheetRef ? [] : ["Attach the lender's term sheet (vault reference) first."];
+    case "terms_snapshot": {
+      const t = input.terms ?? {};
+      const missing = ["lenderName", "noteRatePct", "termMonths"].filter((k) => t[k] === undefined || t[k] === null || t[k] === "");
+      return missing.length ? [`Accepted terms are missing: ${missing.join(", ")}.`] : [];
+    }
+    case "compliance_closing":
+      if (!c.compliance) return ["Run the compliance evaluation (MLDS and broker-of-record gates) before closing."];
+      return stageAdvanceGate(to, c.compliance).reasons;
+    case "form159_signed":
+      return c.form159Satisfied ? [] : ["SBA Form 159 must be signed by Kubera, the applicant and the lender before closing."];
+  }
+}
+
+export function applyStageEvent(input: StageEventInput): StageAdvance {
+  const template = stageTemplate(input.deal.program);
+  const from = input.deal.stage;
+  if (input.deal.stageTemplateVersion !== template.version) {
+    return { ok: false, from, event: input.event, reasons: [`Deal runs stage template v${input.deal.stageTemplateVersion}; this build only advances v${template.version}.`] };
+  }
+  const event = template.events.find((e) => e.key === input.event);
+  if (!event) return { ok: false, from, event: input.event, reasons: [`Unknown event "${input.event}" for ${template.name}.`] };
+  if (!event.from.includes(from)) return { ok: false, from, event: input.event, reasons: [`"${event.label}" does not apply in stage ${stageLabel(input.deal.program, from)}.`] };
+
+  const reasons = [...new Set(event.requires.flatMap((r) => requirementReasons(r, input, event.to)))];
+  if (reasons.length) return { ok: false, from, event: input.event, reasons };
+
+  const at = input.now.toISOString();
+  const patch: Partial<Deal> = { stage: event.to, stageEnteredAt: at };
+  if (event.locksTerms) {
+    const terms = Object.fromEntries(TERM_SNAPSHOT_KEYS.filter((k) => input.terms?.[k] !== undefined).map((k) => [k, input.terms![k]]));
+    patch.termSheetAcceptedAt = at;
+    patch.lockedTerms = terms;
+    patch.lockedFields = template.lockedFields;
+  }
+  if (event.to === "closed") patch.closedOn = at.slice(0, 10);
+  return { ok: true, from, to: event.to, event, patch };
+}
+
+// ---------------------------------------------------------------------------
+// Field locks
+
+export class LockedFieldError extends Error {
+  constructor(readonly fields: string[]) {
+    super(`Locked since term-sheet acceptance: ${fields.join(", ")}. Record a documented modification to change them.`);
+    this.name = "LockedFieldError";
+  }
+}
+
+/** Locked fields `patch` would change. */
+export function lockedChanges(deal: Deal, patch: Partial<Deal>): string[] {
+  if (!deal.termSheetAcceptedAt) return [];
+  const changed: string[] = [];
+  for (const f of LOCKED_DEAL_FIELDS) {
+    if (!(f in patch)) continue;
+    if (JSON.stringify(patch[f] ?? null) !== JSON.stringify(deal[f] ?? null)) changed.push(f);
+  }
+  if ("termSheetAcceptedAt" in patch && patch.termSheetAcceptedAt !== deal.termSheetAcceptedAt) changed.push("termSheetAcceptedAt");
+  return changed;
+}
+
+/**
+ * Throws LockedFieldError when `patch` changes locked terms without a new
+ * documented modification reference (`lockOverrideRef`).
+ */
+export function assertEditable(deal: Deal, patch: Partial<Deal>): void {
+  const changed = lockedChanges(deal, patch);
+  if (!changed.length) return;
+  const override = patch.lockOverrideRef;
+  if (override && override !== deal.lockOverrideRef) return;
+  throw new LockedFieldError(changed);
+}
