@@ -5,10 +5,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { disclosures } from "@/lib/site";
 import { SparkIcon } from "@/components/site/GlassHeader";
+import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { OPEN_EVENT, type OpenCommandBarDetail } from "./events";
 import { Markdown } from "./Markdown";
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+/** Sizer context arrives as a JSON string; the server validates the object shape. */
+function parseDealContext(raw: string | undefined): unknown {
+  if (!raw) return undefined;
+  try {
+    const value: unknown = JSON.parse(raw);
+    return value && typeof value === "object" && !Array.isArray(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Server owns the transcript: we send only the conversation id and the new
+// message, and read the id back from this header.
+const CONVERSATION_HEADER = "x-conversation-id";
+const RESTART_CODES = new Set(["conversation_not_found", "conversation_full"]);
 
 const SUGGESTIONS = [
   "HUD 232 vs. SBA 504 for a $2.8M, 48-bed RCFE refinance?",
@@ -26,6 +43,8 @@ export function CommandBar() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const conversationRef = useRef<string | null>(null);
+  const turnstile = useTurnstile("ask");
 
   const send = useCallback(
     async (text: string, mode: "chat" | "term_sheet" = "chat", context = dealContext) => {
@@ -38,16 +57,29 @@ export function CommandBar() {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       try {
-        const res = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ messages: history.slice(-20), mode, dealContext: context }),
-          signal: ctrl.signal,
-        });
+        const post = async () => {
+          const conversationId = conversationRef.current;
+          const token = conversationId ? null : await turnstile.getToken();
+          return fetch("/api/ask", {
+            method: "POST",
+            headers: { "content-type": "application/json", ...turnstileHeaders(token) },
+            body: JSON.stringify({ ...(conversationId ? { conversationId } : {}), message: content, mode, dealContext: parseDealContext(context) }),
+            signal: ctrl.signal,
+          });
+        };
+        let res = await post();
+        if (!res.ok && conversationRef.current) {
+          const err = (await res.clone().json().catch(() => null)) as { code?: string } | null;
+          if (err?.code && RESTART_CODES.has(err.code)) {
+            conversationRef.current = null;
+            res = await post();
+          }
+        }
         if (!res.ok || !res.body) {
           const err = (await res.json().catch(() => null)) as { error?: string } | null;
           throw new Error(err?.error ?? "Kubera AI is unavailable right now.");
         }
+        conversationRef.current = res.headers.get(CONVERSATION_HEADER) ?? conversationRef.current;
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let acc = "";
@@ -66,7 +98,7 @@ export function CommandBar() {
         abortRef.current = null;
       }
     },
-    [busy, messages, dealContext],
+    [busy, messages, dealContext, turnstile],
   );
 
   useEffect(() => {
@@ -104,6 +136,7 @@ export function CommandBar() {
 
   return (
     <>
+      <TurnstileSlot turnstile={turnstile} className="fixed bottom-24 left-1/2 z-[70] -translate-x-1/2" />
       <button
         type="button"
         onClick={() => setOpen(true)}
