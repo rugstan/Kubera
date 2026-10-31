@@ -8,6 +8,7 @@ import type { Benchmarks } from "@/lib/rates";
 import { disclosures } from "@/lib/site";
 import { sizeHospitality, sizeMultifamily, sizeSenior, usd } from "@/lib/sizing/programs";
 import type { HospitalityInputs, MultifamilyInputs, SeniorInputs, SizingResult } from "@/lib/sizing/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "./fields";
 import { QuoteCard } from "./QuoteCard";
 
@@ -92,29 +93,29 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
   }, [tab, inputs, senior.facilityType, hotel.tier, mf.assetType]);
 
   return (
-    <div>
-      <div className="mx-auto flex w-fit max-w-full overflow-x-auto rounded-full bg-black/[0.05] p-1" role="tablist" aria-label="Asset class">
+    <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+      <TabsList className="mx-auto flex w-fit max-w-full overflow-x-auto rounded-full bg-black/[0.05] p-1" aria-label="Asset class">
         {TABS.map((t) => (
-          <button
+          <TabsTrigger
             key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`relative whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors md:px-6 ${tab === t.id ? "text-ink" : "text-titanium hover:text-ink"}`}
+            value={t.id}
+            className={`relative min-h-11 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors md:px-6 ${tab === t.id ? "text-ink" : "text-ink/70 hover:text-ink"}`}
           >
             {tab === t.id && <motion.span layoutId="sizer-tab" className="absolute inset-0 -z-0 rounded-full bg-white shadow-sm" transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
             <span className="relative z-10"><span className="hidden sm:inline">{t.label}</span><span className="sm:hidden">{t.short}</span></span>
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[360px_1fr]">
+      {/* One panel whose value follows the active tab; inputs live in this
+          component's state, so switching tabs never loses what was typed. */}
+      <TabsContent value={tab} className="mt-10 grid gap-6 lg:grid-cols-[360px_1fr]">
         <aside className="bento h-fit space-y-5 p-6 lg:sticky lg:top-20">
           {tab === "senior" && <SeniorForm v={senior} set={setSenior} />}
           {tab === "hospitality" && <HotelForm v={hotel} set={setHotel} />}
           {tab === "multifamily" && <MultifamilyForm v={mf} set={setMf} />}
           <div className="rounded-2xl bg-black/[0.03] p-4">
-            <p className="eyebrow !text-[11px]">Underwriting snapshot</p>
+            <p className="eyebrow !text-xs">Underwriting snapshot</p>
             <dl className="mt-2 space-y-1 text-[13px]">
               <div className="flex justify-between"><dt className="text-ink/70">{result.valueEstimated ? "Est. value (from cap rate)" : "Value / cost basis"}</dt><dd className="tabular-nums">{usd(result.value)}</dd></div>
               {result.metrics.map((m) => (
@@ -140,6 +141,7 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
               <button
                 type="button"
                 disabled={!best}
+                data-ask-entry
                 onClick={() => openCommandBar({ mode: "term_sheet", dealContext: dealContext(), prompt: `Draft an indicative term sheet for the ${best?.name} structure.`, autoSubmit: true })}
                 className="pill bg-white !py-2.5 !text-[15px] text-ink hover:bg-white/90 disabled:opacity-40"
               >
@@ -148,10 +150,10 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
               <Link href={expressHref} className="pill pill-primary !py-2.5 !text-[15px]">Get real terms</Link>
             </div>
           </div>
-          <p className="mt-4 text-[11px] leading-relaxed text-titanium">{disclosures.indicative}</p>
+          <p className="mt-4 text-xs leading-relaxed text-titanium">{disclosures.indicative}</p>
         </div>
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
 

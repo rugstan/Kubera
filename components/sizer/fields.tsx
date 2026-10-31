@@ -5,16 +5,18 @@ import { motion } from "motion/react";
 
 export function MoneyField({ label, value, onChange, hint, placeholder }: { label: string; value: number; onChange: (v: number) => void; hint?: string; placeholder?: string }) {
   const id = useId();
+  const hintId = `${id}-hint`;
   const [focused, setFocused] = useState(false);
   const display = value ? (focused ? String(value) : value.toLocaleString("en-US")) : "";
   return (
     <div>
       <label htmlFor={id} className="field-label">{label}</label>
       <div className="relative">
-        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-titanium">$</span>
+        <span aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-titanium">$</span>
         <input
           id={id}
           inputMode="numeric"
+          aria-describedby={hint ? hintId : undefined}
           className="field pl-7 tabular-nums"
           value={display}
           placeholder={placeholder}
@@ -23,7 +25,7 @@ export function MoneyField({ label, value, onChange, hint, placeholder }: { labe
           onChange={(e) => onChange(Number(e.target.value.replace(/[^\d.]/g, "")) || 0)}
         />
       </div>
-      {hint && <p className="mt-1 text-[11px] text-titanium">{hint}</p>}
+      {hint && <p id={hintId} className="mt-1 text-xs text-titanium">{hint}</p>}
     </div>
   );
 }
@@ -36,7 +38,7 @@ export function RangeField({ label, value, onChange, min, max, step = 1, suffix 
         <label htmlFor={id} className="field-label !mb-0">{label}</label>
         <input
           aria-label={`${label} value`}
-          className="w-20 rounded-md bg-transparent text-right text-sm font-medium tabular-nums text-ink focus:bg-black/[0.04] focus:outline-none"
+          className="min-h-6 w-20 rounded-md bg-transparent px-1 text-right text-sm font-medium tabular-nums text-ink hover:bg-black/[0.04] focus-visible:bg-black/[0.04]"
           value={value}
           inputMode="numeric"
           onChange={(e) => onChange(Math.min(max * 2, Number(e.target.value.replace(/[^\d.]/g, "")) || 0))}
@@ -50,7 +52,7 @@ export function RangeField({ label, value, onChange, min, max, step = 1, suffix 
         step={step}
         value={Math.min(value, max)}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-black/[0.08] accent-[var(--color-accent)]"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-black/[0.16] accent-[var(--color-accent)]"
       />
       {suffix && <span className="sr-only">{suffix}</span>}
     </div>
@@ -87,14 +89,14 @@ export function Toggle({ label, checked, onChange, hint }: { label: string; chec
     <label className="flex cursor-pointer items-center justify-between gap-3">
       <span>
         <span className="block text-sm font-medium text-ink">{label}</span>
-        {hint && <span className="block text-[11px] text-titanium">{hint}</span>}
+        {hint && <span className="block text-xs text-titanium">{hint}</span>}
       </span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative h-[26px] w-[44px] shrink-0 rounded-full transition-colors ${checked ? "bg-accent" : "bg-black/15"}`}
+        className={`relative h-[26px] w-[44px] shrink-0 rounded-full transition-colors ${checked ? "bg-accent" : "bg-black/50"}`}
       >
         <motion.span layout transition={{ type: "spring", stiffness: 600, damping: 35 }} className={`absolute top-[2px] size-[22px] rounded-full bg-white shadow ${checked ? "right-[2px]" : "left-[2px]"}`} />
       </button>

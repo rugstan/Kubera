@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { disclosures } from "@/lib/site";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { SparkIcon } from "@/components/site/GlassHeader";
+import { disclosures } from "@/lib/site";
+import { markAskAvailable, markAskUnavailable, probeAskAvailability, useAskAvailable } from "./availability";
+import { ASK_ERROR_COPY, AskError, normalizeAskError, streamAsk, type AskMode, type Msg } from "./client";
 import { OPEN_EVENT, type OpenCommandBarDetail } from "./events";
 import { Markdown } from "./Markdown";
-
-type Msg = { role: "user" | "assistant"; content: string };
+import { isAskButtonRouteHidden, isPastDesktopThreshold } from "./visibility";
 
 const SUGGESTIONS = [
   "HUD 232 vs. SBA 504 for a $2.8M, 48-bed RCFE refinance?",
@@ -17,72 +19,129 @@ const SUGGESTIONS = [
   "Can I bridge a hotel-to-assisted-living conversion, then take out with HUD?",
 ];
 
+type Attempt = { history: Msg[]; mode: AskMode; context?: string };
+
+function subscribeOnline(cb: () => void) {
+  window.addEventListener("online", cb);
+  window.addEventListener("offline", cb);
+  return () => {
+    window.removeEventListener("online", cb);
+    window.removeEventListener("offline", cb);
+  };
+}
+const useOnline = () =>
+  useSyncExternalStore(
+    subscribeOnline,
+    () => navigator.onLine,
+    () => true,
+  );
+
+// Elements made inert while the dialog is open (module scope: it is DOM state,
+// not render state).
+let inerted: HTMLElement[] = [];
+
+/** Radix hides siblings from assistive tech (aria-hidden) and traps focus; mark them inert too so the page behind is unreachable by any route. */
+function inertBackground(dialogEl: HTMLElement | null) {
+  const portalRoot = dialogEl?.closest("body > *");
+  inerted = Array.from(document.body.children).filter(
+    (el): el is HTMLElement => el instanceof HTMLElement && el !== portalRoot && !["SCRIPT", "STYLE", "NEXT-ROUTE-ANNOUNCER"].includes(el.tagName) && !el.inert,
+  );
+  for (const el of inerted) el.inert = true;
+}
+function releaseBackground() {
+  for (const el of inerted) el.inert = false;
+  inerted = [];
+}
+
 export function CommandBar() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<AskError | null>(null);
+  const online = useOnline();
+  const [scrolled, setScrolled] = useState(false);
   const [dealContext, setDealContext] = useState<string | undefined>();
+  const askAvailable = useAskAvailable();
+  const pathname = usePathname();
+
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const lastAttemptRef = useRef<Attempt | null>(null);
+
+  const run = useCallback(async (history: Msg[], mode: AskMode, context?: string) => {
+    lastAttemptRef.current = { history, mode, context };
+    setError(null);
+    setMessages([...history, { role: "assistant", content: "" }]);
+    setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    let received = "";
+    try {
+      await streamAsk({
+        messages: history,
+        mode,
+        dealContext: context,
+        signal: ctrl.signal,
+        onChunk: (text) => {
+          received = text;
+          setMessages([...history, { role: "assistant", content: text }]);
+        },
+      });
+      markAskAvailable();
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+      const err = normalizeAskError(e, typeof navigator === "undefined" ? true : navigator.onLine);
+      if (err.kind === "unavailable") markAskUnavailable();
+      // Keep any partial answer; otherwise drop the empty placeholder so the
+      // failure is shown as its own state, never as an assistant message.
+      setMessages(received ? [...history, { role: "assistant", content: received }] : history);
+      setError(err);
+    } finally {
+      setBusy(false);
+      abortRef.current = null;
+    }
+  }, []);
 
   const send = useCallback(
-    async (text: string, mode: "chat" | "term_sheet" = "chat", context = dealContext) => {
+    (text: string, mode: AskMode = "chat", context = dealContext) => {
       const content = text.trim();
       if (!content || busy) return;
-      const history: Msg[] = [...messages, { role: "user", content }];
-      setMessages([...history, { role: "assistant", content: "" }]);
       setInput("");
-      setBusy(true);
-      const ctrl = new AbortController();
-      abortRef.current = ctrl;
-      try {
-        const res = await fetch("/api/ask", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ messages: history.slice(-20), mode, dealContext: context }),
-          signal: ctrl.signal,
-        });
-        if (!res.ok || !res.body) {
-          const err = (await res.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(err?.error ?? "Kubera AI is unavailable right now.");
-        }
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let acc = "";
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acc += decoder.decode(value, { stream: true });
-          setMessages([...history, { role: "assistant", content: acc }]);
-        }
-      } catch (e) {
-        if ((e as Error).name !== "AbortError") {
-          setMessages([...history, { role: "assistant", content: (e as Error).message }]);
-        }
-      } finally {
-        setBusy(false);
-        abortRef.current = null;
-      }
+      void run([...messages, { role: "user", content }], mode, context);
     },
-    [busy, messages, dealContext],
+    [busy, messages, dealContext, run],
   );
 
+  const retry = useCallback(() => {
+    const a = lastAttemptRef.current;
+    if (a && !busy) void run(a.history, a.mode, a.context);
+  }, [busy, run]);
+
+  const openBar = useCallback(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setOpen(true);
+  }, []);
+
+  // Keyboard shortcut and cross-component open event.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
-      } else if (e.key === "Escape") {
-        setOpen(false);
+        if (!askAvailable && !open) return;
+        if (open) setOpen(false);
+        else openBar();
       }
     };
     const onOpen = (e: Event) => {
       const d = (e as CustomEvent<OpenCommandBarDetail>).detail ?? {};
-      setOpen(true);
+      if (!askAvailable) return;
+      openBar();
       if (d.dealContext) setDealContext(d.dealContext);
-      if (d.prompt && d.autoSubmit) void send(d.prompt, d.mode ?? "chat", d.dealContext ?? dealContext);
+      if (d.prompt && d.autoSubmit) send(d.prompt, d.mode ?? "chat", d.dealContext ?? dealContext);
       else if (d.prompt) setInput(d.prompt);
     };
     window.addEventListener("keydown", onKey);
@@ -91,151 +150,239 @@ export function CommandBar() {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener(OPEN_EVENT, onOpen);
     };
-  }, [send, dealContext]);
+  }, [send, dealContext, askAvailable, open, openBar]);
 
+  // Find out early whether the backend is configured so entry points can hide.
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50);
-    document.documentElement.style.overflow = open ? "hidden" : "";
-  }, [open]);
+    void probeAskAvailability();
+  }, []);
+
+  // Floating button: revealed on desktop only after the first screen scrolls by.
+  useEffect(() => {
+    const onScroll = () => setScrolled(isPastDesktopThreshold(window.scrollY));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages]);
+  }, [messages, error]);
+
+  useEffect(() => releaseBackground, []);
+
+  const hiddenRoute = isAskButtonRouteHidden(pathname);
+  const showFloating = askAvailable && !hiddenRoute;
+  const retryable = error ? ASK_ERROR_COPY[error.kind].retryable : false;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="glass fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-black/[0.08] px-4 py-2.5 text-sm font-medium text-ink shadow-[var(--shadow-float)] transition hover:scale-[1.02] md:bottom-8 md:right-8"
-        aria-label="Ask Kubera AI"
-      >
-        <SparkIcon className="size-4 text-accent" />
-        Ask Kubera AI
-        <kbd className="hidden rounded-md bg-black/[0.06] px-1.5 py-0.5 text-[11px] text-titanium sm:inline">⌘K</kbd>
-      </button>
+      {showFloating && (
+        <button
+          type="button"
+          onClick={openBar}
+          data-ask-entry
+          data-ask-floating
+          className={`glass fixed bottom-5 right-5 z-40 flex min-h-11 items-center gap-2 rounded-full border border-black/[0.08] px-4 py-2.5 text-sm font-medium text-ink shadow-[var(--shadow-float)] transition hover:scale-[1.02] md:bottom-8 md:right-8 ${scrolled ? "" : "sm:hidden"}`}
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Control+K Meta+K"
+        >
+          <SparkIcon className="size-4 text-accent" />
+          Ask Kubera AI
+          <kbd className="hidden rounded-md bg-black/[0.06] px-1.5 py-0.5 text-xs sm:inline" aria-hidden>⌘K</kbd>
+        </button>
+      )}
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="fixed inset-0 z-[60] flex items-start justify-center bg-black/25 px-3 pt-[8vh] backdrop-blur-sm md:pt-[12vh]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          ref={contentRef}
+          className="glass dialog-content flex max-h-[80vh] max-w-2xl flex-col overflow-hidden rounded-3xl border border-black/[0.08] shadow-[var(--shadow-float)]"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            inertBackground(contentRef.current);
+            inputRef.current?.focus();
+          }}
+          onCloseAutoFocus={(e) => {
+            // Radix would focus its Trigger (we have none, since the bar opens
+            // from several places); return focus to whatever opened it.
+            e.preventDefault();
+            releaseBackground();
+            const target = returnFocusRef.current;
+            if (target && target.isConnected) target.focus();
+            returnFocusRef.current = null;
+          }}
+        >
+          <DialogTitle className="sr-only">Ask Kubera AI</DialogTitle>
+          <DialogDescription className="sr-only">
+            Ask questions about commercial real estate financing. Answers are generated automatically; press Escape to close.
+          </DialogDescription>
+
+          <form
+            className="flex items-start gap-2 border-b border-black/[0.06] px-4 py-3 md:px-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
           >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label="Ask Kubera AI"
-              className="glass flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-black/[0.08] shadow-[var(--shadow-float)]"
-              initial={{ y: 16, scale: 0.98, opacity: 0 }}
-              animate={{ y: 0, scale: 1, opacity: 1 }}
-              exit={{ y: 8, scale: 0.98, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 420, damping: 34 }}
-            >
-              <form
-                className="flex items-start gap-3 border-b border-black/[0.06] px-5 py-4"
-                onSubmit={(e) => {
+            <SparkIcon className="mt-3.5 size-5 shrink-0 text-accent" />
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
-                  void send(input);
-                }}
+                  send(input);
+                }
+              }}
+              placeholder="Ask about HUD, SBA, CMBS, bridge…"
+              className="max-h-40 min-h-11 flex-1 resize-none self-center bg-transparent py-2.5 text-[17px] text-ink placeholder:text-titanium focus:outline-none"
+              aria-label="Your question"
+              maxLength={4000}
+            />
+            {busy ? (
+              <button
+                type="button"
+                onClick={() => abortRef.current?.abort()}
+                className="min-h-11 shrink-0 rounded-full bg-black/[0.06] px-4 text-sm font-medium hover:bg-black/10"
               >
-                <SparkIcon className="mt-1 size-5 shrink-0 text-accent" />
-                <textarea
-                  ref={inputRef}
-                  rows={1}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void send(input);
-                    }
-                  }}
-                  placeholder="Ask about HUD 232, SBA 504 hotel stacks, CMBS, bridge…"
-                  className="max-h-40 flex-1 resize-none bg-transparent text-[17px] text-ink placeholder:text-titanium focus:outline-none"
-                  aria-label="Your question"
-                  maxLength={4000}
-                />
-                {busy ? (
-                  <button type="button" onClick={() => abortRef.current?.abort()} className="rounded-full bg-black/[0.06] px-3 py-1 text-xs font-medium">
-                    Stop
-                  </button>
-                ) : (
-                  <kbd className="mt-1 rounded-md bg-black/[0.05] px-1.5 py-0.5 text-[11px] text-titanium">esc</kbd>
-                )}
-              </form>
+                Stop
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim() || !online}
+                className="min-h-11 shrink-0 rounded-full bg-accent px-4 text-sm font-medium text-white hover:bg-accent-hover disabled:bg-black/10 disabled:text-titanium"
+              >
+                Send
+              </button>
+            )}
+            <DialogClose className="shrink-0 text-ink hover:bg-black/[0.06]" aria-label="Close Ask Kubera AI">
+              <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
+                <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+              </svg>
+            </DialogClose>
+          </form>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
-                {messages.length === 0 ? (
-                  <div>
-                    <p className="eyebrow mb-3">Try asking</p>
-                    <ul className="space-y-1">
-                      {SUGGESTIONS.map((s) => (
-                        <li key={s}>
-                          <button type="button" onClick={() => void send(s)} className="w-full rounded-xl px-3 py-2.5 text-left text-[15px] text-ink/80 transition hover:bg-black/[0.04]">
-                            {s}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    {dealContext && (
+          {!online && (
+            <p role="status" className="border-b border-amber-500/30 bg-amber-50 px-5 py-2 text-sm text-ink">
+              You&apos;re offline. Questions will send once you reconnect.
+            </p>
+          )}
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4" tabIndex={0} aria-label="Conversation history">
+            {messages.length === 0 && !error && (
+              <div>
+                <p className="eyebrow mb-3">Try asking</p>
+                <ul className="space-y-1">
+                  {SUGGESTIONS.map((s) => (
+                    <li key={s}>
                       <button
                         type="button"
-                        onClick={() => void send("Draft an indicative term sheet for my sized structure.", "term_sheet")}
-                        className="pill pill-primary mt-4 !py-2 !text-sm"
+                        onClick={() => send(s)}
+                        className="min-h-11 w-full rounded-xl px-3 py-2.5 text-left text-[15px] text-ink/80 transition hover:bg-black/[0.04]"
                       >
-                        Generate term sheet from my sizer results
+                        {s}
                       </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-5">
-                    {messages.map((m, i) =>
-                      m.role === "user" ? (
-                        <p key={i} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-ink px-4 py-2.5 text-[15px] text-white">{m.content}</p>
-                      ) : (
-                        <div key={i}>
-                          {m.content ? <Markdown text={m.content} /> : <Thinking />}
-                        </div>
-                      ),
-                    )}
-                  </div>
+                    </li>
+                  ))}
+                </ul>
+                {dealContext && (
+                  <button
+                    type="button"
+                    onClick={() => send("Draft an indicative term sheet for my sized structure.", "term_sheet")}
+                    className="pill pill-primary mt-4 !py-2 !text-sm"
+                  >
+                    Generate term sheet from my sizer results
+                  </button>
                 )}
               </div>
+            )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] px-5 py-3">
-                <p className="max-w-md text-[11px] leading-snug text-titanium">{disclosures.ai}</p>
-                <div className="flex gap-2">
-                  {dealContext && messages.length > 0 && !busy && (
-                    <button type="button" onClick={() => void send("Draft an indicative term sheet for this structure.", "term_sheet")} className="rounded-full bg-black/[0.05] px-3 py-1.5 text-xs font-medium hover:bg-black/[0.08]">
-                      Term sheet
+            {/* The live region exists from the start so additions are announced.
+                aria-busy holds announcements until a streamed answer is complete. */}
+            <div role="log" aria-live="polite" aria-relevant="additions text" aria-busy={busy} aria-label="Kubera AI conversation" className="space-y-5">
+              {messages.map((m, i) =>
+                m.role === "user" ? (
+                  <p key={i} className="ml-auto w-fit max-w-[85%] rounded-2xl bg-ink px-4 py-2.5 text-[15px] text-white">
+                    <span className="sr-only">You: </span>
+                    {m.content}
+                  </p>
+                ) : (
+                  <div key={i}>
+                    {m.content ? (
+                      <>
+                        <span className="sr-only">Kubera AI: </span>
+                        <Markdown text={m.content} />
+                      </>
+                    ) : (
+                      <Thinking />
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                data-ask-error={error.kind}
+                className={`mt-5 rounded-2xl border p-4 text-ink ${error.kind === "offline" ? "border-amber-500/40 bg-amber-50" : "border-rose-500/40 bg-rose-50"}`}
+              >
+                <p className="font-semibold">{ASK_ERROR_COPY[error.kind].title}</p>
+                <p className="mt-1 text-sm">{error.kind === "rate_limited" ? error.message : ASK_ERROR_COPY[error.kind].body}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {retryable && (
+                    <button type="button" onClick={retry} className="min-h-11 rounded-full bg-ink px-4 text-sm font-medium text-white hover:bg-black">
+                      Try again
                     </button>
                   )}
-                  <Link href="/express" onClick={() => setOpen(false)} className="rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover">
+                  <Link
+                    href="/express"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex min-h-11 items-center rounded-full bg-accent px-4 text-sm font-medium text-white hover:bg-accent-hover"
+                  >
                     Talk to an advisor
                   </Link>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/[0.06] px-5 py-3">
+            <p className="max-w-md text-xs leading-snug text-titanium">{disclosures.ai}</p>
+            <div className="flex gap-2">
+              {dealContext && messages.length > 0 && !busy && (
+                <button
+                  type="button"
+                  onClick={() => send("Draft an indicative term sheet for this structure.", "term_sheet")}
+                  className="min-h-11 rounded-full bg-black/[0.05] px-4 text-sm font-medium hover:bg-black/[0.08]"
+                >
+                  Term sheet
+                </button>
+              )}
+              <Link
+                href="/express"
+                onClick={() => setOpen(false)}
+                className="inline-flex min-h-11 items-center rounded-full bg-accent px-4 text-sm font-medium text-white hover:bg-accent-hover"
+              >
+                Talk to an advisor
+              </Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
 function Thinking() {
   return (
-    <div className="flex items-center gap-1.5 py-2" aria-label="Kubera AI is thinking">
+    <div role="status" className="flex items-center gap-1.5 py-2">
+      <span className="sr-only">Kubera AI is thinking</span>
       {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="size-1.5 rounded-full bg-titanium"
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15 }}
-        />
+        <span key={i} aria-hidden className="size-1.5 animate-pulse rounded-full bg-titanium" style={{ animationDelay: `${i * 150}ms` }} />
       ))}
     </div>
   );

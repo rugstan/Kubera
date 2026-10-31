@@ -1,18 +1,18 @@
-"use client";
+import type { CSSProperties } from "react";
 
-import { motion, useReducedMotion } from "motion/react";
-
-export function Reveal({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const reduce = useReducedMotion();
+/**
+ * Scroll reveal, CSS only. The wrapper renders at full opacity in the server
+ * HTML (no-JS, crawlers, screenshots and assistive tech all see the content);
+ * `.reveal` in globals.css adds a scroll-driven fade where the browser supports
+ * `animation-timeline` and the user has not asked for reduced motion.
+ * `delay` (seconds, as before) staggers siblings by shifting the animation range.
+ */
+export function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const step = Math.round(delay * 25);
+  const style = step > 0 ? ({ "--reveal-step": step } as CSSProperties) : undefined;
   return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ type: "spring", stiffness: 120, damping: 24, delay }}
-    >
+    <div className={`reveal ${className}`.trim()} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }

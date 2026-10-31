@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { MoneyField, SelectField } from "@/components/sizer/fields";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
 type PartnerType = "LENDER" | "REFERRAL" | "OPERATOR" | "VENDOR";
 
@@ -137,28 +138,38 @@ export function PartnerPortal() {
   const active = TYPES.find((t) => t.id === type)!;
 
   return (
-    <div>
-      <div className="grid gap-3 md:grid-cols-4" role="tablist" aria-label="Partner type">
+    <Tabs
+      value={type}
+      onValueChange={(v) => {
+        const t = TYPES.find((x) => x.id === v);
+        if (!t) return;
+        setType(t.id);
+        setState("idle");
+        history.replaceState(null, "", `#${t.hash}`);
+      }}
+    >
+      <TabsList className="grid gap-3 md:grid-cols-4" aria-label="Partner type">
         {TYPES.map((t) => (
-          <button key={t.id} id={t.hash} role="tab" aria-selected={type === t.id}
-            onClick={() => { setType(t.id); setState("idle"); history.replaceState(null, "", `#${t.hash}`); }}
-            className={`bento p-5 text-left transition ${type === t.id ? "ring-2 ring-accent/70" : "hover:-translate-y-0.5"}`}>
-            <p className="text-[17px] font-semibold">{t.title}</p>
-            <p className="mt-1.5 text-[13px] leading-snug text-titanium">{t.blurb}</p>
-          </button>
+          <TabsTrigger key={t.id} id={t.hash} value={t.id}
+            className={`bento p-5 text-left transition ${type === t.id ? "ring-2 ring-accent" : "hover:-translate-y-0.5"}`}>
+            <span className="block text-[17px] font-semibold">{t.title}</span>
+            <span className="mt-1.5 block text-[13px] leading-snug text-titanium">{t.blurb}</span>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
+      {/* id/aria-labelledby: the tabs carry hash ids so /partners#lender deep links work. */}
+      <TabsContent value={type} aria-labelledby={active.hash} className="mt-6">
       <AnimatePresence mode="wait">
         {state === "done" ? (
-          <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bento mt-6 p-10 text-center">
+          <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bento p-10 text-center" role="status">
             <p className="text-3xl font-semibold tracking-tight">You&apos;re in the queue.</p>
             <p className="mx-auto mt-3 max-w-lg text-titanium">
               Our capital markets desk reviews every {active.title.toLowerCase().replace(/s$/, "")} registration. We&apos;ll follow up by email{type === "REFERRAL" ? " with your agreement and a secure W-9 link" : ""}.
             </p>
           </motion.div>
         ) : (
-          <motion.form key={type} onSubmit={submit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bento mt-6 space-y-8 p-6 md:p-10">
+          <motion.form key={type} onSubmit={submit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bento space-y-8 p-6 md:p-10">
             <section>
               <h2 className="text-xl font-semibold">{active.title}</h2>
               <div className="mt-5 grid gap-4 md:grid-cols-3">
@@ -254,6 +265,7 @@ export function PartnerPortal() {
           </motion.form>
         )}
       </AnimatePresence>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
