@@ -161,7 +161,7 @@ export function Qualifier() {
                 Continue
               </button>
             ) : step === 3 ? (
-              <button key="submit" type="submit" disabled={submitting} aria-busy={submitting} className="pill pill-primary !py-2.5 disabled:opacity-60">
+              <button key="submit" type="submit" disabled={submitting} aria-busy={submitting} className="pill pill-primary min-w-0 !whitespace-normal text-center !py-2.5 disabled:opacity-60">
                 {submitting ? "Sending…" : "See my indicative structure"}
               </button>
             ) : null}

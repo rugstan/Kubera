@@ -63,6 +63,10 @@ test.describe("qualifier at 390px", () => {
     await noHorizontalOverflow(page);
     await tapTargetsAreBigEnough(page, "main form");
     await fillContact(page, { phone: "415-555-0132" });
+    // The submit label is long; it must wrap inside the card rather than push past it.
+    const card = await page.locator("main .bento").first().boundingBox();
+    const submit = await page.getByRole("button", { name: /see my indicative structure/i }).boundingBox();
+    expect(submit!.x + submit!.width, "submit button overflows the card").toBeLessThanOrEqual(card!.x + card!.width);
     await shot(page, "qualifier-390-4-contact");
     expect(await seriousViolations(page, "main")).toEqual([]);
 
