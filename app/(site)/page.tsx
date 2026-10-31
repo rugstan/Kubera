@@ -19,10 +19,10 @@ export default function HomePage() {
       <section id="sizer" className="border-y border-black/[0.06] bg-white/50">
         <div className="mx-auto max-w-[1280px] px-5 py-24 md:px-8 md:py-32">
           <Reveal className="mx-auto max-w-3xl text-center">
-            <p className="eyebrow">AI loan sizer &amp; comparator</p>
+            <p className="eyebrow">AI-assisted loan sizer and comparator</p>
             <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-6xl">Size your loan in 60 seconds.</h2>
             <p className="mt-4 text-lg text-titanium">
-              Side-by-side HUD, SBA, CMBS, agency, and bridge structures — with MIP, guarantee fees, audit costs, and closing costs broken out.
+              Indicative, side-by-side HUD, SBA, CMBS, agency, and bridge structures — with MIP, guarantee fees, audit costs, and closing costs broken out. An advisor confirms every number with lenders.
             </p>
           </Reveal>
           <div className="mt-12">

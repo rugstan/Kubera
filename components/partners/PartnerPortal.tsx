@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 import { MoneyField, SelectField } from "@/components/sizer/fields";
 
 type PartnerType = "LENDER" | "REFERRAL" | "OPERATOR" | "VENDOR";
 
 const TYPES: { id: PartnerType; hash: string; title: string; blurb: string }[] = [
-  { id: "LENDER", hash: "lender", title: "Wholesale Lenders", blurb: "Banks, debt funds, CMBS desks, SBA CDCs & 7(a) lenders, HUD MAP/LEAN lenders. Register your live credit box and fee protection." },
-  { id: "REFERRAL", hash: "referral", title: "Referral Brokers", blurb: "Real estate brokers, hotel brokers, and affiliates. Co-broker or refer deals under a non-circumvention and fee-split agreement." },
-  { id: "OPERATOR", hash: "operator", title: "Operators", blurb: "RCFE, assisted living, memory care, SNF, and hotel management operators — matched with investors who need HUD-compliant or franchise-approved management." },
-  { id: "VENDOR", hash: "vendor", title: "Third-Party Vendors", blurb: "MAI healthcare & hospitality appraisers, HVS/STR analysts, Phase I ESA, PCNA engineers, CPAs. Receive automated underwriting RFPs." },
+  { id: "LENDER", hash: "lender", title: "Wholesale lenders", blurb: "Banks, debt funds, CMBS desks, SBA CDCs and 7(a) lenders, HUD MAP/LEAN lenders. Register your current credit box and broker compensation terms." },
+  { id: "REFERRAL", hash: "referral", title: "Referral brokers", blurb: "Real estate brokers, hotel brokers, and affiliates. Co-broker or refer deals under a signed non-circumvention and fee-split agreement." },
+  { id: "OPERATOR", hash: "operator", title: "Operators", blurb: "RCFE, assisted living, memory care, SNF, and hotel management operators — introduced to owners who need HUD-compliant or franchise-accepted management." },
+  { id: "VENDOR", hash: "vendor", title: "Third-party vendors", blurb: "MAI healthcare and hospitality appraisers, HVS/STR analysts, Phase I ESA, PCNA engineers, CPAs. Receive RFPs when a deal needs your reports." },
 ];
 
 const VERTICALS = [
@@ -126,7 +127,7 @@ export function PartnerPortal() {
     try {
       const res = await fetch("/api/partners", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.issues?.[0] ? `Please check ${body.issues[0].path.split(".").pop()}: ${body.issues[0].message}` : body.error);
+      if (!res.ok) throw new Error(body.issues?.[0] ? `Please check ${body.issues[0].path.split(".").pop()}: ${body.issues[0].message}` : body.error ?? "We couldn't send your registration. Please try again, or email partners@kuberacommercial.com.");
       setState("done");
     } catch (err) {
       setError((err as Error).message);
@@ -154,7 +155,7 @@ export function PartnerPortal() {
           <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bento mt-6 p-10 text-center">
             <p className="text-3xl font-semibold tracking-tight">You&apos;re in the queue.</p>
             <p className="mx-auto mt-3 max-w-lg text-titanium">
-              Our capital markets desk reviews every {active.title.toLowerCase().replace(/s$/, "")} registration. We&apos;ll follow up by email{type === "REFERRAL" ? " with your agreement and a secure W-9 link" : ""}.
+              A member of our capital markets team reviews every {active.title.toLowerCase().replace(/s$/, "")} registration. We&apos;ll follow up by email{type === "REFERRAL" ? " with your agreement and a secure W-9 link" : ""}.
             </p>
           </motion.div>
         ) : (
@@ -189,7 +190,7 @@ export function PartnerPortal() {
                 <Text label="Min DSCR" value={minDscr} onChange={setMinDscr} />
                 <Text label="Min debt yield %" value={minDebtYield} onChange={setMinDebtYield} />
                 <Text label="Franchise flag requirements" value={flagRequirements} onChange={setFlagRequirements} placeholder="e.g. Marriott, Hilton select-service only" className="md:col-span-2" />
-                <Text label="Broker fee protection %" value={feePct} onChange={setFeePct} required />
+                <Text label="Broker compensation you pay (%)" value={feePct} onChange={setFeePct} required />
                 <Text label="States / markets" value={states} onChange={setStates} placeholder="CA, AZ, NV…" className="md:col-span-2" />
                 <Text label="Website" type="url" value={website} onChange={setWebsite} placeholder="https://" />
               </section>
@@ -228,7 +229,7 @@ export function PartnerPortal() {
                 <Text label="Beds / keys under management" type="number" value={units} onChange={setUnits} required />
                 <Text label="Markets" value={markets} onChange={setMarkets} />
                 <Text label="Facility license #s (CDSS / CDPH)" value={licenseNumbers} onChange={setLicenseNumbers} className="md:col-span-2" />
-                <Text label="Approved franchise flags" value={flagsApproved} onChange={setFlagsApproved} />
+                <Text label="Franchise flags you manage" value={flagsApproved} onChange={setFlagsApproved} />
               </section>
             )}
 
@@ -247,6 +248,7 @@ export function PartnerPortal() {
               <span>I agree that Kubera Commercial may contact me about this registration by phone, text, or email.</span>
             </label>
 
+            <NoticeAtCollection point="partner" />
             {error && <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{error}</p>}
             <button type="submit" disabled={state === "sending"} className="pill pill-primary disabled:opacity-50">
               {state === "sending" ? "Submitting…" : "Submit registration"}

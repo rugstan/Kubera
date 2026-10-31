@@ -7,9 +7,9 @@ import { openCommandBar } from "@/components/ask/events";
 import { Logo } from "./Logo";
 
 const NAV = [
-  { href: "/#senior-living", label: "Senior Living" },
+  { href: "/#senior-living", label: "Senior living" },
   { href: "/#hospitality", label: "Hospitality" },
-  { href: "/#multifamily", label: "Multifamily & CRE" },
+  { href: "/#multifamily", label: "Multifamily and CRE" },
   { href: "/#rates", label: "Rates" },
   { href: "/partners", label: "Partners" },
 ];
@@ -39,7 +39,7 @@ export function GlassHeader() {
           >
             <SparkIcon />
             Ask Kubera AI
-            <kbd className="rounded-md bg-black/[0.05] px-1.5 py-0.5 font-sans text-[11px]">⌘K</kbd>
+            <kbd className="rounded-md bg-black/[0.05] px-1.5 py-0.5 font-sans text-[12px]">⌘K</kbd>
           </button>
           <Link href="/#sizer" className="pill pill-primary !px-4 !py-1.5 !text-[13px]">
             Size a loan

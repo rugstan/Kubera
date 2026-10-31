@@ -51,7 +51,7 @@ export async function CapitalMarkets() {
             </tbody>
           </table>
         </div>
-        <p className="mt-6 max-w-3xl text-[11px] leading-relaxed text-white/40">
+        <p className="mt-6 max-w-3xl text-[12px] leading-relaxed text-white/40">
           Treasury, SOFR, and Prime from the Federal Reserve Bank of St. Louis (FRED). Program ranges are Kubera estimates (benchmark + typical spread, assumptions reviewed {ASSUMPTIONS_REVIEWED}); T = Treasury, S = SOFR, in basis points. Not a rate quote or commitment.
         </p>
       </div>
