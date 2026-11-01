@@ -1,17 +1,23 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
-import { safeEqual } from "@/lib/security";
+import { readBodyCapped, safeEqual } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 // Twenty signs webhooks with HMAC-SHA256 over `${timestamp}:${rawBody}` using
 // the secret set when the webhook is created in Settings → APIs & Webhooks.
 const MAX_SKEW_MS = 5 * 60_000;
+const MAX_BODY_BYTES = 256 * 1024;
 
 export async function POST(req: Request) {
   const secret = process.env.TWENTY_WEBHOOK_SECRET;
   if (!secret) return NextResponse.json({ error: "Webhook secret not configured" }, { status: 503 });
 
-  const raw = await req.text();
+  // Cap the body before buffering or hashing it: this route is reachable unauthenticated.
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large" }, { status: 413 });
+  const raw = await readBodyCapped(req, MAX_BODY_BYTES);
+  if (raw === null) return NextResponse.json({ error: "Request is too large" }, { status: 413 });
+
   const signature = req.headers.get("x-twenty-webhook-signature") ?? "";
   const timestamp = req.headers.get("x-twenty-webhook-timestamp") ?? "";
   const expected = createHmac("sha256", secret).update(`${timestamp}:${raw}`).digest("hex");
@@ -30,11 +36,17 @@ export async function POST(req: Request) {
 
   const db = supabaseAdmin();
   if (db) {
-    const { error } = await db.from("crm_events").insert({
-      event_name: payload.eventName ?? "unknown",
-      record_id: payload.record?.id ?? null,
-      payload,
-    });
+    // A redelivery carries the same signed timestamp and body, so it maps to the same key and is dropped.
+    const dedupeKey = createHash("sha256").update(`${timestamp}:${raw}`).digest("hex");
+    const { error } = await db.from("crm_events").upsert(
+      {
+        event_name: payload.eventName ?? "unknown",
+        record_id: payload.record?.id ?? null,
+        payload,
+        dedupe_key: dedupeKey,
+      },
+      { onConflict: "dedupe_key", ignoreDuplicates: true },
+    );
     if (error) console.error("crm event insert failed", error.message);
   }
   return NextResponse.json({ ok: true });

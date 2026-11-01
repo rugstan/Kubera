@@ -32,7 +32,7 @@ export const MAX_BODY_CHARS = 200_000;
 export const POLL_LOOKBACK_MS = 72 * 60 * 60_000;
 /** Unstored messages enqueued per mailbox per poll (oldest first; the rest wait for the next poll). */
 export const POLL_LIMIT = 100;
-/** Messages the provider may list per poll while paging back to the lookback start. */
+/** Unstored messages the provider lists per poll while paging back to the lookback start (stored ids do not count). */
 export const POLL_SCAN_LIMIT = 5_000;
 /** Failed processing attempts before a message is left for staff (lib/mail/mailboxes.ts). */
 export { MAX_MAIL_ATTEMPTS };
@@ -60,8 +60,10 @@ export type InboundDeps = {
 
 /**
  * Messages in `mailbox` not yet stored, oldest first. The provider pages back
- * to the lookback start; already-stored ids are dropped before `limit` applies,
- * so a burst larger than `limit` drains over the next polls.
+ * to the lookback start and skips stored ids as it goes (they never count toward
+ * the scan limit), so a window holding more than the scan limit still reaches
+ * every unstored message. At most `limit` are returned; the rest drain over the
+ * next polls.
  */
 export async function pollMailbox(
   mailbox: InboundMailbox,
@@ -74,9 +76,11 @@ export async function pollMailbox(
   const since = cursor ? new Date(cursor.getTime() - (opts.lookbackMs ?? POLL_LOOKBACK_MS)) : null;
   // First poll of a mailbox: only the newest `limit` messages (no backfill of history).
   const scan = since ? (opts.scanLimit ?? POLL_SCAN_LIMIT) : limit;
-  const listed = await deps.provider.listNew(mailbox, since, scan);
-  if (since && listed.length >= scan) console.warn(`[mail] ${mailbox}@ listed ${scan} messages in the lookback window; older ones wait for the next poll`);
-  const known = listed.length ? await deps.store.knownIds(mailbox, listed.map((m) => m.providerMessageId)) : new Set<string>();
+  const knownIds = (ids: string[]) => deps.store.knownIds(mailbox, ids);
+  const listed = await deps.provider.listNew(mailbox, since, scan, knownIds);
+  if (since && listed.length >= scan) console.warn(`[mail] ${mailbox}@ has at least ${scan} unstored messages in the lookback window; the oldest ${limit} are enqueued and the rest are listed again next poll`);
+  // Providers skip stored ids themselves; this keeps a provider that ignores knownIds correct.
+  const known = listed.length ? await knownIds(listed.map((m) => m.providerMessageId)) : new Set<string>();
   return listed
     .filter((m) => !known.has(m.providerMessageId))
     .sort((a, b) => Date.parse(a.receivedAt) - Date.parse(b.receivedAt))
