@@ -17,6 +17,17 @@ export const AUDIT_ACTIONS = [
   "approval.reject",
   "approval.cancel",
   "approval.expire",
+  // Privacy admin (lib/privacy/staff.ts): written before the read or change takes effect.
+  "privacy.view",
+  "privacy.export",
+  "privacy.acknowledge",
+  "privacy.verify",
+  "privacy.complete",
+  "privacy.deny",
+  "privacy.withdraw",
+  "privacy.legal_hold_set",
+  "privacy.legal_hold_release",
+  "privacy.step_up_failed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

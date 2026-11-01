@@ -3,8 +3,9 @@
 // link is created, and travels only in the approved outreach message.
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { isTerminalStage } from "./stage-catalog";
 import type { DealDeskStore } from "./store";
-import type { DealPackage, ShareLink } from "./types";
+import type { Deal, DealPackage, ShareLink } from "./types";
 
 export const SHARE_LINK_DEFAULT_TTL_DAYS = 14;
 export const SHARE_LINK_MAX_TTL_DAYS = 30;
@@ -31,6 +32,25 @@ export function tokenMatches(token: string, tokenHash: string): boolean {
 
 export function shareLinkUrl(baseUrl: string, token: string): string {
   return `${baseUrl.replace(/\/$/, "")}/api/deals/share/${token}`;
+}
+
+/**
+ * Lenders may see a deal's package only while the deal is open and active: not
+ * closed, withdrawn or lost, and not paused by a sanctions hold (on_hold /
+ * held_for_counsel).
+ */
+export function dealAcceptsLenderAccess(deal: Pick<Deal, "stage" | "status">): boolean {
+  return !isTerminalStage(deal.stage) && (deal.status ?? "active") === "active";
+}
+
+/**
+ * Revokes every live share link for the deal (a hold opened, or the deal
+ * closed / withdrew / was lost). Returns how many links were revoked.
+ */
+export async function revokeDealShareLinks(store: DealDeskStore, dealId: string, by: string, reason: string, now: Date): Promise<number> {
+  const live = (await store.listShareLinks(dealId)).filter((l) => !l.revokedAt && Date.parse(l.expiresAt) > now.getTime());
+  for (const l of live) await store.revokeShareLink(l.id, by, reason, now);
+  return live.length;
 }
 
 export async function createShareLink(
@@ -70,6 +90,10 @@ export async function resolveShareLink(store: DealDeskStore, token: string, now:
   if (!link) return { status: "not_found" };
   if (link.revokedAt) return { status: "revoked" };
   if (Date.parse(link.expiresAt) <= now.getTime()) return { status: "expired" };
+  // A held, closed, withdrawn or lost deal serves nothing, even through a link
+  // that was not (yet) revoked. Not counted as an access.
+  const deal = await store.getDeal(link.dealId);
+  if (!deal || !dealAcceptsLenderAccess(deal)) return { status: "not_found" };
   const counted = await store.recordShareLinkAccess(hash, now);
   if (!counted) return { status: "expired" };
   const pkg = await store.getPackage(link.packageId);

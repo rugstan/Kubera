@@ -7,6 +7,8 @@ import { dealClosingGate, type ChecklistDeps } from "@/lib/checklists/service";
 import { BROKER_OF_RECORD_FILE_MISSING, evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
 import type { DisclosureStore } from "@/lib/disclosures/store";
 import { form159Satisfied } from "./form159";
+import { revokeDealShareLinks } from "./share-links";
+import { isTerminalStage } from "./stage-catalog";
 import { stageChangeOf, type DealStageEventSink } from "./stage-events";
 import { CLOSING_TARGET_STAGES, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest, type StageAdvance, type StageContext } from "./stages";
 import type { DealDeskStore } from "./store";
@@ -117,6 +119,16 @@ export async function advanceDeal(deps: DealDeskDeps, input: { dealId: string; e
     return { ...result, reasons, deal };
   }
   const updated = await deps.store.updateDeal(deal.id, deal.recordVersion, { ...result.patch, updatedBy: input.actor }, input.actor, deps.now());
+  // Closed, withdrawn or lost: lenders lose access to the package. The share
+  // route also refuses links on a settled deal, so a failure here is logged
+  // and the advance (already committed) stands.
+  if (isTerminalStage(updated.stage)) {
+    try {
+      await revokeDealShareLinks(deps.store, updated.id, input.actor, `Deal ${updated.stage}`, deps.now());
+    } catch (err) {
+      console.error("[deals] share link revocation failed:", err instanceof Error ? err.message : err);
+    }
+  }
   if (deps.stageEvents) {
     try {
       await deps.stageEvents.stageChanged(stageChangeOf(updated, result.from, input.event));

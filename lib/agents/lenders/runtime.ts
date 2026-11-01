@@ -74,7 +74,7 @@ export function lenderRuntime(): LenderRuntime | null {
       mail: demo.termSheetMail,
       attachments: null,
       spreads: demo.spreads,
-      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, events: agentSafety().events },
+      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
     };
   }
   const db = supabaseAdmin();
@@ -86,7 +86,7 @@ export function lenderRuntime(): LenderRuntime | null {
     mail: new SupabaseTermSheetMailSource(db),
     attachments: vaultTermSheetAttachments({ documents: supabaseDocumentStore(db), extractions: supabaseExtractionStore(db) }),
     spreads: supabaseSpreadStore(db),
-    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, events: agentSafety().events },
+    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
   };
 }
 

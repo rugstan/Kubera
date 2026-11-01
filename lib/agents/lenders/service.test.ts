@@ -3,7 +3,7 @@ import { createGateway } from "@/lib/ai/gateway";
 import { FakeModelProvider } from "@/lib/ai/gateway/fake";
 import { MemoryTracer } from "@/lib/langfuse";
 import { sendPackageToLender } from "@/lib/deals/packages";
-import { docs, lenderInput, newDeal, setup } from "@/lib/deals/test-fixtures";
+import { docs, lenderInput, newDeal, noHolds, setup } from "@/lib/deals/test-fixtures";
 import { buildPdf } from "@/lib/agents/documents/parse/pdf";
 import { harness } from "@/lib/agents/documents/testing";
 import { documentCleanHandler } from "@/lib/agents/documents/workflow";
@@ -156,7 +156,7 @@ describe("term sheets → quotes", () => {
 
   it("parses routed term sheets once, prices them, and records the term sheet on the sent submission", async () => {
     const w = await world();
-    const sent = await sendPackageToLender({ store: w.desk, gate: w.gate, now: w.now, baseUrl: "https://k.example", mailer: { send: async () => ({ messageId: "m1" }) } }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
+    const sent = await sendPackageToLender({ store: w.desk, gate: w.gate, now: w.now, baseUrl: "https://k.example", mailer: { send: async () => ({ messageId: "m1" }) }, holds: noHolds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
     expect(sent.outreach.status).toBe("sent");
     const quotes = new MemoryLenderMatchStore();
     const source = new MemoryTermSheetMailSource([mail("mail-1", w.deal.id)]);

@@ -1,5 +1,5 @@
 import "server-only";
-import { safeEqual, verifyLeadToken } from "@/lib/security";
+import { verifyLeadToken } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import type { SubjectDataSource } from "./export";
 import type { LegalHoldDb } from "./legal-hold";
@@ -43,15 +43,6 @@ export function privacyServices(): PrivacyServices | null {
   };
 }
 
-const MIN_ADMIN_TOKEN = 32;
-
-/**
- * Compliance-staff endpoints (export, verify, legal hold) authenticate with
- * `Authorization: Bearer $PRIVACY_ADMIN_TOKEN` until staff auth (WS-I) lands.
- * Returns "disabled" when no strong token is configured.
- */
-export function privacyAdminAuth(req: Request, env: Record<string, string | undefined> = process.env): "ok" | "unauthorized" | "disabled" {
-  const token = env.PRIVACY_ADMIN_TOKEN?.trim();
-  if (!token || token.length < MIN_ADMIN_TOKEN) return "disabled";
-  return safeEqual(req.headers.get("authorization") ?? "", `Bearer ${token}`) ? "ok" : "unauthorized";
-}
+// Compliance-staff endpoints (request view / verify, export, legal hold)
+// authenticate with the WS-I staff session: see ./staff.ts. The former shared
+// PRIVACY_ADMIN_TOKEN bearer is retired and no longer read.

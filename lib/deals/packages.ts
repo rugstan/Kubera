@@ -7,8 +7,9 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { isApproved, type ApprovalDecision, type ApprovalGate } from "@/lib/compliance/approval-gate";
+import type { DealHold } from "@/lib/screening/store";
 import { lenderStaleness } from "./lenders";
-import { createShareLink, shareLinkUrl } from "./share-links";
+import { createShareLink, dealAcceptsLenderAccess, shareLinkUrl } from "./share-links";
 import type { DealDeskStore } from "./store";
 import type { Clock, Deal, DealPackage, LenderOutreach, LenderPanelEntry, PackageItem } from "./types";
 
@@ -24,7 +25,7 @@ const itemSchema = z.object({
 
 export class PackageError extends Error {
   constructor(
-    readonly reason: "empty" | "invalid" | "deal_not_found" | "deal_closed" | "lender_not_found" | "lender_inactive" | "lender_program" | "stale_lender" | "no_contact" | "invalid_status",
+    readonly reason: "empty" | "invalid" | "deal_not_found" | "deal_closed" | "deal_held" | "lender_not_found" | "lender_inactive" | "lender_program" | "stale_lender" | "no_contact" | "invalid_status",
     message: string,
   ) {
     super(message);
@@ -99,13 +100,50 @@ export function outreachApprovalKey(dealId: string, lenderId: string, version: n
   return `lender_submission:${dealId}:${lenderId}:v${version}`;
 }
 
-type OutreachDeps = { store: DealDeskStore; gate: ApprovalGate; now: Clock; baseUrl: string; mailer?: LenderMailer | null };
+/** Reads the deal's open sanctions holds (WS-U deal_holds). */
+export type DealHoldReader = { active(dealId: string): Promise<Pick<DealHold, "detail">[]> };
+
+export type OutreachDeps = {
+  store: DealDeskStore;
+  gate: ApprovalGate;
+  now: Clock;
+  baseUrl: string;
+  mailer?: LenderMailer | null;
+  /**
+   * Open sanctions holds for the deal (WS-U). null = the checklist and
+   * screening desk is not configured, which fails closed: nothing is sent.
+   */
+  holds: DealHoldReader | null;
+};
+
+/**
+ * Refuses a lender submission (or minting its share link) unless the deal is
+ * open and active: not closed / withdrawn / lost, not on_hold or
+ * held_for_counsel, and with no open sanctions hold. Fails closed when the
+ * holds cannot be read.
+ */
+export async function assertDealCanGoToLenders(deps: Pick<OutreachDeps, "holds">, deal: Deal): Promise<void> {
+  const status = deal.status ?? "active";
+  if (status === "on_hold" || status === "held_for_counsel") {
+    throw new PackageError("deal_held", `The deal is ${status.replace(/_/g, " ")}; nothing goes to lenders until the hold is released.`);
+  }
+  if (!dealAcceptsLenderAccess(deal)) throw new PackageError("deal_closed", `Deal is ${status === "active" ? deal.stage : status}`);
+  if (!deps.holds) throw new PackageError("deal_held", "Sanctions holds cannot be checked because the checklist and screening desk is not configured; nothing was sent.");
+  let holds: Pick<DealHold, "detail">[];
+  try {
+    holds = await deps.holds.active(deal.id);
+  } catch (err) {
+    console.error("[deals] hold lookup failed", err instanceof Error ? err.message : err);
+    throw new PackageError("deal_held", "Sanctions holds could not be checked; nothing was sent. Try again.");
+  }
+  if (holds.length) throw new PackageError("deal_held", `On hold: ${holds.map((h) => h.detail).join("; ")}. Nothing goes to lenders until the hold is released.`);
+}
 
 export async function sendPackageToLender(deps: OutreachDeps, input: SendPackageInput): Promise<SendPackageResult> {
   const { store } = deps;
   const deal = await store.getDeal(input.dealId);
   if (!deal) throw new PackageError("deal_not_found", `Deal ${input.dealId} not found`);
-  if (["closed", "withdrawn", "lost"].includes(deal.stage)) throw new PackageError("deal_closed", `Deal is ${deal.stage}`);
+  await assertDealCanGoToLenders(deps, deal);
   const lender = await store.getLender(input.lenderId);
   if (!lender) throw new PackageError("lender_not_found", `Lender ${input.lenderId} not found`);
   if (!lender.active) throw new PackageError("lender_inactive", `${lender.name} is inactive on the panel`);
@@ -136,6 +174,8 @@ export async function checkOutreachApproval(deps: OutreachDeps, outreachId: stri
   const [deal, lender] = await Promise.all([store.getDeal(outreach.dealId), store.getLender(outreach.lenderId)]);
   if (!deal) throw new PackageError("deal_not_found", `Deal ${outreach.dealId} not found`);
   if (!lender) throw new PackageError("lender_not_found", `Lender ${outreach.lenderId} not found`);
+  // A hold placed (or the deal closed) after the submission was queued stops it here.
+  await assertDealCanGoToLenders(deps, deal);
   return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach.staleLenderOverride, ttlDays: opts.ttlDays, actor });
 }
 
@@ -205,6 +245,11 @@ async function decideOutreach(
     return { outreach, pkg };
   }
 
+  // Re-read the deal and its holds right before the link exists: the approval
+  // may have come back after a hold was placed or the deal closed.
+  const current = await store.getDeal(deal.id);
+  if (!current) throw new PackageError("deal_not_found", `Deal ${deal.id} not found`);
+  await assertDealCanGoToLenders(deps, current);
   const { token, link } = await createShareLink(store, { pkg, lenderId: lender.id, createdBy: input.actor, ttlDays: input.ttlDays, now });
   const url = shareLinkUrl(deps.baseUrl, token);
   const approved = { status: "approved" as const, approvalId: decision.approvalId, approvedBy: decision.decidedBy, shareLinkId: link.id };

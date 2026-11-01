@@ -255,7 +255,7 @@ export async function sendPackageAction(f: FormData): Promise<never> {
     if (!deal?.leadId) throw new DealError("Link the deal to its lead so vault documents can be packaged");
     const items = await rt.vaultItems(deal.leadId, ids(f, "documentId"));
     const r = await sendPackageToLender(
-      { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer },
+      { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer, holds: rt.checklist?.holds ?? null },
       { dealId: id, lenderId: str(f, "lenderId"), items, actor: staff.actor, ttlDays: num(f, "ttlDays"), allowStaleLender: bool(f, "allowStale"), note: opt(f, "note") ?? undefined },
     );
     await rememberShareUrl(id, r);
@@ -275,7 +275,7 @@ export async function outreachAction(f: FormData): Promise<never> {
     const outreachId = str(f, "outreachId");
     switch (str(f, "op")) {
       case "check": {
-        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
+        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer, holds: rt.checklist?.holds ?? null }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
         await rememberShareUrl(id, r);
         return outreachMessage(r);
       }
