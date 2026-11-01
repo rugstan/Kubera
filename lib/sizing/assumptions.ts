@@ -129,6 +129,9 @@ export const SBA = {
   sevenAAnnualServiceFee: 0.0055,
   bankParticipationFee: 0.005,
   thirdPartyReports: 28_000,
+  /** Bare typical range, for content templates that add their own qualifier. */
+  closeRange: "45–75 days",
+  /** Full qualified sentence (sizer closeTimeline). Do not wrap it in more qualifier text. */
   typicalCloseDays: "45–75 days after a complete file; not guaranteed",
 } as const;
 
@@ -163,6 +166,9 @@ export const BRIDGE = {
   lenderFeePct: 0.01,
   exitFeePct: 0.005,
   fixedCosts: 22_000,
+  /** Bare typical range, for content templates that add their own qualifier. */
+  closeRange: "10–21 days",
+  /** Full qualified sentence (sizer closeTimeline). Do not wrap it in more qualifier text. */
   closeDays: "Many close in 10–21 days after a complete file, subject to appraisal and title; not guaranteed",
 } as const;
 

@@ -181,7 +181,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       },
       {
         question: "How fast can a bridge loan close?",
-        answer: `Private bridge loans often close faster than agency or HUD loans: many close in ${BRIDGE.closeDays} after a complete file, subject to lender approval, appraisal, title and diligence. This is not guaranteed.`,
+        answer: `Private bridge loans often close faster than agency or HUD loans: many close in ${BRIDGE.closeRange} after a complete file, subject to lender approval, appraisal, title and diligence. This is not guaranteed.`,
       },
       {
         question: "What happens if I cannot take out into HUD?",
@@ -261,7 +261,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       fact("SBA 504: equity for special-purpose property", pct(SBA.equity.base + SBA.equity.specialPurpose), SRC.sba),
       fact("SBA 504: CDC debenture cap", usd(SBA.cdcCap), SRC.sba),
       fact("HUD 232 practical minimum size", `About ${s232.practicalMinBeds} beds`, SRC.kubera),
-      fact("SBA typical close", `${SBA.typicalCloseDays} after a complete file`, SRC.sba),
+      fact("SBA typical close", `${SBA.closeRange} after a complete file`, SRC.sba),
     ],
     sections: [
       {

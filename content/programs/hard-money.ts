@@ -54,7 +54,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
       {
         heading: "Timing",
         paragraphs: [
-          `Private bridge and hard money loans often close faster than bank or agency loans: many close in ${BRIDGE.closeDays} after a complete file, subject to lender approval, appraisal, title and diligence. ${disclosures.timeline}`,
+          `Private bridge and hard money loans often close faster than bank or agency loans: many close in ${BRIDGE.closeRange}. ${disclosures.timeline}`,
         ],
       },
     ],
@@ -151,7 +151,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
       fact("Typical term", `${BRIDGE.cre.termMonths} months`, SRC.kubera),
       fact("Indicative spread", `SOFR + ${pts(BRIDGE.cre.spread)} points`, SRC.kubera),
       fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
-      fact("Typical close", `${BRIDGE.closeDays} after a complete file`, SRC.kubera),
+      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.kubera),
       fact("Private-lender range (rate)", HARD_MONEY.rate, SRC.market),
     ],
     sections: [
@@ -185,7 +185,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
       },
       {
         question: "How fast can it close?",
-        answer: `Many close in ${BRIDGE.closeDays} after a complete file, subject to lender approval, appraisal, title and diligence. Timing is not guaranteed.`,
+        answer: `Many close in ${BRIDGE.closeRange} after a complete file, subject to lender approval, appraisal, title and diligence. Timing is not guaranteed.`,
       },
     ],
     related: ["hard-money", "multifamily-bridge", "bridge-to-hud", "pip-bridge", "hotels"],
