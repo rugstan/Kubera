@@ -1,12 +1,17 @@
 import "server-only";
 import { embedQuery, toPgVector } from "@/lib/ai/embeddings";
 import { ASSUMPTIONS_REVIEWED, HUD } from "@/lib/sizing/assumptions";
+import { AGENCY_GRID } from "@/lib/sizing/programs/assumptions";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 const pct = (n: number, digits = 0) => `${(n * 100).toFixed(digits)}%`;
 const x = (n: number) => `${n.toFixed(2)}x`;
 const s232 = HUD.section232;
 const mf = HUD.multifamily;
+const agencyTerms = (terms: readonly number[]) => `${Math.min(...terms)}–${Math.max(...terms)}`;
+const fannieT = AGENCY_GRID.fannie;
+const freddieT = AGENCY_GRID.freddie;
+const usdM = (n: number) => `$${n / 1_000_000}M`;
 
 /** As-of date the HUD figures in the primer were last checked against sources. */
 export const HUD_FACTS_AS_OF = ASSUMPTIONS_REVIEWED;
@@ -43,7 +48,7 @@ export const PROGRAM_PRIMER = `
 - HUD 223(f) (as of ${HUD_FACTS_AS_OF}; HUD Mortgagee Letter 2025-03, Jan 2025): ${mf.s223f.termYears}-year fixed, non-recourse; market-rate max ${pct(mf.s223f.maxLtv)} LTV at ${x(mf.s223f.minDscr)} minimum DSCR; affordable or rental-assistance properties ${pct(mf.s223f.maxLtvAffordable)} LTV at ${x(mf.s223f.minDscrAffordable)}. Cash-out refinances remain capped at ${pct(mf.s223f.cashOutMaxLtv)} LTV.
 - HUD 221(d)(4) (as of ${HUD_FACTS_AS_OF}; ML 2025-03): construction + ${mf.s221d4.termYears}-year fixed; market-rate max ${pct(mf.s221d4.maxLtc)} LTC at ${x(mf.s221d4.minDscr)}; affordable or rental-assistance ${pct(mf.s221d4.maxLtcAffordable)} LTC at ${x(mf.s221d4.minDscrAffordable)}. A middle-income 221(d)(4) tier has been reported by a single source; do not quote it until a HUD lender confirms it.
 - HUD multifamily MIP (as of ${HUD_FACTS_AS_OF}; Federal Register, Sept 23, 2025): a flat ${pct(mf.mip.annual, 2)} annual MIP for all FHA multifamily programs on applications submitted or amended on or after Oct 1, 2025; the separate green, affordable and market-rate MIP tiers no longer apply. Upfront premium modeled at ${pct(mf.mip.upfront, 2)} (being verified with HUD lenders).
-- Agency (Fannie Mae / Freddie Mac): 5–12 year fixed, ~30-year amortization, ~80% LTV, 1.25x DSCR, non-recourse.
+- Agency (Fannie Mae / Freddie Mac): ~${AGENCY_GRID.amortYears}-year amortization, ~${pct(AGENCY_GRID.tiers.TIER_2.maxLtv)} LTV, ${x(AGENCY_GRID.tiers.TIER_2.minDscr)} DSCR, non-recourse. Fannie Mae Small Loan (up to ${usdM(fannieT.smallLoanMax)}): fixed terms of ${agencyTerms(fannieT.terms)} years (${fannieT.terms.join("/")}). Freddie Mac Conventional Small (${usdM(freddieT.smallMin)}–${usdM(freddieT.smallMax)}): ${freddieT.terms.join("/")}-year fixed terms. Modeled assumptions, as of ${HUD_FACTS_AS_OF}; confirm with the lender.
 - Private bridge, hard money & construction ($750k–$25M): Kubera arranges loans from private lenders and debt funds, which fund at closing as lender of record. Many close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is never guaranteed.
 - Usury: California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code § 1916.1). Whether one applies depends on the lender, the collateral, and how the loan and any later extension or modification are arranged. Never tell a borrower that a specific loan is exempt; refer them to their attorney.
 

@@ -81,3 +81,13 @@ test.describe("AI use page", () => {
     await expect(page.getByText(/can.t take requests online/i)).toBeVisible();
   });
 });
+
+test.describe("Privacy policy request methods", () => {
+  test("lists at least two ways to make a CCPA request", async ({ page }) => {
+    await gotoHydrated(page, "/privacy");
+    const methods = page.locator("[data-privacy-request-methods] > li");
+    expect(await methods.count()).toBeGreaterThanOrEqual(2);
+    await expect(methods.filter({ has: page.locator('a[href="/privacy/ai#request"]') })).toHaveCount(1);
+    await expect(methods.filter({ has: page.locator('a[href="mailto:privacy@kuberacommercial.com"]') })).toHaveCount(1);
+  });
+});

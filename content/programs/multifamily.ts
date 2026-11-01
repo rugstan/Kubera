@@ -1,4 +1,4 @@
-import { AGENCY, BRIDGE, HUD, SPREADS } from "@/lib/sizing/assumptions";
+import { AGENCY, ASSUMPTIONS_REVIEWED, BRIDGE, HUD, SPREADS } from "@/lib/sizing/assumptions";
 import { disclosures } from "@/lib/site";
 import { AGENCY_MARKET, BRIDGE_EXIT_TEST, CA_RENT_RULES, HUD_TIMING } from "./market-facts";
 import { fact, pct, pts, SRC, usd, x, years } from "./format";
@@ -56,7 +56,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
     faq: [
       {
         question: "What leverage does HUD 221(d)(4) allow?",
-        answer: `As of ${mf.mip.effectiveForApplicationsOnOrAfter} guidance, market-rate projects size to ${pct(mf.s221d4.maxLtc)} of cost at ${x(mf.s221d4.minDscr)} DSCR, and affordable or rental-assistance projects to ${pct(mf.s221d4.maxLtcAffordable)} at ${x(mf.s221d4.minDscrAffordable)}. Confirm with a HUD lender.`,
+        answer: `Under HUD Mortgagee Letter 2025-03 (Jan 2025; figures as of ${ASSUMPTIONS_REVIEWED}), market-rate projects size to ${pct(mf.s221d4.maxLtc)} of cost at ${x(mf.s221d4.minDscr)} DSCR, and affordable or rental-assistance projects to ${pct(mf.s221d4.maxLtcAffordable)} at ${x(mf.s221d4.minDscrAffordable)}. Confirm with a HUD lender.`,
       },
       {
         question: "Is 221(d)(4) recourse?",

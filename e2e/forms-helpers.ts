@@ -70,6 +70,19 @@ export async function fillQualifierThroughContact(page: Page, opts: { phone?: st
 
 /** Runs axe-core against the page and returns the serious and critical violations. */
 export async function seriousViolations(page: Page, context?: string) {
+  // axe measures contrast from computed colors, so text caught mid-fade (tab
+  // panel entrance, hydration) reads as low contrast under a loaded parallel run.
+  // Turn motion off, then wait until nothing is animating and the active tab
+  // panel, with every ancestor, is fully opaque.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForFunction(() => {
+    if (document.getAnimations().some((a) => a.playState === "running")) return false;
+    const panel = document.querySelector('[role="tabpanel"]:not([hidden])');
+    for (let el: Element | null = panel; el; el = el.parentElement) {
+      if (Number(getComputedStyle(el).opacity) < 1) return false;
+    }
+    return true;
+  });
   await page.addScriptTag({ path: path.resolve(import.meta.dirname, "../node_modules/axe-core/axe.min.js") });
   const results = await page.evaluate(
     async ({ context }) => {

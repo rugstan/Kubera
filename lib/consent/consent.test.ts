@@ -12,6 +12,9 @@ const PINNED: Record<string, string> = {
   "qualifier-contact-2026-10-31": sha256(
     "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
   ),
+  "qualifier-contact-2026-11-01": sha256(
+    "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+  ),
   "partner-contact-2026-10-31": sha256("I agree that Kubera Commercial may contact me about this registration by phone, text, or email."),
   "partner-contact-2026-11-01": sha256(
     "I agree that Kubera Commercial may contact me about this registration by phone, text, or email. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
@@ -31,6 +34,12 @@ describe("consent texts", () => {
     for (const [form, id] of Object.entries(CURRENT_CONSENT)) {
       expect(CONSENT_TEXTS[id].form).toBe(form);
     }
+  });
+
+  it("the current qualifier wording carries the HELP instruction and the old version stays resolvable", () => {
+    expect(CURRENT_CONSENT.qualifier).toBe("qualifier-contact-2026-11-01");
+    expect(CONSENT_TEXTS[CURRENT_CONSENT.qualifier].text).toMatch(/reply STOP to opt out or HELP for help/);
+    expect(resolveConsentText("qualifier", "qualifier-contact-2026-10-31").id).toBe("qualifier-contact-2026-10-31");
   });
 
   it("accepts a known version for the same form only", () => {

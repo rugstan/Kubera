@@ -670,7 +670,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
         ],
         noi: i.noi,
         value,
-        termLabel: "5–12 yrs fixed (10 shown)",
+        termLabel: "5–30 yrs fixed (10 shown)",
         amortLabel: "30 years",
         recourse: "Non-recourse (standard carve-outs)",
         closeTimeline: "45–60 days after a complete file; not guaranteed",

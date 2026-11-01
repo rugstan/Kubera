@@ -30,6 +30,13 @@ export const CONSENT_TEXTS = {
     channels: ["phone", "sms", "email", "autodialer"],
     text: "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
   },
+  "qualifier-contact-2026-11-01": {
+    id: "qualifier-contact-2026-11-01",
+    form: "qualifier",
+    effective: "2026-11-01",
+    channels: ["phone", "sms", "email", "autodialer"],
+    text: "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+  },
   "partner-contact-2026-10-31": {
     id: "partner-contact-2026-10-31",
     form: "partner",
@@ -50,7 +57,7 @@ export type ConsentTextId = keyof typeof CONSENT_TEXTS;
 
 /** The version each form must render today. */
 export const CURRENT_CONSENT = {
-  qualifier: "qualifier-contact-2026-10-31",
+  qualifier: "qualifier-contact-2026-11-01",
   partner: "partner-contact-2026-11-01",
 } as const satisfies Partial<Record<ConsentForm, ConsentTextId>>;
 

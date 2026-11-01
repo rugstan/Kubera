@@ -6,7 +6,8 @@
 // decision and the on-screen numbers can never disagree. When JEV_API_URL is
 // configured, the hosted Jev model is asked to refine the draft under a hard
 // latency budget; its answer is schema-validated and we fall back to the rules
-// result on timeout, error, or invalid output.
+// result on timeout, error, invalid output, or an answer that contradicts
+// the local sizing (an ineligible program, or a higher tier than the sizer allows).
 
 import { z } from "zod";
 import type { Benchmarks } from "@/lib/rates";
@@ -507,17 +508,52 @@ async function refineWithRemoteJev(intake: Intake, draft: JevLoanDecisionSchema)
   }
 }
 
+/**
+ * Check a remote decision against the local sizing before it may replace the
+ * rules decision. The program must be an eligible quote the sizer produced
+ * (it then becomes the quote the borrower sees), and the remote may never lift
+ * a lead the sizer found unqualified. Financial fields and the advisory fee are
+ * derived from the chosen quote here, never taken from the model. Null means
+ * "fall back to the rules decision".
+ */
+export function reconcileRemoteDecision(
+  local: Omit<JevResult, "engine" | "latencyMs">,
+  remote: JevLoanDecisionSchema,
+): { decision: JevLoanDecisionSchema; primaryQuote: SizerQuote } | null {
+  if (local.decision.leadUrgencyTier === "UNQUALIFIED") return null;
+  const quote = local.sizing.quotes.find((q) => q.id === remote.primaryProgramFit);
+  if (!quote || !quote.eligible) return null;
+  const tier = remote.leadUrgencyTier;
+  const known = (id: string) => id === "NONE" || local.sizing.quotes.some((q) => q.id === id);
+  const secondary =
+    known(remote.secondaryProgramFit) && remote.secondaryProgramFit !== quote.id
+      ? remote.secondaryProgramFit
+      : local.decision.secondaryProgramFit !== quote.id
+        ? local.decision.secondaryProgramFit
+        : "NONE";
+  return {
+    primaryQuote: quote,
+    decision: {
+      ...remote,
+      secondaryProgramFit: secondary,
+      estimatedBrokerCommissionUsd: tier === "UNQUALIFIED" ? 0 : Math.round(quote.estimatedAdvisoryFee),
+      requiresImmediateBrokerCall: tier === "UNQUALIFIED" ? false : remote.requiresImmediateBrokerCall,
+    },
+  };
+}
+
 export async function decide(intake: Intake, rates: Benchmarks = FALLBACK_BENCHMARKS): Promise<JevResult> {
   const started = performance.now();
   const local = decideWithRules(intake, rates);
   const remote = await refineWithRemoteJev(intake, local.decision);
+  const accepted = remote ? reconcileRemoteDecision(local, remote) : null;
   return {
     ...local,
-    // Financial fields always come from the sizer, never from the model.
-    decision: remote
-      ? { ...remote, estimatedBrokerCommissionUsd: local.decision.estimatedBrokerCommissionUsd }
-      : local.decision,
-    engine: remote ? "jev-remote" : "rules",
+    // The quote the borrower sees and the CRM decision always agree: the remote
+    // answer is used only when it names an eligible quote from the local sizing.
+    decision: accepted ? accepted.decision : local.decision,
+    primaryQuote: accepted ? accepted.primaryQuote : local.primaryQuote,
+    engine: accepted ? "jev-remote" : "rules",
     latencyMs: Math.round(performance.now() - started),
   };
 }
