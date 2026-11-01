@@ -167,6 +167,49 @@ describe("usury-exemption claims", () => {
     expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
   });
 
+  // Regression: paraphrases that say the borrower's loan is clear of usury limits
+  // without the word "exempt" (must catch), each with the rule expected to fire.
+  it.each<[string, string]>([
+    ["Your loan isn't usurious.", "usury.not-usurious"],
+    ["Your loan isn’t usurious.", "usury.not-usurious"],
+    ["This bridge loan is not usurious because a broker arranged it.", "usury.not-usurious"],
+    ["Your 14% loan won't be usurious.", "usury.not-usurious"],
+    ["Your 13% bridge loan won't violate California usury law.", "usury.not-violate"],
+    ["The 12% rate on your loan doesn't violate the usury cap because Kubera arranged it.", "usury.not-violate"],
+    ["Your loan is not subject to the 10% cap.", "usury.not-subject-to-cap"],
+    ["Your bridge loan can exceed the usury cap because Kubera is a licensed broker.", "usury.can-exceed-cap"],
+    ["Your lender may go above the 10% cap on this bridge loan.", "usury.can-exceed-cap"],
+    ["Your lender can legally charge 14% on your loan because a broker arranged it.", "usury.can-legally-charge"],
+    ["Your loan is safe from usury claims.", "usury.safe-from"],
+    ["The usury law won't be a problem for your 14% loan.", "usury.not-a-problem"],
+    ["I can't promise anything about your loan, but this bridge is not usurious.", "usury.not-usurious"],
+  ])("must catch: %s", (text, ruleId) => {
+    const r = checkText(text);
+    expect(r.violations.map((v) => v.ruleId)).toContain(ruleId);
+    expect(r.ok).toBe(false);
+    expect(r.text).not.toContain(text);
+    expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
+  });
+
+  // Negated, hedged or general controls for the paraphrase rules above (must pass).
+  it.each([
+    "I can't say whether your loan is usurious; ask your attorney.",
+    "Kubera can't tell you that your loan isn't usurious.",
+    "Whether your loan is usurious depends on the lender, the collateral and how it is arranged.",
+    "We can't say that your 13% bridge loan won't violate California usury law.",
+    "Whether the 12% rate on your loan violates the usury cap is a question for your attorney.",
+    "I can't say your loan is not subject to the 10% cap.",
+    "Whether your bridge loan can exceed the usury cap depends on the lender and the collateral.",
+    "Kubera can't say whether your lender can legally charge 14%; ask your attorney.",
+    "Some exempt lenders can charge more than 10%, so ask your attorney which rules apply.",
+    "Kubera can't say that your loan is safe from usury claims.",
+    "I can't promise the usury law won't be a problem for your loan; ask your attorney.",
+    "Usury law may be an issue for your loan, so please ask your attorney.",
+    "Loans from non-exempt lenders above the cap can be usurious unless an exemption applies.",
+  ])("must pass: %s", (text) => {
+    expect(checkText(text).violations).toEqual([]);
+  });
+
   it.each(["Your 12% bridge is exempt.", "This 12% loan is exempt.", "Your $3M 11.5% note is exempt."])("the enforcing stream filter replaces: %s", (text) => {
     const f = new GuardrailStreamFilter({ mode: "enforce" });
     let out = "";

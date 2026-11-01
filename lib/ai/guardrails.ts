@@ -82,6 +82,15 @@ const LOAN_NOUN = String.raw`(?:loan|deal|financing|transaction|rate|structure|b
 const LOAN_REF = new RegExp(String.raw`\b(?:your|this|that|the)\s+${LOAN_NOUN}\b|\byou(?:r)?\b`, "i");
 /** Stricter: only "your ..." or "this/that <loan noun>" (the general "the exemption applies to loans ..." is a fact). */
 const BORROWER_LOAN_REF = new RegExp(String.raw`\byou(?:r)?\b|\b(?:this|that)\s+(?:\S+\s+){0,3}?${LOAN_NOUN}\b`, "i");
+/**
+ * A specific loan as the subject of a usury claim ("your 13% bridge loan", "the 12% rate on
+ * your loan"), then up to 40 characters to the verb. The gap stops at clause breaks so a
+ * disclaimer in an earlier clause ("I can't promise anything about your loan, but ...") cannot
+ * stretch the subject over it and clear a later claim.
+ */
+const USURY_SUBJECT = String.raw`\b(?:your|this|that|the|such an?)\s+(?:[^\s,;:—–]+\s+){0,3}?${LOAN_NOUN}\b[^.,;:—–]{0,40}?`;
+/** Adverbs that do not change a usury claim ("is clearly not usurious", "won't actually violate"). */
+const USURY_ADVERB = String.raw`(?:fully|likely|probably|generally|automatically|clearly|also|even|actually|definitely|certainly|really|technically|legally)`;
 
 /** Kubera, or "our team / staff / desk ..." speaking for it. */
 const KUBERA_SUBJECT = String.raw`(?:we|kubera(?: commercial)?|our (?:team|staff|desk|advisors?|brokers?|office|firm|people))(?:'ll|’ll)?`;
@@ -163,6 +172,62 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   ),
   R("usury.worry", "usury_exemption", "Tells the borrower not to worry about usury", /\b(?:won't|will not|don't|do not|don’t|wouldn't|need not|not)\s+(?:have to |need to )?(?:worry|be concerned)\s+about\s+(?:california |the )?usury\b|\b(?:no|nothing to) (?:usury|usury concerns?|usury risk)\b/i, { negatable: false }),
   R("usury.adjective", "usury_exemption", "Calls a loan usury-exempt", /\busury[- ]exempt\b/i, { requires: LOAN_REF }),
+  // "Your loan isn't usurious." / "This bridge loan is not usurious because a broker arranged it."
+  R(
+    "usury.not-usurious",
+    "usury_exemption",
+    "Says the borrower's loan is (or is not) usurious",
+    new RegExp(String.raw`${USURY_SUBJECT}\b(?:is|isn't|isn’t|is not|are|aren't|aren’t|are not|will be|won't be|won’t be|will not be|would be|wouldn't be|wouldn’t be|would not be)\s+(?:not\s+)?(?:${USURY_ADVERB}\s+)?usurious\b`, "i"),
+    { negateInside: false, requires: LOAN_REF },
+  ),
+  // "Your 13% bridge loan won't violate California usury law."
+  R(
+    "usury.not-violate",
+    "usury_exemption",
+    "Says the borrower's loan or rate does not violate usury law",
+    new RegExp(
+      String.raw`${USURY_SUBJECT}\b(?:won't|won’t|will not|doesn't|doesn’t|does not|wouldn't|wouldn’t|would not|shouldn't|shouldn’t|should not|isn't going to|isn’t going to|is not going to)\s+(?:${USURY_ADVERB}\s+)?(?:violate|breach|break|run afoul of|offend)\b[^.]{0,40}?\busury\s+(?:laws?|caps?|limits?|ceilings?|rules?|statutes?)\b`,
+      "i",
+    ),
+    { negateInside: false, requires: LOAN_REF },
+  ),
+  // "Your bridge loan can exceed the usury cap because Kubera is a licensed broker."
+  R(
+    "usury.can-exceed-cap",
+    "usury_exemption",
+    "Says the borrower's loan or lender may exceed the usury cap",
+    /\b(?:can|could|may|is allowed to|are allowed to|is permitted to|are permitted to)\s+(?:legally\s+|lawfully\s+)?(?:exceed|charge more than|go (?:above|over|beyond)|be (?:above|over))\b[^.]{0,40}?\b(?:usury|the \d+(?:\.\d+)?%|art(?:icle|\.)? XV)\s*(?:interest[- ]rate\s+)?(?:caps?|limits?|ceilings?)\b/i,
+    { requires: BORROWER_LOAN_REF },
+  ),
+  // "Your lender can legally charge 14% on your loan because a broker arranged it."
+  R(
+    "usury.can-legally-charge",
+    "usury_exemption",
+    "Says the borrower's lender can legally charge a stated rate",
+    /\b(?:can|could|may|is allowed to|are allowed to|is permitted to|are permitted to)\s+(?:legally|lawfully)\s+charge\s+(?:you\s+)?(?:up to\s+|over\s+|more than\s+|as much as\s+)?\d+(?:\.\d+)?\s*%/i,
+    { requires: BORROWER_LOAN_REF },
+  ),
+  // "Your loan is not subject to the 10% cap."
+  R(
+    "usury.not-subject-to-cap",
+    "usury_exemption",
+    "Says the borrower's loan is not subject to the stated rate cap",
+    new RegExp(
+      String.raw`${USURY_SUBJECT}\b(?:isn't|isn’t|is not|aren't|aren’t|are not|won't be|won’t be|will not be|wouldn't be|wouldn’t be|would not be|not)\s+(?:${USURY_ADVERB}\s+)?(?:subject to|bound by|governed by|limited by|capped by|covered by)\s+(?:the\s+|a\s+|any\s+)?\d+(?:\.\d+)?\s*%\s+(?:interest[- ]rate\s+|rate\s+|usury\s+|constitutional\s+)?(?:caps?|limits?|ceilings?)\b`,
+      "i",
+    ),
+    { negateInside: false, requires: LOAN_REF },
+  ),
+  // "Your loan is safe from usury claims."
+  R("usury.safe-from", "usury_exemption", "Says the borrower's loan is safe from usury claims", /\b(?:safe|protected|shielded|insulated|secure)\s+from\s+(?:any\s+|a\s+|the\s+|california(?:'s|’s)?\s+)?usury\b/i, { requires: BORROWER_LOAN_REF }),
+  // "The usury law won't be a problem for your 14% loan."
+  R(
+    "usury.not-a-problem",
+    "usury_exemption",
+    "Says usury law will not be a problem for the borrower's loan",
+    /\busury\b[^.]{0,60}?\b(?:won't|won’t|will not|wouldn't|wouldn’t|would not|shouldn't|shouldn’t|should not|isn't going to|isn’t going to|is not going to)\s+be\s+(?:an?\s+)?(?:\w+\s+)?(?:problem|issue|concern|risk|factor|obstacle)s?\b/i,
+    { negateInside: false, requires: LOAN_REF },
+  ),
 
   // --- timelines -------------------------------------------------------------------------
   R("timeline.guarantee", "guaranteed_timeline", "Guarantees a closing or funding timeline", /\bguarantee[sd]?\b[^.]{0,50}\b(?:clos|fund|timeline|timing|schedule|in \d+|within \d+|by )/i),
