@@ -34,10 +34,10 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
 export function CtaLinks({ sizerLabel = "Size this loan" }: { sizerLabel?: string }) {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/#sizer" className="pill pill-primary">
+      <Link href="/#sizer" className="pill pill-primary max-w-full whitespace-normal text-center">
         {sizerLabel}
       </Link>
-      <Link href="/express" className="pill pill-glass">
+      <Link href="/express" className="pill pill-glass max-w-full whitespace-normal text-center">
         Start the 60-second qualifier
       </Link>
     </div>
@@ -157,7 +157,7 @@ export function RelatedPages({ slugs, heading = "Related programs" }: { slugs: s
 
 export function CtaBand({ heading = "Talk through your deal with an advisor" }: { heading?: string }) {
   return (
-    <section className="bento-pro on-dark mt-14 p-8 text-white md:p-10">
+    <section className="bento-pro on-dark mt-14 p-6 text-white sm:p-8 md:p-10">
       <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{heading}</h2>
       <p className="mt-3 max-w-2xl text-[16px] text-white/80">
         Size the loan in 60 seconds, or send the basics and a licensed Kubera advisor reviews which programs may fit. Advisor-led, AI-assisted.
