@@ -40,7 +40,10 @@
         { "fact": "California DRE-licensed real estate corporation / broker", "anyOf": ["DRE", "Department of Real Estate"] },
         { "fact": "Broker, not a lender", "anyOf": ["broker"] }
       ],
-      "forbiddenClaims": [{ "claim": "Claims to be a licensed lender", "pattern": "\\b(licensed|direct) lender\\b(?![^.]{0,20}(not|never))" }],
+      "forbiddenClaims": [
+        { "claim": "Claims to be a licensed lender", "pattern": "\\b(licensed|direct) lender\\b(?![^.]{0,20}(not|never))" },
+        { "claim": "Says Kubera can act as the lender", "pattern": "\\b(we|kubera)\\s+((can|could|will|would|may|might|also)\\s+)+(act|serve)\\s+as\\s+(the|your|a)\\s+lender\\b" }
+      ],
       "source": "Program primer; lib/site.ts, as of 2026-10"
     },
     {
@@ -87,7 +90,12 @@
         { "fact": "Cannot guarantee timing; explains what affects it", "anyOf": ["can't guarantee", "cannot guarantee", "not guaranteed", "no guarantee", "can't promise", "cannot promise"] },
         { "fact": "Mentions dependencies such as appraisal, title or a complete file", "anyOf": ["appraisal", "title", "complete file", "diligence"] }
       ],
-      "forbiddenClaims": [],
+      "forbiddenClaims": [
+        { "claim": "Says closing or funding will take a stated time", "pattern": "\\b(closing|funding)\\s+(will|is going to)\\s+(only\\s+|just\\s+)?take\\s+(about\\s+|around\\s+|only\\s+)?\\d+\\s+(business\\s+)?(days?|weeks?)\\b" },
+        { "claim": "Says the borrower will have funds in a stated time", "pattern": "\\byou(?:'ll|’ll| will)\\s+(have|get|receive)\\s+(the\\s+|your\\s+)?(funds?|funding|money|proceeds)\\s+(in|within)\\s+\\d+\\s+(business\\s+)?(days?|weeks?)\\b" },
+        { "claim": "Promises funding or closing by a day or date", "pattern": "(?<!\\b(need|needs|must|want|wants|plan|plans|aim|aims|hope|hopes|try|trying|have|has)\\s+to\\s+(be\\s+|get\\s+(\\S+\\s+)?)?)\\b(funded|closed|close|fund)\\s+(by|before)\\s+((this|next)\\s+)?(monday|tuesday|wednesday|thursday|friday|month[- ]end|(the\\s+)?end of (the\\s+)?(week|month))\\b" },
+        { "claim": "Tells the borrower to expect closing in a stated time", "pattern": "(^|[.!?]\\s+)expect\\s+(to close|to fund|to be funded|funding|closing)\\s+(in|within)\\s+\\d+\\s+(business\\s+)?(days?|weeks?)\\b" }
+      ],
       "source": "Global rule 4, as of 2026-10"
     }
   ]

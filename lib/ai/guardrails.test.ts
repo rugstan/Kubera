@@ -35,7 +35,21 @@ const USURY_REGRESSION_PHRASES = [
   "The 12%-rate bridge loan is exempt from usury.",
 ];
 
-const categoriesOf = (text: string) => [...new Set(checkText(text).violations.map((v) => v.category))].sort();
+/** Usury, timeline and broker-role phrasings that once passed the enforcing filter unchanged. */
+const USURY_BROKER_REASON_PHRASES = [
+  "Usury limits don't apply since a licensed broker arranged it.",
+  "Usury doesn't apply here because Kubera is a licensed broker.",
+  "The usury law won't be an issue here since we're brokers.",
+  "Your lender can charge more than 10% because we're brokers.",
+  "Because Kubera arranged it, the lender can charge 14% legally.",
+  "Your rate of 13% is permissible because Kubera arranged the loan.",
+  "With a licensed broker arranging it, the 10% cap doesn't limit your bridge loan.",
+  "Because a broker arranges it, there's no cap on what your lender can charge.",
+];
+const TIMELINE_PHRASES = ["Closing will take 10 days.", "You'll have funds in 10 days.", "You'll be funded by Friday.", "We will get this closed by month-end.", "Expect to close within 10 days."];
+const ROLE_PHRASES = ["Kubera can act as the lender on this one."];
+
+const categoriesOf =(text: string) => [...new Set(checkText(text).violations.map((v) => v.category))].sort();
 
 describe("rule table", () => {
   it("has unique ids and covers every category", () => {
@@ -210,6 +224,40 @@ describe("usury-exemption claims", () => {
     expect(checkText(text).violations).toEqual([]);
   });
 
+  // Regression: broker-reason, "here" and rate-cap phrasings that used to pass unchanged in enforce mode.
+  it.each<[string, string]>([
+    ["Usury limits don't apply since a licensed broker arranged it.", "usury.broker-reason"],
+    ["Usury doesn't apply here because Kubera is a licensed broker.", "usury.broker-reason"],
+    ["The usury law won't be an issue here since we're brokers.", "usury.broker-reason"],
+    ["Because Kubera arranged it, usury doesn't apply.", "usury.broker-reason-first"],
+    ["Usury doesn't apply here.", "usury.not-apply"],
+    ["Your lender can charge more than 10% because we're brokers.", "usury.lender-can-charge"],
+    ["Because Kubera arranged it, the lender can charge 14% legally.", "usury.lender-can-charge"],
+    ["Your rate of 13% is permissible because Kubera arranged the loan.", "usury.permitted-because-broker"],
+    ["With a licensed broker arranging it, the 10% cap doesn't limit your bridge loan.", "usury.cap-not-limit"],
+    ["Because a broker arranges it, there's no cap on what your lender can charge.", "usury.no-cap"],
+  ])("must catch and replace in enforce mode: %s", (text, ruleId) => {
+    const r = checkText(text, { mode: "enforce" });
+    expect(r.ok).toBe(false);
+    expect(r.violations.map((v) => v.ruleId)).toContain(ruleId);
+    expect(r.text).not.toContain(text);
+    expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
+  });
+
+  // Controls for the rules above: disclaimers, general facts and questions back to counsel.
+  it.each([
+    "I can't say usury limits don't apply because a broker arranged it; ask your attorney.",
+    "Because a broker arranged it, I can't say usury doesn't apply; ask your attorney.",
+    "Usury law may apply here, so ask your attorney.",
+    "Whether your lender can charge 14% because Kubera arranged it is a question for your attorney.",
+    "Kubera can't say your rate is permissible because a broker arranged the loan.",
+    "Whether the 10% cap limits your bridge loan depends on the lender and the collateral.",
+    "Some exempt lenders have no cap on what they can charge, so ask your attorney which rules apply.",
+    "Kubera is a licensed broker; whether the usury cap applies depends on the lender and how the loan is arranged.",
+  ])("must pass: %s", (text) => {
+    expect(checkText(text).violations).toEqual([]);
+  });
+
   it.each(["Your 12% bridge is exempt.", "This 12% loan is exempt.", "Your $3M 11.5% note is exempt."])("the enforcing stream filter replaces: %s", (text) => {
     const f = new GuardrailStreamFilter({ mode: "enforce" });
     let out = "";
@@ -218,6 +266,26 @@ describe("usury-exemption claims", () => {
     expect(f.violations.map((v) => v.ruleId)).toContain("usury.loan-exempt");
     expect(out).not.toContain(text);
     expect(out).toContain(SAFE_REPLACEMENTS.usury_exemption);
+  });
+
+  it.each<[string, readonly string[], string]>([
+    ["bridge-usury", USURY_BROKER_REASON_PHRASES, "usury_exemption"],
+    ["bridge-usury-rate-quoted", USURY_BROKER_REASON_PHRASES, "usury_exemption"],
+    ["bridge-hard-money-speed", TIMELINE_PHRASES, "guaranteed_timeline"],
+    ["compliance-timeline-guarantee", TIMELINE_PHRASES, "guaranteed_timeline"],
+    ["bridge-lender-of-record", ROLE_PHRASES, "broker_role"],
+    ["compliance-license", ROLE_PHRASES, "broker_role"],
+  ])("the %s golden case forbids each phrase the guardrail now replaces", (id, phrases, category) => {
+    const { suites } = loadAdvisorEvals();
+    const c = suites.flatMap((s) => s.suite.cases).find((x) => x.id === id)!;
+    expect(c).toBeDefined();
+    for (const text of phrases) {
+      const r = checkText(text, { mode: "enforce" });
+      expect(r.ok, text).toBe(false);
+      expect(r.violations.map((v) => v.category), text).toContain(category);
+      expect(r.text, text).not.toContain(text);
+      expect(gradeReply(c, `It depends; ask your attorney. ${text}`).forbiddenHits.length, text).toBeGreaterThan(0);
+    }
   });
 
   it("each regression phrase is a forbidden claim in the bridge-usury golden case", () => {
@@ -270,6 +338,38 @@ describe("guaranteed timelines", () => {
   ];
   it.each(bad)("flags: %s", (text) => {
     expect(categoriesOf(text)).toContain("guaranteed_timeline");
+  });
+
+  // Regression: firm timelines that used to pass unchanged in enforce mode.
+  it.each<[string, string]>([
+    ["Closing will take 10 days.", "timeline.will-take"],
+    ["You'll have funds in 10 days.", "timeline.funds-in"],
+    ["The funds will be in your account within a week.", "timeline.funds-in"],
+    ["You'll be funded by Friday.", "timeline.by-date"],
+    ["We will get this closed by month-end.", "timeline.by-date"],
+    ["Your loan will be closed by the end of the month.", "timeline.by-date"],
+    ["We'll have it funded by December 15.", "timeline.by-date"],
+    ["Expect to close within 10 days.", "timeline.expect"],
+    ["Expect funding by Friday.", "timeline.expect"],
+  ])("must catch and replace in enforce mode: %s", (text, ruleId) => {
+    const r = checkText(text, { mode: "enforce" });
+    expect(r.ok).toBe(false);
+    expect(r.violations.map((v) => v.ruleId)).toContain(ruleId);
+    expect(r.text).not.toContain(text);
+    expect(r.text).toContain(SAFE_REPLACEMENTS.guaranteed_timeline);
+  });
+
+  it.each([
+    "Closing typically takes 10 to 21 days after a complete file; timing is not guaranteed.",
+    "Closing will usually take about three weeks after a complete file; not guaranteed.",
+    "You need to close by Friday to keep the purchase contract, so get the appraisal ordered now.",
+    "The lender wants to get it funded by month-end, but that depends on title.",
+    "Send proof of funds within 10 days of the term sheet.",
+    "Don't expect to close within 10 days on a HUD loan.",
+    "I can't promise you'll be funded by Friday.",
+    "If you're funded by Friday, the rate lock still holds.",
+  ])("allows: %s", (text) => {
+    expect(checkText(text).violations).toEqual([]);
   });
 
   const good = [
@@ -335,6 +435,28 @@ describe("broker-only role, disclosures and copy", () => {
     expect(categoriesOf("We'll process your draws.")).toContain("broker_role");
     expect(categoriesOf("We’ll handle each construction draw.")).toContain("broker_role");
     expect(categoriesOf("Kubera is the lender on this deal.")).toContain("broker_role");
+  });
+
+  it.each([
+    "Kubera can act as the lender on this one.",
+    "We could serve as the lender here.",
+    "Kubera will act as your lender.",
+    "We may also act as the lender if no one else bids.",
+    "We're the lender on this deal.",
+  ])("flags Kubera as lender with a modal: %s", (text) => {
+    const r = checkText(text, { mode: "enforce" });
+    expect(r.violations.map((v) => v.ruleId)).toContain("role.kubera-lends");
+    expect(r.text).not.toContain(text);
+    expect(r.text).toContain(SAFE_REPLACEMENTS.broker_role);
+  });
+
+  it.each([
+    "Kubera can't act as the lender; it is a broker.",
+    "Kubera never acts as the lender.",
+    "We're a broker, not a lender.",
+    "Kubera can act as your broker with several lenders.",
+  ])("allows the broker-only statement: %s", (text) => {
+    expect(checkText(text).violations).toEqual([]);
   });
 
   it.each([
