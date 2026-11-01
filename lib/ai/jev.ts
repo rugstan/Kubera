@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import type { Benchmarks } from "@/lib/rates";
-import { BRIDGE, FALLBACK_BENCHMARKS, HUD } from "@/lib/sizing/assumptions";
+import { BRIDGE, CAP_RATES, FALLBACK_BENCHMARKS, HUD } from "@/lib/sizing/assumptions";
 import { sizeHospitality, sizeSenior } from "@/lib/sizing/programs";
 import { CONSTRUCTION } from "@/lib/sizing/programs/assumptions";
 import { sizeConstruction } from "@/lib/sizing/programs/construction";
@@ -153,6 +153,27 @@ export function careOrHotelConstructionCost(intake: Intake): number | undefined 
   return Math.max(intake.value ?? 0, intake.loanAmount / CARE_HOTEL_ASSUMED_LTC[kind]);
 }
 
+/**
+ * Cap rate for a hotel-to-care conversion's as-is value when none is entered. The
+ * property is still a hotel, so its NOI is capped at the hotel rate for its tier
+ * (the highest hotel rate when no tier is given), never below the senior rate.
+ * Capping hotel NOI at the multifamily rate would overstate the value by about half.
+ */
+export function conversionCapRate(intake: Intake): number {
+  const hotel = intake.franchiseTier ? CAP_RATES.hotel[intake.franchiseTier] : Math.max(...Object.values(CAP_RATES.hotel));
+  return Math.max(hotel, CAP_RATES.senior);
+}
+
+/**
+ * The as-is value a hotel-to-care conversion sizes on: the entered value, or NOI at
+ * the conversion cap rate when it is blank. Undefined when neither is available.
+ */
+export function conversionValue(intake: Intake): number | undefined {
+  if (verticalFor(intake) !== "HOTEL_TO_CARE_CONVERSION") return undefined;
+  if (intake.value) return intake.value;
+  return intake.noi > 0 ? intake.noi / conversionCapRate(intake) : undefined;
+}
+
 function hardMoneyPropertyType(intake: Intake): HardMoneyPropertyType {
   if (intake.assetType === "RESIDENTIAL_2_4") return "RESIDENTIAL_1_4";
   if (intake.assetType === "MULTIFAMILY" || intake.assetType === "MIXED_USE") return "MULTIFAMILY";
@@ -170,6 +191,10 @@ export function intakeAssumptions(intake: Intake): string[] {
   if (careHotel && !intake.construction)
     out.push(
       `No construction budget: ${intake.value ? "the entered value is read as land cost, and " : ""}total cost is estimated as the request at ${Math.round(CARE_HOTEL_ASSUMED_LTC[careHotel] * 100)}% LTC; the desk needs the budget.`,
+    );
+  if (verticalFor(intake) === "HOTEL_TO_CARE_CONVERSION" && !intake.value)
+    out.push(
+      `No purchase price or value: the as-is value is estimated from NOI at a ${(conversionCapRate(intake) * 100).toFixed(2)}% hotel cap rate and total cost as that value plus the conversion budget; the desk needs the purchase price and conversion budget.`,
     );
   if (intake.assetType === "RESIDENTIAL_2_4" && !intake.rental && intake.transaction !== "HARD_MONEY" && !constructionRouted(intake))
     out.push("No rent detail: NOI stands in for rent less taxes, insurance and HOA.");
@@ -298,7 +323,10 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
   const isConversion = vertical === "HOTEL_TO_CARE_CONVERSION";
   const construction = isConversion || intake.transaction === "CONVERSION";
   const smallResidential = intake.assetType === "RESIDENTIAL_2_4";
-  return sizeMultifamilyPlus(
+  // A blank conversion value is estimated at the hotel cap rate (see conversionValue), so
+  // leaving it blank never sizes better than entering it.
+  const value = isConversion ? conversionValue(intake) : intake.value;
+  const result = sizeMultifamilyPlus(
     {
       assetType: isConversion || smallResidential ? "MULTIFAMILY" : intake.assetType === "MIXED_USE" ? "MIXED_USE" : intake.assetType === "COMMERCIAL" ? "COMMERCIAL" : "MULTIFAMILY",
       // A 2–4 unit property never sizes on the 5+ unit boxes, whatever the unit count says.
@@ -306,8 +334,8 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
       sqft: 0,
       loanAmount: intake.loanAmount,
       noi: intake.noi,
-      value: intake.value,
-      totalCost: construction && intake.value ? intake.value + (intake.pipBudget ?? 0) : undefined,
+      value,
+      totalCost: construction && value ? value + (intake.pipBudget ?? 0) : undefined,
       transaction: construction ? "CONSTRUCTION" : intake.transaction === "PURCHASE" ? "PURCHASE" : "REFINANCE",
       affordable: false,
       green: intake.green,
@@ -320,6 +348,7 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
     },
     rates,
   );
+  return isConversion && !intake.value ? { ...result, valueEstimated: true } : result;
 }
 
 /** Lenders Kubera sends each new box to, in priority order (the static table covers the original programs). */

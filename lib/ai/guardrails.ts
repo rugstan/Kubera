@@ -51,6 +51,11 @@ export type GuardrailRule = {
    * when it is about this borrower's loan (usury) rather than a general fact.
    */
   requires?: RegExp;
+  /**
+   * A unit that also matches this is a hedged general statement, not a promise
+   * ("we typically close in 10 days after a complete file; not guaranteed").
+   */
+  unlessUnit?: RegExp;
   /** When false, a negator never clears a hit (the phrase is a problem however it is hedged). Default true. */
   negatable?: boolean;
   /**
@@ -78,6 +83,15 @@ const LOAN_REF = new RegExp(String.raw`\b(?:your|this|that|the)\s+${LOAN_NOUN}\b
 /** Stricter: only "your ..." or "this/that <loan noun>" (the general "the exemption applies to loans ..." is a fact). */
 const BORROWER_LOAN_REF = new RegExp(String.raw`\byou(?:r)?\b|\b(?:this|that)\s+(?:\S+\s+){0,3}?${LOAN_NOUN}\b`, "i");
 
+/** Kubera, or "our team / staff / desk ..." speaking for it. */
+const KUBERA_SUBJECT = String.raw`(?:we|kubera(?: commercial)?|our (?:team|staff|desk|advisors?|brokers?|office|firm|people))(?:'ll|’ll)?`;
+/** Up to two modifier tokens before a noun ("the construction draws", "your monthly payments"). */
+const MODIFIERS = String.raw`(?:[\w'’$%.-]+\s+){0,2}`;
+/** A count of days, weeks or hours ("14 days", "two weeks", "10–21 days"). */
+const DURATION = String.raw`(?:about |around |roughly |just |only |under |less than |as (?:little|few) as )?(?:\d+(?:\s*(?:-|–|to)\s*\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|forty-five|sixty|ninety|a few|a couple of|a)\s+(?:business |calendar |working )?(?:days?|weeks?|hours?)\b`;
+/** Hedges that make a timeline a general, non-binding statement. */
+const TIMELINE_HEDGE = /\b(?:typically|typical|usually|often|generally|many|on average|in many cases|not guaranteed|isn't guaranteed|isn’t guaranteed|is not guaranteed|no guarantee|never guaranteed)\b/i;
+
 const R = (id: string, category: GuardrailCategory, description: string, pattern: RegExp, extra: Partial<GuardrailRule> = {}): GuardrailRule => ({ id, category, description, pattern, ...extra });
 
 export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
@@ -85,7 +99,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   R("commitment.you-are-approved", "commitment", "Tells the borrower they are approved", /\byou(?:'re|’re| are| have been|'ve been|’ve been| will be| were)\s+(?:now |already |officially |fully |definitely |all set and )?(?:pre-?)?approved\b/i),
   R("commitment.loan-approved", "commitment", "Says the loan or application is approved or funded", /\b(?:your|the|this|that) (?:loan|application|file|deal|request|financing)\s+(?:is|has been|was|will be|has now been)\s+(?:now |already |officially |fully |pre-?)?(?:approved|funded|committed|cleared)\b/i),
   R("commitment.will-be-approved", "commitment", "Predicts approval as certain", new RegExp(`\\b${YOU}\\s+(?:will|are going to|is going to|are certain to|is certain to|definitely will|will definitely|will certainly)\\s+(?:definitely |certainly |surely )?(?:be |get |receive )?(?:approved|funded|financed)\\b`, "i")),
-  R("commitment.you-qualify", "commitment", "Tells the borrower they qualify", /\byou(?:'re|’re| are)\s+(?:definitely |already |certainly |clearly )?(?:pre-?)?qualified\s+(?:for|to)\b|\byou\s+(?:(?:will|definitely|certainly|clearly)\s+)+qualify\b|\byou\s+(?:now\s+|already\s+|also\s+|easily\s+)?qualify\s+for\b/i),
+  R("commitment.you-qualify", "commitment", "Tells the borrower they qualify", /\byou(?:'re|’re| are)\s+(?:definitely |already |certainly |clearly )?(?:pre-?)?qualified\s+(?:for|to)\b|\byou(?:'ve|’ve| have| has)\s+(?:now\s+|already\s+|officially\s+|definitely\s+)?(?:been\s+)?(?:now\s+|already\s+|officially\s+|definitely\s+)?(?:pre-?)?qualified\s+(?:for|to)\b|\byou\s+(?:(?:will|definitely|certainly|clearly)\s+)+qualify\b|\byou\s+(?:now\s+|already\s+|also\s+|easily\s+)?qualify\s+for\b/i),
   R("commitment.we-guarantee", "commitment", "Guarantees an outcome", /\b(?:we|kubera|i)\s+(?:can |will |do |hereby )?(?:guarantee|promise|assure|ensure|commit to)\b/i),
   R("commitment.guaranteed-outcome", "commitment", "Guaranteed approval, funding or financing", /\b(?:guaranteed|assured|100%|certain) (?:approval|funding|financing|closing|loan|rate|terms)\b|\b(?:approval|funding|financing|closing)\s+(?:is|are|will be)\s+(?:guaranteed|assured|certain)\b/i),
   R("commitment.rate-lock", "commitment", "Says a rate is locked or guaranteed", /\byour (?:rate|pricing|terms)\s+(?:is|are|has been|have been|will be)\s+(?:locked|guaranteed|fixed|set)\b|\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:lock|secure)\s+(?:in\s+)?(?:a |your |the )?(?:rate|pricing|terms)\b/i),
@@ -166,13 +180,44 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "States a firm closing or funding time",
     /\b(?:will|is going to|are going to|'ll|’ll|guaranteed to|definitely will|will definitely|will certainly|is sure to|are sure to)\s+(?:definitely |certainly |surely |absolutely )?(?:(?:close|fund)(?:\s+(?:your|the|this|that)\s+(?:\S+\s+){0,2}?(?:loan|deal|financing|bridge|refinance|transaction|purchase|acquisition))?|be funded|be closed|be done|be completed|be finished|be in your account)\s+(?:in|within|by|before|on)\s+(?:\d|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|sixty|ninety|a (?:week|month|day)|next|the end of|end of|[A-Z][a-z]+ \d)/i,
   ),
+  // Present-tense or "expect" forms: "Your loan closes in 14 days", "Funding takes 5 days",
+  // "You can expect funding in 7 days", "We close loans in 10 days".
+  R(
+    "timeline.closes-in",
+    "guaranteed_timeline",
+    "States a closing or funding time as a fact",
+    new RegExp(
+      String.raw`\b(?:(?:your|the|this) (?:loan|deal|financing|bridge|refinance)|we|kubera|funding|closing|you(?:'ll|’ll|\s+(?:can|should|will|could|may))?)\s+(?:(?:closes?|funds?)(?:\s+(?:(?:your|the|most|all|these|our|such)\s+)?(?:[\w-]+\s+)?(?:loans?|deals?|financing|bridges?|it|them))?|takes|(?:will |can )?expects?\s+(?:to close|to fund|to be funded|funding|closing|to have (?:funding|the funds))|(?:is|are) (?:done|complete|completed|finished))\s+(?:(?:in|within)\s+)?${DURATION}`,
+      "i",
+    ),
+    { unlessUnit: TIMELINE_HEDGE },
+  ),
   R("timeline.closing-certain", "guaranteed_timeline", "Says closing is certain or fixed", /\b(?:closing|close|funding)(?: date| timeline)?\s+(?:is|will be)\s+(?:guaranteed|assured|certain|locked in|fixed|firm)\b/i),
   R("timeline.get-you-closed", "guaranteed_timeline", "Promises a closing date", /\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:definitely |certainly )?(?:get|have)\s+(?:you|your (?:loan|deal|financing))\s+(?:closed|funded)\s+(?:in|within|by|before)\b/i),
 
   // --- broker-only role (Global rule 1) --------------------------------------------------
   R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:are|is|act as|serve as|be|will be|will act as|would be)\s+(?:the |your |a )?(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
-  R("role.holds-funds", "broker_role", "Says Kubera holds, receives or disburses money", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+(?:your |the |all )?(?:deposit|funds|money|earnest|payment|escrow|proceeds|draws?|retainer)\b|\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|kubera(?: commercial)?)\b|\bto (?:our|kubera's|kubera’s) (?:trust|escrow|client|bank) account\b/i),
-  R("role.draws", "broker_role", "Says Kubera manages or processes construction draws", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee)s?\s+(?:your |the |all |each )?(?:construction )?draws?\b|\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|kubera)\b/i),
+  R(
+    "role.holds-funds",
+    "broker_role",
+    "Says Kubera holds, receives or disburses money",
+    new RegExp(
+      // "proof of funds" is a document, and "payment history / terms" are information, not money.
+      String.raw`\b${KUBERA_SUBJECT}\s+(?:will |can |would |also )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+${MODIFIERS}(?<!\bof\s)(?:deposits?|funds|money|earnest|payments?|escrow|proceeds|draws?|retainers?)\b(?!\s+(?:history|terms?|schedules?|information|info|details|records?|options|structure|calculations?|estimates?|amounts?|letters?|statements?))|` +
+        String.raw`\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|kubera(?: commercial)?)\b|\bto (?:our|kubera's|kubera’s) (?:trust|escrow|client|bank) account\b`,
+      "i",
+    ),
+  ),
+  R(
+    "role.draws",
+    "broker_role",
+    "Says Kubera manages or processes construction draws",
+    new RegExp(
+      String.raw`\b${KUBERA_SUBJECT}\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee|disburse|release|order|run|schedule|coordinate)(?:s|es)?\s+${MODIFIERS}(?:draws?|draw (?:process|inspections?|requests?|schedules?|funding|disbursements?))\b|` +
+        String.raw`\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|kubera)\b`,
+      "i",
+    ),
+  ),
 
   // --- disclosure waiver ----------------------------------------------------------------------
   R("disclosure.mlds-not-needed", "disclosure_waiver", "Says the MLDS (RE 882) is not required", /\b(?:mlds|re ?882|mortgage loan disclosure statement)\b[^.]{0,50}\b(?:isn't|is not|isn’t|not|won't be|won’t be|no longer|never)\s+(?:be )?(?:required|needed|necessary)\b|\b(?:no|skip the|without an?|(?:don't|do not|don’t|doesn't|does not|doesn’t|won't|won’t|will not|wouldn't|wouldn’t|would not|shouldn't|shouldn’t)\s+(?:need|require)(?:\s+to\s+(?:sign|get|receive|provide))?\s+(?:an?|the))\s+(?:mlds|re ?882|mortgage loan disclosure statement)\b/i, { negatable: false }),
@@ -235,6 +280,7 @@ export function checkUnit(unit: string): { rule: GuardrailRule; match: string }[
   const hits: { rule: GuardrailRule; match: string }[] = [];
   for (const rule of GUARDRAIL_RULES) {
     if (rule.requires && !rule.requires.test(unit)) continue;
+    if (rule.unlessUnit?.test(unit)) continue;
     const re = new RegExp(rule.pattern.source, rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`);
     for (let m = re.exec(unit); m; m = re.exec(unit)) {
       if (m[0].length === 0) {

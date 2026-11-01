@@ -193,3 +193,38 @@ describe("Jev schema", () => {
     expect(ok.hardMoney).toMatchObject({ strategy: "FIX_AND_FLIP", purpose: "PURCHASE", rehabBudget: 0, termMonths: 12, completedProjects: 0 });
   });
 });
+
+describe("Jev: hotel-to-care conversions", () => {
+  const TIER_RANK = { TIER_1_INSTITUTIONAL_HOT: 3, TIER_2_QUALIFIED_MIDMARKET: 2, TIER_3_NURTURE: 1, UNQUALIFIED: 0 } as const;
+  const base = { assetType: "HOTEL_TO_SENIOR_CONVERSION", transaction: "CONVERSION", loanAmount: 10_000_000, noi: 1_000_000, unitCount: 100, timelineDays: 90 } as const;
+
+  // Regression: a blank value used to be estimated at the multifamily cap rate (5.75%), which
+  // sized a bigger loan and a hotter tier than entering the real value.
+  it("never sizes a blank value better than an entered one", () => {
+    const blank = decideWithRules(intakeSchema.parse(base), rates);
+    const entered = decideWithRules(intakeSchema.parse({ ...base, value: 11_000_000 }), rates);
+    expect(TIER_RANK[blank.decision.leadUrgencyTier]).toBeLessThanOrEqual(TIER_RANK[entered.decision.leadUrgencyTier]);
+    expect(blank.primaryQuote?.loanAmount ?? 0).toBeLessThanOrEqual(entered.primaryQuote?.loanAmount ?? 0);
+    expect(blank.decision.requiresImmediateBrokerCall).toBe(false);
+    expect(blank.sizing.valueEstimated).toBe(true);
+    for (const tier of ["PREMIUM_FLAG", "ECONOMY_FLAG", "BOUTIQUE_INDEPENDENT"] as const) {
+      const b = decideWithRules(intakeSchema.parse({ ...base, franchiseTier: tier }), rates);
+      const e = decideWithRules(intakeSchema.parse({ ...base, franchiseTier: tier, value: 11_000_000 }), rates);
+      expect(TIER_RANK[b.decision.leadUrgencyTier]).toBeLessThanOrEqual(TIER_RANK[e.decision.leadUrgencyTier]);
+      expect(b.primaryQuote?.loanAmount ?? 0).toBeLessThanOrEqual(e.primaryQuote?.loanAmount ?? 0);
+    }
+  });
+
+  it("adds the conversion budget to the estimated value and says the desk needs the price and budget", () => {
+    const blank = decideWithRules(intakeSchema.parse({ ...base, pipBudget: 2_000_000 }), rates);
+    // $1M NOI at the 10% economy-flag hotel cap rate (no tier given) is a $10M as-is value;
+    // plus the $2M budget that is $12M of cost, and 80% LTC sizes $9.6M.
+    expect(blank.sizing.value).toBeCloseTo(10_000_000, 0);
+    expect(blank.sizing.quotes.find((q) => q.id === "WHITE_LABEL_CRE_BRIDGE")?.loanAmount).toBeCloseTo(9_600_000, 0);
+    const line = intakeAssumptions(intakeSchema.parse(base)).find((l) => /No purchase price or value/.test(l));
+    expect(line).toMatch(/10\.00% hotel cap rate/);
+    expect(line).toMatch(/purchase price and conversion budget/);
+    expect(intakeAssumptions(intakeSchema.parse({ ...base, value: 11_000_000 })).some((l) => /No purchase price/.test(l))).toBe(false);
+    expect(blank.rationale.some((l) => /No purchase price or value/.test(l))).toBe(true);
+  });
+});

@@ -319,6 +319,23 @@ export function evaluateModification(input: ModificationFacts, loan: LoanContext
 
   if (!hasRealPropertyLien(collateral)) {
     flags.push({ code: "usury_exemption_unavailable", reason: "No real-property lien: the §1916.1 broker exemption is unavailable for this modification.", authority: "Civ. Code §1916.1" });
+    // Mirrors evaluateUsury: a non-exempt lender above the art. XV cap with no
+    // real-property lien is held for counsel whoever arranged the change. No
+    // broker-of-record file can cure it, because the §1916.1 exemption needs a
+    // real-property lien.
+    if (gateApplies) {
+      flags.push({
+        code: "held_for_counsel",
+        reason: `Non-exempt lender: ${rateLabel(mod.noteRatePct, effective)} exceeds the ${capPct}% cap with no real-property lien.`,
+        authority: "Cal. Const. art. XV",
+      });
+      const lenderNoticeRequired = mod.arrangedBy === "lender_or_servicer_only" && !mod.lenderNoticeSentAt;
+      if (mod.arrangedBy === "lender_or_servicer_only") {
+        flags.push({ code: "no_exemption_representation", reason: `${mod.kind} negotiated only by the lender or servicer; Kubera makes no exemption representation.`, authority: "Civ. Code §1916.1 (SB 1146)" });
+        if (lenderNoticeRequired) flags.push({ code: "lender_written_notice_required", reason: "Send the lender written notice that Kubera did not arrange this change and makes no exemption representation." });
+      }
+      return { status: "held_for_counsel", ...rates, brokerArrangementDocumented: false, lenderNoticeRequired, missing: [], blocking: true, flags };
+    }
   }
 
   if (mod.arrangedBy === "lender_or_servicer_only") {
@@ -444,7 +461,11 @@ export function evaluateDealCompliance(input: DealComplianceInput): DealComplian
     closingReasons.push(`${pendingModifications.length} recorded modification(s) cannot be evaluated until the loan's broker-of-record file is recorded.`);
   }
   if (usury?.blocking) closingReasons.push(...usury.reasons, ...usury.missing.map((m) => `Missing: ${BROKER_ELEMENT_LABELS[m]}`));
-  for (const m of modifications) if (m.blocking) closingReasons.push(`A ${m.status === "held_for_counsel" ? "pre-SB 1146" : "broker-arranged"} modification is not cleared.`);
+  for (const m of modifications) {
+    if (!m.blocking) continue;
+    const held = m.flags.find((f) => f.code === "held_for_counsel");
+    closingReasons.push(held ? `A modification is held for counsel: ${held.reason}` : "A broker-arranged modification is not cleared.");
+  }
 
   return {
     mlds,

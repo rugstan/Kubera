@@ -68,6 +68,11 @@ describe("commitment language", () => {
     "We'll lock in your rate today.",
     "This lender will definitely fund the deal.",
     "We will get you approved by a lender this month.",
+    "You have qualified for HUD 232.",
+    "You've qualified for HUD 232.",
+    "You’ve qualified for the 504 structure.",
+    "You've been pre-qualified for $4M.",
+    "You have now been qualified for the bridge.",
   ];
   it.each(bad)("flags: %s", (text) => {
     expect(categoriesOf(text)).toContain("commitment");
@@ -82,6 +87,9 @@ describe("commitment language", () => {
     "Whether you qualify for HUD 232 depends on census, DSCR and licensing.",
     "A pre-approval letter is not something Kubera issues.",
     "Lenders decide approval after underwriting, appraisal and credit review.",
+    "If you have qualified for the program after underwriting, the lender issues a commitment.",
+    "Whether you've qualified for HUD 232 is the lender's decision.",
+    "You haven't qualified for anything yet; lenders decide after underwriting.",
   ];
   it.each(good)("allows: %s", (text) => {
     expect(checkText(text).violations).toEqual([]);
@@ -208,6 +216,14 @@ describe("guaranteed timelines", () => {
     "We will close your loan in 14 days.",
     "We'll fund your bridge within two weeks.",
     "We will close the SBA 504 loan by the end of the month.",
+    "Your loan closes in 14 days.",
+    "Funding takes 5 days.",
+    "You can expect funding in 7 days.",
+    "We close loans in 10 days.",
+    "Closing takes about 30 days.",
+    "Your deal funds within two weeks.",
+    "We fund bridge loans in 5 business days.",
+    "You should expect to close within 3 weeks.",
   ];
   it.each(bad)("flags: %s", (text) => {
     expect(categoriesOf(text)).toContain("guaranteed_timeline");
@@ -221,6 +237,12 @@ describe("guaranteed timelines", () => {
     "Typical timeline (not guaranteed): 30 to 45 days.",
     "We can't promise we will close your loan in 14 days.",
     "Lenders often close loans like yours in about three weeks after a complete file; timing is not guaranteed.",
+    "We typically close loans in 10–21 days after a complete file; timing is not guaranteed.",
+    "Many loans close in 10–21 days after a complete file, and funding takes about a week after that; not guaranteed.",
+    "We can't promise your loan closes in 14 days.",
+    "If your loan closes in 14 days, the rate lock covers it.",
+    "Funding usually takes 5 to 10 days after the lender's approval.",
+    "No one can say funding takes 5 days.",
   ];
   it.each(good)("allows: %s", (text) => {
     expect(checkText(text).violations).toEqual([]);
@@ -270,6 +292,36 @@ describe("broker-only role, disclosures and copy", () => {
     expect(categoriesOf("We'll process your draws.")).toContain("broker_role");
     expect(categoriesOf("We’ll handle each construction draw.")).toContain("broker_role");
     expect(categoriesOf("Kubera is the lender on this deal.")).toContain("broker_role");
+  });
+
+  it.each([
+    "Kubera will disburse the construction draws.",
+    "Kubera releases each construction draw after inspection.",
+    "Kubera disburses loan proceeds at closing.",
+    "We'll collect your monthly payments.",
+    "We will order draw inspections for you.",
+    "Our team runs the draw process.",
+    "We schedule the draw inspections.",
+    "Our team will coordinate your draw requests.",
+    "We collect the deposits.",
+    "Kubera will release the loan proceeds.",
+  ])("flags the broker-role violation: %s", (text) => {
+    expect(categoriesOf(text)).toContain("broker_role");
+    const r = checkText(text);
+    expect(r.text).not.toContain(text);
+    expect(r.text).toContain(SAFE_REPLACEMENTS.broker_role);
+  });
+
+  it.each([
+    "Kubera does not disburse draws.",
+    "Kubera never releases construction draws; the lender does.",
+    "We don't collect your monthly payments; the lender's servicer does.",
+    "Our team does not run the draw process.",
+    "We'll collect proof of funds and bank statements for the lender.",
+    "We'll review your payment history with the lender.",
+    "The lender disburses the construction draws after its own inspection.",
+  ])("allows the broker-only or negated statement: %s", (text) => {
+    expect(checkText(text).violations).toEqual([]);
   });
 
   it("allows the broker-only statements", () => {

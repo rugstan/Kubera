@@ -351,6 +351,45 @@ describe("gate H: modifications (SB 1146)", () => {
   it("flags usury_exemption_unavailable for UCC-only collateral", () => {
     expect(codes(evaluateModification(mod(), { ...loan, collateral: ucc }).flags)).toContain("usury_exemption_unavailable");
   });
+
+  it("holds an above-cap modification on UCC-only collateral from a non-exempt lender, whoever arranged it", () => {
+    const uccLoan = { ...loan, collateral: ucc };
+    for (const over of [
+      { arrangedBy: "kubera" as const },
+      { arrangedBy: "other_licensed_broker" as const, otherBroker: { name: "Bay Capital Brokers", dreLicense: "01987654" }, elements: undefined },
+      { arrangedBy: "lender_or_servicer_only" as const, elements: undefined },
+    ]) {
+      const r = evaluateModification(mod({ noteRatePct: 15, ...over }), uccLoan);
+      expect(r.status).toBe("held_for_counsel");
+      expect(r.blocking).toBe(true);
+      expect(r.brokerArrangementDocumented).toBe(false);
+      const held = r.flags.find((f) => f.code === "held_for_counsel");
+      expect(held?.reason).toBe("Non-exempt lender: Note rate 15% exceeds the 10% cap with no real-property lien.");
+      expect(held?.authority).toBe("Cal. Const. art. XV");
+    }
+  });
+
+  it("does not hold a within-cap modification on UCC-only collateral", () => {
+    const r = evaluateModification(mod({ noteRatePct: 9 }), { ...loan, collateral: ucc });
+    expect(r.status).toBe("documented");
+    expect(r.blocking).toBe(false);
+    expect(codes(r.flags)).toEqual(["usury_exemption_unavailable"]);
+    // An exempt lender above the cap is not held either.
+    expect(evaluateModification(mod({ noteRatePct: 15 }), { ...loan, lender: bank, collateral: ucc }).status).toBe("documented");
+  });
+
+  it("blocks closing when a Kubera-arranged extension takes a within-cap UCC-only loan above the cap", () => {
+    const r = evaluateDealCompliance({
+      mlds: { facts: { kuberaRole: "broker", collateral: ucc }, status: null },
+      usury: usury({ collateral: ucc, noteRatePct: 9 }),
+      modifications: [mod({ noteRatePct: 15 })],
+      now: new Date("2026-11-20T18:00:00Z"),
+    });
+    expect(r.usury?.status).toBe("within_cap");
+    expect(r.modifications[0]).toMatchObject({ status: "held_for_counsel", blocking: true });
+    expect(r.heldForCounsel).toBe(true);
+    expect(r.gates.closing.allowed).toBe(false);
+  });
 });
 
 describe("whole-deal evaluation", () => {
