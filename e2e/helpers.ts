@@ -3,10 +3,13 @@ import type { Page } from "@playwright/test";
 /** Navigates and waits until the page has hydrated so click and key handlers are attached. */
 export async function gotoHydrated(page: Page, url: string): Promise<void> {
   await page.goto(url);
+  // Redirecting pages (e.g. the staff sign-in redirect) swap documents mid-load;
+  // wait for the final document so the hydration check never sees a null body.
+  await page.waitForLoadState("load");
   await page.waitForLoadState("networkidle");
   // "networkidle" can fire before React finishes hydrating on a loaded machine;
   // React tags each hydrated host node with an internal __reactFiber$ key.
-  await page.waitForFunction(() => Object.keys(document.body).some((k) => k.startsWith("__reactFiber$")));
+  await page.waitForFunction(() => !!document.body && Object.keys(document.body).some((k) => k.startsWith("__reactFiber$")));
 }
 
 /** Captures JSON bodies POSTed to an API path while answering with a canned response. */

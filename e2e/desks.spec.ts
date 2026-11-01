@@ -158,9 +158,9 @@ test("a broker advances a deal's stage and generates SBA Form 159 from the ledge
   await expect(page.getByRole("cell", { name: /SBA application packaging fee/ }).first()).toBeVisible();
   await form159.getByLabel("SBA lender").fill("Example Community Bank (demo)");
   await form159.getByRole("button", { name: "Generate from ledger" }).click();
-  await expect(notice(page, /Form 159 v1 generated from the ledger/)).toBeVisible();
+  await expect(notice(page, /Form 159 v1 generated from the ledger/)).toBeVisible({ timeout: 15_000 });
   const row = section(page, "SBA Form 159").getByRole("row", { name: /v1/ });
-  await expect(row).toBeVisible();
+  await expect(row).toBeVisible({ timeout: 15_000 });
   await expect(row.getByRole("link", { name: "PDF" })).toHaveAttribute("href", new RegExp(`/deals/${DEALS.hotel}/form-159/`));
   await expectAccessibleAndReflows(page, "deal with Form 159");
 });

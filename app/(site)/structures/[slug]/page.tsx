@@ -66,7 +66,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
 
       {s.stack && (
         <Section id="stack" title={s.stack.title} lead={`Illustrative amounts on ${formatUsd(s.amountUsd)} of total cost.`}>
-          <div role="region" aria-label={s.stack.title} tabIndex={0} className="bento overflow-x-auto">
+          <div role="region" aria-label={`${s.stack.title} (scrollable table)`} tabIndex={0} className="bento overflow-x-auto">
             <table className="w-full min-w-[520px] border-collapse text-left text-[15px]">
               <caption className="sr-only">{s.stack.title}</caption>
               <thead>
