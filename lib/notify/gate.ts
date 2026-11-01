@@ -27,7 +27,7 @@ export function isPreApproved(template: TemplateDef, extra: ReadonlySet<string> 
 
 export type Authorization =
   | { ok: true; via: "pre_approved" | "broker_approval"; approvalId?: string }
-  | { ok: false; status: "pending_approval" | "rejected" | "expired"; approvalId?: string };
+  | { ok: false; status: "pending_approval" | "rejected" | "expired"; approvalId?: string; reason?: string };
 
 export type AuthorizeInput = {
   template: TemplateDef;
@@ -46,7 +46,8 @@ export async function authorizeSend(input: AuthorizeInput): Promise<Authorizatio
   if (isPreApproved(input.template, input.preApproved)) return { ok: true, via: "pre_approved" };
 
   const decision = await input.gate.request({
-    kind: "email",
+    // Brokers see texts labelled as texts in /approvals.
+    kind: input.channel === "sms" ? "sms" : "email",
     idempotencyKey: input.idempotencyKey,
     summary: input.summary,
     templateId: `${input.template.id}@${input.template.version}`,
@@ -54,7 +55,7 @@ export async function authorizeSend(input: AuthorizeInput): Promise<Authorizatio
     requestedBy: input.requestedBy,
   });
   if (isApproved(decision)) return { ok: true, via: "broker_approval", approvalId: decision.approvalId };
-  if (decision.status === "rejected") return { ok: false, status: "rejected", approvalId: decision.approvalId };
+  if (decision.status === "rejected") return { ok: false, status: "rejected", approvalId: decision.approvalId, ...(decision.reason ? { reason: decision.reason } : {}) };
   if (decision.status === "expired") return { ok: false, status: "expired", approvalId: decision.approvalId };
   return { ok: false, status: "pending_approval", approvalId: decision.approvalId };
 }

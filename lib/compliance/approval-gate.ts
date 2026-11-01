@@ -9,7 +9,7 @@
  * approving broker must re-authenticate (lib/agents/core/reauth.ts) before
  * they are approved or sent.
  */
-export type OutboundActionKind = "esign_send" | "crm_update" | "lender_notice" | "email" | "lender_submission" | "mlds_send" | "form159_send" | "fee_quote";
+export type OutboundActionKind = "esign_send" | "crm_update" | "lender_notice" | "email" | "sms" | "lender_submission" | "mlds_send" | "form159_send" | "fee_quote";
 
 export type OutboundAction = {
   kind: OutboundActionKind;

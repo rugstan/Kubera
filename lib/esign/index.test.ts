@@ -13,10 +13,14 @@ describe("e-sign provider selection", () => {
     warn.mockRestore();
   });
 
-  it("prefers Zoho Sign, falls back to BoldSign", () => {
+  it("prefers Zoho Sign and uses BoldSign only when ESIGN_PROVIDER=boldsign", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(esignProviderFromEnv({ NODE_ENV: "test", ...zoho, BOLDSIGN_API_KEY: "k" })?.name).toBe("zoho_sign");
-    expect(esignProviderFromEnv({ NODE_ENV: "test", BOLDSIGN_API_KEY: "k" })?.name).toBe("boldsign");
+    // A BoldSign key alone does not select it: an MLDS sent there would need its webhook set up first.
+    expect(esignProviderFromEnv({ NODE_ENV: "test", BOLDSIGN_API_KEY: "k" })).toBeNull();
+    expect(esignProviderFromEnv({ NODE_ENV: "test", BOLDSIGN_API_KEY: "k", ESIGN_PROVIDER: "boldsign" })?.name).toBe("boldsign");
     expect(esignProviderFromEnv({ NODE_ENV: "test", ...zoho, BOLDSIGN_API_KEY: "k", ESIGN_PROVIDER: "boldsign" })?.name).toBe("boldsign");
+    warn.mockRestore();
   });
 
   it("resolves the MLDS template id per provider", () => {

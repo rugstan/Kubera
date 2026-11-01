@@ -2,6 +2,8 @@ import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { consentState } from "../consent";
 import { DAYTIME, makeHarness, type Harness } from "../testing";
+import type { LeadRecord } from "../leads";
+import { alertTier1Lead } from "../tier1";
 import { classifyInbound, parseKeyword } from "./keywords";
 import { verifyTelnyxSignature } from "./signature";
 import { handleTelnyxWebhook, type TelnyxWebhookDeps } from "./webhook";
@@ -336,6 +338,41 @@ describe("other inbound texts and delivery status", () => {
       },
     };
     await handleTelnyxWebhook(signed(body), deps(h));
-    expect(h.store.notifications[0]).toMatchObject({ status: "failed", error: "Unreachable destination handset" });
+    expect(h.store.notifications[0]).toMatchObject({ status: "undelivered", error: "Unreachable destination handset" });
+    expect(h.store.sms[0]).toMatchObject({ status: "undelivered", error: "Unreachable destination handset" });
+  });
+
+  it("never re-texts a number after a delivery_failed receipt, even when the Tier-1 sweep retries the same key", async () => {
+    const h = makeHarness();
+    const lead: LeadRecord = {
+      id: "3f9a12bc-0000-4000-8000-000000000001",
+      createdAt: new Date(NOW.getTime() - 4_000).toISOString(),
+      tier: "TIER_1_INSTITUTIONAL_HOT",
+      loanAmount: 12_000_000,
+      program: "HUD_232_223F",
+      assetType: "ASSISTED_LIVING",
+      contact: { firstName: "Pat", email: "pat@example.com", phone: "415-555-0100", consent: true },
+    };
+    const staff = { phones: ["+13105550111"], emails: [] };
+    const first = await alertTier1Lead(lead, h.notifier, staff, () => NOW);
+    expect(first.sms.map((o) => o.status)).toEqual(["sent"]);
+    expect(h.sms.sent).toHaveLength(1);
+
+    // The staff number is a landline: Telnyx reports the text undelivered.
+    const body = {
+      data: {
+        event_type: "message.finalized",
+        payload: { id: first.sms[0]?.providerMessageId, to: [{ phone_number: "+13105550111", status: "delivery_failed" }], errors: [{ code: "40300", detail: "Landline or unreachable carrier" }] },
+      },
+    };
+    await handleTelnyxWebhook(signed(body), deps(h));
+    expect(h.store.notifications.find((n) => n.channel === "sms")?.status).toBe("undelivered");
+
+    // The every-minute sweep calls alertTier1Lead again with the same keys.
+    for (let i = 0; i < 3; i++) {
+      const again = await alertTier1Lead(lead, h.notifier, staff, () => NOW);
+      expect(again.sms[0]).toMatchObject({ status: "duplicate", previousStatus: "undelivered" });
+    }
+    expect(h.sms.sent).toHaveLength(1);
   });
 });

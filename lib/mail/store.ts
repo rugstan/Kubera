@@ -87,7 +87,8 @@ export type ReviewResolution = {
 };
 
 export interface MailStore {
-  find(mailbox: InboundMailbox, providerMessageId: string): Promise<{ id: string; status: string } | null>;
+  /** `attempts`: failed processing attempts recorded so far (0 for a stored message). */
+  find(mailbox: InboundMailbox, providerMessageId: string): Promise<{ id: string; status: string; attempts?: number } | null>;
   /** Which of `ids` already have a row (any status, failed included). */
   knownIds(mailbox: InboundMailbox, ids: string[]): Promise<Set<string>>;
   /** Newest received_at of a successfully stored message (polling cursor; failed rows are retried separately). */
@@ -209,7 +210,7 @@ export class MemoryMailStore implements MailStore {
 
   async find(mailbox: InboundMailbox, providerMessageId: string) {
     const r = this.rows.find((x) => x.mailbox === mailbox && x.providerMessageId === providerMessageId);
-    return r ? { id: r.id, status: this.status(r) } : null;
+    return r ? { id: r.id, status: this.status(r), attempts: r.attempts } : null;
   }
 
   async knownIds(mailbox: InboundMailbox, ids: string[]) {
@@ -303,9 +304,9 @@ export function supabaseMailStore(db: SupabaseClient): MailStore {
   const table = () => db.from("mail_messages");
   return {
     async find(mailbox, providerMessageId) {
-      const { data, error } = await table().select("id, status").eq("mailbox", mailbox).eq("provider_message_id", providerMessageId).maybeSingle();
+      const { data, error } = await table().select("id, status, attempts").eq("mailbox", mailbox).eq("provider_message_id", providerMessageId).maybeSingle();
       if (error) throw new Error(`mail_messages lookup failed: ${error.message}`);
-      return (data as { id: string; status: string } | null) ?? null;
+      return (data as { id: string; status: string; attempts?: number } | null) ?? null;
     },
     async knownIds(mailbox, ids) {
       const known = new Set<string>();

@@ -11,6 +11,12 @@ export const NOTIFICATION_STATUSES = [
   "failed",
   /** A text whose provider call timed out or errored ambiguously: it may have gone out, so it is never retried. */
   "send_unknown",
+  /**
+   * The carrier reported a text it took as not delivered (Telnyx delivery_failed
+   * or sending_failed). The provider already has it, so it is never resent
+   * automatically: unlike "failed", which means nothing reached the provider.
+   */
+  "undelivered",
   "skipped_no_consent",
   "skipped_unconfigured",
   "deferred_quiet_hours",

@@ -3,7 +3,7 @@ import type { ConsentLedger } from "@/lib/consent/ledger";
 import { consentState, recordSmsConsent, type ConsentReader } from "../consent";
 import { maskPhone, toE164 } from "../phone";
 import type { Notifier } from "../service";
-import type { NotifyStore, SmsRow } from "../store";
+import type { DeliveryStatus, NotifyStore, SmsRow } from "../store";
 import type { SmsOptOutSink } from "../optout";
 import type { OptOutSyncQueue } from "../optout-sync";
 import { classifyInbound } from "./keywords";
@@ -222,10 +222,11 @@ async function handleStatus(event: Parsed, deps: TelnyxWebhookDeps): Promise<Rec
   const at = event.data.occurred_at ? new Date(event.data.occurred_at) : deps.now();
   const when = Number.isNaN(at.getTime()) ? deps.now() : at;
 
-  let status: "sent" | "delivered" | "failed" | null = null;
+  let status: DeliveryStatus | null = null;
   if (event.data.event_type === "message.sent") status = "sent";
   else if (recipientStatus === "delivered") status = "delivered";
-  else if (recipientStatus === "delivery_failed" || recipientStatus === "sending_failed") status = "failed";
+  // The carrier has the text and reports it undelivered: recorded as "undelivered", never resent automatically.
+  else if (recipientStatus === "delivery_failed" || recipientStatus === "sending_failed") status = "undelivered";
   // delivery_unconfirmed and the like stay "sent": carriers did not confirm either way.
   if (!status) return { ignored: `status ${recipientStatus ?? "unknown"}` };
 

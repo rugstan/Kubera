@@ -65,6 +65,11 @@ describe("WS-J migration", () => {
     }
   });
 
+  it("accepts 'undelivered' on sms_messages (carrier delivery receipts) and still rejects unknown statuses", async () => {
+    await db.exec("insert into public.sms_messages (direction, from_number, to_number, body, status, provider_message_id) values ('outbound', '+13105550199', '+14155550100', 'x', 'undelivered', 'msg-undelivered')");
+    await expect(db.exec("insert into public.sms_messages (direction, from_number, to_number, body, status) values ('outbound', '+13105550199', '+14155550100', 'x', 'bounced')")).rejects.toThrow(/check/);
+  });
+
   it("keeps updated_at current", async () => {
     const { rows } = await insertNotification("touch-key");
     const id = (rows[0] as { id: string }).id;

@@ -1,7 +1,9 @@
 // Env-gated provider selection. ESIGN_PROVIDER picks explicitly
-// ("zoho_sign" | "boldsign" | "fake"); otherwise Zoho Sign when configured,
-// then BoldSign. With nothing configured this returns null and logs once, so
-// pages and builds never crash — callers treat null as "e-sign unavailable".
+// ("zoho_sign" | "boldsign" | "fake"); otherwise Zoho Sign when configured.
+// BoldSign is used only with ESIGN_PROVIDER=boldsign (its webhook route is
+// app/api/webhooks/boldsign). With nothing configured this returns null and
+// logs once, so pages and builds never crash — callers treat null as
+// "e-sign unavailable".
 
 import { randomBytes } from "node:crypto";
 import { fakeProviderRefusal } from "@/lib/deploy-env";
@@ -16,6 +18,7 @@ export { EsignError } from "./types";
 let cached: { key: string; provider: EsignProvider | null } | null = null;
 let warned = false;
 let refusedWarned = false;
+let warnedBoldOnly = false;
 
 export function esignProviderFromEnv(env: NodeJS.ProcessEnv = process.env): EsignProvider | null {
   const explicit = env.ESIGN_PROVIDER as EsignProviderName | undefined;
@@ -39,7 +42,14 @@ export function esignProviderFromEnv(env: NodeJS.ProcessEnv = process.env): Esig
     return new FakeEsignProvider(env.ZOHO_SIGN_WEBHOOK_SECRET || randomBytes(32).toString("hex"));
   }
   if ((explicit === "zoho_sign" || !explicit) && zoho) return new ZohoSignProvider(zoho);
-  if ((explicit === "boldsign" || !explicit) && bold) return new BoldSignProvider(bold);
+  // BoldSign is an opt-in fallback (lib/esign/boldsign.ts: verify against a
+  // sandbox before switching). A stray BOLDSIGN_API_KEY alone must not route
+  // MLDS sends through it.
+  if (explicit === "boldsign" && bold) return new BoldSignProvider(bold);
+  if (!explicit && bold && !warnedBoldOnly) {
+    warnedBoldOnly = true;
+    console.warn("[esign] BOLDSIGN_API_KEY is set but ESIGN_PROVIDER is not \"boldsign\"; BoldSign is not used.");
+  }
   if (!warned) {
     warned = true;
     console.warn(`[esign] No e-sign provider configured${explicit ? ` for ESIGN_PROVIDER=${explicit}` : ""}; disclosures cannot be sent for signature.`);

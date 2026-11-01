@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import type { ResumeSummary } from "./approved";
 import type { LeadSource } from "./leads";
 import { sendLeadConfirmation } from "./lead-confirmation";
 import type { Notifier } from "./service";
@@ -16,6 +17,8 @@ export type NotifyHandlerDeps = {
   leads: LeadSource;
   staff: StaffContacts;
   now?: () => Date;
+  /** The sweep also sends held notifications a broker approved (resumeApprovedNotifications). */
+  resumeApproved?: () => Promise<ResumeSummary>;
 };
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
@@ -133,7 +136,17 @@ export async function handleSweep(req: Request, deps: NotifyHandlerDeps): Promis
     if (newlySent) alerted += 1;
     else alreadyDone += 1;
   }
-  return json({ ok: true, checked: leads.length, alerted, alreadyDone });
+  // Backstop for messages a broker approved (lib/notify/approved.ts).
+  let approved: ResumeSummary | { error: string } | undefined;
+  if (deps.resumeApproved) {
+    try {
+      approved = await deps.resumeApproved();
+    } catch (err) {
+      console.error("notify: approved-notification sweep failed", err instanceof Error ? err.message : err);
+      approved = { error: "approved-notification sweep failed" };
+    }
+  }
+  return json({ ok: true, checked: leads.length, alerted, alreadyDone, ...(approved ? { approved } : {}) });
 }
 
 function summarizeTier1(r: Awaited<ReturnType<typeof alertTier1Lead>>) {
