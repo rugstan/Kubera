@@ -1,8 +1,23 @@
 "use client";
 
-import { useEffect, useRef, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { FormProvider, useFormState, type FieldErrors, type FieldValues, type SubmitErrorHandler, type SubmitHandler, type UseFormReturn } from "react-hook-form";
 import { fieldId } from "./ids";
+
+const subscribeNever = () => () => {};
+
+/**
+ * False on the server and during hydration, true once React has hydrated the
+ * tree. Until then the browser owns the form and a native submit would bypass
+ * the JSON submit path, so submit buttons stay disabled until this is true.
+ */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
+}
 
 export function Form<V extends FieldValues>({
   form,
@@ -19,10 +34,36 @@ export function Form<V extends FieldValues>({
   className?: string;
   "aria-labelledby"?: string;
 }) {
+  const hydrated = useHydrated();
   return (
     <FormProvider {...form}>
-      {/* noValidate: inline, accessible messages replace the browser's pop-up bubbles. */}
-      <form noValidate className={className} aria-labelledby={labelledBy} onSubmit={(e: FormEvent) => void form.handleSubmit(onSubmit, onInvalid)(e)}>
+      {/*
+        noValidate: inline, accessible messages replace the browser's pop-up bubbles.
+        method="post": these forms only submit through JavaScript (handleSubmit + postJson).
+        If the browser ever submits natively (before hydration, or a script chunk failed to
+        load), field values must not land in the URL, where they would reach request logs,
+        browser history, analytics and Referer headers.
+      */}
+      <form
+        method="post"
+        noValidate
+        className={className}
+        aria-labelledby={labelledBy}
+        data-hydrated={hydrated ? "true" : "false"}
+        onSubmit={(e: FormEvent) => void form.handleSubmit(onSubmit, onInvalid)(e)}
+      >
+        {/*
+          Until hydration the browser would submit natively. A form's first submit button is
+          its default button, and a disabled default button blocks implicit submission (Enter
+          in a text field), including on steps that render no submit button of their own.
+          Consumers disable their visible submit buttons with useHydrated() as well.
+        */}
+        {!hydrated && <button type="submit" disabled hidden aria-hidden="true" tabIndex={-1} />}
+        {!hydrated && (
+          <noscript>
+            <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">This form needs JavaScript. Turn it on in your browser, then reload the page to send it.</p>
+          </noscript>
+        )}
         {children}
       </form>
     </FormProvider>
