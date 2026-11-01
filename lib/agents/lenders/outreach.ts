@@ -9,7 +9,7 @@
 // is submitted only with a written override reason, which the approving
 // broker sees in the approval summary.
 
-import { PackageError, outreachMessage, sendPackageToLender, type LenderMailer, type SendPackageResult } from "@/lib/deals/packages";
+import { PackageError, assertDealCanGoToLenders, outreachMessage, sendPackageToLender, type DealHoldReader, type LenderMailer, type SendPackageResult } from "@/lib/deals/packages";
 import type { AgentEventStore } from "@/lib/agents/core/events";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage } from "@/lib/disclosures/store";
@@ -30,6 +30,8 @@ export type OutreachDeps = {
   renderPdf: (spec: ExecutiveSummarySpec) => Promise<Uint8Array>;
   baseUrl: string;
   now: () => Date;
+  /** Open sanctions holds (WS-U); null = not configured, so nothing is submitted (fails closed). */
+  holds: DealHoldReader | null;
   /** agent_events (AB): the ranking, knock-outs and overrides behind each submission are logged with reason codes. */
   events?: AgentEventStore | null;
 };
@@ -68,6 +70,14 @@ export async function submitToLenders(deps: OutreachDeps, input: SubmitInput): P
   if (lenderIds.length > 25) throw new OutreachError("Submit to at most 25 lenders at a time");
   const deal = await deps.desk.getDeal(input.dealId);
   if (!deal) throw new OutreachError(`Deal ${input.dealId} not found`);
+  // A held (OFAC), closed, withdrawn or lost deal goes to no lender; checked
+  // again inside each submission and before any share link is minted.
+  try {
+    await assertDealCanGoToLenders(deps, deal);
+  } catch (err) {
+    if (err instanceof PackageError) throw new OutreachError(err.message);
+    throw err;
+  }
   const now = deps.now();
   const [boxes, lenders, outreach] = await Promise.all([deps.boxes.listBoxes(), deps.desk.listLenders(), deps.desk.listOutreach(deal.id)]);
   const match = matchLenders({ profile: { ...input.profile, dealId: deal.id, program: deal.program }, boxes, lenders, outreach, now });
@@ -108,7 +118,7 @@ export async function submitToLenders(deps: OutreachDeps, input: SubmitInput): P
     const note = [why, input.note?.trim()].filter(Boolean).join(" — ");
     try {
       const result = await sendPackageToLender(
-        { store: deps.desk, gate: deps.gate, now: deps.now, baseUrl: deps.baseUrl, mailer: deps.mailer },
+        { store: deps.desk, gate: deps.gate, now: deps.now, baseUrl: deps.baseUrl, mailer: deps.mailer, holds: deps.holds },
         { dealId: deal.id, lenderId, items, actor: input.actor, allowStaleLender: input.allowStaleLender, note },
       );
       outcomes.push({ lenderId, lenderName: lender.name, ok: true, result, message: outreachMessage(result), matched: Boolean(candidate) });

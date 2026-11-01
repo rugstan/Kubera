@@ -5,7 +5,7 @@ import { MemoryDisclosureStore } from "@/lib/disclosures/store";
 import { advanceDeal, editDeal, stageContext } from "./service";
 import { LockedFieldError, applyStageEvent, assertEditable, availableEvents, stageTemplate, templateDigest } from "./stages";
 import { dealPrograms, type Deal, type DealProgram } from "./types";
-import { checklistDesk, docs, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
+import { checklistDesk, docs, lenderInput, loanRecord, newDeal, noHolds, setup } from "./test-fixtures";
 import { dispositionScreening } from "@/lib/screening/service";
 import { dealStatusHoldSink } from "./holds";
 import { MemoryStageEventSink } from "./stage-events";
@@ -178,7 +178,7 @@ describe("advanceDeal (end to end with the records)", () => {
     expect((await advanceDeal(deps, { dealId: deal.id, event: "packaging_started", actor: "a" })).ok).toBe(true);
     expect((await advanceDeal(deps, { dealId: deal.id, event: "package_sent", actor: "a" })).ok).toBe(false);
 
-    const sent = await sendPackageToLender({ store, gate, now, baseUrl: "https://k.test" }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "a" });
+    const sent = await sendPackageToLender({ store, gate, now, baseUrl: "https://k.test", holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "a" });
     await markOutreachSent(store, sent.outreach.id, "a", now());
     expect((await advanceDeal(deps, { dealId: deal.id, event: "package_sent", actor: "a" })).ok).toBe(true);
     await recordLenderResponse(store, sent.outreach.id, { status: "term_sheet", termSheetRef: "vault://ts.pdf" }, "a", now());

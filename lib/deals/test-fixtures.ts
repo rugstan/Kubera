@@ -19,6 +19,9 @@ export function clockAt(start: Date = T0) {
   return { now, advance: (ms: number) => (t += ms) };
 }
 
+/** A sanctions-hold reader with no open holds (WS-U desk configured, deal clear). */
+export const noHolds = { active: async () => [] };
+
 export function setup(gateDefault: ConstructorParameters<typeof FakeApprovalGate>[0] = "approved") {
   const store = new MemoryDealDeskStore();
   const gate = new FakeApprovalGate(gateDefault);

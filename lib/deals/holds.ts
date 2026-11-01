@@ -6,9 +6,14 @@
 // The deal desk itself refuses every event but withdraw / mark lost while a
 // hold is open (lib/deals/service.ts reads deal_holds directly), so the status
 // is the pipeline's view of the hold, not the enforcement.
+//
+// While any hold is open every live lender share link for the deal is revoked
+// (before the status moves, so a failed status write still cuts access);
+// releasing the hold does not restore them: a new approved submission does.
 
 import type { DealHoldSink } from "@/lib/screening/service";
 import type { DealHold, DealHoldStore } from "@/lib/screening/store";
+import { revokeDealShareLinks } from "./share-links";
 import { ConcurrentUpdateError, type DealDeskStore } from "./store";
 import type { Clock, DealStatus } from "./types";
 
@@ -30,7 +35,9 @@ export async function syncDealHoldStatus(deps: { store: DealDeskStore; holds: De
   for (let attempt = 0; attempt < 2; attempt++) {
     const deal = await deps.store.getDeal(dealId);
     if (!deal) return null;
-    const next = holdStatusFor(deal.status ?? "active", await deps.holds.active(dealId));
+    const holds = await deps.holds.active(dealId);
+    if (holds.length && attempt === 0) await revokeDealShareLinks(deps.store, dealId, HOLD_ACTOR, `Deal on hold: ${holds.map((h) => h.detail).join("; ")}`.slice(0, 500), deps.now());
+    const next = holdStatusFor(deal.status ?? "active", holds);
     if (next === deal.status) return next;
     try {
       return (await deps.store.updateDeal(deal.id, deal.recordVersion, { status: next }, HOLD_ACTOR, deps.now())).status;

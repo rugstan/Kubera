@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { MemoryDocumentStorage } from "@/lib/disclosures/store";
 import type { LenderMailer } from "@/lib/deals/packages";
-import { docs, lenderInput, newDeal, setup } from "@/lib/deals/test-fixtures";
+import { docs, lenderInput, newDeal, noHolds, setup } from "@/lib/deals/test-fixtures";
 import { MemoryAgentEventStore } from "@/lib/agents/core/events";
 import { logLenderMatch, matchDecisionCandidates } from "./decision-log";
 import { matchLenders } from "./matcher";
@@ -69,13 +69,24 @@ async function world(gateDefault: "approved" | "pending" | "rejected" | "expired
   await boxes.insertBox(approvedBox(b.id), "broker:ana", now());
   await boxes.insertBox(approvedBox(c.id, { states: ["TX"] }), "broker:ana", now());
   const deal = await newDeal(store, now);
-  const deps: OutreachDeps = { desk: store, boxes, gate, mailer, storage, renderPdf: renderExecutiveSummaryPdf, baseUrl: "https://kuberacommercial.com", now };
+  const deps: OutreachDeps = { desk: store, boxes, gate, mailer, storage, renderPdf: renderExecutiveSummaryPdf, baseUrl: "https://kuberacommercial.com", now, holds: noHolds };
   const profile = dealProfile(deal, { ltvPct: 70, dscr: 1.6 });
   const summary = { asOf: "2026-11-04", spreads: { noiCents: 150_000_000, dscr: 1.6, ltvPct: 70 }, highlights: ["Stabilized at 92% occupancy for three years."] };
   return { store, gate, mailer, storage, deps, deal, profile, summary, lenders: { a, b, c } };
 }
 
 describe("submitToLenders", () => {
+  it("submits nothing for a deal under a sanctions hold (no summary stored, no approval asked)", async () => {
+    const w = await world("approved");
+    const holds = { active: async () => [{ detail: "Possible sanctions match for Pat Owner" }] };
+    await expect(submitToLenders({ ...w.deps, holds }, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: w.summary, actor: "broker:ana" })).rejects.toThrow(/Possible sanctions match/);
+    await expect(submitToLenders({ ...w.deps, holds: null }, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: null, actor: "broker:ana" })).rejects.toThrow(/cannot be checked/);
+    expect(w.gate.requests).toHaveLength(0);
+    expect(w.mailer.sent).toEqual([]);
+    expect(await w.store.listPackages(w.deal.id)).toEqual([]);
+    expect(await w.store.listShareLinks(w.deal.id)).toEqual([]);
+  });
+
   it("sends nothing while the broker approval is pending", async () => {
     const w = await world("pending");
     const r = await submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(2), summary: w.summary, actor: "broker:ana" });
