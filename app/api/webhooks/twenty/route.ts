@@ -1,17 +1,19 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
-import { safeEqual } from "@/lib/security";
+import { readBodyCapped, safeEqual } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 // Twenty signs webhooks with HMAC-SHA256 over `${timestamp}:${rawBody}` using
 // the secret set when the webhook is created in Settings → APIs & Webhooks.
 const MAX_SKEW_MS = 5 * 60_000;
+const MAX_BODY_BYTES = 256 * 1024;
 
 export async function POST(req: Request) {
   const secret = process.env.TWENTY_WEBHOOK_SECRET;
   if (!secret) return NextResponse.json({ error: "Webhook secret not configured" }, { status: 503 });
 
-  const raw = await req.text();
+  const raw = await readBodyCapped(req, MAX_BODY_BYTES);
+  if (raw === null) return NextResponse.json({ error: "Request is too large" }, { status: 413 });
   const signature = req.headers.get("x-twenty-webhook-signature") ?? "";
   const timestamp = req.headers.get("x-twenty-webhook-timestamp") ?? "";
   const expected = createHmac("sha256", secret).update(`${timestamp}:${raw}`).digest("hex");
@@ -30,12 +32,15 @@ export async function POST(req: Request) {
 
   const db = supabaseAdmin();
   if (db) {
+    // A signed delivery is accepted once: replays inside the skew window hit the unique index.
+    const dedupeKey = createHash("sha256").update(`${timestamp}:${signature}`).digest("hex");
     const { error } = await db.from("crm_events").insert({
+      dedupe_key: dedupeKey,
       event_name: payload.eventName ?? "unknown",
       record_id: payload.record?.id ?? null,
       payload,
     });
-    if (error) console.error("crm event insert failed", error.message);
+    if (error && error.code !== "23505") console.error("crm event insert failed", error.message);
   }
   return NextResponse.json({ ok: true });
 }
