@@ -3,6 +3,7 @@
 // configured this returns null and logs once: uploads still succeed but stay
 // quarantined (and so undownloadable) until a scanner is configured.
 
+import { fakeProviderRefusal } from "@/lib/deploy-env";
 import { ClamAvRestScanner, clamAvConfigFromEnv } from "./clamav";
 import { FakeScanner } from "./fake";
 import type { MalwareScanner } from "./scanner";
@@ -15,7 +16,11 @@ let warned = false;
 export function scannerFromEnv(env: Record<string, string | undefined> = process.env): MalwareScanner | null {
   const explicit = env.SCANNER_PROVIDER?.trim();
   if (explicit === "fake") {
-    if (env.NODE_ENV === "production" && env.VERCEL_ENV === "production") throw new Error("SCANNER_PROVIDER=fake is not allowed in production");
+    // Same rule as AUTH_PROVIDER=fake: the fake marks almost everything clean,
+    // so it must never release real uploads from quarantine. This also covers
+    // the container worker, which runs without NODE_ENV or VERCEL_ENV.
+    const refused = fakeProviderRefusal("SCANNER_PROVIDER", env);
+    if (refused) throw new Error(refused);
     return new FakeScanner();
   }
   const clam = clamAvConfigFromEnv(env);

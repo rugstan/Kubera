@@ -3,6 +3,8 @@
 // then BoldSign. With nothing configured this returns null and logs once, so
 // pages and builds never crash — callers treat null as "e-sign unavailable".
 
+import { randomBytes } from "node:crypto";
+import { fakeProviderRefusal } from "@/lib/deploy-env";
 import { BoldSignProvider, boldSignConfigFromEnv } from "./boldsign";
 import { FakeEsignProvider } from "./fake";
 import type { EsignProvider, EsignProviderName } from "./types";
@@ -13,14 +15,28 @@ export { EsignError } from "./types";
 
 let cached: { key: string; provider: EsignProvider | null } | null = null;
 let warned = false;
+let refusedWarned = false;
 
 export function esignProviderFromEnv(env: NodeJS.ProcessEnv = process.env): EsignProvider | null {
   const explicit = env.ESIGN_PROVIDER as EsignProviderName | undefined;
   const zoho = zohoSignConfigFromEnv(env);
   const bold = boldSignConfigFromEnv(env);
   if (explicit === "fake") {
-    if (env.NODE_ENV === "production" && env.VERCEL_ENV === "production") throw new Error("ESIGN_PROVIDER=fake is not allowed in production");
-    return new FakeEsignProvider(env.ZOHO_SIGN_WEBHOOK_SECRET || undefined);
+    // Same rule as AUTH_PROVIDER=fake: a fake 'signed' MLDS must never reach
+    // the real disclosures table. Degrade to "e-sign unavailable" (Global
+    // rule 3) instead of crashing the pages that ask for a provider.
+    const refused = fakeProviderRefusal("ESIGN_PROVIDER", env);
+    if (refused) {
+      if (!refusedWarned) {
+        refusedWarned = true;
+        console.error(`[esign] ${refused}; e-sign is disabled.`);
+      }
+      return null;
+    }
+    // Never the fake's built-in test secret: without ZOHO_SIGN_WEBHOOK_SECRET
+    // the webhook route refuses the fake, and this per-process secret keeps
+    // the public default out of any env-built provider.
+    return new FakeEsignProvider(env.ZOHO_SIGN_WEBHOOK_SECRET || randomBytes(32).toString("hex"));
   }
   if ((explicit === "zoho_sign" || !explicit) && zoho) return new ZohoSignProvider(zoho);
   if ((explicit === "boldsign" || !explicit) && bold) return new BoldSignProvider(bold);
@@ -40,7 +56,8 @@ export function mldsTemplateId(provider: EsignProviderName, env: NodeJS.ProcessE
 
 /** Process-wide provider (cached per configuration). */
 export function esignProvider(): EsignProvider | null {
-  const key = [process.env.ESIGN_PROVIDER, process.env.ZOHO_SIGN_CLIENT_ID, process.env.BOLDSIGN_API_KEY].join("|");
+  const e = process.env;
+  const key = [e.ESIGN_PROVIDER, e.ZOHO_SIGN_CLIENT_ID, e.BOLDSIGN_API_KEY, Boolean(e.ZOHO_SIGN_WEBHOOK_SECRET), e.VERCEL_ENV, e.DEPLOY_ENV, e.NODE_ENV, Boolean(e.SUPABASE_SERVICE_ROLE_KEY?.trim())].join("|");
   if (!cached || cached.key !== key) cached = { key, provider: esignProviderFromEnv() };
   return cached.provider;
 }
