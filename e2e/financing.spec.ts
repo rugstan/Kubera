@@ -64,4 +64,19 @@ test.describe("financing pages", () => {
     expect(xml).toContain("/financing/hard-money");
     expect(xml).toContain("/financing/senior-living");
   });
+
+  // WCAG 1.4.10 Reflow: no horizontal scroll at 320 CSS px. Every page with the
+  // CtaBand once overflowed by ~13px because the qualifier pill could not wrap.
+  for (const path of ["/financing/hud-223f-multifamily", "/calculators/sba-504", "/insights/california-mortgage-loan-disclosure-statement"]) {
+    test(`${path} does not scroll sideways at 320px`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 640 });
+      expect((await page.goto(path))?.status()).toBe(200);
+      await expect(page.getByRole("link", { name: "Start the 60-second qualifier" }).last()).toBeVisible();
+      const { scroll, client } = await page.evaluate(() => ({
+        scroll: document.documentElement.scrollWidth,
+        client: document.documentElement.clientWidth,
+      }));
+      expect(scroll, `${path}: page is ${scroll}px wide at a ${client}px viewport`).toBeLessThanOrEqual(client);
+    });
+  }
 });
