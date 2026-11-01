@@ -1,14 +1,19 @@
 // Business-day calendar for disclosure clocks (MLDS: B&P §10240, 3 business days).
 //
-// A business day is Monday–Friday that is neither a US federal holiday
-// (5 U.S.C. §6103) nor a California state holiday (Gov. Code §6700), counted in
-// Kubera's licensed-office time zone. Dates are handled as civil dates
-// ("YYYY-MM-DD") so DST and server time zones never shift a deadline.
+// A business day is Monday–Friday that is not a US federal holiday
+// (5 U.S.C. §6103), counted in Kubera's licensed-office time zone. Dates are
+// handled as civil dates ("YYYY-MM-DD") so DST and server time zones never
+// shift a deadline.
 //
 // VERIFY (counsel gate A, open question 5): which holiday calendar the DRE
-// applies to "business days" under §10240, and whether optional California
-// holidays (Lincoln Day, Admission Day, Genocide Remembrance Day) count. The
-// list is data so counsel's answer is a one-line change.
+// applies to "business days" under §10240, and whether California state
+// holidays (Gov. Code §6700: Lincoln Day, Cesar Chavez Day, Genocide
+// Remembrance Day, Admission Day, Native American Day, the day after
+// Thanksgiving) count. Until counsel answers, every clock uses the STRICTEST
+// reading: federal holidays only. An extra holiday can only push a deadline
+// later, so federal-only always gives the earliest (most protective) due date.
+// The California calendar applies only once counsel approves it and
+// MLDS_CA_OPTIONAL_HOLIDAYS=true is set.
 
 export const OFFICE_TIME_ZONE = "America/Los_Angeles";
 
@@ -70,7 +75,26 @@ const CALIFORNIA: Calendar = {
   ],
 };
 
-export const HOLIDAY_CALENDARS: readonly Calendar[] = [FEDERAL, CALIFORNIA];
+/** Which holiday calendars count as non-business days. */
+export type HolidayCalendarSet = "federal" | "federal_ca";
+
+const CALENDAR_SETS: Record<HolidayCalendarSet, readonly Calendar[]> = {
+  federal: [FEDERAL],
+  federal_ca: [FEDERAL, CALIFORNIA],
+};
+
+/**
+ * The calendar set in force: federal-only (strictest) unless counsel has
+ * approved counting California state holidays and MLDS_CA_OPTIONAL_HOLIDAYS is
+ * exactly "true".
+ */
+export function activeCalendarSet(): HolidayCalendarSet {
+  return process.env.MLDS_CA_OPTIONAL_HOLIDAYS === "true" ? "federal_ca" : "federal";
+}
+
+export function holidayCalendars(set: HolidayCalendarSet = activeCalendarSet()): readonly Calendar[] {
+  return CALENDAR_SETS[set];
+}
 
 // ---------------------------------------------------------------------------
 // Civil-date arithmetic (UTC-based so the host time zone never matters)
@@ -121,16 +145,17 @@ function ruleDate(rule: Rule, year: number): CivilDate {
   }
 }
 
-const cache = new Map<number, Map<CivilDate, string>>();
+const cache = new Map<string, Map<CivilDate, string>>();
 
 /** Every non-business holiday date (actual and observed) that falls in `year`. */
-export function holidaysInYear(year: number): Map<CivilDate, string> {
-  const hit = cache.get(year);
+export function holidaysInYear(year: number, set: HolidayCalendarSet = activeCalendarSet()): Map<CivilDate, string> {
+  const key = `${set}:${year}`;
+  const hit = cache.get(key);
   if (hit) return hit;
   const out = new Map<CivilDate, string>();
   // Include neighbouring years so a Saturday Jan 1 observed on Dec 31 lands.
   for (const y of [year - 1, year, year + 1]) {
-    for (const cal of HOLIDAY_CALENDARS) {
+    for (const cal of holidayCalendars(set)) {
       for (const rule of cal.rules) {
         const actual = ruleDate(rule, y);
         const dow = weekday(actual);
@@ -142,35 +167,35 @@ export function holidaysInYear(year: number): Map<CivilDate, string> {
       }
     }
   }
-  cache.set(year, out);
+  cache.set(key, out);
   return out;
 }
 
-export function holidayName(date: CivilDate): string | undefined {
-  return holidaysInYear(Number(date.slice(0, 4))).get(date);
+export function holidayName(date: CivilDate, set: HolidayCalendarSet = activeCalendarSet()): string | undefined {
+  return holidaysInYear(Number(date.slice(0, 4)), set).get(date);
 }
 
-export function isBusinessDay(date: CivilDate): boolean {
+export function isBusinessDay(date: CivilDate, set: HolidayCalendarSet = activeCalendarSet()): boolean {
   const dow = weekday(date);
-  return dow !== 0 && dow !== 6 && !holidayName(date);
+  return dow !== 0 && dow !== 6 && !holidayName(date, set);
 }
 
 /** The `n`th business day strictly after `date` (n ≥ 1). */
-export function addBusinessDays(date: CivilDate, n: number): CivilDate {
+export function addBusinessDays(date: CivilDate, n: number, set: HolidayCalendarSet = activeCalendarSet()): CivilDate {
   if (!Number.isInteger(n) || n < 0) throw new Error("n must be a non-negative integer");
   let d = date;
   let left = n;
   while (left > 0) {
     d = addCalendarDays(d, 1);
-    if (isBusinessDay(d)) left -= 1;
+    if (isBusinessDay(d, set)) left -= 1;
   }
   return d;
 }
 
 /** Business days in the half-open range (from, to]; 0 when `to` ≤ `from`. */
-export function businessDaysBetween(from: CivilDate, to: CivilDate): number {
+export function businessDaysBetween(from: CivilDate, to: CivilDate, set: HolidayCalendarSet = activeCalendarSet()): number {
   let count = 0;
-  for (let d = addCalendarDays(from, 1); d <= to; d = addCalendarDays(d, 1)) if (isBusinessDay(d)) count += 1;
+  for (let d = addCalendarDays(from, 1); d <= to; d = addCalendarDays(d, 1)) if (isBusinessDay(d, set)) count += 1;
   return count;
 }
 

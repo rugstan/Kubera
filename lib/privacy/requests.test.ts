@@ -36,8 +36,9 @@ describe("deadlines", () => {
   it("acknowledges within 10 business days and responds within 45 calendar days", () => {
     const d = requestDeadlines(NOW);
     expect(d.receivedOn).toBe("2026-11-20");
-    // Skips Thanksgiving (Nov 26) and the day after (Nov 27, a California state holiday).
-    expect(d.acknowledgeBy).toBe("2026-12-08");
+    // Skips Thanksgiving (Nov 26). The day after (a California-only holiday) counts
+    // as a business day on the default, strictest federal-only calendar.
+    expect(d.acknowledgeBy).toBe("2026-12-07");
     expect(d.dueAt).toBe("2027-01-04");
   });
 });
