@@ -107,6 +107,42 @@ export function lintMigrationNames(files: Pick<MigrationFile, "name" | "timestam
   return problems;
 }
 
+/**
+ * Global rule 8 slot pattern: `2026110P00MM00` where P is the phase digit (1 to 5)
+ * and MM the workstream slot (01 to 99).
+ */
+const WORKSTREAM_TIMESTAMP = /^2026110[1-5]00(?:0[1-9]|[1-9]\d)00$/;
+
+/**
+ * Pre-existing workstream migrations that predate this check and do not follow
+ * the slot pattern. They may already be applied, so they cannot be renamed
+ * (rule 8: never edit an existing migration). Do not add to this list; name new
+ * migrations by the rule instead. See docs/BUILD_PLAN.md, Global rule 8.
+ */
+export const SLOT_PATTERN_ALLOWLIST: ReadonlySet<string> = new Set([
+  "20261101050000_e_crm_retry.sql", // WS-E, Phase 0 slot 05 (should be 20261101000500)
+  "20261101050100_e_crm_progress.sql", // WS-E, Phase 0 slot 05 (follow-up to the file above)
+  "20261105010000_p_growth.sql", // WS-P, Phase 4 slot 01 (should be 20261105000100)
+]);
+
+/**
+ * Workstream migrations must carry a phase/slot timestamp. Exempt: the baseline
+ * `init` migration (predates the scheme), integrator fixes (`int_*`, which sit
+ * between workstream slots on purpose), and the allowlist above.
+ */
+export function lintWorkstreamSlots(files: Pick<MigrationFile, "name" | "timestamp">[]): string[] {
+  const problems: string[] = [];
+  for (const f of files) {
+    const m = FILENAME.exec(f.name);
+    if (!m) continue; // reported by lintMigrationNames
+    if (m[2] === "init" || m[2]!.startsWith("int_") || SLOT_PATTERN_ALLOWLIST.has(f.name)) continue;
+    if (!WORKSTREAM_TIMESTAMP.test(f.timestamp)) {
+      problems.push(`${f.name}: timestamp ${f.timestamp} does not match the phase/slot pattern 2026110P00MM00 (Global rule 8)`);
+    }
+  }
+  return problems;
+}
+
 export async function createStubbedDb(): Promise<PGlite> {
   const db = new PGlite({ extensions: { vector, pgcrypto } });
   await db.waitReady;
@@ -154,7 +190,7 @@ export async function custodyViolations(db: PGlite): Promise<{ table_name: strin
 
 export async function runMigrationTests(dir: string = MIGRATIONS_DIR): Promise<MigrationReport> {
   const files = listMigrations(dir);
-  const problems = lintMigrationNames(files);
+  const problems = [...lintMigrationNames(files), ...lintWorkstreamSlots(files)];
   if (files.length === 0) problems.push(`no migrations found in ${dir}`);
 
   const db = await createStubbedDb();

@@ -67,6 +67,8 @@ export const AB1482_CAP_TABLE: readonly Ab1482CapRow[] = [
   ...periodRows("2023-08-01", "2024-07-31", { los_angeles: 3.8, san_francisco: 3.3, san_diego: 4.4, inland_empire: 4.0, california: 3.7 }),
   ...periodRows("2024-08-01", "2025-07-31", { los_angeles: 3.9, san_francisco: 3.1, san_diego: 3.7, inland_empire: 3.4, california: 3.5 }),
   ...periodRows("2025-08-01", "2026-07-31", { los_angeles: 3.0, san_francisco: 2.6, san_diego: 3.3, inland_empire: 3.0, california: 3.0 }),
+  // April 2026 over April 2025. VERIFY: entered as planning figures; re-check against the BLS release before relying on them.
+  ...periodRows("2026-08-01", "2027-07-31", { los_angeles: 3.1, san_francisco: 2.7, san_diego: 3.2, inland_empire: 3.0, california: 3.0 }),
 ];
 
 // --- Local ordinances ----------------------------------------------------------------

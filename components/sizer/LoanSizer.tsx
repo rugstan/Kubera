@@ -25,8 +25,8 @@ import { QuoteCarousel } from "./QuoteCarousel";
 type Tab = "senior" | "hospitality" | "multifamily" | "hardMoney" | "construction";
 
 const TABS: { id: Tab; label: string; short: string }[] = [
-  { id: "senior", label: "Senior Living & Care", short: "Senior Living" },
-  { id: "hospitality", label: "Hospitality & Hotels", short: "Hotels" },
+  { id: "senior", label: "Senior living & care", short: "Senior living" },
+  { id: "hospitality", label: "Hospitality & hotels", short: "Hotels" },
   { id: "multifamily", label: "Multifamily & CRE", short: "Multifamily" },
   { id: "hardMoney", label: "Hard money", short: "Hard money" },
   { id: "construction", label: "Construction", short: "Construction" },
@@ -167,10 +167,10 @@ function SeniorForm({ v, set }: FormProps<SeniorInputs>) {
   return (
     <>
       <SelectField label="Facility type" value={v.facilityType} onChange={u("facilityType")} options={[
-        { value: "RCFE", label: "RCFE / Board & Care" },
-        { value: "ASSISTED_LIVING", label: "Assisted Living" },
-        { value: "MEMORY_CARE", label: "Memory Care" },
-        { value: "SNF", label: "Skilled Nursing (SNF)" },
+        { value: "RCFE", label: "RCFE / board & care" },
+        { value: "ASSISTED_LIVING", label: "Assisted living" },
+        { value: "MEMORY_CARE", label: "Memory care" },
+        { value: "SNF", label: "Skilled nursing (SNF)" },
       ]} />
       <Segmented label="Transaction" value={v.transaction} onChange={u("transaction")} options={[
         { value: "PURCHASE", label: "Purchase" },
