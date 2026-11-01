@@ -230,7 +230,7 @@ describe("advisor routing guard", () => {
     return { store, conv: claimed.conversation };
   };
 
-  it("redacts a pasted SSN from what reaches the model but stores the turn as typed", async () => {
+  it("redacts a pasted SSN from what reaches the model and from the stored turn", async () => {
     const { store, conv } = await setup();
     const model = fakeModel(["ok"]);
     const message = "My SSN is 123-45-6789, can I get a bridge loan?";
@@ -239,7 +239,9 @@ describe("advisor routing guard", () => {
     );
     expect(model.calls).toHaveLength(1);
     expect(JSON.stringify(model.calls[0]!.messages)).not.toContain("123-45-6789");
-    expect(store.rows.get(conv.id)!.messages[0]).toMatchObject({ role: "user", content: message });
+    const stored = store.rows.get(conv.id)!.messages[0]!;
+    expect(stored).toMatchObject({ role: "user", content: "My SSN is [REDACTED:ssn], can I get a bridge loan?", redacted: true });
+    expect(JSON.stringify(store.rows.get(conv.id)!.messages)).not.toContain("123-45-6789");
   });
 
   it("sends nothing for a subject who opted out of AI processing and releases the lock", async () => {

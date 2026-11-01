@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ supabaseAdmin: () => null }));
 
-const { MemoryConversationStore } = await import("./store");
+const { MemoryConversationStore, SupabaseConversationStore, redactForStorage } = await import("./store");
 
 const meta = { ipHash: "h", userAgent: "ua", page: "/" };
 const user = (content: string) => ({ role: "user" as const, content, mode: "chat" as const, at: "2026-11-01T00:00:00.000Z" });
@@ -56,5 +56,64 @@ describe("MemoryConversationStore", () => {
     await store.release(conv.id);
     const again = await store.claim(conv.id, 60_000);
     expect(again.status === "ok" && again.conversation.messages[1]!.content).toBe("b");
+  });
+});
+
+const SSN = "123-45-6789";
+const sensitive = `My SSN is ${SSN}, DOB: 04/12/1961 and account # 004417250093. Email pat@example.com`;
+
+/** Minimal Supabase stand-in for complete(): one ai_conversations row, records every update payload. */
+function fakeDb(row: { messages: unknown[]; turn_count: number }) {
+  const updates: Record<string, unknown>[] = [];
+  const db = {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: async () => ({ data: structuredClone(row), error: null }) }) }),
+      update: (payload: Record<string, unknown>) => {
+        updates.push(payload);
+        const chain = { eq: () => chain, then: (res: (v: { error: null }) => unknown) => Promise.resolve({ error: null }).then(res) };
+        return chain;
+      },
+    }),
+  };
+  return { db, updates };
+}
+
+describe("transcript redaction (Global rule 8)", () => {
+  it("never stores an SSN, DOB or account number in plaintext (memory store)", async () => {
+    const store = new MemoryConversationStore();
+    const conv = await store.create(meta);
+    await store.claim(conv.id, 60_000);
+    await store.complete(conv.id, 0, [{ ...user(sensitive), dealContext: { inputs: { ssn: SSN, noi: 1_200_000 } } }, bot(`Noted ${SSN}`)]);
+    const messages = store.rows.get(conv.id)!.messages;
+    const raw = JSON.stringify(messages);
+    expect(raw).not.toContain(SSN);
+    expect(raw).not.toContain("04/12/1961");
+    expect(raw).not.toContain("004417250093");
+    expect(messages[0]).toMatchObject({ role: "user", redacted: true });
+    expect(messages[0]!.content).toContain("[REDACTED:ssn]");
+    // Confidential contact details stay (the column is confidential), and deal numbers survive.
+    expect(messages[0]!.content).toContain("pat@example.com");
+    expect(messages[0]!.role === "user" && messages[0]!.dealContext).toEqual({ inputs: { ssn: "[REDACTED:restricted]", noi: 1_200_000 } });
+  });
+
+  it("never sends an SSN to ai_conversations.messages and scrubs legacy rows (Supabase store)", async () => {
+    const { db, updates } = fakeDb({ messages: [user(`legacy ${SSN}`), bot("ok")], turn_count: 1 });
+    const store = new SupabaseConversationStore(db as never);
+    await store.complete("00000000-0000-4000-8000-000000000000", 1, [user(sensitive), bot("thanks")]);
+    expect(updates).toHaveLength(1);
+    const written = JSON.stringify(updates[0]!.messages);
+    expect(written).not.toContain(SSN);
+    expect(written).not.toMatch(/\b\d{3}-\d{2}-\d{4}\b/);
+    expect((updates[0]!.messages as { content: string }[]).map((m) => m.content)).toEqual([
+      "legacy [REDACTED:ssn]",
+      "ok",
+      expect.stringContaining("My SSN is [REDACTED:ssn]"),
+      "thanks",
+    ]);
+  });
+
+  it("leaves clean messages untouched (no redacted flag)", () => {
+    const m = user("What DSCR does HUD 232 need?");
+    expect(redactForStorage(m)).toEqual(m);
   });
 });

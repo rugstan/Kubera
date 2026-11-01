@@ -8,7 +8,14 @@ import type {
   BetaTextBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { z } from "zod";
-import type { ConversationMode, ConversationStore, StoredAssistantMessage, StoredMessage, StoredUserMessage } from "@/lib/conversations/store";
+import {
+  redactForStorage,
+  type ConversationMode,
+  type ConversationStore,
+  type StoredAssistantMessage,
+  type StoredMessage,
+  type StoredUserMessage,
+} from "@/lib/conversations/store";
 import type { MarketSnapshot } from "@/lib/rates";
 import { disclosures, site } from "@/lib/site";
 import { GuardrailStreamFilter, guardrailMode, summarizeViolations, type GuardrailMode, type GuardrailViolation } from "./guardrails";
@@ -183,8 +190,9 @@ const NOT_ROUTABLE_NOTE =
 /**
  * Runs the request through the model routing guard (lib/ai/routing.ts) before
  * anything leaves the server. Sensitive values above the advisor ceiling are
- * redacted from the copy sent to the model; the stored transcript keeps what
- * the user typed. Returns null when the guard refuses the request outright.
+ * redacted from the copy sent to the model (the stored transcript is masked
+ * the same way; see redactForStorage). Returns null when the guard refuses the
+ * request outright.
  */
 export function routeAdvisorRequest(params: BetaMessageStreamParams, subject?: { aiProcessingOptOut?: boolean }): BetaMessageStreamParams | null {
   const routed = prepareForRoute({
@@ -252,18 +260,20 @@ export type AdvisorTurnInput = {
 export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<ReadableStream<Uint8Array>> {
   const now = input.now ?? (() => new Date());
   const model = input.model ?? modelOverride ?? anthropicModel;
-  const turn: StoredUserMessage = {
+  // Restricted values (SSN, DOB, account numbers) are masked before the turn is
+  // stored, retrieved against or sent: the transcript never holds them in plaintext.
+  const turn: StoredUserMessage = redactForStorage({
     role: "user",
     content: input.message,
     mode: input.mode,
     ...(input.dealContext ? { dealContext: input.dealContext } : {}),
     at: now().toISOString(),
-  };
+  });
 
   let excerpts: KbChunk[] = [];
   try {
     // The subject is passed so a data subject who opted out of AI processing is never embedded externally.
-    excerpts = await (input.retrieveExcerpts ?? ((q, subject) => retrieve(q, 5, subject)))(input.message, input.subject);
+    excerpts = await (input.retrieveExcerpts ?? ((q, subject) => retrieve(q, 5, subject)))(turn.content, input.subject);
   } catch (err) {
     console.error("advisor retrieval failed", err instanceof Error ? err.message : err);
   }

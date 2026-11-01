@@ -101,7 +101,9 @@ export const FIELD_CLASSIFICATION: Readonly<Record<string, FieldRule>> = {
   "consent_events.phone": C("borrower"),
   "consent_events.ip": C("borrower"),
   "consent_events.user_agent": I("system"),
-  "ai_conversations.messages": C("borrower"),
+  // Transcripts are confidential; restricted values a visitor types are masked
+  // before the row is written (lib/conversations/store.ts redactForStorage).
+  "ai_conversations.messages": { level: "confidential", category: "borrower", pii: true, note: "Restricted values (SSN, DOB, account numbers) are redacted before storage." },
   "ai_conversations.ip_hash": I("system"),
   // privacy requests (WS-Y)
   "privacy_requests.subject_email": C("borrower"),

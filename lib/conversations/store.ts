@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { FIELD_CLASSIFICATION, redactPayload, redactText, type Classification } from "@/lib/privacy/classification";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 // Server-side transcript store for Ask Kubera AI (public.ai_conversations).
@@ -15,6 +16,8 @@ export type StoredUserMessage = {
   mode: ConversationMode;
   /** Validated sizer context attached to this turn, if any. */
   dealContext?: unknown;
+  /** Set when restricted values (SSN, DOB, account numbers …) were masked before storage. */
+  redacted?: true;
   at: string;
 };
 
@@ -25,6 +28,8 @@ export type StoredAssistantMessage = {
   model?: string;
   /** Set when the output guardrails (lib/ai/guardrails.ts) caught something in this reply. */
   guardrail?: { mode: "enforce" | "monitor"; categories: string[]; count: number };
+  /** Set when restricted values were masked before storage. */
+  redacted?: true;
   at: string;
 };
 
@@ -49,6 +54,31 @@ export interface ConversationStore {
   complete(id: string, expectedTurnCount: number, turn: [StoredUserMessage, StoredAssistantMessage]): Promise<void>;
   /** Releases the lock without writing (turn failed before any output). */
   release(id: string): Promise<void>;
+}
+
+/**
+ * Highest classification a stored transcript may hold: the registry level of
+ * ai_conversations.messages (confidential). Restricted values a visitor types
+ * (SSN, DOB, account, routing and card numbers) are masked before any row is
+ * written, so the plaintext never reaches Postgres or the staff review queue
+ * (Global rule 8: those values may only be stored encrypted).
+ */
+export const TRANSCRIPT_CEILING: Classification = FIELD_CLASSIFICATION["ai_conversations.messages"]?.level ?? "confidential";
+
+/** Returns the message as it may be stored: everything above TRANSCRIPT_CEILING masked. */
+export function redactForStorage<M extends StoredMessage>(message: M): M {
+  const content = redactText(message.content, TRANSCRIPT_CEILING);
+  let changed = content !== message.content;
+  const out = { ...message, content };
+  if (out.role === "user" && out.dealContext !== undefined) {
+    const before = JSON.stringify(out.dealContext);
+    const dealContext = redactPayload(out.dealContext, TRANSCRIPT_CEILING);
+    if (JSON.stringify(dealContext) !== before) {
+      changed = true;
+      out.dealContext = dealContext;
+    }
+  }
+  return changed ? { ...out, redacted: true } : out;
 }
 
 /** Hard ceiling on user turns per conversation; the client starts a new one after this. */
@@ -104,7 +134,8 @@ export class SupabaseConversationStore implements ConversationStore {
     const { error } = await this.db
       .from("ai_conversations")
       .update({
-        messages: [...(current.messages ?? []), ...turn],
+        // Earlier rows are re-scrubbed too, so transcripts written before redaction existed are cleaned on the next turn.
+        messages: [...(current.messages ?? []), ...turn].map(redactForStorage),
         turn_count: expectedTurnCount + 1,
         last_message_at: turn[1].at,
         locked_until: null,
@@ -155,7 +186,7 @@ export class MemoryConversationStore implements ConversationStore {
     const row = this.rows.get(id);
     if (!row) throw new Error("conversation missing");
     if (row.turnCount !== expectedTurnCount) throw new Error("conversation changed while a turn was in progress");
-    row.messages = [...row.messages, ...structuredClone(turn)];
+    row.messages = [...row.messages, ...structuredClone(turn)].map(redactForStorage);
     row.turnCount += 1;
     row.lockedUntil = 0;
   }
