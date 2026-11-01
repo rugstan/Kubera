@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { leadSchema } from "@/lib/validation";
-import { EMPTY_VALUES, STEP_FIELDS, buildQualifyPayload, prefillFromParams, qualifierSchema, transactionOptions, valueLabel, type QualifierValues } from "./schema";
+import {
+  ASSETS,
+  ASSET_GROUPS,
+  EMPTY_VALUES,
+  STEP_FIELDS,
+  assetGroupsFor,
+  assetStepHeading,
+  assetsFor,
+  buildQualifyPayload,
+  familyFromParams,
+  familyTransaction,
+  offersHardMoney,
+  prefillFromParams,
+  qualifierSchema,
+  transactionAfterAssetChoice,
+  transactionOptions,
+  valueLabel,
+  type QualifierValues,
+} from "./schema";
 
 const META = { textVersion: "qualifier-contact-2026-10-31", page: "/express" };
 
@@ -60,6 +78,79 @@ describe("express form defaults", () => {
     expect(prefillFromParams((k) => senior.get(k)).transaction).toBeUndefined();
     expect(transactionOptions("SNF").map((o) => o.value)).not.toContain("HARD_MONEY");
     expect(transactionOptions("MULTIFAMILY").map((o) => o.value)).toContain("HARD_MONEY");
+  });
+});
+
+describe("family deep links", () => {
+  const params = (q: string) => {
+    const p = new URLSearchParams(q);
+    return (k: string) => p.get(k);
+  };
+
+  it("reads ?family= only for a known program family", () => {
+    expect(familyFromParams(params("family=construction"))).toBe("construction");
+    expect(familyFromParams(params("family=hard-money"))).toBe("hard-money");
+    expect(familyFromParams(params("family=senior-living&asset=SNF"))).toBe("senior-living");
+    expect(familyFromParams(params("family=crypto"))).toBeUndefined();
+    expect(familyFromParams(params("family="))).toBeUndefined();
+    expect(familyFromParams(params(""))).toBeUndefined();
+  });
+
+  it("shows the family's asset group first and keeps every group", () => {
+    expect(assetGroupsFor("senior-living")[0]).toBe("Senior living and care");
+    expect(assetGroupsFor("hotels")[0]).toBe("Hospitality");
+    expect(assetGroupsFor("multifamily")[0]).toBe("Multifamily and CRE");
+    for (const f of [undefined, "construction", "hard-money", "hotels"] as const) expect([...assetGroupsFor(f)].sort()).toEqual([...ASSET_GROUPS].sort());
+    expect(assetGroupsFor()).toEqual(ASSET_GROUPS);
+    expect(assetGroupsFor("construction")).toEqual(ASSET_GROUPS);
+  });
+
+  it("lists only hard-money-eligible assets on a hard money link", () => {
+    const listed = ASSET_GROUPS.flatMap((g) => assetsFor(g, "hard-money")).map((a) => a.value);
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.every((a) => offersHardMoney(a))).toBe(true);
+    expect(listed).not.toContain("SNF");
+    expect(listed).not.toContain("HOTEL_TO_SENIOR_CONVERSION");
+    expect(assetsFor("Senior living and care", "hard-money")).toEqual([]);
+    // Every other link lists every asset.
+    expect(ASSET_GROUPS.flatMap((g) => assetsFor(g, "construction"))).toHaveLength(ASSETS.length);
+    expect(ASSET_GROUPS.flatMap((g) => assetsFor(g))).toHaveLength(ASSETS.length);
+  });
+
+  it("asks a family-specific first question", () => {
+    expect(assetStepHeading("construction")).toBe("What are you building or renovating?");
+    expect(assetStepHeading("hard-money")).toBe("What property is the loan for?");
+    expect(assetStepHeading("hotels")).toBe("What are you financing?");
+    expect(assetStepHeading()).toBe("What are you financing?");
+  });
+
+  it("preselects construction or hard money only when the chosen asset offers it", () => {
+    expect(familyTransaction("MULTIFAMILY", "construction")).toBe("CONSTRUCTION");
+    expect(familyTransaction("ASSISTED_LIVING", "construction")).toBe("CONSTRUCTION");
+    // A conversion asset offers "Conversion", not "Construction".
+    expect(familyTransaction("HOTEL_TO_SENIOR_CONVERSION", "construction")).toBeUndefined();
+    expect(familyTransaction("RESIDENTIAL_2_4", "hard-money")).toBe("HARD_MONEY");
+    expect(familyTransaction("SNF", "hard-money")).toBeUndefined();
+    expect(familyTransaction("MULTIFAMILY", "multifamily")).toBeUndefined();
+    expect(familyTransaction("MULTIFAMILY")).toBeUndefined();
+  });
+
+  it("keeps the visitor's own transaction over the family's when the asset offers it", () => {
+    expect(transactionAfterAssetChoice("MULTIFAMILY", "", "construction")).toBe("CONSTRUCTION");
+    expect(transactionAfterAssetChoice("MULTIFAMILY", "PURCHASE", "construction")).toBe("PURCHASE");
+    expect(transactionAfterAssetChoice("MULTIFAMILY", "", "hard-money")).toBe("HARD_MONEY");
+    // A pick the new asset does not offer falls back to the family's, then to none.
+    expect(transactionAfterAssetChoice("SNF", "HARD_MONEY", "construction")).toBe("CONSTRUCTION");
+    expect(transactionAfterAssetChoice("SNF", "HARD_MONEY")).toBe("");
+    expect(transactionAfterAssetChoice("HOTEL_TO_SENIOR_CONVERSION", "CONSTRUCTION")).toBe("");
+  });
+
+  it("lets the sizer's explicit asset and transaction win over the family", () => {
+    const get = params("family=hard-money&asset=MULTIFAMILY&transaction=CONSTRUCTION&loan=5000000");
+    expect(prefillFromParams(get)).toMatchObject({ assetType: "MULTIFAMILY", transaction: "CONSTRUCTION", loanAmount: 5_000_000 });
+    expect(familyFromParams(get)).toBe("hard-money");
+    // The family never adds fields to the prefill itself.
+    expect(prefillFromParams(params("family=construction"))).toEqual({ loanAmount: null, noi: null });
   });
 });
 

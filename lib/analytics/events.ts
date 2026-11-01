@@ -18,6 +18,11 @@ export type AnalyticsEvents = {
   partner_validation_blocked: { type: string; fields: number };
   sizer_see_all_clicked: { tab?: string };
   sizer_quote_swiped: { index: number; count: number };
+  /** A homepage call to action: which one, and the section it sits in. */
+  home_cta_clicked: {
+    cta: "get_options" | "size_loan" | "book_call" | "family_hub" | "family_options";
+    section: "hero" | "programs" | "process" | "sizer" | "why" | "faq" | "final";
+  };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEvents;
@@ -33,6 +38,7 @@ export const EVENT_NAMES = [
   "partner_validation_blocked",
   "sizer_see_all_clicked",
   "sizer_quote_swiped",
+  "home_cta_clicked",
 ] as const satisfies readonly AnalyticsEventName[];
 
 const MAX_STRING = 60;

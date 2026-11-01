@@ -11,13 +11,13 @@ import { disclosures, licenseLine } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "60-second deal qualifier",
   description:
-    "Tell us about your senior living, hotel, multifamily or bridge deal. An AI-assisted first pass, reviewed by a licensed advisor, maps the programs that may fit.",
+    "Tell us about your senior living, hotel, multifamily, construction or hard money deal. A licensed advisor reviews it and maps the programs that may fit.",
   path: "/express",
 });
 
 const HOW_IT_WORKS = [
   { title: "Tell us the basics", body: "Property type, loan purpose, rough size and timing. It takes about a minute." },
-  { title: "AI-assisted first pass", body: "Our rules engine compares your answers with HUD, SBA, CMBS, agency and bridge program criteria." },
+  { title: "Program match", body: "We compare your answers with HUD, SBA, CMBS, agency, bridge, construction and hard money program criteria." },
   { title: "Advisor review", body: "A licensed Kubera advisor reviews the result and follows up with next steps. Nothing is a commitment to lend." },
 ] as const;
 
@@ -27,22 +27,20 @@ const EXPRESS_LEGAL_LINKS = LEGAL_PAGES.filter((page) => !page.href.includes("#"
 export default function ExpressPage() {
   return (
     <div className="flex min-h-dvh flex-col">
-      {/* Hides the floating Ask button here and on the express host's rewritten `/` (globals.css). */}
-      <div data-ask-floating-hidden hidden />
       <ExpressHeader />
       <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16">
         <section className="mb-10 text-center">
-          <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">60-second deal qualifier</h1>
+          <h1 className="text-4xl font-semibold md:text-5xl">60-second deal qualifier</h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-titanium">
-            Share a few details about your senior living, hotel, multifamily or bridge financing. We map the loan programs that may fit, and a licensed
-            advisor reviews every submission.
+            Share a few details about your senior living, hotel, multifamily, construction or hard money financing. We map the loan programs that may fit,
+            and a licensed advisor reviews every submission.
           </p>
         </section>
         <Suspense fallback={<div className="bento h-[560px] animate-pulse" />}>
           <Qualifier />
         </Suspense>
         <section aria-labelledby="how-it-works" className="mt-16">
-          <h2 id="how-it-works" className="text-2xl font-semibold tracking-tight">
+          <h2 id="how-it-works" className="text-2xl font-semibold">
             How it works
           </h2>
           <ol className="mt-6 grid gap-4 md:grid-cols-3">

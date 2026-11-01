@@ -29,6 +29,21 @@ describe("event catalog", () => {
   it("has no event whose name suggests personal data", () => {
     for (const name of EVENT_NAMES) expect(name).not.toMatch(/email|phone|name$/);
   });
+
+  it("lists every event once", () => {
+    expect(new Set(EVENT_NAMES).size).toBe(EVENT_NAMES.length);
+    expect(EVENT_NAMES).toContain("home_cta_clicked");
+  });
+
+  it("keeps the homepage CTA's properties through the sanitizer", () => {
+    // `cta` and `section` must not trip the personal-data key filter, or the event arrives empty.
+    expect(sanitizeProps({ cta: "get_options", section: "hero" })).toEqual({ cta: "get_options", section: "hero" });
+    const fake = createFakeAnalytics();
+    setAnalyticsForTests(fake);
+    track("home_cta_clicked", { cta: "family_options", section: "programs" });
+    setAnalyticsForTests(null);
+    expect(fake.events).toEqual([{ event: "home_cta_clicked", props: { cta: "family_options", section: "programs" } }]);
+  });
 });
 
 describe("providers", () => {

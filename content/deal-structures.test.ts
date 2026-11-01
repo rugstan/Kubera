@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BRIDGE, HUD, SBA } from "@/lib/sizing/assumptions";
-import { DEAL_STRUCTURES, formatUsd, getDealStructure, sba504Stack, structurePath } from "./deal-structures";
+import { CONSTRUCTION, HARD_MONEY } from "@/lib/sizing/programs/assumptions";
+import { DEAL_STRUCTURES, HOME_STRUCTURE_SLUGS, formatUsd, getDealStructure, sba504Stack, structurePath } from "./deal-structures";
 
 describe("sba504Stack", () => {
   it("splits a $2.5M special-purpose project 50 / 35 / 15", () => {
@@ -23,15 +24,24 @@ describe("sba504Stack", () => {
 });
 
 describe("illustrative structures", () => {
-  it("are the four shown on the home page", () => {
-    expect(DEAL_STRUCTURES).toHaveLength(4);
-    expect(DEAL_STRUCTURES.map((s) => s.amount)).toEqual(["$2.5M", "$14.5M", "$16.8M", "$9.2M"]);
+  it("are the six on /structures", () => {
+    expect(DEAL_STRUCTURES).toHaveLength(6);
+    expect(DEAL_STRUCTURES.map((s) => s.amount)).toEqual(["$2.5M", "$14.5M", "$16.8M", "$9.2M", "$24M", "$2.1M"]);
     expect(DEAL_STRUCTURES.map((s) => s.program)).toEqual([
       "SBA 504 refinance",
       "SBA 504 Green $5.5M + Bank 1st",
       "Bridge-to-HUD 232/223(f)",
       "Conversion bridge · California",
+      "Bank construction loan + C-PACE",
+      "Private lender · purchase + rehab",
     ]);
+  });
+
+  it("put four on the home page, including construction and hard money", () => {
+    expect(HOME_STRUCTURE_SLUGS).toHaveLength(4);
+    for (const slug of HOME_STRUCTURE_SLUGS) expect(getDealStructure(slug), slug).toBeDefined();
+    expect(new Set(HOME_STRUCTURE_SLUGS).size).toBe(HOME_STRUCTURE_SLUGS.length);
+    expect(HOME_STRUCTURE_SLUGS).toEqual(expect.arrayContaining(["multifamily-construction-bank-cpace", "investor-rehab-hard-money"]));
   });
 
   it("have unique slugs, paths and short titles", () => {
@@ -81,6 +91,28 @@ describe("illustrative structures", () => {
     expect(value("assisted-living-sba-504-refinance", "Debenture ongoing fees")).toBe("1.09%");
     expect(value("memory-care-bridge-to-hud", "Bridge term")).toBe(`${BRIDGE.senior.termMonths} months`);
     expect(value("hotel-to-assisted-living-conversion-bridge", "Bridge max LTC")).toBe(`${BRIDGE.construction.maxLtc * 100}%`);
+  });
+
+  it("take construction and hard money facts from the program assumptions", () => {
+    const value = (slug: string, label: string) => getDealStructure(slug)!.facts.find((f) => f.label === label)?.value;
+    const bank = CONSTRUCTION.boxes.BANK;
+    const rehab = HARD_MONEY.grid.FIX_AND_FLIP.EXPERIENCED;
+    expect(value("multifamily-construction-bank-cpace", "Bank max loan-to-cost")).toBe(`${bank.maxLtc * 100}%`);
+    expect(value("multifamily-construction-bank-cpace", "Bank spread")).toBe(`SOFR + ${bank.spread}%`);
+    expect(value("multifamily-construction-bank-cpace", "Min DSCR at stabilization")).toBe(`${bank.minDscrAtStabilization.toFixed(2)}x`);
+    expect(value("multifamily-construction-bank-cpace", "C-PACE term")).toBe(`${CONSTRUCTION.cpace.termYears} years, fixed`);
+    expect(value("investor-rehab-hard-money", "Max loan-to-after-repair value")).toBe(`${rehab.maxLtarv * 100}%`);
+    expect(value("investor-rehab-hard-money", "Note rate, experienced investor")).toBe(`${rehab.ratePct}%`);
+    expect(value("investor-rehab-hard-money", "Term")).toBe(`${HARD_MONEY.minTermMonths} to ${HARD_MONEY.maxTermMonths} months, interest-only`);
+  });
+
+  it("keep loan funds with the lender of record on the construction and hard money structures", () => {
+    for (const slug of ["multifamily-construction-bank-cpace", "investor-rehab-hard-money"]) {
+      const s = getDealStructure(slug)!;
+      expect(s.stack, slug).toBeUndefined();
+      expect(s.gold, slug).toBeUndefined();
+      expect(s.steps.some((step) => /as lender of record/.test(step.body) && /Kubera never holds or moves loan funds\./.test(step.body)), slug).toBe(true);
+    }
   });
 
   it("flag unverified HUD parameters for re-checking", () => {

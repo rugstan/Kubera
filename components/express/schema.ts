@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PROGRAM_FAMILIES, type ProgramFamily } from "@/content/programs/types";
 import type { Intake } from "@/lib/validation";
 
 // The express qualifier's form model: option lists, per-step field groups, the
@@ -27,6 +28,7 @@ export const ASSETS: { value: Asset; label: string; group: string }[] = [
 ];
 
 export const ASSET_GROUPS = ["Senior living and care", "Hospitality", "Multifamily and CRE"] as const;
+export type AssetGroup = (typeof ASSET_GROUPS)[number];
 
 export const TIMELINES = [
   { value: "21", label: "Within 3 weeks" },
@@ -265,7 +267,7 @@ export function buildQualifyPayload(v: QualifierValues, consentMeta: QualifierPa
   };
 }
 
-/** Query-string prefill from the sizer's "Get real terms" link. Only values the visitor entered are carried over. */
+/** Query-string prefill from the sizer's link to the qualifier. Only values the visitor entered are carried over. */
 export function prefillFromParams(get: (key: string) => string | null): Partial<QualifierValues> {
   const asset = ASSETS.find((a) => a.value === get("asset"))?.value;
   const positive = (key: string) => {
@@ -275,4 +277,62 @@ export function prefillFromParams(get: (key: string) => string | null): Partial<
   // The sizer's hard money and construction tabs also send the transaction; keep it only when the asset offers it.
   const transaction = asset ? transactionOptions(asset).find((o) => o.value === get("transaction"))?.value : undefined;
   return { ...(asset ? { assetType: asset } : {}), ...(transaction ? { transaction } : {}), loanAmount: positive("loan"), noi: positive("noi") };
+}
+
+// ---------------------------------------------------------------------------
+// Family links: /express?family=<family> from the homepage cards and program
+// pages. The family only shapes the first step (which assets show, and in what
+// order) and preselects a transaction. Explicit `asset` and `transaction`
+// parameters, as the sizer sends them, always win.
+
+/** The program family named by `?family=`, or undefined when it is missing or unknown. */
+export function familyFromParams(get: (key: string) => string | null): ProgramFamily | undefined {
+  const raw = get("family")?.trim();
+  return PROGRAM_FAMILIES.find((f) => f === raw);
+}
+
+/** Asset group a family link shows first. Construction and hard money keep the default order. */
+const FAMILY_GROUP: Partial<Record<ProgramFamily, AssetGroup>> = {
+  "senior-living": "Senior living and care",
+  hotels: "Hospitality",
+  multifamily: "Multifamily and CRE",
+};
+
+/** Transaction a family link preselects once the visitor picks an asset that offers it. */
+const FAMILY_TRANSACTION: Partial<Record<ProgramFamily, Transaction>> = {
+  construction: "CONSTRUCTION",
+  "hard-money": "HARD_MONEY",
+};
+
+/** Asset groups in display order, with the family's own group first. */
+export function assetGroupsFor(family?: ProgramFamily): readonly AssetGroup[] {
+  const first = family ? FAMILY_GROUP[family] : undefined;
+  return first ? [first, ...ASSET_GROUPS.filter((g) => g !== first)] : ASSET_GROUPS;
+}
+
+/** Assets in one group. A hard money link lists only assets a private lender finances. */
+export function assetsFor(group: AssetGroup, family?: ProgramFamily): typeof ASSETS {
+  return ASSETS.filter((a) => a.group === group && (family !== "hard-money" || offersHardMoney(a.value)));
+}
+
+export function assetStepHeading(family?: ProgramFamily): string {
+  if (family === "construction") return "What are you building or renovating?";
+  if (family === "hard-money") return "What property is the loan for?";
+  return "What are you financing?";
+}
+
+/** The family's transaction for this asset, only when the asset offers it. */
+export function familyTransaction(asset: Asset | "", family?: ProgramFamily): Transaction | undefined {
+  const pending = family ? FAMILY_TRANSACTION[family] : undefined;
+  return pending && transactionOptions(asset).some((o) => o.value === pending) ? pending : undefined;
+}
+
+/**
+ * The transaction to keep once the visitor picks an asset: their current pick
+ * while the asset still offers it, else the family's transaction when the asset
+ * offers that, else none.
+ */
+export function transactionAfterAssetChoice(asset: Asset, current: Transaction | "", family?: ProgramFamily): Transaction | "" {
+  if (current && transactionOptions(asset).some((o) => o.value === current)) return current;
+  return familyTransaction(asset, family) ?? "";
 }
