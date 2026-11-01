@@ -8,6 +8,8 @@ import { workflowFunctions } from "@/lib/workflows/server";
 // speed-to-lead and the outreach sweep).
 // Requests are verified with INNGEST_SIGNING_KEY by the SDK. Without Inngest
 // configured (no keys and not INNGEST_DEV), it answers 503 and nothing runs.
+// In production INNGEST_DEV is ignored, so both keys are always required and
+// signatures are always checked.
 
 export const maxDuration = 300;
 
