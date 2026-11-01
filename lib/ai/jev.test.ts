@@ -14,6 +14,7 @@ import {
   jevDecisionSchema,
   lendersFor,
   publicSummary,
+  reconcileRemoteDecision,
   remoteJevPayload,
   verticalFor,
 } from "./jev";
@@ -296,3 +297,60 @@ describe("Jev: remote refinement privacy", () => {
     expect(r.engine).toBe("rules");
   });
 });
+
+describe("Jev: remote decision is validated against the local sizing", () => {
+  const mk = (noi: number) =>
+    intakeSchema.parse({ assetType: "MULTIFAMILY", transaction: "PURCHASE", loanAmount: 5_000_000, noi, value: 8_000_000, unitCount: 60 });
+  const qualified = mk(600_000);
+  const unqualified = mk(0);
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  function mockRemote(output: unknown) {
+    vi.stubEnv("JEV_API_URL", "https://jev.example.test/decide");
+    vi.stubEnv("JEV_API_KEY", "k");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ output }), { status: 200 })));
+  }
+
+  it("adopts an eligible remote program and shows the borrower that same quote", async () => {
+    const local = decideWithRules(qualified, rates);
+    mockRemote({ ...local.decision, primaryProgramFit: "HUD_221D4_223F_MULTIFAMILY", secondaryProgramFit: "AGENCY_FANNIE_MAE", leadUrgencyTier: "TIER_3_NURTURE" });
+    const r = await decide(qualified, rates);
+    expect(r.engine).toBe("jev-remote");
+    expect(r.decision.primaryProgramFit).toBe("HUD_221D4_223F_MULTIFAMILY");
+    expect(r.primaryQuote?.id).toBe("HUD_221D4_223F_MULTIFAMILY");
+    expect(publicSummary(r).program).toBe(r.primaryQuote?.name);
+    expect(r.decision.estimatedBrokerCommissionUsd).toBe(Math.round(r.primaryQuote!.estimatedAdvisoryFee));
+  });
+
+  it("falls back to the rules decision when the remote names a program the sizer did not quote", async () => {
+    const local = decideWithRules(qualified, rates);
+    mockRemote({ ...local.decision, primaryProgramFit: "SBA_504" });
+    const r = await decide(qualified, rates);
+    expect(r.engine).toBe("rules");
+    expect(r.decision).toEqual(local.decision);
+    expect(r.primaryQuote?.id).toBe(local.primaryQuote?.id);
+  });
+
+  it("never lets the remote raise the tier on a deal the sizer found ineligible", async () => {
+    const local = decideWithRules(unqualified, rates);
+    expect(local.decision.leadUrgencyTier).toBe("UNQUALIFIED");
+    mockRemote({ ...local.decision, leadUrgencyTier: "TIER_1_INSTITUTIONAL_HOT", requiresImmediateBrokerCall: true, estimatedBrokerCommissionUsd: 99_000 });
+    const r = await decide(unqualified, rates);
+    expect(r.engine).toBe("rules");
+    expect(r.decision.leadUrgencyTier).toBe("UNQUALIFIED");
+    expect(r.decision.requiresImmediateBrokerCall).toBe(false);
+    expect(publicSummary(r).qualified).toBe(false);
+  });
+
+  it("rejects a remote program whose quote is ineligible even on a qualified tier", async () => {
+    const local = decideWithRules(qualified, rates);
+    const sizing = { ...local.sizing, quotes: local.sizing.quotes.map((q) => (q.id === "HUD_221D4_223F_MULTIFAMILY" ? { ...q, eligible: false } : q)) };
+    const out = reconcileRemoteDecision({ ...local, sizing }, { ...local.decision, primaryProgramFit: "HUD_221D4_223F_MULTIFAMILY" });
+    expect(out).toBeNull();
+  });
+});
+

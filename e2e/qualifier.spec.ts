@@ -38,7 +38,7 @@ test.describe("express qualifier", () => {
         source: "express",
       },
       contact: { firstName: "Pat", lastName: "Lee", email: "pat.lee@example.com", phone: "415-555-0132", consent: true },
-      consentMeta: { textVersion: "qualifier-contact-2026-10-31", page: "/express" },
+      consentMeta: { textVersion: "qualifier-contact-2026-11-01", page: "/express" },
     });
   });
 

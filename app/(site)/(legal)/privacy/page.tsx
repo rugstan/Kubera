@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LegalPage, TableScroll } from "@/components/legal/LegalPage";
 import { COLLECTION_POINTS, PI_CATEGORIES, PURPOSES, RECORD_RETENTION, SERVICE_PROVIDERS } from "@/components/legal/legal";
 import { legalMetadata } from "@/components/legal/metadata";
+import { contactDetails } from "@/content/contact";
 import { site } from "@/lib/site";
 
 export const metadata = legalMetadata(
@@ -13,6 +14,7 @@ export const metadata = legalMetadata(
 const collectedAtAnyForm = new Set(Object.values(COLLECTION_POINTS).flatMap((p) => p.categories));
 
 export default function PrivacyPage() {
+  const contact = contactDetails();
   return (
     <LegalPage
       title="Privacy policy"
@@ -193,15 +195,22 @@ export default function PrivacyPage() {
         </li>
       </ul>
       <h3 id="requests">How to make a request</h3>
-      <p>
-        Email <a href={`mailto:${site.privacyEmail}`}>{site.privacyEmail}</a>
-        {site.phone ? (
-          <>
-            {" "}
-            or call <a href={`tel:${site.phone.replace(/[^\d+]/g, "")}`}>{site.phone}</a>
-          </>
+      <p>You can make a request in any of these ways:</p>
+      <ul data-privacy-request-methods>
+        <li>
+          <strong>Online form.</strong> <Link href="/privacy/ai#request">Use the privacy request form</Link> to ask for access, deletion, correction, or to opt out.
+        </li>
+        <li>
+          <strong>Email.</strong> <a href={`mailto:${site.privacyEmail}`}>{site.privacyEmail}</a>
+        </li>
+        {contact.phone ? (
+          <li>
+            <strong>Phone.</strong> Call our office at {contact.telHref ? <a href={`tel:${contact.telHref}`}>{contact.phone}</a> : contact.phone}.
+          </li>
         ) : null}
-        . Tell us which right you want to use and how we can reach you. We will confirm receipt within 10 business days and respond within 45 calendar days. If we need more time, we
+      </ul>
+      <p>
+        Tell us which right you want to use and how we can reach you. We will confirm receipt within 10 business days and respond within 45 calendar days. If we need more time, we
         will tell you why and may take up to another 45 days.
       </p>
       <p>
