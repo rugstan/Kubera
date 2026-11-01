@@ -8,6 +8,7 @@ import PrivacyPage from "@/app/(site)/(legal)/privacy/page";
 import TermsPage from "@/app/(site)/(legal)/terms/page";
 import { DraftNotice } from "./DraftNotice";
 import { categoriesSentence, categoryById, COLLECTION_POINTS, LEGAL_PAGES, legalApproved, PI_CATEGORIES, type CollectionPoint } from "./legal";
+import { canonicalUrl } from "@/lib/seo/hosts";
 import { legalMetadata } from "./metadata";
 import { NoticeAtCollection } from "./NoticeAtCollection";
 
@@ -145,7 +146,17 @@ describe("legal pages", () => {
 describe("legalMetadata", () => {
   it("sets one canonical and a per-route Open Graph URL", () => {
     const m = legalMetadata("/privacy", "Privacy policy", "desc");
-    expect(m.alternates?.canonical).toBe("/privacy");
-    expect(m.openGraph?.url).toBe("/privacy");
+    expect(m.alternates?.canonical).toBe(canonicalUrl("/privacy"));
+    expect(m.openGraph?.url).toBe(canonicalUrl("/privacy"));
+  });
+
+  it("attaches the share image, a large Twitter card and the branded title", () => {
+    const m = legalMetadata("/terms", "Terms of use", "desc");
+    const images = (m.openGraph as { images?: { url: string; width: number; height: number }[] }).images;
+    expect(images).toHaveLength(1);
+    expect(images?.[0]).toMatchObject({ url: "/opengraph-image", width: 1200, height: 630 });
+    expect((m.twitter as { card?: string }).card).toBe("summary_large_image");
+    expect((m.twitter as { images?: string[] }).images).toEqual(["/opengraph-image"]);
+    expect((m.openGraph as { title?: string }).title).toBe("Terms of use · Kubera Commercial");
   });
 });

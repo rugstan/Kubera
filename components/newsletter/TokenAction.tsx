@@ -8,12 +8,12 @@ import { postJson } from "@/components/forms";
 // The page behind a confirm or unsubscribe link. Opening the link only shows a
 // button; pressing it posts the token. That keeps mail scanners and link
 // previews, which open links on their own, from changing anyone's subscription.
+// The page heading lives in the server page, outside the Suspense boundary.
 
 type Mode = "confirm" | "unsubscribe";
 
-const COPY: Record<Mode, { heading: string; lead: string; button: string; done: Record<string, string> }> = {
+const COPY: Record<Mode, { lead: string; button: string; done: Record<string, string> }> = {
   confirm: {
-    heading: "Confirm your subscription",
     lead: "Press the button to finish subscribing to the Kubera Commercial newsletter.",
     button: "Confirm subscription",
     done: {
@@ -22,7 +22,6 @@ const COPY: Record<Mode, { heading: string; lead: string; button: string; done: 
     },
   },
   unsubscribe: {
-    heading: "Unsubscribe from the newsletter",
     lead: "Press the button to stop receiving the Kubera Commercial newsletter at this address.",
     button: "Unsubscribe",
     done: {
@@ -63,7 +62,7 @@ export function TokenAction({ mode }: { mode: Mode }) {
 
   if (!token) {
     return (
-      <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-[15px] text-rose-800">
+      <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-[15px] text-rose-800">
         This link is incomplete. Open the link from your email again, or <Link href="/newsletter" className="font-medium underline">sign up for the newsletter</Link>.
       </p>
     );
@@ -71,7 +70,6 @@ export function TokenAction({ mode }: { mode: Mode }) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{copy.heading}</h1>
       {state.kind === "done" ? null : <p className="mt-4 text-[17px] leading-relaxed text-ink/85">{copy.lead}</p>}
       {state.kind !== "done" && (
         <button type="button" onClick={() => void run()} disabled={state.kind === "working"} className="pill pill-primary mt-6 disabled:opacity-60">

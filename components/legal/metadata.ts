@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
-import { site } from "@/lib/site";
+import { pageMetadata } from "@/lib/seo/metadata";
 
 /**
- * Metadata for a legal page: one canonical URL and a per-route Open Graph URL.
- * Child openGraph objects replace the parent's, so the shared fields are repeated.
+ * Metadata for a legal page. Goes through the shared `pageMetadata()` so legal
+ * routes get the same canonical, matching Open Graph URL, 1200x630 share image,
+ * large Twitter card and branded title as every other page.
  */
 export function legalMetadata(path: `/${string}`, title: string, description: string): Metadata {
-  return {
-    title,
-    description,
-    alternates: { canonical: path },
-    openGraph: { type: "website", siteName: site.name, title, description, url: path },
-  };
+  return pageMetadata({ title, description, path });
 }
