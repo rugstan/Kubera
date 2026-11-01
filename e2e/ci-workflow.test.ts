@@ -58,7 +58,11 @@ describe("CI workflow", () => {
 });
 
 describe("vercel.json", () => {
-  const vercel = JSON.parse(read("vercel.json")) as { crons: { path: string; schedule: string }[] };
+  const vercel = JSON.parse(read("vercel.json")) as { framework?: string; crons: { path: string; schedule: string }[] };
+
+  it("pins the Next.js framework preset so git-triggered builds never fall back to a static build", () => {
+    expect(vercel.framework).toBe("nextjs");
+  });
 
   it("schedules the rates and CRM retry crons", () => {
     expect(vercel.crons.map((c) => c.path)).toEqual(expect.arrayContaining(["/api/cron/rates", "/api/cron/crm-retry"]));
