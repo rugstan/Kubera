@@ -122,9 +122,11 @@ export async function POST(req: Request) {
   });
 
   // CRM sync runs after the response so the borrower never waits on Twenty.
+  // The /api/cron/crm-retry cron is the backstop if this run is lost.
   after(async () => {
     if (!twentyConfigured()) {
-      console.warn("Twenty CRM not configured; lead stored in Supabase only", leadId);
+      // The crm-retry cron pushes this row once Twenty is configured.
+      console.warn("Twenty CRM not configured; lead stored in Supabase until crm-retry pushes it", leadId);
       return;
     }
     try {

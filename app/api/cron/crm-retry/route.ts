@@ -13,7 +13,8 @@ export const maxDuration = 60;
 
 // Vercel Cron hits this every 30 minutes (vercel.json) with
 // `Authorization: Bearer $CRON_SECRET`. It re-pushes leads and partners whose
-// Twenty sync failed (rows carrying `crm_error`); see ./retry.ts.
+// Twenty sync failed (rows carrying `crm_error`) and rows whose first sync
+// never ran or never finished; see ./retry.ts.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || !safeEqual(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) {
