@@ -5,6 +5,7 @@ import { inboundMailDeps } from "@/lib/mail/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { agentWorkflowHooks } from "./agents-server";
 import type { OutboundExecutor, WorkflowDeps } from "./deps";
+import { createCronRelayFunctions } from "./cron-relay";
 import { createWorkflowFunctions } from "./functions";
 import { MemoryIdempotencyStore, supabaseIdempotencyStore } from "./idempotency";
 import { MemoryAgentRunStore, supabaseAgentRunStore } from "./runs";
@@ -59,10 +60,12 @@ export function workflowDeps(): WorkflowDeps {
   };
 }
 
-let functions: ReturnType<typeof createWorkflowFunctions> | undefined;
+type ServedFunction = ReturnType<typeof createWorkflowFunctions>[number] | ReturnType<typeof createCronRelayFunctions>[number];
 
-/** The functions /api/inngest serves (created once). */
-export function workflowFunctions(): ReturnType<typeof createWorkflowFunctions> {
-  functions ??= createWorkflowFunctions(workflowDeps, agentWorkflowHooks);
+let functions: ServedFunction[] | undefined;
+
+/** The functions /api/inngest serves (created once): workflows, agents and the frequent scheduled jobs (./cron-relay.ts). */
+export function workflowFunctions(): ServedFunction[] {
+  functions ??= [...createWorkflowFunctions(workflowDeps, agentWorkflowHooks), ...createCronRelayFunctions()];
   return functions;
 }

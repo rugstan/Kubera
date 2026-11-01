@@ -42,6 +42,13 @@ describe("/api/inngest", () => {
       "intel-weekly",
       "prospect-scan",
       "prospect-outreach-settle",
+      "cron-rates",
+      "cron-crm-retry",
+      "cron-approvals-expire",
+      "cron-notify-sweep",
+      "cron-documents-scan",
+      "cron-outreach-sweep",
+      "cron-mlds-clock",
     ]);
   });
 

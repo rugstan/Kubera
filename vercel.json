@@ -1,14 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
-    { "path": "/api/cron/rates", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/crm-retry", "schedule": "7,37 * * * *" },
+    { "path": "/api/cron/rates", "schedule": "11 12 * * *" },
+    { "path": "/api/cron/crm-retry", "schedule": "37 12 * * *" },
     { "path": "/api/cron/retention", "schedule": "23 10 * * *" },
-    { "path": "/api/cron/approvals-expire", "schedule": "4,19,34,49 * * * *" },
-    { "path": "/api/notify/sweep", "schedule": "* * * * *" },
-    { "path": "/api/documents/scan", "schedule": "* * * * *" },
+    { "path": "/api/cron/approvals-expire", "schedule": "49 12 * * *" },
+    { "path": "/api/notify/sweep", "schedule": "17 13 * * *" },
+    { "path": "/api/documents/scan", "schedule": "29 13 * * *" },
     { "path": "/api/cron/construction-takeouts", "schedule": "41 13 * * *" },
-    { "path": "/api/outreach/sweep", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/mlds-clock", "schedule": "53 * * * *" }
+    { "path": "/api/outreach/sweep", "schedule": "5 14 * * *" },
+    { "path": "/api/cron/mlds-clock", "schedule": "53 14 * * *" }
   ]
 }

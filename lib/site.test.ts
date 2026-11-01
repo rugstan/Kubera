@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { assertLicenseConfigured, deploymentEnv, dreLookupUrl, LicenseConfigurationError } from "./site";
+import { assertLicenseConfigured, deploymentEnv, DRE_LICENSE_OF_RECORD, dreLookupUrl, LicenseConfigurationError } from "./site";
 
 describe("deploymentEnv", () => {
   it.each([
@@ -22,14 +22,20 @@ describe("deploymentEnv", () => {
 describe("assertLicenseConfigured (build-time license guard)", () => {
   const prod = { VERCEL_ENV: "production", NODE_ENV: "production" };
 
-  it("throws in a production deployment when the corporate license is empty", () => {
-    expect(() => assertLicenseConfigured({ ...prod })).toThrow(LicenseConfigurationError);
+  it("throws in a production deployment when the corporate license is set blank", () => {
+    expect(() => assertLicenseConfigured({ ...prod, NEXT_PUBLIC_DRE_CORPORATE_LICENSE: "" })).toThrow(LicenseConfigurationError);
     expect(() => assertLicenseConfigured({ ...prod, NEXT_PUBLIC_DRE_CORPORATE_LICENSE: "" })).toThrow(/NEXT_PUBLIC_DRE_CORPORATE_LICENSE is empty/);
     expect(() => assertLicenseConfigured({ ...prod, NEXT_PUBLIC_DRE_CORPORATE_LICENSE: "   " })).toThrow(/is empty/);
   });
 
   it("throws on non-Vercel production hosts that declare DEPLOY_ENV=production", () => {
-    expect(() => assertLicenseConfigured({ DEPLOY_ENV: "production", NODE_ENV: "production" })).toThrow(LicenseConfigurationError);
+    expect(() => assertLicenseConfigured({ DEPLOY_ENV: "production", NODE_ENV: "production", NEXT_PUBLIC_DRE_CORPORATE_LICENSE: "" })).toThrow(LicenseConfigurationError);
+  });
+
+  it("falls back to the license of record when the environment does not set one", () => {
+    expect(DRE_LICENSE_OF_RECORD).toMatch(/^\d{8}$/);
+    expect(() => assertLicenseConfigured({ ...prod })).not.toThrow();
+    expect(() => assertLicenseConfigured({ DEPLOY_ENV: "production", NODE_ENV: "production" })).not.toThrow();
   });
 
   it.each(["1234567", "123456789", "02ABC123", "00000000", "TBD"])("rejects malformed license %s in production", (value) => {
@@ -82,7 +88,16 @@ describe("lib/site module load", () => {
     expect(line).not.toMatch(/pending configuration/i);
   });
 
-  it("loads in preview without a license and marks the placeholder", async () => {
+  it("shows the license of record when the environment does not set one", async () => {
+    vi.resetModules();
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_DRE_CORPORATE_LICENSE", undefined);
+    const mod = await import("./site");
+    expect(mod.site.dreCorporateLicense).toBe("01522444");
+    expect(mod.licenseLine()).toContain("CA DRE Corp. License #01522444");
+  });
+
+  it("loads in preview with a blank license and marks the placeholder", async () => {
     vi.resetModules();
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("NEXT_PUBLIC_DRE_CORPORATE_LICENSE", "");

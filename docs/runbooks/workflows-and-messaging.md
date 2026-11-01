@@ -30,9 +30,11 @@ Set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`; `LANGFUSE_BASE_URL` default
 
 `CSLB_LOOKUP_ENABLED=true` turns on the public CSLB license lookup; leave it empty to verify contractor licenses by hand. `CSLB_LOOKUP_BASE_URL` is only for tests and proxies.
 
-## Crons (vercel.json)
+## Crons (Inngest relay + vercel.json)
 
 All cron routes require `Authorization: Bearer $CRON_SECRET`.
+
+Vercel Hobby only accepts once-a-day crons, so `vercel.json` runs every job once a day as a floor and Inngest runs the frequent cadence (`lib/workflows/cron-relay.ts`, served at `/api/inngest`). The relay calls each route handler in-process with the cron bearer, so it needs `CRON_SECRET` and the Inngest keys. On Vercel Pro you can put the original schedules back in `vercel.json` and drop the relay. The schedules below are the relay's; `/api/notify/sweep` and `/api/documents/scan` run every 5 minutes there instead of every minute.
 
 | Path | Schedule | Purpose |
 | --- | --- | --- |

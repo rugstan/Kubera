@@ -34,7 +34,7 @@ Production is a Vercel project built from the `main` branch. Every pull request 
 - [ ] `https://kubera.loans/` serves the qualifier and `https://kubera.loans/anything-else` redirects to the main site.
 - [ ] A synthetic qualifier submission from staging (never production) creates a lead and a Twenty record.
 - [ ] Vercel runtime logs and Sentry show no new error class in the first 15 minutes.
-- [ ] Cron jobs registered: Vercel project, **Settings, Cron Jobs** lists `/api/cron/rates` and `/api/cron/crm-retry`.
+- [ ] Cron jobs registered: Vercel project, **Settings, Cron Jobs** lists the daily floors (`/api/cron/rates`, `/api/cron/crm-retry`, ...), and the Inngest dashboard lists the `cron-*` functions from `lib/workflows/cron-relay.ts`.
 
 ## Rollback: Vercel Instant Rollback
 

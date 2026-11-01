@@ -67,7 +67,7 @@ The rules engine runs the same sizing code the public sizer uses, so CRM numbers
 
 ## Before launch
 
-- [ ] Set `NEXT_PUBLIC_DRE_CORPORATE_LICENSE` / `NEXT_PUBLIC_DRE_OFFICER_LICENSE`. The footer shows "pending configuration" until then.
+- [ ] Confirm DRE license #01522444 (the license of record in `lib/site.ts`) and set `NEXT_PUBLIC_DRE_OFFICER_LICENSE` for the designated officer.
 - [ ] Have the designated officer review `lib/sizing/assumptions.ts`, especially the items marked **VERIFY** (2026 SBA combined cap, Green MIP scope).
 - [ ] Confirm lender routing in `lib/ai/lenders.ts` matches signed correspondent / fee agreements.
 - [ ] Have counsel review the TCPA consent copy, referral-fee language (B&P § 10137), and the illustrative structures.

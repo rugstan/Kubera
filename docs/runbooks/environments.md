@@ -17,7 +17,7 @@ Production and staging share **no** data stores, API keys, webhooks or secrets. 
 | Upstash Redis | Production database | Separate database |
 | Sentry | `environment=production` | `environment=preview`; separate DSN optional but recommended |
 | `CRON_SECRET`, `LEAD_TOKEN_SECRET`, webhook secrets | Unique per environment | Unique per environment |
-| `NEXT_PUBLIC_DRE_CORPORATE_LICENSE` | Real license number (build fails without it) | Real value or an obviously fake one; never printed in ads |
+| `NEXT_PUBLIC_DRE_CORPORATE_LICENSE` | Leave unset to use the license of record in `lib/site.ts` (01522444); a blank value fails the build | Real value or an obviously fake one; never printed in ads |
 | `EXPRESS_HOSTS` | `kubera.loans,www.kubera.loans` | Include the staging host only if testing the short-domain flow |
 
 ## Rules

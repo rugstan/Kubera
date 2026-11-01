@@ -1,11 +1,20 @@
-// Company identity and regulatory disclosures. License numbers come from the
-// environment so they are never hard-coded or guessed; California requires the
-// DRE license number on first-point-of-contact materials, websites included
-// (Bus. & Prof. Code § 10140.6, 10 CCR § 2773).
+// Company identity and regulatory disclosures. California requires the DRE
+// license number on first-point-of-contact materials, websites included
+// (Bus. & Prof. Code § 10140.6, 10 CCR § 2773). The license of record below was
+// supplied by the broker; the environment can override it (CI and e2e use
+// obviously fake values) and an explicitly blank value still fails the
+// production guard.
 
 import { deploymentEnv } from "./deploy-env";
 
 type Env = Record<string, string | undefined>;
+
+/** Kubera Commercial's California DRE license of record (public by law). */
+export const DRE_LICENSE_OF_RECORD = "01522444";
+
+function corporateLicense(env: Env): string {
+  return (env.NEXT_PUBLIC_DRE_CORPORATE_LICENSE ?? DRE_LICENSE_OF_RECORD).trim();
+}
 
 export const site = {
   name: "Kubera Commercial",
@@ -13,7 +22,7 @@ export const site = {
   primaryDomain: "kuberacommercial.com",
   expressDomain: "kubera.loans",
   designatedOfficer: "Neeli Khanna",
-  dreCorporateLicense: (process.env.NEXT_PUBLIC_DRE_CORPORATE_LICENSE ?? "").trim(),
+  dreCorporateLicense: corporateLicense({ NEXT_PUBLIC_DRE_CORPORATE_LICENSE: process.env.NEXT_PUBLIC_DRE_CORPORATE_LICENSE }),
   dreOfficerLicense: (process.env.NEXT_PUBLIC_DRE_OFFICER_LICENSE ?? "").trim(),
   nmls: (process.env.NEXT_PUBLIC_NMLS_ID ?? "").trim(),
   phone: (process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "").trim(),
@@ -44,7 +53,7 @@ export class LicenseConfigurationError extends Error {
  */
 export function assertLicenseConfigured(env: Env = process.env): void {
   if (deploymentEnv(env) !== "production") return;
-  const corp = (env.NEXT_PUBLIC_DRE_CORPORATE_LICENSE ?? "").trim();
+  const corp = corporateLicense(env);
   if (!corp) {
     throw new LicenseConfigurationError(
       "NEXT_PUBLIC_DRE_CORPORATE_LICENSE is empty. California requires the DRE license number on the website; set it before deploying to production.",
