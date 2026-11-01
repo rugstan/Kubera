@@ -27,7 +27,7 @@ export const hotelPrograms: ProgramEntry[] = [
       fact("Minimum DSCR", x(SBA.minDscr), SRC.sba),
       fact("Upfront debenture fees (financed)", pct(SBA.upfrontDebentureFees, 2), SRC.kubera),
       fact("Ongoing debenture fees (bundled in rate)", pct(SBA.annualDebentureFees, 2), SRC.kubera),
-      fact("Typical close", `${SBA.typicalCloseDays} after a complete file`, SRC.sba),
+      fact("Typical close", `${SBA.closeRange} after a complete file`, SRC.sba),
     ],
     sections: [
       {
@@ -65,7 +65,7 @@ export const hotelPrograms: ProgramEntry[] = [
       },
       {
         question: "How long does an SBA 504 loan take?",
-        answer: `Typical range is ${SBA.typicalCloseDays} after a complete file. ${disclosures.timeline}`,
+        answer: `Typical range is ${SBA.closeRange}. ${disclosures.timeline}`,
       },
     ],
     related: ["sba-7a-504-hotel-stack", "hotel-cmbs", "pip-bridge", "hotel-to-senior-living-conversion", "hotels"],
@@ -208,7 +208,7 @@ export const hotelPrograms: ProgramEntry[] = [
       fact("Typical term", `${BRIDGE.hotelPip.termMonths} months`, SRC.kubera),
       fact("Indicative spread", `SOFR + ${pts(BRIDGE.hotelPip.spread)} points`, SRC.kubera),
       fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
-      fact("Typical close", `${BRIDGE.closeDays} after a complete file`, SRC.kubera),
+      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.kubera),
     ],
     sections: [
       {
@@ -237,7 +237,7 @@ export const hotelPrograms: ProgramEntry[] = [
       },
       {
         question: "How fast can a PIP bridge close?",
-        answer: `Many close in ${BRIDGE.closeDays} after a complete file, subject to lender approval, appraisal, title and diligence. Timing is not guaranteed.`,
+        answer: `Many close in ${BRIDGE.closeRange} after a complete file, subject to lender approval, appraisal, title and diligence. Timing is not guaranteed.`,
       },
       {
         question: "Is a PIP bridge recourse?",

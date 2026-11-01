@@ -303,7 +303,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       fact("Indicative spread", `SOFR + ${pts(BRIDGE.cre.spread)} points`, SRC.kubera),
       fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
       fact("Exit test (stabilized)", `Debt yield ${BRIDGE_EXIT_TEST.debtYield} and ${BRIDGE_EXIT_TEST.dscr} DSCR`, SRC.market),
-      fact("Typical close", `${BRIDGE.closeDays} after a complete file`, SRC.kubera),
+      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.kubera),
     ],
     sections: [
       {
@@ -330,7 +330,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       },
       {
         question: "How fast can a bridge loan close?",
-        answer: `Many close in ${BRIDGE.closeDays} after a complete file, subject to lender approval, appraisal, title and diligence. This is not guaranteed.`,
+        answer: `Many close in ${BRIDGE.closeRange} after a complete file, subject to lender approval, appraisal, title and diligence. This is not guaranteed.`,
       },
     ],
     related: ["fannie-mae-multifamily", "hud-223f-multifamily", "private-bridge", "dscr-investor", "multifamily"],

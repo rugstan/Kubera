@@ -132,7 +132,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       { label: "Debenture ongoing fees", value: pct(SBA.annualDebentureFees), note: "Bundled into the effective debenture rate." },
       { label: "Debenture upfront fees", value: pct(SBA.upfrontDebentureFees), note: "Financed into the debenture." },
       { label: "Modeled HUD annual audit avoided", value: usd(HUD.annualAuditCost), note: HUD_ASSUMPTION_NOTE },
-      { label: "Typical SBA timeline", value: SBA.typicalCloseDays, note: "After a complete file. Not guaranteed." },
+      { label: "Typical SBA timeline", value: SBA.closeRange, note: "After a complete file. Not guaranteed." },
     ],
     steps: [
       { title: "Check whether HUD or 504 fits the size", body: "The advisor compares both on all-in cost, not rate alone, using the loan sizer assumptions." },
@@ -179,7 +179,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       { label: "First lien share of project", value: pct(SBA.bankFirstPct), note: SBA_ASSUMPTION_NOTE },
       { label: "Equity, special-purpose property", value: pct(SBA.equity.base + SBA.equity.specialPurpose), note: SBA_ASSUMPTION_NOTE },
       { label: "Minimum DSCR modeled", value: `${SBA.minDscr.toFixed(2)}x`, note: SBA_ASSUMPTION_NOTE },
-      { label: "Typical SBA timeline", value: SBA.typicalCloseDays, note: "After a complete file. Not guaranteed." },
+      { label: "Typical SBA timeline", value: SBA.closeRange, note: "After a complete file. Not guaranteed." },
     ],
     steps: [
       { title: "Scope the PIP and the budget", body: "Collect the franchisor's PIP, contractor bids and an energy-efficiency estimate if the Green cap is the goal." },

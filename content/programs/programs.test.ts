@@ -217,6 +217,15 @@ describe("facts come from lib/sizing/assumptions", () => {
     expect(factValue("construction-loans", /Kubera sizing assumption: max/)).toBe(pct(BRIDGE.construction.maxLtc));
   });
 
+  it("shows bridge and SBA timeline facts as a plain range plus one qualifier", () => {
+    expect(factValue("private-bridge", /Typical close/)).toBe(`${BRIDGE.closeRange} after a complete file`);
+    expect(factValue("pip-bridge", /Typical close/)).toBe(`${BRIDGE.closeRange} after a complete file`);
+    expect(factValue("multifamily-bridge", /Typical close/)).toBe(`${BRIDGE.closeRange} after a complete file`);
+    expect(factValue("sba-504-hotel", /Typical close/)).toBe(`${SBA.closeRange} after a complete file`);
+    expect(BRIDGE.closeDays).toContain(BRIDGE.closeRange);
+    expect(SBA.typicalCloseDays).toContain(SBA.closeRange);
+  });
+
   it("uses the assumptions review date for assumption-based facts", () => {
     const hud = getFinancingPage("hud-232");
     if (hud?.kind !== "program") throw new Error("expected program");
@@ -274,6 +283,17 @@ describe("copy rules", () => {
         if (/\bclose[sd]? in\b/i.test(para)) {
           expect(para, `${e.slug}: ${para.slice(0, 80)}`).toMatch(/subject to|not guaranteed|after a complete file|typical/i);
         }
+      }
+    }
+  });
+
+  it("never repeats the closing-timeline qualifier inside one sentence", () => {
+    for (const e of allEntries) {
+      for (const para of allText(e).split("\n")) {
+        const msg = `${e.slug}: ${para.slice(0, 120)}`;
+        expect(para, msg).not.toMatch(/close[sd]? in many close/i);
+        expect(para.match(/after a complete file/gi)?.length ?? 0, msg).toBeLessThanOrEqual(1);
+        expect(para.match(/not guaranteed/gi)?.length ?? 0, msg).toBeLessThanOrEqual(1);
       }
     }
   });
