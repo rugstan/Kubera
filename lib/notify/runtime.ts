@@ -55,6 +55,7 @@ export function notifyRuntime(): NotifyRuntime {
   const consent: ConsentReader = db
     ? new SupabaseConsentReader(db)
     : new MemoryConsentReader(() => (ledger instanceof MemoryConsentLedger ? ledger.events : []));
+  const staff = staffContactsFromEnv();
   const notifier = new Notifier({
     email: emailClientFromEnv(),
     sms: smsClientFromEnv(),
@@ -62,8 +63,9 @@ export function notifyRuntime(): NotifyRuntime {
     consent,
     gate: approvalGate(),
     preApproved: preApprovedFromEnv(),
+    staffEmails: staff.emails,
   });
-  cached = { notifier, store, leads: db ? new SupabaseLeadSource(db) : new MemoryLeadSource(), consent, ledger, staff: staffContactsFromEnv(), db };
+  cached = { notifier, store, leads: db ? new SupabaseLeadSource(db) : new MemoryLeadSource(), consent, ledger, staff, db };
   return cached;
 }
 
@@ -74,7 +76,7 @@ export function notifyRuntime(): NotifyRuntime {
  */
 export function notifierWithGate(gate: ApprovalGate): Notifier {
   const rt = notifyRuntime();
-  return new Notifier({ email: emailClientFromEnv(), sms: smsClientFromEnv(), store: rt.store, consent: rt.consent, gate, preApproved: preApprovedFromEnv() });
+  return new Notifier({ email: emailClientFromEnv(), sms: smsClientFromEnv(), store: rt.store, consent: rt.consent, gate, preApproved: preApprovedFromEnv(), staffEmails: rt.staff.emails });
 }
 
 /** Test hook. */

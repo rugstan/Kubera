@@ -30,19 +30,34 @@ export class TelnyxSmsClient implements SmsClient {
 
   async send(sms: OutboundSms): Promise<SmsSendResult> {
     const doFetch = this.config.fetch ?? fetch;
-    const res = await doFetch(`${this.config.baseUrl ?? "https://api.telnyx.com"}/v2/messages`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({
+    const url = `${this.config.baseUrl ?? "https://api.telnyx.com"}/v2/messages`;
+    let payload: string;
+    try {
+      payload = JSON.stringify({
         from: this.config.from,
         to: sms.to,
         text: sms.text,
         type: "SMS",
         ...(this.config.messagingProfileId ? { messaging_profile_id: this.config.messagingProfileId } : {}),
-      }),
-      signal: AbortSignal.timeout(10_000),
-      cache: "no-store",
-    });
+      });
+    } catch (err) {
+      // Nothing has gone out yet: safe to retry.
+      throw new SmsError(`Telnyx: could not build the request: ${err instanceof Error ? err.message : String(err)}`, undefined, { notSent: true, cause: err });
+    }
+    let res: Response;
+    try {
+      res = await doFetch(url, {
+        method: "POST",
+        headers: { authorization: `Bearer ${this.config.apiKey}`, "content-type": "application/json" },
+        body: payload,
+        signal: AbortSignal.timeout(10_000),
+        cache: "no-store",
+      });
+    } catch (err) {
+      // A timeout or network error: Telnyx may already have accepted the message.
+      const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+      throw new SmsError(`Telnyx: ${timedOut ? "request timed out" : `network error: ${err instanceof Error ? err.message : String(err)}`}`, undefined, { cause: err });
+    }
     if (!res.ok) {
       const detail = (await res.text().catch(() => "")).slice(0, 300);
       throw new SmsError(`Telnyx ${res.status}: ${detail}`, res.status);

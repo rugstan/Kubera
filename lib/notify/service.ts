@@ -4,7 +4,7 @@ import type { EmailClient } from "./email/types";
 import { authorizeSend } from "./gate";
 import { maskPhone, toE164 } from "./phone";
 import { insideSmsWindow } from "./quiet-hours";
-import type { SmsClient } from "./sms/types";
+import { SmsError, smsFailureIsDefinitive, type SmsClient } from "./sms/types";
 import type { NotifyStore } from "./store";
 import { templateById, type BuiltMessage, type TemplateId } from "./templates";
 import { type NotificationStatus, type Recipient, type SendOutcome } from "./types";
@@ -19,6 +19,14 @@ import { type NotificationStatus, type Recipient, type SendOutcome } from "./typ
 //      rejected or expired decision never sends)
 //   7. send, then record provider id / failure
 // Each stop writes its reason to the notifications row.
+//
+// Step 7 keeps the provider call apart from the bookkeeping. A text is marked
+// "failed" (and so retryable) only when the provider certainly did not take it:
+// Telnyx /v2/messages has no idempotency key, so retrying after a timeout,
+// network error or 5xx that Telnyx in fact accepted would send a second text.
+// Those end as "send_unknown", which is never retried, and staff are told to
+// check. A database error after a successful send is retried as bookkeeping
+// and logged; it never turns a sent message into "failed".
 
 export type NotifierDeps = {
   email: EmailClient | null;
@@ -28,6 +36,8 @@ export type NotifierDeps = {
   gate: ApprovalGate;
   /** Extra "<template>@<version>" entries the broker pre-approved (NOTIFY_PREAPPROVED_TEMPLATES). */
   preApproved?: ReadonlySet<string>;
+  /** Staff mailboxes told when a text may or may not have gone out (status send_unknown). */
+  staffEmails?: readonly string[];
   now?: () => Date;
 };
 
@@ -43,8 +53,16 @@ export type SendRequest = {
   metadata?: Record<string, unknown>;
 };
 
-/** Statuses a later call with the same key may pick up again. */
+/**
+ * Statuses a later call with the same key may pick up again. "failed" is only
+ * written when nothing reached the provider, or for email, where Resend's
+ * idempotency key makes a resend safe. "send_unknown" is deliberately absent: a
+ * text that may already have gone out is never sent again automatically.
+ */
 const RETRYABLE: readonly NotificationStatus[] = ["pending_approval", "deferred_quiet_hours", "skipped_no_consent", "skipped_unconfigured", "failed"];
+
+/** Tries for each post-send store write before it is logged and given up. */
+const BOOKKEEPING_ATTEMPTS = 3;
 
 const normalizeEmail = (e: string | null | undefined) => {
   const v = e?.trim().toLowerCase();
@@ -145,8 +163,9 @@ export class Notifier {
 
     // 7. Send
     await this.deps.store.update(id, { incrementAttempts: true, approvalId: auth.approvalId, consentEventId });
+    // Only the provider call is inside this try: what it catches is a send failure.
+    let providerMessageId: string;
     try {
-      let providerMessageId: string;
       if (built.channel === "email") {
         if (!this.deps.email) throw new Error("email provider is not configured");
         ({ providerMessageId } = await this.deps.email.send({
@@ -158,31 +177,86 @@ export class Notifier {
           tags: { template: template.id },
         }));
       } else {
-        if (!this.deps.sms) throw new Error("sms provider is not configured");
+        if (!this.deps.sms) throw new SmsError("sms provider is not configured", undefined, { notSent: true });
         ({ providerMessageId } = await this.deps.sms.send({ to: address, text: built.body }));
       }
-      const sentAt = this.now().toISOString();
-      await this.deps.store.update(id, { status: "sent", provider: client.name, providerMessageId, sentAt, error: null });
-      if (built.channel === "sms" && this.deps.sms) {
-        await this.deps.store
-          .recordSms({
-            direction: "outbound",
-            fromNumber: this.deps.sms.fromNumber,
-            toNumber: address,
-            body: built.body,
-            status: "sent",
-            providerMessageId,
-            notificationId: id,
-            leadId: req.leadId ?? null,
-          })
-          .catch((err) => console.error("notify: could not record outbound sms", err instanceof Error ? err.message : err));
-      }
-      return { status: "sent", notificationId: id, providerMessageId };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = (err instanceof Error ? err.message : String(err)).slice(0, 1000);
       console.error(`notify: ${template.channel} send failed (${template.id})`, message);
-      await this.deps.store.update(id, { status: "failed", error: message.slice(0, 1000) });
+      if (template.channel === "sms" && !smsFailureIsDefinitive(err)) {
+        // Telnyx may have accepted the text; sending again could deliver it twice.
+        const reason = `delivery unknown, not retried: ${message}`.slice(0, 1000);
+        await this.bookkeeping(id, "record send_unknown", () => this.deps.store.update(id, { status: "send_unknown", provider: client.name, error: reason }));
+        await this.alertUnknownSms(id, template.id, address);
+        return { status: "send_unknown", notificationId: id, reason: reason.slice(0, 300) };
+      }
+      await this.bookkeeping(id, "record the failure", () => this.deps.store.update(id, { status: "failed", error: message }));
       return { status: "failed", notificationId: id, reason: message.slice(0, 300) };
     }
+
+    // Bookkeeping after a successful send. If every write fails the row stays
+    // "queued", which is not retryable, so the message is still never resent.
+    const sentAt = this.now().toISOString();
+    await this.bookkeeping(id, "record the send", () => this.deps.store.update(id, { status: "sent", provider: client.name, providerMessageId, sentAt, error: null }));
+    if (built.channel === "sms" && this.deps.sms) {
+      await this.deps.store
+        .recordSms({
+          direction: "outbound",
+          fromNumber: this.deps.sms.fromNumber,
+          toNumber: address,
+          body: built.body,
+          status: "sent",
+          providerMessageId,
+          notificationId: id,
+          leadId: req.leadId ?? null,
+        })
+        .catch((err) => console.error("notify: could not record outbound sms", err instanceof Error ? err.message : err));
+    }
+    return { status: "sent", notificationId: id, providerMessageId };
+  }
+
+  /** Runs a post-send store write, retrying a few times; logs and gives up rather than throwing. */
+  private async bookkeeping(id: string, what: string, write: () => Promise<unknown>): Promise<boolean> {
+    for (let attempt = 1; attempt <= BOOKKEEPING_ATTEMPTS; attempt++) {
+      try {
+        await write();
+        return true;
+      } catch (err) {
+        if (attempt === BOOKKEEPING_ATTEMPTS) {
+          console.error(`notify: could not ${what} for notification ${id} after ${attempt} attempts`, err instanceof Error ? err.message : err);
+        }
+      }
+    }
+    return false;
+  }
+
+  /** Tells staff a text may or may not have gone out (pre-approved staff_alert; masked number and ids only). Never throws. */
+  private async alertUnknownSms(id: string, templateId: TemplateId, phone: string): Promise<void> {
+    const emails = this.deps.staffEmails ?? [];
+    if (emails.length === 0) {
+      console.error(`notify: text ${id} (${templateId}) to ${maskPhone(phone)} may or may not have been delivered; no staff mailbox to alert`);
+      return;
+    }
+    await Promise.all(
+      emails.map((email) =>
+        this.send({
+          templateId: "staff_alert",
+          to: { audience: "staff", email },
+          data: {
+            title: "Text message delivery unknown",
+            lines: [
+              `A ${templateId} text to ${maskPhone(phone)} hit a timeout or provider error, so it may or may not have been delivered.`,
+              "It will not be resent automatically. Check the Telnyx message log before sending it again by hand.",
+              `Notification ${id}`,
+            ],
+          },
+          idempotencyKey: `notify-unknown:${id}:${email}`,
+          requestedBy: "system:notify",
+          metadata: { notificationId: id },
+        }).catch((err) => {
+          console.error("notify: could not alert staff about a text with unknown delivery", err instanceof Error ? err.message : err);
+        }),
+      ),
+    );
   }
 }

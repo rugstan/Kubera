@@ -3,6 +3,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations, createStubbedDb, listMigrations } from "@/scripts/test-migrations";
+import { NOTIFICATION_STATUSES } from "./types";
 
 let db: PGlite;
 
@@ -56,6 +57,12 @@ describe("WS-J migration", () => {
     await expect(db.query("insert into public.notifications (channel, template_id, template_version, audience, recipient, idempotency_key) values ('fax', 't', 1, 'staff', 'x@y.z', 'bad1')")).rejects.toThrow(/check/);
     await expect(insertNotification("bad2", "status='sent_twice'")).rejects.toThrow(/check/);
     await expect(db.query("insert into public.notifications (channel, template_id, template_version, audience, recipient, idempotency_key) values ('email', 't', 1, 'robot', 'x@y.z', 'bad3')")).rejects.toThrow(/check/);
+  });
+
+  it("accepts every status the Notifier writes, including send_unknown", async () => {
+    for (const status of NOTIFICATION_STATUSES) {
+      await insertNotification(`status-${status}`, `status='${status}'`);
+    }
   });
 
   it("keeps updated_at current", async () => {
