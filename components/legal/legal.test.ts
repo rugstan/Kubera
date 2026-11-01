@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import AccessibilityPage from "@/app/(site)/(legal)/accessibility/page";
 import LicensingPage from "@/app/(site)/(legal)/licensing/page";
-import PrivacyAiPage from "@/app/(site)/(legal)/privacy/ai/page";
 import PrivacyPage from "@/app/(site)/(legal)/privacy/page";
 import TermsPage from "@/app/(site)/(legal)/terms/page";
 import { DraftNotice } from "./DraftNotice";
@@ -83,7 +82,7 @@ describe("NoticeAtCollection", () => {
 });
 
 describe("legal pages", () => {
-  const pages = { privacy: PrivacyPage, "privacy/ai": PrivacyAiPage, terms: TermsPage, licensing: LicensingPage, accessibility: AccessibilityPage };
+  const pages = { privacy: PrivacyPage, terms: TermsPage, licensing: LicensingPage, accessibility: AccessibilityPage };
   const rendered = Object.fromEntries(Object.entries(pages).map(([k, P]) => [k, html(createElement(P))])) as Record<keyof typeof pages, string>;
 
   it("every page shows the draft banner while NEXT_PUBLIC_LEGAL_APPROVED is unset", () => {
@@ -109,6 +108,29 @@ describe("legal pages", () => {
     expect(t).toMatch(/10 business days/);
     expect(t).toMatch(/45 calendar days/);
     for (const c of PI_CATEGORIES) expect(t).toContain(c.retention);
+  });
+
+  it("privacy policy keeps the automated-tools disclosures and hosts the request form", () => {
+    const t = text(rendered.privacy);
+    expect(rendered.privacy).toContain('id="automated-tools"');
+    expect(rendered.privacy).toContain('id="request"');
+    expect(rendered.privacy).toContain('href="#request"');
+    // The request form and its notice at collection sit on the policy page itself.
+    expect(rendered.privacy).toContain('data-notice-at-collection="privacy_request"');
+    expect(t).toContain("Advisor-only handling");
+    expect(t).toContain("No automated tool makes a credit decision. Lenders make all credit decisions.");
+    expect(t).toContain("we remove Social Security numbers, dates of birth, and bank, card, and account numbers, or we do not send it");
+    expect(t).toContain("Make a request online");
+    // The retired Ask feature stays disclosed through its retention window, and its provider stays listed.
+    expect(t).toContain("former Ask feature");
+    expect(t).toContain("Anthropic: Automated document reading, email sorting, and drafting tools used by our advisors");
+  });
+
+  it("no legal page mentions AI or a separate AI-use page", () => {
+    for (const markup of Object.values(rendered)) {
+      expect(text(markup)).not.toMatch(/\bAI\b|Kubera AI|AI-assisted/);
+      expect(markup).not.toContain("/privacy/ai");
+    }
   });
 
   it("licensing page states broker-not-lender, the MLDS, and compensation", () => {

@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
   // Keeps Sentry's server runtime hook out of the bundle so it registers its
   // diagnostics channel once at startup instead of warning when a DSN is set.
   serverExternalPackages: ["@sentry/server-runtime-injection"],
+  async redirects() {
+    // The AI-use page was folded into the privacy policy. The destination has no
+    // fragment, so an old /privacy/ai#request link keeps its anchor on /privacy.
+    return [{ source: "/privacy/ai", destination: "/privacy", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders() },

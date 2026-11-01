@@ -6,7 +6,7 @@ import { disclosures, site } from "@/lib/site";
 export const metadata = legalMetadata(
   "/terms",
   "Terms of use",
-  "The terms that apply when you use Kubera Commercial's websites, loan sizer, deal qualifier, Kubera AI, and partner portal.",
+  "The terms that apply when you use Kubera Commercial's websites, loan sizer, deal qualifier, document vault, and partner portal.",
 );
 
 export default function TermsPage() {
@@ -15,7 +15,7 @@ export default function TermsPage() {
       title="Terms of use"
       intro={
         <p>
-          These terms apply when you use {site.primaryDomain}, {site.expressDomain}, and the tools on them, including the loan sizer, the deal qualifier, Kubera AI, the document vault,
+          These terms apply when you use {site.primaryDomain}, {site.expressDomain}, and the tools on them, including the loan sizer, the deal qualifier, the document vault,
           and the partner portal (together, the &ldquo;sites&rdquo;). By using the sites you agree to these terms. If you do not agree, please do not use the sites.
         </p>
       }
@@ -35,10 +35,11 @@ export default function TermsPage() {
         <li>Whether California usury limits apply to a particular loan depends on its facts. We do not make that determination for you; ask your own counsel.</li>
       </ul>
 
-      <h2 id="ai">Kubera AI and automated tools</h2>
+      <h2 id="automated-tools">Estimates and automated tools</h2>
       <p>
-        {disclosures.ai} AI output can be wrong or incomplete. Do not rely on it as legal, tax, accounting, or investment advice, and check anything important with your advisor and your
-        own professionals.
+        Our loan sizer, deal qualifier, calculators, and other online tools produce results automatically from what you enter and from market assumptions. Results can be wrong or
+        incomplete. They are not legal, tax, accounting, or investment advice, and a licensed Kubera advisor reviews every engagement. Check anything important with your advisor and
+        your own professionals.
       </p>
 
       <h2 id="your-information">What you send us</h2>
@@ -74,8 +75,8 @@ export default function TermsPage() {
       <ul>
         <li>submit false information or information about someone else without permission;</li>
         <li>probe, scan, or test the sites for vulnerabilities, or bypass security, rate limits, or bot protection;</li>
-        <li>scrape the sites or Kubera AI in bulk, or use them to build a competing product;</li>
-        <li>try to make Kubera AI produce harmful, misleading, or unlawful output, or misrepresent its output as advice from Kubera; or</li>
+        <li>scrape the sites or their tools in bulk, or use them to build a competing product;</li>
+        <li>misrepresent results from the sites as an offer, a commitment, or advice from Kubera; or</li>
         <li>upload malware or files you do not have the right to share.</li>
       </ul>
       <p>We may suspend access or remove content that breaks these rules.</p>

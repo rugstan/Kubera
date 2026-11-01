@@ -34,7 +34,6 @@ export default function AccessibilityPage() {
       <h2 id="limitations">Known limitations</h2>
       <ul>
         <li>Some documents we receive from lenders and third parties, such as term sheets and reports, may not be fully accessible. We can provide another format on request.</li>
-        <li>Kubera AI responses are generated automatically and may include formatting that is harder to read with some assistive technology.</li>
       </ul>
 
       <h2 id="other-ways">Other ways to work with us</h2>

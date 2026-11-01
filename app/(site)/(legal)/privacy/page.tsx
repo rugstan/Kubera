@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LegalPage, TableScroll } from "@/components/legal/LegalPage";
 import { COLLECTION_POINTS, PI_CATEGORIES, PURPOSES, RECORD_RETENTION, SERVICE_PROVIDERS } from "@/components/legal/legal";
 import { legalMetadata } from "@/components/legal/metadata";
+import { PrivacyRequestForm } from "@/components/privacy/PrivacyRequestForm";
 import { contactDetails } from "@/content/contact";
 import { site } from "@/lib/site";
 
@@ -70,7 +71,7 @@ export default function PrivacyPage() {
 
       <h3 id="sources">Where it comes from</h3>
       <ul>
-        <li>From you, when you use the deal qualifier, the loan sizer, Kubera AI, the partner portal, the document vault, or the newsletter signup, or when you email, call, or text us.</li>
+        <li>From you, when you use the deal qualifier, the loan sizer, or other tools on our sites, the partner portal, the document vault, or the newsletter signup, or when you email, call, or text us.</li>
         <li>From people you authorize, such as your referring broker, co-borrowers, accountants, and attorneys.</li>
         <li>From lenders and third-party report providers working on your loan, such as appraisers, title companies, and escrow companies.</li>
         <li>From public sources, such as property records and license lookups.</li>
@@ -89,13 +90,25 @@ export default function PrivacyPage() {
         listed here without telling you first.
       </p>
 
-      <h3 id="ai">Kubera AI and automated tools</h3>
+      <h3 id="automated-tools">Automated tools</h3>
       <p>
-        Kubera is advisor-led and AI-assisted. Our loan sizer, deal qualifier, and Kubera AI use automated tools, including an AI model operated by Anthropic, to produce indicative
-        estimates and answers. A licensed Kubera advisor reviews every engagement before anything goes to a lender, and no automated tool makes a credit decision; lenders make all
-        credit decisions. Please do not enter Social Security numbers, account numbers, or other sensitive details into Kubera AI. Read{" "}
-        <Link href="/privacy/ai">AI use and your choices</Link> for where we use AI, what we never send to AI tools, and how to ask for advisor-only handling.
+        We use automated tools to help our advisors work quickly and accurately. They estimate loan sizing and which programs may fit your request, suggest how soon an advisor should
+        follow up, read figures from documents you upload, and sort and draft correspondence for an advisor to review. Some of these tools are provided by the service providers
+        listed below, under contracts that do not allow them to use your information to train their products.
       </p>
+      <ul>
+        <li>A licensed Kubera advisor reviews every engagement. Nothing is sent to you, a lender, or anyone else without an advisor&rsquo;s approval.</li>
+        <li>No automated tool makes a credit decision. Lenders make all credit decisions.</li>
+        <li>
+          Before information is sent to these tools, we remove Social Security numbers, dates of birth, and bank, card, and account numbers, or we do not send it. The exception is a
+          document you upload, which a tool reads so an advisor can check its figures.
+        </li>
+        <li>Tools that summarize public market news and rates never receive information about you or your loan.</li>
+        <li>
+          <strong>Advisor-only handling.</strong> You can ask that an advisor handle your requests personally, without automated scoring and without sending your personal
+          information to these tools. Use the <a href="#request">request form</a> below. It takes effect as soon as we receive it and does not affect how we treat you or your request.
+        </li>
+      </ul>
 
       <h2 id="sharing">How we share personal information</h2>
       <p>We disclose personal information for business purposes only to:</p>
@@ -198,7 +211,7 @@ export default function PrivacyPage() {
       <p>You can make a request in any of these ways:</p>
       <ul data-privacy-request-methods>
         <li>
-          <strong>Online form.</strong> <Link href="/privacy/ai#request">Use the privacy request form</Link> to ask for access, deletion, correction, or to opt out.
+          <strong>Online form.</strong> <a href="#request">Use the privacy request form</a> on this page to ask for access, deletion, correction, or advisor-only handling, or to opt out.
         </li>
         <li>
           <strong>Email.</strong> <a href={`mailto:${site.privacyEmail}`}>{site.privacyEmail}</a>
@@ -218,6 +231,9 @@ export default function PrivacyPage() {
         will ask for your signed permission and may ask you to verify your identity directly.
       </p>
 
+      <h3 id="request">Make a request online</h3>
+      <PrivacyRequestForm privacyEmail={site.privacyEmail} />
+
       <h3 id="signals">Do Not Track and Global Privacy Control</h3>
       <p>
         We do not track you across other websites or allow third parties to do so on our sites. We treat a Global Privacy Control signal from your browser as a request to opt out of
@@ -236,7 +252,7 @@ export default function PrivacyPage() {
 
       <h2 id="security">Security</h2>
       <p>
-        We protect personal information with encryption in transit and at rest, a private document vault with expiring upload links, access limited to the people who need it, and
+        We protect personal information with encryption in transit and at rest (fields such as Social Security numbers and account numbers are also encrypted individually before they are stored), a private document vault with expiring upload links, access limited to the people who need it, and
         security monitoring. No system is perfectly secure. If a breach affects your personal information, we will notify you as California law requires.
       </p>
 

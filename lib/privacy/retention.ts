@@ -593,7 +593,7 @@ export type ErasureResolution = {
 export const ERASURE_NOTES = [
   // VERIFY with counsel: exceptions relied on under Civ. Code §1798.105(d).
   "Consent and opt-out records are kept for five years to prove consent and honor opt-outs (legal obligation).",
-  "Your privacy preferences (for example, an AI opt-out) are kept so we can keep honoring them.",
+  "Your privacy preferences (for example, advisor-only handling) are kept so we can keep honoring them.",
   "Copies already shared with lenders you asked us to approach are held by those lenders under their own policies.",
 ] as const;
 

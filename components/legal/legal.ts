@@ -9,14 +9,19 @@ export function legalApproved(env: Env = process.env): boolean {
   return env.NEXT_PUBLIC_LEGAL_APPROVED === "true";
 }
 
-/** Bumped whenever the privacy policy or the notice at collection changes. */
-export const PRIVACY_POLICY_VERSION = "2026-11-01";
+/**
+ * Bumped whenever the privacy policy or the notice at collection changes. The
+ * ".2" marks the second revision published on the effective date (the separate
+ * assistant page was folded into the policy). Use a new date when this ships on
+ * a later day.
+ */
+export const PRIVACY_POLICY_VERSION = "2026-11-01.2";
 export const LEGAL_EFFECTIVE_DATE = "November 1, 2026";
 
 export const LEGAL_PAGES = [
   { href: "/privacy", label: "Privacy policy" },
   { href: "/privacy#notice-at-collection", label: "Notice at collection" },
-  { href: "/privacy/ai", label: "AI use and your choices" },
+  { href: "/privacy#request", label: "Privacy requests" },
   { href: "/terms", label: "Terms of use" },
   { href: "/licensing", label: "Licensing and disclosures" },
   { href: "/accessibility", label: "Accessibility" },
@@ -92,9 +97,9 @@ export const PI_CATEGORIES: readonly PiCategory[] = [
     id: "communications",
     ccpa: "Audio, electronic, or similar information",
     label: "Communications",
-    examples: "Emails, text messages, call notes, and questions you send to Kubera AI.",
+    examples: "Emails, text messages, call notes, and questions you sent through our website's former Ask feature.",
     sensitive: false,
-    retention: "Three years after our last contact with you. Kubera AI conversations are kept for up to one year unless they become part of a loan file.",
+    retention: "Three years after our last contact with you. Questions sent through our website's former Ask feature are kept for up to one year unless they became part of a loan file.",
   },
   {
     id: "consent_records",
@@ -150,9 +155,11 @@ export const RECORD_RETENTION: readonly { record: string; retention: string; pol
     retention: "Until you unsubscribe, then 30 days. A signup you never confirm is deleted after 30 days. The record of your consent and unsubscribe is kept five years.",
     policies: ["newsletter_pending", "newsletter_unsubscribed", "consent_events"],
   },
+  // Remove this record after 2027-11-30, once the 12-month lookback for the
+  // retired feature and the 365-day purge of its stored conversations have both passed.
   {
-    record: "Kubera AI conversations",
-    retention: "Up to one year, unless they become part of a loan file.",
+    record: "Questions sent through our website's former Ask feature (retired November 2026)",
+    retention: "Up to one year after the question, unless it became part of a loan file.",
     policies: ["ai_conversations", "leads"],
   },
 ];
@@ -164,7 +171,7 @@ export const PURPOSES = [
   "Contact you by email, phone, or text when you have agreed to it.",
   "Send the newsletter you subscribe to, and keep a record of your consent and any unsubscribe.",
   "Review partner registrations and manage partner relationships.",
-  "Run AI-assisted sizing and analysis that an advisor reviews.",
+  "Use automated tools for sizing estimates, program fit, follow-up priority, document reading, and email sorting, with an advisor reviewing the results.",
   "Protect our sites and users, prevent fraud, and fix errors.",
   "Comply with law, respond to lawful requests, and enforce our terms.",
 ] as const;
@@ -217,7 +224,7 @@ export const SERVICE_PROVIDERS = [
   { name: "Vercel", role: "Website hosting" },
   { name: "Supabase", role: "Database and encrypted document storage" },
   { name: "Twenty", role: "Customer relationship management" },
-  { name: "Anthropic", role: "AI processing for Kubera AI and sizing narratives" },
+  { name: "Anthropic", role: "Automated document reading, email sorting, and drafting tools used by our advisors" },
   { name: "Zoho", role: "Business email and electronic signatures" },
   { name: "Resend", role: "Transactional email and the newsletter" },
   { name: "Telnyx", role: "Text messages and calls" },
