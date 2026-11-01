@@ -11,6 +11,8 @@ import { bestSummary } from "./carousel";
  * screen), and "See all structures" jumps to the results. Hidden from 769px up,
  * where inputs and results sit side by side.
  */
+const RESERVE_BAR_SPACE = `@media (max-width: 768px) { html { scroll-padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)); } }`;
+
 export function MobileResultsBar({ best, resultsId, tab }: { best: SizerQuote | undefined; resultsId: string; tab?: string }) {
   const [visible, setVisible] = useState(false);
 
@@ -37,7 +39,13 @@ export function MobileResultsBar({ best, resultsId, tab }: { best: SizerQuote | 
     return () => io.disconnect();
   }, [resultsId]);
 
-  if (!visible) return null;
+  // Reserve the bar's height (about 83px plus the safe area) as bottom scroll
+  // padding on phones, so a field that takes keyboard focus is scrolled clear
+  // of the bar rather than under it (WCAG 2.2 SC 2.4.11). It stays on while
+  // the sizer is mounted, not only while the bar shows: the bar can appear in
+  // the same scroll that brings the focused field into view.
+  const reserve = <style>{RESERVE_BAR_SPACE}</style>;
+  if (!visible) return reserve;
   const summary = bestSummary(best);
 
   function seeAll() {
@@ -51,6 +59,7 @@ export function MobileResultsBar({ best, resultsId, tab }: { best: SizerQuote | 
 
   return (
     <>
+      {reserve}
       {/* Lift the floating Ask button above the bar while it is showing. */}
       <style>{`body:has([data-mobile-results-bar]) [data-ask-floating] { bottom: 6rem; }`}</style>
       <div
