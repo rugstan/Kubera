@@ -61,7 +61,13 @@ export default function ContactPage() {
             {contact.address ? (
               <address className="mt-3 text-[15px] not-italic leading-relaxed text-titanium">{contact.address}</address>
             ) : (
-              <p className="mt-3 text-[15px] text-titanium">Our licensed office address appears on the licensing page.</p>
+              // contact.address already falls back to the licensed address, so an empty
+              // value means neither is configured and the licensing page shows none either.
+              <p className="mt-3 text-[15px] text-titanium">
+                Email{" "}
+                <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2">{contact.email}</a>{" "}
+                for our office address.
+              </p>
             )}
             <p className="mt-2 text-[14px] text-titanium">
               <Link href="/licensing" className="font-medium text-accent underline underline-offset-2">Licensing and disclosures</Link>

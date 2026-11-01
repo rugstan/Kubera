@@ -63,9 +63,12 @@ export function TokenAction({ mode }: { mode: Mode }) {
 
   if (!token) {
     return (
-      <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-[15px] text-rose-800">
-        This link is incomplete. Open the link from your email again, or <Link href="/newsletter" className="font-medium underline">sign up for the newsletter</Link>.
-      </p>
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{copy.heading}</h1>
+        <p role="alert" className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-[15px] text-rose-800">
+          This link is incomplete. Open the link from your email again, or <Link href="/newsletter" className="font-medium underline">sign up for the newsletter</Link>.
+        </p>
+      </div>
     );
   }
 
