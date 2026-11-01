@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { staffRouteFolders } from "@/lib/auth/staff-route-folders";
 import { AI_CRAWLERS, buildRobots } from "./robots";
 
 type Rule = { userAgent?: string | string[]; allow?: string | string[]; disallow?: string | string[] };
@@ -16,6 +17,11 @@ describe("buildRobots", () => {
     expect([...AI_CRAWLERS]).toHaveLength(5);
     // A named group replaces "*" for that bot, so it must repeat the /api/ block.
     expect(ai.disallow).toContain("/api/");
+  });
+
+  it("disallows every staff desk", () => {
+    const star = rules(buildRobots("kuberacommercial.com", {})).find((x) => x.userAgent === "*")!;
+    for (const f of staffRouteFolders()) expect(star.disallow, `/${f}`).toContain(`/${f}`);
   });
 
   it("express host: crawlable root, no sitemap", () => {

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { STAFF_ROUTE_PREFIXES } from "@/lib/auth/staff-routes";
 import { canonicalUrl, isExpressHost, isPreviewDeployment } from "./hosts";
 
 /** AI search and assistant crawlers that are explicitly welcome on the main site. */
@@ -10,12 +11,7 @@ export const AI_CRAWLERS = ["GPTBot", "OAI-SearchBot", "PerplexityBot", "ClaudeB
  */
 export const DISALLOWED_PATHS = [
   "/api/",
-  "/pipeline",
-  "/approvals",
-  "/documents",
-  "/deals",
-  "/checklists",
-  "/construction",
+  ...STAFF_ROUTE_PREFIXES,
   "/portal",
   "/login",
   "/mfa",
