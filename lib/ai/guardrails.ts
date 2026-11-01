@@ -108,8 +108,19 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "Says a specific loan is exempt from usury limits",
     // Up to three modifier tokens before the loan noun; \S+ (not \w+) so a rate or
     // amount ("your 12% bridge", "this $3M 11.5% note") still counts as a modifier.
-    /\b(?:your|this|that|the|such an?)\s+(?:\S+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b[^.]{0,40}?\b(?:is|are|will be|would be|should be|looks|appears|seems)\s+(?:to be\s+)?(?:fully |likely |probably |generally |automatically |clearly |also )?(?:exempt\b|usury[- ]exempt\b|(?:outside|not subject to|immune from|beyond)\b[^.]{0,30}\busury|covered by (?:the )?(?:broker )?exemption)|\bexempt from (?:california(?:'s|’s)? |the )?(?:usury|interest[- ]rate cap)/i,
+    // Positive verbs take an exemption predicate ("is exempt", "is not subject to ... usury");
+    // negated verbs ("isn't", "won't be") take "subject to ... usury" directly. "Falls outside /
+    // beyond" usury or interest-rate limits is the same claim.
+    /\b(?:your|this|that|the|such an?)\s+(?:\S+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b[^.]{0,40}?(?:\b(?:is|are|will be|would be|should be|looks|appears|seems)\s+(?:to be\s+)?(?:fully |likely |probably |generally |automatically |clearly |also )?(?:exempt\b|usury[- ]exempt\b|(?:outside|not subject to|immune from|beyond)\b[^.]{0,30}\busury|covered by (?:the )?(?:broker )?exemption)|\b(?:isn't|isn’t|is not|aren't|aren’t|are not|won't be|won’t be|will not be|wouldn't be|wouldn’t be|would not be|shouldn't be|shouldn’t be|should not be)\s+(?:fully |likely |probably |generally |automatically |clearly |also |even )?(?:subject to|bound by|governed by)\b[^.]{0,30}\busury|\b(?:falls?|fell|sits?|is|are)\s+(?:completely |entirely |fully |well |safely )?(?:outside|beyond)\b[^.]{0,30}\b(?:usury|interest[- ]rate (?:caps?|limits?|ceilings?)))|\bexempt from (?:california(?:'s|’s)? |the )?(?:usury|interest[- ]rate cap)/i,
     { negateInside: false, requires: /\b(?:your|this|that|the|such an?)\s+(?:\S+\s+){0,3}(?:loan|deal|financing|transaction|rate|structure|facility|note|bridge|refinance)\b|\byou(?:r)?\b/i },
+  ),
+  // "The usury cap doesn't reach your loan because a broker arranged it."
+  R(
+    "usury.not-reach",
+    "usury_exemption",
+    "Says usury limits do not reach, cover or govern the borrower's loan",
+    /\busury\s+(?:caps?|limits?|laws?|ceilings?|rules?|statutes?)\b[^.]{0,30}?\b(?:doesn't|doesn’t|does not|don't|don’t|do not|won't|won’t|will not|wouldn't|wouldn’t|would not)\s+(?:reach|cover|govern|touch|apply to|affect)\b/i,
+    { negateInside: false, requires: LOAN_REF },
   ),
   R("usury.not-apply", "usury_exemption", "Says usury limits do not apply to the borrower's loan", /\busury\b[^.]{0,60}\b(?:doesn't|does not|won't|will not|isn't|is not|don't|do not|don’t|doesn’t|aren't|are not)\s+(?:apply|a (?:concern|issue|problem)|an? (?:issue|concern|problem)|matter)\b/i, { negateInside: false, requires: LOAN_REF }),
   // "qualifies for / falls under / is covered by ... the broker exemption" about the borrower's loan.
@@ -161,7 +172,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   // --- broker-only role (Global rule 1) --------------------------------------------------
   R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:are|is|act as|serve as|be|will be|will act as|would be)\s+(?:the |your |a )?(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
   R("role.holds-funds", "broker_role", "Says Kubera holds, receives or disburses money", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+(?:your |the |all )?(?:deposit|funds|money|earnest|payment|escrow|proceeds|draws?|retainer)\b|\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|kubera(?: commercial)?)\b|\bto (?:our|kubera's|kubera’s) (?:trust|escrow|client|bank) account\b/i),
-  R("role.draws", "broker_role", "Says Kubera manages or processes construction draws", /\b(?:we|kubera(?: commercial)?)\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee)s?\s+(?:your |the |all |each )?(?:construction )?draws?\b|\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|kubera)\b/i),
+  R("role.draws", "broker_role", "Says Kubera manages or processes construction draws", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee)s?\s+(?:your |the |all |each )?(?:construction )?draws?\b|\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|kubera)\b/i),
 
   // --- disclosure waiver ----------------------------------------------------------------------
   R("disclosure.mlds-not-needed", "disclosure_waiver", "Says the MLDS (RE 882) is not required", /\b(?:mlds|re ?882|mortgage loan disclosure statement)\b[^.]{0,50}\b(?:isn't|is not|isn’t|not|won't be|won’t be|no longer|never)\s+(?:be )?(?:required|needed|necessary)\b|\b(?:no|skip the|without an?|(?:don't|do not|don’t|doesn't|does not|doesn’t|won't|won’t|will not|wouldn't|wouldn’t|would not|shouldn't|shouldn’t)\s+(?:need|require)(?:\s+to\s+(?:sign|get|receive|provide))?\s+(?:an?|the))\s+(?:mlds|re ?882|mortgage loan disclosure statement)\b/i, { negatable: false }),

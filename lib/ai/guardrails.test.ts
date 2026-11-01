@@ -139,6 +139,26 @@ describe("usury-exemption claims", () => {
     expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
   });
 
+  // Regression: negated and "falls outside" forms that used to pass unchanged (must catch).
+  it.each([
+    "Since a licensed broker arranges it, your bridge loan isn't subject to the usury cap.",
+    "Your loan isn't subject to California's usury limits.",
+    "Your loan isn’t subject to California’s usury limits.",
+    "Your loan won't be subject to usury limits.",
+    "Your loan won’t be subject to usury limits.",
+    "Your loan wouldn't be subject to the usury cap.",
+    "This bridge will not be subject to the usury law.",
+    "Your loan falls outside the usury law.",
+    "This loan falls beyond California's interest-rate limits.",
+    "The usury cap doesn't reach your loan because a broker arranged it.",
+    "Usury laws don't cover your bridge loan.",
+  ])("must catch: %s", (text) => {
+    const r = checkText(text);
+    expect(r.violations.map((v) => v.category)).toContain("usury_exemption");
+    expect(r.text).not.toContain(text);
+    expect(r.text).toContain(SAFE_REPLACEMENTS.usury_exemption);
+  });
+
   it.each(["Your 12% bridge is exempt.", "This 12% loan is exempt.", "Your $3M 11.5% note is exempt."])("the enforcing stream filter replaces: %s", (text) => {
     const f = new GuardrailStreamFilter({ mode: "enforce" });
     let out = "";
@@ -167,6 +187,9 @@ describe("usury-exemption claims", () => {
     "Whether the usury cap applies to this bridge depends on the lender and the collateral.",
     "Whether your 12% bridge is exempt depends on the lender and how it is arranged; ask your attorney.",
     "Your 12% bridge closes after a complete file; timing is not guaranteed.",
+    "Your loan is subject to California usury limits unless an exemption applies; ask your attorney.",
+    "I can't say whether your loan isn't subject to the usury cap; ask your attorney.",
+    "Whether the usury cap reaches your loan depends on the lender and how it is arranged.",
     SAFE_REPLACEMENTS.usury_exemption,
   ];
   it.each(good)("allows: %s", (text) => {
@@ -244,6 +267,8 @@ describe("broker-only role, disclosures and copy", () => {
     expect(categoriesOf("Kubera will hold your deposit in escrow.")).toContain("broker_role");
     expect(categoriesOf("Wire the earnest money to Kubera by Friday.")).toContain("broker_role");
     expect(categoriesOf("We will process your construction draws each month.")).toContain("broker_role");
+    expect(categoriesOf("We'll process your draws.")).toContain("broker_role");
+    expect(categoriesOf("We’ll handle each construction draw.")).toContain("broker_role");
     expect(categoriesOf("Kubera is the lender on this deal.")).toContain("broker_role");
   });
 
