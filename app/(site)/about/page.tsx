@@ -23,8 +23,8 @@ const PRINCIPLES = [
     body: disclosures.brokerNotLender,
   },
   {
-    title: "Advisors decide, AI assists",
-    body: "AI drafts first-pass sizing and summaries so advisors spend their time on structure and lenders. A licensed advisor reviews every engagement, and nothing goes to a lender or to you without a broker's review.",
+    title: "Advisors lead every deal",
+    body: "Our tools produce first-pass sizing and summaries so advisors spend their time on structure and lenders. A licensed advisor reviews every engagement, and nothing goes to a lender or to you without a broker's review.",
   },
   {
     title: "Honest about what we know",
@@ -127,7 +127,7 @@ export default function AboutPage() {
         <ol className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {STEPS.map((s, i) => (
             <li key={s.title} className="bento p-7">
-              <p className="gold-text text-sm font-semibold">Step {i + 1}</p>
+              <p className="text-sm font-semibold text-titanium">Step {i + 1}</p>
               <h3 className="mt-2 text-lg font-semibold">{s.title}</h3>
               <p className="mt-3 text-[14px] leading-relaxed text-titanium">{s.body}</p>
             </li>

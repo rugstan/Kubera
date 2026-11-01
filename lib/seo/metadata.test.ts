@@ -4,7 +4,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, pageMetadata, renderedTitle }
 
 // Keep in sync with the metadata exports in app/(site)/page.tsx, partners/page.tsx and express/page.tsx.
 const PAGES = [
-  { title: "Senior living, hotel and CRE debt advisory", absoluteTitle: "Kubera Commercial | Senior Living, Hotel & CRE Debt", path: "/" },
+  { title: "Commercial real estate loan broker", absoluteTitle: "Kubera Commercial | Commercial Real Estate Loan Broker", path: "/" },
   { title: "60-second deal qualifier", path: "/express" },
   { title: "Partner portal", path: "/partners" },
 ];
@@ -36,7 +36,7 @@ describe("pageMetadata", () => {
 
   it("keeps descriptions short enough for search snippets", () => {
     const d =
-      "Advisor-led, AI-assisted debt advisory for senior living, hotels and multifamily: HUD 232, SBA 504 hotel stacks, CMBS and bridge financing, sized in 60 seconds.";
+      "Licensed California broker arranging HUD, SBA, CMBS, agency, construction, bridge and hard money loans for senior living, hotels and multifamily. Not a lender.";
     expect(d.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH);
   });
 });
@@ -54,6 +54,11 @@ describe("llms.txt", () => {
     expect(text).toMatch(/broker, not a lender/);
     expect(text).toContain("Real estate broker, California Department of Real Estate");
     expect(text).not.toMatch(/autonomous|guarantee[sd]? |pre-?approved|usury[- ]exempt/i);
+  });
+
+  it("does not mention AI", () => {
+    expect(text).not.toMatch(/\bAI\b/);
+    expect(text).toMatch(/construction and hard money/);
   });
 
   it("links the sitemap and the qualifier with absolute urls", () => {

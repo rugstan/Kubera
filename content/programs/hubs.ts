@@ -15,7 +15,7 @@ export const hubs: HubEntry[] = [
     name: "Senior living financing",
     title: "Senior living financing",
     description:
-      "Compare HUD 232, bridge-to-HUD, SBA 504 and bank loans for assisted living, RCFE, memory care and skilled nursing. Advisor-led, AI-assisted broker.",
+      "Compare HUD 232, bridge-to-HUD, SBA 504 and bank loans for assisted living, RCFE, memory care and skilled nursing. Advisor-led, licensed California broker.",
     summary: "HUD, SBA, bridge and bank options for senior living owners.",
     definition:
       "Senior living financing is commercial real estate debt for licensed assisted living, residential care (RCFE), memory care and skilled nursing facilities. Lenders underwrite the building and the operating business, so license standing, census and the operator's record weigh as heavily as the real estate.",
@@ -57,7 +57,7 @@ export const hubs: HubEntry[] = [
     name: "Hotel financing",
     title: "Hotel financing",
     description:
-      "Compare SBA 504, 7(a) + 504 stacks, hotel CMBS and PIP bridge loans for flagged and independent hotels. Advisor-led, AI-assisted licensed broker.",
+      "Compare SBA 504, 7(a) + 504 stacks, hotel CMBS and PIP bridge loans for flagged and independent hotels. Advisor-led, licensed California broker.",
     summary: "SBA, CMBS and bridge options for hotel owners and buyers.",
     definition:
       "Hotel financing is commercial real estate debt secured by a lodging property, underwritten on the hotel's operating performance (ADR, occupancy, RevPAR), franchise standing and property condition. Programs differ in recourse, leverage and flexibility.",
@@ -99,7 +99,7 @@ export const hubs: HubEntry[] = [
     name: "Multifamily financing",
     title: "Multifamily financing",
     description:
-      "Compare HUD 223(f) and 221(d)(4), Fannie Mae, Freddie Mac, bridge and DSCR investor loans for apartments. Advisor-led, AI-assisted licensed broker.",
+      "Compare HUD 223(f) and 221(d)(4), Fannie Mae, Freddie Mac, bridge and DSCR investor loans for apartments. Advisor-led, licensed California broker.",
     summary: "HUD, agency, bridge and DSCR options for apartment owners.",
     definition:
       "Multifamily financing is commercial real estate debt on apartment properties of five or more units, with investor DSCR loans for smaller rentals. Lenders size to the lesser of loan-to-value and debt service coverage, and the binding test is usually coverage.",
