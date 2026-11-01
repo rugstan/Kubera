@@ -11,11 +11,13 @@
 //   webhook   the signed copy arrives (app/api/webhooks/zoho-sign), and the
 //             closing gate (lib/compliance/gates.ts) then lets the deal close
 //
-// Kubera is the broker, never the lender: the schema rejects Kubera as lender
-// or lienholder, and nothing here touches funds.
+// Kubera is the broker, never the lender: figures that name Kubera as the
+// lender or a lienholder / beneficiary hold the MLDS (and so the deal) for
+// counsel instead of generating it, and nothing here touches funds.
 
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
-import type { MldsFacts } from "@/lib/compliance/schemas";
+import { KUBERA_NAME, type MldsFacts } from "@/lib/compliance/schemas";
+import { namesKubera } from "@/lib/disclosures/broker-of-record";
 import { zonedInstant } from "@/lib/disclosures/business-days";
 import type { DealRecordSink } from "@/lib/disclosures/deal-record";
 import type { MldsData, MldsInput } from "@/lib/disclosures/mlds";
@@ -63,6 +65,8 @@ export async function dealMldsFacts(store: DealDeskStore, deal: Deal): Promise<M
     program: deal.program,
     collateral: loan?.collateral ?? { realPropertyLien: deal.collateralRealProperty, equityPledgeOrUccOnly: false },
     tableFundedInKuberaName: loan?.tableFundedInKuberaName ?? false,
+    // Beneficiary / originator as named on the loan documents (gate A: Kubera named ⇒ held for counsel).
+    ...namesKubera(loan ?? {}),
   };
 }
 
@@ -238,12 +242,31 @@ export function mldsInputFromForm(get: FormReader, ctx: { broker: BrokerIdentity
   };
 }
 
-/** Step 2: render the RE 882 from the entered figures (regenerates until it is sent). */
+/** Why the entered RE 882 figures name Kubera as lender or lienholder, if they do (gate A: held for counsel). */
+export function mldsNamesKubera(input: MldsInput): string | null {
+  const reasons: string[] = [];
+  if (input.loan.lenderName && KUBERA_NAME.test(input.loan.lenderName)) reasons.push("The MLDS figures name Kubera as the lender of record; Kubera is a broker only.");
+  const liens = [...(input.existingLiens ?? []), ...(input.expectedLiens ?? [])];
+  if (liens.some((l) => KUBERA_NAME.test(l.lienholder))) reasons.push("The MLDS figures name Kubera as a lienholder or trust-deed beneficiary; Kubera is a broker only.");
+  return reasons.length ? `${reasons.join(" ")} (B&P §10234)` : null;
+}
+
+/**
+ * Step 2: render the RE 882 from the entered figures (regenerates until it is
+ * sent). Figures that name Kubera as lender or lienholder are not a typo to
+ * fix: the deal is held for counsel (the MLDS is held, so borrower documents
+ * and closing stop) and nothing is rendered.
+ */
 export async function generateDealMlds(
   deps: MldsDeskDeps & { render: Renderer; approvedTemplate?: boolean },
   input: { dealId: string; disclosureId: string; mlds: MldsInput; actor: string },
 ): Promise<DisclosureRecord> {
-  await dealDisclosure(deps, input.dealId, input.disclosureId);
+  const { record: current } = await dealDisclosure(deps, input.dealId, input.disclosureId);
+  const namesKuberaReason = mldsNamesKubera(input.mlds);
+  if (namesKuberaReason) {
+    if (current.status === "held_for_counsel") return current;
+    return holdForCounsel({ store: deps.disclosures, now: deps.now, ...(deps.deal ? { deal: deps.deal } : {}) }, input.disclosureId, namesKuberaReason, input.actor);
+  }
   const { record } = await generateMlds(
     { store: deps.disclosures, storage: deps.storage, render: deps.render, now: deps.now, ...(deps.approvedTemplate !== undefined ? { approvedTemplate: deps.approvedTemplate } : {}) },
     input.disclosureId,

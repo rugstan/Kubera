@@ -31,4 +31,27 @@ describe("row mapping", () => {
     expect(roundTrip.status).toBe("cleared");
     expect(roundTrip.missing).toEqual([]);
   });
+
+  it("round-trips the lender's charges, the effective rate and the names on the loan documents", () => {
+    const input = {
+      recordKind: "loan" as const,
+      dealId: "00000000-0000-4000-8000-000000000001",
+      lender: { name: "Pacific Bridge Partners LLC", category: "PRIVATE_NON_EXEMPT" as const },
+      collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false },
+      noteRatePct: 9.5,
+      fedDiscountRatePct: 4.5,
+      lenderCharges: { lenderPointsPct: 1, exitFeePct: 0.5, minimumInterestMonths: 3, termMonths: 6 },
+      elements: fullElements,
+      transactionDate: "2026-11-01",
+      tableFunded: true,
+      trueFundingSource: "Pacific Bridge Fund I",
+      deedBeneficiaryName: "Pacific Bridge Partners LLC",
+      originatorName: "Pacific Bridge Partners LLC",
+    };
+    const row = { id: "11111111-1111-4111-8111-111111111111", ...brokerOfRecordRow(input) };
+    expect(row).toMatchObject({ lender_points_pct: 1, lender_exit_fee_pct: 0.5, minimum_interest_months: 3, charges_term_months: 6, effective_rate_pct: 12.5, gate_status: "blocked" });
+    const loan = loanBrokerOfRecordFromRow({ ...row, lender_points_pct: "1.0000", effective_rate_pct: "12.5000" });
+    expect(loan).toMatchObject({ lenderCharges: { lenderPointsPct: 1, exitFeePct: 0.5, minimumInterestMonths: 3, termMonths: 6 }, effectiveRatePct: 12.5, tableFunded: true, trueFundingSource: "Pacific Bridge Fund I", deedBeneficiaryName: "Pacific Bridge Partners LLC" });
+    expect(loan.elements.compensation).toEqual(fullElements.compensation);
+  });
 });

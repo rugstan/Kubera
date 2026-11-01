@@ -6,6 +6,7 @@ import {
   USURY_NEUTRAL_STATEMENT,
   borrowerDocumentGate,
   containsExemptionClaim,
+  effectiveRatePct,
   evaluateDealCompliance,
   evaluateModification,
   evaluateUsury,
@@ -433,5 +434,71 @@ describe("exemption-claim copy guard", () => {
     expect(containsExemptionClaim("This is not a determination that the loan is exempt.")).toBe(false);
     expect(containsExemptionClaim("We cannot say whether the loan is exempt.")).toBe(false);
     expect(containsExemptionClaim("We cannot advise. Good news: the loan is exempt.")).toBe(true);
+  });
+});
+
+describe("gate H: effective rate with lender-retained charges (VERIFY)", () => {
+  const sixMonthPoint = { lenderPointsPct: 1, termMonths: 6 };
+
+  it("annualizes points, exit fee and minimum interest beyond the term over the stated term", () => {
+    expect(effectiveRatePct(9.5)).toBe(9.5);
+    expect(effectiveRatePct(9.5, sixMonthPoint)).toBe(11.5);
+    expect(effectiveRatePct(9.5, { lenderPointsPct: 1, exitFeePct: 0.5, termMonths: 6 })).toBe(12.5);
+    // 6 months' minimum interest on a 3-month term adds 3 months of interest (2.375%) spread over 3 months.
+    expect(effectiveRatePct(9.5, { minimumInterestMonths: 6, termMonths: 3 })).toBe(19);
+    // Minimum interest inside the stated term adds nothing.
+    expect(effectiveRatePct(9.5, { minimumInterestMonths: 3, termMonths: 12 })).toBe(9.5);
+    // A recorded effective rate from the closing statement wins when higher.
+    expect(effectiveRatePct(9.5, { effectiveRatePct: 10.75 })).toBe(10.75);
+    expect(() => effectiveRatePct(9.5, { lenderPointsPct: 1 })).toThrow(/term in months/);
+  });
+
+  it("treats a 9.5% / 1-point / 6-month private loan as above the 10% cap: blocked until the officer approves", () => {
+    const { officerApproval: _o, ...unapproved } = completeElements;
+    const r = evaluateUsury(usury({ noteRatePct: 9.5, fedDiscountRatePct: 4.5, lenderCharges: sixMonthPoint, elements: unapproved }));
+    expect(r).toMatchObject({ capPct: 10, noteRatePct: 9.5, effectiveRatePct: 11.5, aboveCap: true, status: "blocked", blocking: true, missing: ["officer_approval"] });
+    expect(codes(r.flags)).toContain("officer_approval_required");
+    // Both figures are shown.
+    expect(r.reasons.join(" ")).toMatch(/Note rate 9\.5% \(effective 11\.5%/);
+    // The same loan on the note rate alone was "within cap".
+    expect(evaluateUsury(usury({ noteRatePct: 9.5, elements: unapproved })).status).toBe("within_cap");
+    // Officer approval with every element recorded clears the block.
+    expect(evaluateUsury(usury({ noteRatePct: 9.5, lenderCharges: sixMonthPoint })).status).toBe("cleared");
+  });
+
+  it("evaluates a modification's own lender charges against the cap", () => {
+    const loan = { lender: privateLender, fedDiscountRatePct: 4.5, collateral: rp };
+    const { officerApproval: _o, ...unapproved } = completeElements;
+    const base: ModificationFacts = { kind: "extension", effectiveDate: "2026-06-01", arrangedBy: "kubera", agreementRecitesBrokerArrangement: true, noteRatePct: 9.5, elements: unapproved };
+    expect(evaluateModification(base, loan)).toMatchObject({ status: "documented", aboveCap: false });
+    const withFee = evaluateModification({ ...base, lenderCharges: { exitFeePct: 1, termMonths: 6 } }, loan);
+    expect(withFee).toMatchObject({ status: "incomplete", blocking: true, effectiveRatePct: 11.5, aboveCap: true, missing: ["officer_approval"] });
+  });
+
+  it("never accepts Kubera as the lender of record", () => {
+    expect(() => evaluateUsury(usury({ lender: { name: "Kubera Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" } }))).toThrow(/never the lender/);
+  });
+});
+
+describe("gate A: an open MLDS stays required", () => {
+  it("keeps the signed-MLDS closing block when the collateral answer changes after the case opened", () => {
+    const now = new Date("2026-11-20T18:00:00Z");
+    for (const status of ["required", "generated", "sent"] as const) {
+      const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: businessAssets }, status }, usury: usury(), now });
+      expect(r.mlds.required).toBe(true);
+      expect(r.gates.closing.reasons).toContain("No deal moves to closing without a signed MLDS (RE 882) on file.");
+      expect(r.gates.borrowerCommitment.allowed).toBe(false);
+    }
+    const none = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: businessAssets }, status: null }, usury: usury(), now });
+    expect(none.mlds.required).toBe(false);
+  });
+
+  it("holds deals whose documents name Kubera as beneficiary or originator", () => {
+    const now = new Date("2026-11-20T18:00:00Z");
+    for (const flag of ["namesKuberaAsBeneficiary", "namesKuberaAsOriginator"] as const) {
+      const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp, [flag]: true }, status: "signed" }, usury: usury(), now });
+      expect(r.heldForCounsel).toBe(true);
+      expect(r.gates.closing.reasons).toContain("Deal is held for counsel review.");
+    }
   });
 });

@@ -165,6 +165,43 @@ test("a broker advances a deal's stage and generates SBA Form 159 from the ledge
   await expectAccessibleAndReflows(page, "deal with Form 159");
 });
 
+test("a broker records the loan's broker-of-record file and the gate H closing reason clears", async ({ page }) => {
+  const gateH = "Record the loan's broker-of-record file (lender, category, note rate, collateral and broker-of-record elements) before closing.";
+  await signIn(page, `/deals/${DEALS.seniorLiving}`);
+  const stage = section(page, "Stage");
+  // Fails closed, and says so once (not a second time in other words).
+  await expect(stage.getByText(gateH, { exact: true })).toHaveCount(1);
+  const modifications = section(page, "Forbearance, extension and modification");
+  await expect(modifications.getByRole("link", { name: "broker-of-record file" })).toBeVisible();
+
+  const bor = section(page, "Broker-of-record file");
+  await expect(bor.getByText(gateH, { exact: true })).toBeVisible();
+  await bor.getByRole("textbox", { name: /^Lender\b(?! category)/ }).fill("Example Community Bank (demo)");
+  await bor.getByLabel("Lender category").selectOption("STATE_BANK");
+  await bor.getByLabel("Category evidence").fill("demo://charter/example-bank");
+  await bor.getByLabel("Originator on the note").fill("Example Community Bank (demo)");
+  await bor.getByLabel("Deed of trust beneficiary").fill("Example Community Bank (demo)");
+  await bor.getByRole("textbox", { name: "Loan date", exact: true }).fill("2026-12-15");
+  await bor.getByRole("spinbutton", { name: "Note rate (%)", exact: true }).fill("6.25");
+  await bor.getByLabel("Fed discount rate (%)").fill("4.5");
+  await bor.getByRole("textbox", { name: "APN", exact: true }).fill("001-002-003");
+  await bor.getByRole("spinbutton", { name: "Lien position", exact: true }).fill("1");
+  await bor.getByRole("combobox", { name: "Kubera acts for", exact: true }).selectOption("borrower");
+  await bor.getByLabel("Kubera compensation (USD)").fill("92500");
+  await bor.getByLabel("Negotiation reference").fill("term-sheet-v2");
+  await bor.getByRole("textbox", { name: "Negotiation summary", exact: true }).fill("Negotiated rate and IO period");
+  await bor.getByLabel("Business-purpose certification on file").check();
+  await bor.getByRole("button", { name: "Record broker-of-record file" }).click();
+  await expect(notice(page, "Broker-of-record file recorded.")).toBeVisible();
+
+  // Gate H is evaluated now: the evidenced bank is an exempt category, and the missing-file reason is gone.
+  await expect(section(page, "Broker-of-record file").getByText("lender exempt", { exact: true })).toBeVisible();
+  await expect(section(page, "Stage").getByText(gateH, { exact: true })).toHaveCount(0);
+  await expect(section(page, "Stage").getByText("No deal moves to closing without a signed MLDS (RE 882) on file.")).toBeVisible();
+  await expect(section(page, "Forbearance, extension and modification").getByRole("button", { name: "Submit for gate H" })).toBeVisible();
+  await expectAccessibleAndReflows(page, "deal with broker-of-record file");
+});
+
 test("checklist items and conditions move, and a sanctions match puts the deal on hold", async ({ page }) => {
   await signIn(page, "/checklists");
   await page.getByLabel("Deal id").fill(DEALS.memoryCare);

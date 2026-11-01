@@ -30,7 +30,7 @@ import {
   releaseDealMlds,
   sendDealMlds,
 } from "./mlds";
-import { advanceDeal } from "./service";
+import { advanceDeal, loadDealCompliance } from "./service";
 import { checklistDesk, loanRecord, newDeal, setup } from "./test-fixtures";
 
 const BROKER = { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" };
@@ -195,7 +195,7 @@ describe("MLDS on the deal desk", () => {
     expect(() => officeDateTime("yesterday")).toThrow(/valid date/);
   });
 
-  it("parses borrower lines and rejects Kubera as lender", async () => {
+  it("parses borrower lines, and holds the MLDS for counsel when the figures name Kubera as lender or lienholder", async () => {
     expect(parseBorrowers("Pat Lee <Pat@Example.com>\nSam Roe, sam@example.com")).toEqual([
       { name: "Pat Lee", email: "pat@example.com" },
       { name: "Sam Roe", email: "sam@example.com" },
@@ -205,6 +205,19 @@ describe("MLDS on the deal desk", () => {
     const deal = await newDeal(w.store, w.now);
     const { record } = await openDealMlds(w.desk, { dealId: deal.id, applicationCompletedAt: w.now(), actor: "x" });
     const input = mldsInputFromForm(form({ lenderName: "Kubera Commercial" }), { broker: brokerIdentity, representative: { name: "Ana", dreLicense: "01234567" }, today: "2026-11-03" });
-    await expect(generateDealMlds({ ...w.desk, render, approvedTemplate: true }, { dealId: deal.id, disclosureId: record!.id, mlds: input, actor: "x" })).rejects.toThrow(/never the lender/);
+    const held = await generateDealMlds({ ...w.desk, render, approvedTemplate: true }, { dealId: deal.id, disclosureId: record!.id, mlds: input, actor: "x" });
+    expect(held.status).toBe("held_for_counsel");
+    expect(held.heldReason).toMatch(/Kubera as the lender of record/);
+    expect(held.documentPath).toBeNull();
+    // Held: the closing gate and borrower documents stop until counsel releases it.
+    const { compliance } = await loadDealCompliance({ store: w.store, disclosures: w.disclosures, now: w.now }, deal);
+    expect(compliance?.heldForCounsel).toBe(true);
+    expect(compliance?.gates.borrowerLoanDocuments.allowed).toBe(false);
+
+    // A lienholder named Kubera (e.g. as beneficiary of the new deed of trust) holds it too.
+    const deal2 = await newDeal(w.store, w.now, { title: "Second deal" });
+    const { record: second } = await openDealMlds(w.desk, { dealId: deal2.id, applicationCompletedAt: w.now(), actor: "x" });
+    const liens = mldsInputFromForm(form({ expectedLiens: "Kubera Commercial, Inc. | Deed of trust | 1 | 12500000" }), { broker: brokerIdentity, representative: { name: "Ana", dreLicense: "01234567" }, today: "2026-11-03" });
+    expect((await generateDealMlds({ ...w.desk, render, approvedTemplate: true }, { dealId: deal2.id, disclosureId: second!.id, mlds: liens, actor: "x" })).status).toBe("held_for_counsel");
   });
 });

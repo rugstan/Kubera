@@ -5,7 +5,7 @@ import { applyStageEvent } from "./stages";
 import { queueApprovalGate } from "@/lib/approvals/gate";
 import { ApprovalService } from "@/lib/approvals/service";
 import { MemoryApprovalStore } from "@/lib/approvals/store";
-import { applyModificationTerms, lenderNoticeKey, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, updateModificationFacts, withdrawModification } from "./modifications";
+import { ModificationError, applyModificationTerms, lenderNoticeKey, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, updateModificationFacts, withdrawModification } from "./modifications";
 import type { LenderMailer } from "./packages";
 import { fullElements, lenderInput, loanRecord, newDeal, setup } from "./test-fixtures";
 
@@ -203,5 +203,33 @@ describe("locked terms change only through a documented modification", () => {
     expect(modification.termsAppliedAt).not.toBeNull();
     await expect(applyModificationTerms({ store, gate, now }, m.id, { lockedTerms: { termMonths: 24 } }, "a")).rejects.toMatchObject({ reason: "invalid_status" });
     await expect(withdrawModification({ store, gate, now }, m.id, "a")).rejects.toThrow(/cannot be withdrawn/);
+  });
+});
+
+describe("applying terms never bypasses gate H", () => {
+  it("refuses a note rate gate H never evaluated: documented at 9.5% with a non-exempt lender, apply 14%", async () => {
+    const { store, gate, now, deal } = await world();
+    // 9.5% is within the 10% art. XV cap (discount rate 4.5%), so no officer approval is needed and it documents.
+    const m = await submitModification({ store, gate, now }, { dealId: deal.id, facts: ext({ noteRatePct: 9.5 }), actor: "a" });
+    expect(m.status).toBe("documented");
+    expect(m.evaluation.missing).toEqual([]);
+    const refused = applyModificationTerms({ store, gate, now }, m.id, { lockedTerms: { noteRatePct: 14 } }, "a");
+    await expect(refused).rejects.toBeInstanceOf(ModificationError);
+    await expect(refused).rejects.toMatchObject({ reason: "terms_not_allowed" });
+    expect((await store.getModification(m.id))!.termsAppliedAt).toBeNull();
+    expect((await store.getDeal(deal.id))!.lockOverrideRef).toBeNull();
+
+    // Raising the rate goes through gate H again: above the cap it blocks until the officer approves.
+    const raised = await updateModificationFacts({ store, gate, now }, m.id, ext({ noteRatePct: 14 }), "a");
+    expect(raised.status).toBe("blocked");
+    await expect(applyModificationTerms({ store, gate, now }, m.id, {}, "a")).rejects.toMatchObject({ reason: "terms_not_allowed" });
+    expect(store.brokerOfRecord.get(m.brokerOfRecordId!)).toMatchObject({ note_rate_pct: 14, gate_status: "incomplete", gate_blocking: true });
+  });
+
+  it("applies the evaluated rate when no rate is entered", async () => {
+    const { store, gate, now, deal } = await world();
+    const m = await submitModification({ store, gate, now }, { dealId: deal.id, facts: ext({ noteRatePct: 9.5 }), actor: "a" });
+    const { deal: changed } = await applyModificationTerms({ store, gate, now }, m.id, { lockedTerms: { termMonths: 18 } }, "a");
+    expect(changed.lockedTerms).toMatchObject({ noteRatePct: 9.5, termMonths: 18 });
   });
 });

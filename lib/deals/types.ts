@@ -7,7 +7,7 @@
 // closing statement. Nothing models holding, moving or paying out loan funds.
 
 import type { ModificationEvaluation } from "@/lib/compliance/gates";
-import type { BrokerOfRecordElements, LenderCategory, ModificationFacts } from "@/lib/compliance/schemas";
+import type { BrokerOfRecordElements, LenderCategory, LenderChargesInput, ModificationFacts } from "@/lib/compliance/schemas";
 import type { EsignProviderName } from "@/lib/esign/types";
 import type { Form159Data } from "./form159";
 
@@ -335,10 +335,20 @@ export type LoanBrokerOfRecord = {
   lender: { name: string; category: LenderCategory; evidenceRef?: string };
   noteRatePct: number;
   fedDiscountRatePct: number;
+  /** Points, exit fee and minimum interest the lender keeps (annualized into the effective rate gate H tests). */
+  lenderCharges?: LenderChargesInput;
   collateral: { realPropertyLien: boolean; equityPledgeOrUccOnly: boolean; apn?: string; lienPosition?: number };
   elements: BrokerOfRecordElements;
+  tableFunded?: boolean;
+  trueFundingSource?: string;
   tableFundedInKuberaName: boolean;
+  /** Names as written on the deed of trust and the note; a document naming Kubera holds the deal for counsel. */
+  deedBeneficiaryName?: string;
+  originatorName?: string;
   transactionDate: string;
+  /** Effective rate the gate computed when the file was saved. */
+  effectiveRatePct?: number;
+  updatedAt?: string;
 };
 
 export type Form159Status = "generated" | "pending_approval" | "sent" | "signed" | "superseded";

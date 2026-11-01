@@ -5,7 +5,9 @@
 
 import { dealClosingGate, type ChecklistDeps } from "@/lib/checklists/service";
 import { BROKER_OF_RECORD_FILE_MISSING, evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
-import type { DisclosureStore } from "@/lib/disclosures/store";
+import { namesKubera } from "@/lib/disclosures/broker-of-record";
+import type { DisclosureRecord, DisclosureStore } from "@/lib/disclosures/store";
+import { governingNoteRate } from "./broker-of-record";
 import { form159Satisfied } from "./form159";
 import { revokeDealShareLinks } from "./share-links";
 import { isTerminalStage } from "./stage-catalog";
@@ -34,15 +36,14 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
   if (!deps.disclosures) missing.push("The disclosure store is not configured, so MLDS status cannot be read.");
   if (missing.length) return { compliance: null, missing };
 
-  const disclosures = await deps.disclosures!.listForDeal({ dealId: deal.id, ...(deal.leadId ? { leadId: deal.leadId } : {}) });
-  const mlds = disclosures.find((d) => d.kind === "MLDS_RE882") ?? null;
+  const mlds = currentMlds(await deps.disclosures!.listForDeal({ dealId: deal.id, ...(deal.leadId ? { leadId: deal.leadId } : {}) }));
   const loan = await deps.store.getLoanBrokerOfRecord(deal.id);
   const mods = (await deps.store.listModifications(deal.id)).filter((m) => m.status !== "withdrawn");
   const realProperty = Boolean(deal.collateralRealProperty);
   // Gate H elements are recorded on every loan. Without the broker-of-record
   // row the closing gate fails closed (evaluateDealCompliance blocks closing
-  // when no usury facts are supplied) and the missing record is reported.
-  if (!loan) missing.push("Record the loan's broker-of-record file (lender, category, note rate, elements) before closing.");
+  // with BROKER_OF_RECORD_FILE_MISSING when no usury facts are supplied).
+  if (!loan) missing.push(BROKER_OF_RECORD_FILE_MISSING);
   const compliance = evaluateDealCompliance({
     mlds: {
       facts: {
@@ -50,14 +51,17 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
         program: deal.program,
         collateral: loan?.collateral ?? { realPropertyLien: realProperty, equityPledgeOrUccOnly: false },
         tableFundedInKuberaName: loan?.tableFundedInKuberaName ?? false,
+        ...namesKubera(loan ?? {}),
       },
       status: mlds?.status ?? null,
     },
+    ...(mlds ? mldsTimerInput(mlds) : {}),
     usury: loan
       ? {
           lender: loan.lender,
           noteRatePct: loan.noteRatePct,
           fedDiscountRatePct: loan.fedDiscountRatePct,
+          ...(loan.lenderCharges ? { lenderCharges: loan.lenderCharges } : {}),
           collateral: loan.collateral,
           elements: loan.elements,
           tableFundedInKuberaName: loan.tableFundedInKuberaName,
@@ -67,7 +71,37 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
     modifications: mods.map((m) => m.facts),
     now: deps.now(),
   });
+  // The rate gate H evaluated must be the rate the deal is locked at.
+  const governing = loan ? await governingNoteRate(deps.store, deal) : null;
+  if (loan && governing !== null && governing !== loan.noteRatePct) {
+    compliance.gates.closing = {
+      allowed: false,
+      reasons: [...compliance.gates.closing.reasons, `The locked note rate (${governing}%) differs from the ${loan.noteRatePct}% gate H evaluated; update the broker-of-record file.`],
+    };
+  }
   return { compliance, missing };
+}
+
+/** The deal's current MLDS (newest non-superseded RE 882 record). */
+function currentMlds(records: DisclosureRecord[]): DisclosureRecord | null {
+  return records.filter((d) => d.kind === "MLDS_RE882" && d.status !== "superseded").sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+}
+
+/**
+ * The B&P §10240 delivery clock for the current MLDS: from the completed
+ * written application to the earlier of 3 business days or obligation;
+ * delivery is the send for signature. A re-issued MLDS (supersedes a signed
+ * one) has no fresh statutory clock, so it is not timed here.
+ */
+export function mldsTimerInput(mlds: DisclosureRecord): { timer?: { applicationCompletedAt: Date; borrowerObligatedAt: Date | null; deliveredAt: Date | null } } {
+  if (!mlds.applicationCompletedAt || mlds.supersedesId) return {};
+  return {
+    timer: {
+      applicationCompletedAt: new Date(mlds.applicationCompletedAt),
+      borrowerObligatedAt: mlds.borrowerObligatedAt ? new Date(mlds.borrowerObligatedAt) : null,
+      deliveredAt: mlds.sentAt ? new Date(mlds.sentAt) : null,
+    },
+  };
 }
 
 export type DealDeskDeps = {
@@ -141,11 +175,44 @@ export async function advanceDeal(deps: DealDeskDeps, input: { dealId: string; e
 
 export type DealEdit = Partial<Pick<Deal, "title" | "borrowerName" | "propertyAddress" | "propertyState" | "loanAmountCents" | "collateralRealProperty" | "engagementAgreementRef" | "ownerId" | "program">>;
 
-/** Edits deal fields. Locked terms (after term-sheet acceptance) change only through a documented modification. */
-export async function editDeal(deps: { store: DealDeskStore; now: Clock }, dealId: string, expectedVersion: number, patch: DealEdit, actor: string): Promise<Deal> {
+/** A designated-officer override for a collateral change after an MLDS case was opened. */
+export type CollateralOverride = { officer: boolean; reason: string };
+
+/**
+ * Edits deal fields. Locked terms (after term-sheet acceptance) change only
+ * through a documented modification. Once an MLDS (RE 882) case is open the
+ * collateral answer drives gate A, so it changes only with a designated
+ * officer's override and a recorded reason (the open MLDS still has to be
+ * signed or superseded either way).
+ */
+export async function editDeal(
+  deps: { store: DealDeskStore; now: Clock; disclosures?: DisclosureStore | null },
+  dealId: string,
+  expectedVersion: number,
+  patch: DealEdit,
+  actor: string,
+  opts: { collateralOverride?: CollateralOverride } = {},
+): Promise<Deal> {
   const deal = await deps.store.getDeal(dealId);
   if (!deal) throw new DealError(`Deal ${dealId} not found`);
   if (patch.program && patch.program !== deal.program && deal.stage !== "intake") throw new DealError("The program can change only at intake (each program has its own stage template)");
+  let auditActor = actor;
+  if (patch.collateralRealProperty !== undefined && patch.collateralRealProperty !== deal.collateralRealProperty) {
+    // Fail closed: without the disclosure store an open MLDS cannot be ruled out.
+    const records = deps.disclosures ? await deps.disclosures.listForDeal({ dealId: deal.id, ...(deal.leadId ? { leadId: deal.leadId } : {}) }) : null;
+    const open = records === null ? true : currentMlds(records) !== null;
+    if (open) {
+      const o = opts.collateralOverride;
+      if (!o?.officer || o.reason.trim().length < 10) {
+        throw new DealError(
+          records === null
+            ? "The collateral cannot change while MLDS records cannot be checked (the disclosure store is not configured)."
+            : "An MLDS (RE 882) is open on this deal, so the collateral can change only with the designated officer's override and a reason (at least 10 characters). The open MLDS must still be signed or superseded.",
+        );
+      }
+      auditActor = `${actor} (officer override: ${o.reason.trim().slice(0, 200)})`;
+    }
+  }
   assertEditable(deal, patch);
-  return deps.store.updateDeal(deal.id, expectedVersion, patch, actor, deps.now());
+  return deps.store.updateDeal(deal.id, expectedVersion, patch, auditActor, deps.now());
 }

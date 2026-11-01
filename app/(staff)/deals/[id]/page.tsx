@@ -6,6 +6,9 @@ import { Suspense } from "react";
 import { FEE_ENTRY_LABELS, DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type FeeEntry, type LenderPanelEntry } from "@/lib/deals/types";
 import { FORM159_BLOCKING_FLAGS, type Form159Flag } from "@/lib/deals/form159";
 import { currentDealMlds, mldsSigners } from "@/lib/deals/mlds";
+import { BROKER_ELEMENT_LABELS, BROKER_OF_RECORD_FILE_MISSING, evaluateUsury } from "@/lib/compliance/gates";
+import { lenderCategories, type LenderCategory } from "@/lib/compliance/schemas";
+import { computeMldsTimer } from "@/lib/disclosures/timer";
 import type { DisclosureRecord } from "@/lib/disclosures/store";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
 import { panelForDeal } from "@/lib/deals/lenders";
@@ -17,6 +20,7 @@ import { availableEvents, stageLabel, stageTemplate } from "@/lib/deals/stages";
 import {
   addFeeAction,
   advanceDealAction,
+  approveLoanBrokerOfRecordAction,
   createInvoiceAction,
   editDealAction,
   feeStatusAction,
@@ -27,6 +31,7 @@ import {
   modificationAction,
   openMldsAction,
   outreachAction,
+  recordLoanBrokerOfRecordAction,
   releaseMldsAction,
   revokeLinkAction,
   sendForm159Action,
@@ -61,7 +66,10 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
   if (!deal) notFound();
   const shareUrl = (await cookies()).get("deal_share_url")?.value;
   const write = can(staff, "write");
+  const officer = can(staff, "officer");
   const template = stageTemplate(deal.program);
+  // An open MLDS stays on the page (and in the closing gate) whatever the collateral answer says now.
+  const openMlds = await currentDealMlds(rt.disclosures, deal);
 
   return (
     <>
@@ -113,6 +121,17 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
               ]}
             />
             <Field defaultValue={deal.engagementAgreementRef} hint="Vault reference of the signed engagement / fee agreement." label="Engagement agreement" name="engagementAgreementRef" />
+            {openMlds ? (
+              officer ? (
+                <Field
+                  hint="An MLDS is open, so the collateral changes only with your override as designated officer. The open MLDS must still be signed or superseded."
+                  label="Officer override reason (collateral change)"
+                  name="collateralOverrideReason"
+                />
+              ) : (
+                <p className="text-xs text-titanium sm:col-span-2">An MLDS is open on this deal, so the collateral answer changes only with the designated officer&apos;s override.</p>
+              )
+            ) : null}
             <div className="sm:col-span-2">
               <Submit>Save details</Submit>
             </div>
@@ -120,7 +139,8 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
         </Section>
       ) : null}
 
-      {deal.collateralRealProperty !== false ? <MldsPanel deal={deal} rt={rt} staff={staff} /> : null}
+      {deal.collateralRealProperty !== false || openMlds ? <MldsPanel deal={deal} rt={rt} staff={staff} /> : null}
+      <BrokerOfRecordPanel deal={deal} rt={rt} staff={staff} />
       <OutreachPanel deal={deal} rt={rt} write={write} />
       <LedgerPanel deal={deal} rt={rt} write={write} />
       {isSbaProgram(deal.program) ? <Form159Panel deal={deal} rt={rt} write={write} /> : null}
@@ -137,6 +157,8 @@ async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime
   const ctx = await stageContext(deskDeps(rt), deal);
   const events = availableEvents(stageTemplate(deal.program), deal.stage);
   const compliance = ctx.compliance;
+  // Records the closing gate already names are listed once, with the gate.
+  const missingRecords = ctx.complianceMissing.filter((r) => !compliance?.gates.closing.reasons.includes(r));
   return (
     <Section description="Events advance the deal; each checks the records it needs." title="Stage">
       <ul className="grid gap-2 text-sm sm:grid-cols-2">
@@ -180,9 +202,9 @@ async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime
           ))}
         </ul>
       ) : null}
-      {ctx.complianceMissing.length ? (
+      {missingRecords.length ? (
         <ul className="mt-3 list-disc pl-5 text-sm text-amber-900">
-          {ctx.complianceMissing.map((r) => (
+          {missingRecords.map((r) => (
             <li key={r}>{r}</li>
           ))}
         </ul>
@@ -579,6 +601,15 @@ function Area({ label, name, hint, defaultValue, rows = 3 }: { label: string; na
   );
 }
 
+const CLOCK_LABEL = {
+  on_track: "Delivery clock on track",
+  warning: "Delivery due soon",
+  overdue: "Delivery overdue (B&P §10240)",
+  satisfied: "Delivered on time",
+  late: "Delivered late (B&P §10240)",
+} as const;
+const CLOCK_TONE = { on_track: "neutral", warning: "warn", overdue: "bad", satisfied: "good", late: "bad" } as const;
+
 async function MldsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDeskRuntime; staff: StaffSession }) {
   const write = can(staff, "write");
   const officer = can(staff, "officer");
@@ -591,6 +622,16 @@ async function MldsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDeskRuntime;
     </>
   ) : null;
   const canGenerate = write && mlds && (mlds.status === "required" || mlds.status === "generated");
+  // B&P §10240 delivery clock (a re-issued MLDS has no fresh statutory clock).
+  const clock =
+    mlds && mlds.applicationCompletedAt && !mlds.supersedesId
+      ? computeMldsTimer({
+          applicationCompletedAt: new Date(mlds.applicationCompletedAt),
+          borrowerObligatedAt: mlds.borrowerObligatedAt ? new Date(mlds.borrowerObligatedAt) : null,
+          deliveredAt: mlds.sentAt ? new Date(mlds.sentAt) : null,
+          now: rt.now(),
+        })
+      : null;
   return (
     <Section
       description="Real-property loans: the borrower signs the Mortgage Loan Disclosure Statement within 3 business days of the completed application, and no deal moves to closing without it."
@@ -616,6 +657,7 @@ async function MldsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDeskRuntime;
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge tone={MLDS_STATUS_TONE[mlds.status]}>{mlds.status.replace(/_/g, " ")}</Badge>
             {mlds.dueAt ? <span className="text-titanium">Due {when(mlds.dueAt)}</span> : null}
+            {clock ? <Badge tone={CLOCK_TONE[clock.status]}>{CLOCK_LABEL[clock.status]}</Badge> : null}
             {mlds.sentAt ? <span className="text-titanium">Sent {when(mlds.sentAt)}</span> : null}
             {mlds.signedAt ? <span className="text-titanium">Signed {when(mlds.signedAt)}; keep until {mlds.retainUntil}</span> : null}
             {mlds.flags.includes("draft_template") ? <Badge tone="bad">Draft template</Badge> : null}
@@ -800,7 +842,11 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
   const officer = can(staff, "officer");
   return (
     <Section description="Each change must itself be arranged by a licensed broker (SB 1146). Gate H runs on every change." title="Forbearance, extension and modification">
-      {!loan ? <p className="text-sm text-amber-900">Record the loan-level broker-of-record file (gate H) before any change can be submitted.</p> : null}
+      {!loan ? (
+        <p className="text-sm text-amber-900">
+          Record the loan&apos;s <a className="underline" href="#broker-of-record">broker-of-record file</a> before any change can be submitted.
+        </p>
+      ) : null}
       <Table
         empty="No changes recorded."
         head={["Change", "Effective", "Status", "Flags", ""]}
@@ -853,7 +899,7 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
                 <input name="dealId" type="hidden" value={deal.id} />
                 <input name="modificationId" type="hidden" value={m.id} />
                 <input name="op" type="hidden" value="apply_terms" />
-                <input aria-label="New note rate" className="field w-28" name="noteRatePct" placeholder="Rate %" step="0.001" type="number" />
+                <span className="self-center text-xs text-titanium">Applies the evaluated {m.facts.noteRatePct}% rate</span>
                 <input aria-label="New term in months" className="field w-28" name="termMonths" placeholder="Term (mo)" type="number" />
                 <Submit tone="glass">Apply terms</Submit>
               </form>
@@ -925,6 +971,202 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
             <Submit>Submit for gate H</Submit>
           </div>
         </form>
+      ) : null}
+    </Section>
+  );
+}
+
+const LENDER_CATEGORY_LABELS: Record<LenderCategory, string> = {
+  NATIONAL_BANK: "National bank",
+  STATE_BANK: "State bank",
+  SAVINGS_ASSOCIATION: "Savings association",
+  CREDIT_UNION: "Credit union",
+  INSURANCE_COMPANY: "Insurance company",
+  CFL_LICENSEE: "CFL licensee",
+  INDUSTRIAL_LOAN_COMPANY: "Industrial loan company",
+  PRIVATE_NON_EXEMPT: "Private lender (non-exempt)",
+  UNKNOWN: "Unknown",
+};
+
+const USURY_TONE = { lender_exempt: "good", within_cap: "good", cleared: "good", blocked: "bad", held_for_counsel: "bad" } as const;
+
+/** Gate H: the loan-level broker-of-record file, recorded on every loan. */
+async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDeskRuntime; staff: StaffSession }) {
+  const loan = await rt.store.getLoanBrokerOfRecord(deal.id);
+  const write = can(staff, "write");
+  const officer = can(staff, "officer");
+  const evaluation = loan
+    ? evaluateUsury({
+        lender: loan.lender,
+        noteRatePct: loan.noteRatePct,
+        fedDiscountRatePct: loan.fedDiscountRatePct,
+        ...(loan.lenderCharges ? { lenderCharges: loan.lenderCharges } : {}),
+        collateral: loan.collateral,
+        elements: loan.elements,
+        tableFundedInKuberaName: loan.tableFundedInKuberaName,
+        transactionDate: loan.transactionDate,
+      })
+    : null;
+  const lockedRate = typeof deal.lockedTerms?.noteRatePct === "number" ? deal.lockedTerms.noteRatePct : undefined;
+  const lockedLender = typeof deal.lockedTerms?.lenderName === "string" ? deal.lockedTerms.lenderName : undefined;
+  const c = loan?.lenderCharges;
+  const e = loan?.elements;
+  return (
+    <Section
+      description="Gate H, recorded on every loan: the licensed broker who arranged it for another, for compensation, on a real-property-secured loan (Civ. Code §1916.1). This records facts; it is never a determination that any exemption applies."
+      id="broker-of-record"
+      title="Broker-of-record file"
+    >
+      {!loan || !evaluation ? (
+        <p className="text-sm text-amber-900">{BROKER_OF_RECORD_FILE_MISSING}</p>
+      ) : (
+        <div className="space-y-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={USURY_TONE[evaluation.status]}>{evaluation.status.replace(/_/g, " ")}</Badge>
+            <span className="text-ink">
+              {loan.lender.name} · {LENDER_CATEGORY_LABELS[loan.lender.category]}
+            </span>
+            {e?.officerApproval ? <Badge tone="good">Officer approved {when(e.officerApproval.approvedAt)}</Badge> : null}
+          </div>
+          <p className="text-titanium">
+            Note rate {evaluation.noteRatePct}% · effective {evaluation.effectiveRatePct}% with the lender&apos;s points, exit fee and minimum interest (VERIFY, pending counsel) · art. XV cap {evaluation.capPct}%
+          </p>
+          <ul className="list-disc pl-5 text-ink">
+            {evaluation.reasons.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+          {evaluation.missing.length ? (
+            <div>
+              <p className="font-medium text-red-900">Missing from the file</p>
+              <ul className="list-disc pl-5 text-red-900">
+                {evaluation.missing.map((m) => (
+                  <li key={m}>{BROKER_ELEMENT_LABELS[m]}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {evaluation.flags.length ? (
+            <div className="flex flex-wrap gap-2">
+              {evaluation.flags.map((f) => (
+                <Badge key={`${f.code}${f.reason}`} tone={f.code === "held_for_counsel" ? "bad" : "warn"}>
+                  {f.code.replace(/_/g, " ")}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+          {e?.negotiationLog?.length ? (
+            <Table
+              empty="No negotiation entries."
+              head={["When", "Kind", "Reference", "Summary"]}
+              label="Negotiation log"
+              rows={(e.negotiationLog ?? []).map((n) => [when(n.at), n.kind.replace(/_/g, " "), n.ref, n.summary ?? ""])}
+            />
+          ) : null}
+          {officer && !e?.officerApproval ? (
+            <form action={approveLoanBrokerOfRecordAction}>
+              <input name="dealId" type="hidden" value={deal.id} />
+              <Submit tone="glass">Officer approve</Submit>
+              <p className="mt-1 text-xs text-titanium">Records you as the designated officer approving this loan file. Changing the lender, rate, charges or collateral clears the approval.</p>
+            </form>
+          ) : null}
+        </div>
+      )}
+      {write ? (
+        <details className="mt-4 rounded-2xl border border-black/10 p-4" open={!loan}>
+          <summary className="cursor-pointer text-sm font-medium text-ink">{loan ? "Update the file" : "Record the file"}</summary>
+          <form action={recordLoanBrokerOfRecordAction} className="mt-4 grid gap-3 sm:grid-cols-3">
+            <input name="dealId" type="hidden" value={deal.id} />
+            <Field defaultValue={loan?.lender.name ?? lockedLender} hint="Lender of record; Kubera is never the lender." label="Lender" name="bor_lenderName" required />
+            <Select
+              defaultValue={loan?.lender.category ?? "UNKNOWN"}
+              label="Lender category"
+              name="bor_lenderCategory"
+              options={lenderCategories.map((c) => ({ value: c, label: LENDER_CATEGORY_LABELS[c] }))}
+            />
+            <Field defaultValue={loan?.lender.evidenceRef} hint="Charter or license number. Without it an exempt category is treated as non-exempt." label="Category evidence" name="bor_lenderEvidenceRef" />
+            <Field defaultValue={loan?.originatorName} hint="As named on the note." label="Originator on the note" name="bor_originatorName" />
+            <Field defaultValue={loan?.deedBeneficiaryName} hint="As named on the deed of trust." label="Deed of trust beneficiary" name="bor_deedBeneficiaryName" />
+            <Field defaultValue={loan?.transactionDate} label="Loan date" name="bor_transactionDate" required type="date" />
+            <Field defaultValue={loan?.noteRatePct ?? lockedRate} label="Note rate (%)" name="bor_noteRatePct" required step="0.001" type="number" />
+            <Field
+              defaultValue={loan?.fedDiscountRatePct}
+              hint="FRBSF discount rate on the 25th of the month before the loan was contracted (art. XV cap)."
+              label="Fed discount rate (%)"
+              name="bor_fedDiscountRatePct"
+              required
+              step="0.001"
+              type="number"
+            />
+            <Field defaultValue={c?.lenderPointsPct} label="Lender points (%)" name="bor_lenderPointsPct" step="0.001" type="number" />
+            <Field defaultValue={c?.exitFeePct} label="Lender exit fee (%)" name="bor_exitFeePct" step="0.001" type="number" />
+            <Field defaultValue={c?.minimumInterestMonths} label="Minimum interest (months)" name="bor_minimumInterestMonths" type="number" />
+            <Field defaultValue={c?.termMonths} hint="Spreads the lender's points, exit fee and minimum interest into the effective rate." label="Loan term (months)" name="bor_chargesTermMonths" type="number" />
+            <Field defaultValue={c?.effectiveRatePct} hint="Optional figure from the closing statement; the higher rate is tested." label="Recorded effective rate (%)" name="bor_recordedEffectiveRatePct" step="0.001" type="number" />
+            <Select
+              defaultValue={loan?.collateral.equityPledgeOrUccOnly ? "equity_pledge_or_ucc" : "real_property"}
+              label="Collateral"
+              name="bor_collateralKind"
+              options={[
+                { value: "real_property", label: "Lien on real property" },
+                { value: "equity_pledge_or_ucc", label: "Equity pledge / UCC only" },
+              ]}
+            />
+            <Field defaultValue={loan?.collateral.apn} label="APN" name="bor_apn" />
+            <Field defaultValue={loan?.collateral.lienPosition} label="Lien position" name="bor_lienPosition" type="number" />
+            <Select
+              defaultValue={e?.actsFor ?? ""}
+              label="Kubera acts for"
+              name="bor_actsFor"
+              options={[
+                { value: "", label: "—" },
+                { value: "borrower", label: "Borrower" },
+                { value: "lender", label: "Lender" },
+                { value: "borrower_and_lender", label: "Borrower and lender" },
+              ]}
+            />
+            <Field defaultValue={e?.engagementAgreementRef ?? deal.engagementAgreementRef} label="Engagement / fee agreement ref" name="bor_engagementRef" />
+            <Field defaultValue={e?.compensation?.amountUsd} label="Kubera compensation (USD)" name="bor_compensation" step="0.01" type="number" />
+            <Select
+              defaultValue={e?.compensation?.payer ?? "borrower"}
+              label="Compensation paid by"
+              name="bor_payer"
+              options={[
+                { value: "borrower", label: "Borrower" },
+                { value: "lender", label: "Lender" },
+                { value: "borrower_and_lender", label: "Borrower and lender" },
+              ]}
+            />
+            <Field defaultValue={e?.compensation?.closingStatementLine} label="Closing statement line" name="bor_closingStatementLine" />
+            <Select
+              label="Negotiation entry"
+              name="bor_negotiationKind"
+              options={[
+                { value: "term_sheet", label: "Term-sheet version" },
+                { value: "lender_submission", label: "Lender submission" },
+                { value: "counteroffer", label: "Counteroffer" },
+                { value: "communication", label: "Communication" },
+              ]}
+            />
+            <Field hint="Vault path, mail message id or term-sheet version; added to the log." label="Negotiation reference" name="bor_negotiationRef" />
+            <Field label="Negotiation summary" name="bor_negotiationSummary" />
+            <Field defaultValue={loan?.trueFundingSource} label="True funding source (if table funded)" name="bor_trueFundingSource" />
+            <div className="flex flex-col gap-2 sm:col-span-3">
+              <Check defaultChecked={loan?.tableFunded} label="Table funded" name="bor_tableFunded" />
+              <Check defaultChecked={loan?.tableFundedInKuberaName} label="Table funded in Kubera's name" name="bor_tableFundedInKuberaName" />
+              <Check defaultChecked={e?.businessPurposeCertified} label="Business-purpose certification on file" name="bor_businessPurpose" />
+              <Check defaultChecked={e?.arrangingLicensee?.activeAtTransaction ?? true} label="My DRE license is active on the loan date" name="bor_licenseActive" />
+            </div>
+            <p className="text-xs text-titanium sm:col-span-3">
+              {staff.dreLicense
+                ? `You (${staff.name}, DRE ${staff.dreLicense}) are recorded as the arranging licensee.`
+                : "Your profile has no DRE license, so the arranging licensee stays as recorded (or missing)."}
+            </p>
+            <div className="sm:col-span-3">
+              <Submit>{loan ? "Update broker-of-record file" : "Record broker-of-record file"}</Submit>
+            </div>
+          </form>
+        </details>
       ) : null}
     </Section>
   );
