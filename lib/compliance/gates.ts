@@ -12,12 +12,14 @@ import {
   EXEMPT_LENDER_CATEGORIES,
   brokerOfRecordElementsSchema,
   collateralSchema,
+  lenderChargesSchema,
   mldsFactsSchema,
   modificationFactsSchema,
   usuryFactsSchema,
   type BrokerOfRecordElements,
   type Collateral,
   type CollateralInput,
+  type LenderChargesInput,
   type MldsFacts,
   type ModificationFacts,
   type UsuryFacts,
@@ -131,6 +133,36 @@ export function usuryCapPct(fedDiscountRatePct: number): number {
   return Math.max(10, 5 + fedDiscountRatePct);
 }
 
+/**
+ * Effective annualized rate for the art. XV cap test: the note rate plus the
+ * compensation the lender retains (points, exit fee, minimum interest beyond
+ * the stated term), spread evenly over the stated term. The higher of this
+ * figure and any effective rate recorded from the closing statement is used.
+ *
+ * VERIFY (counsel gate H): the spreading method (stated term vs. earliest
+ * permitted payoff) and which charges count as interest. Until counsel signs
+ * off this is a conservative screen that decides whether the gate-H block and
+ * officer approval apply; it is never a determination that a loan is or is not
+ * usurious.
+ */
+export function effectiveRatePct(noteRatePct: number, charges?: LenderChargesInput): number {
+  if (!charges) return noteRatePct;
+  const c = lenderChargesSchema.parse(charges);
+  let rate = noteRatePct;
+  if (c.termMonths) {
+    // Minimum interest only adds to the yield where it exceeds the stated term's own interest.
+    const extraInterestPct = (noteRatePct * Math.max(0, c.minimumInterestMonths - c.termMonths)) / 12;
+    rate += ((c.lenderPointsPct + c.exitFeePct + extraInterestPct) * 12) / c.termMonths;
+  }
+  if (c.effectiveRatePct !== undefined) rate = Math.max(rate, c.effectiveRatePct);
+  return Math.round(rate * 10_000) / 10_000;
+}
+
+/** "Note rate 9.5% (effective 11.5% …)" for gate reasons: both figures whenever charges raise the rate. */
+export function rateLabel(noteRatePct: number, effective: number): string {
+  return effective > noteRatePct ? `Note rate ${noteRatePct}% (effective ${effective}% with the lender's points, exit fee and minimum interest; VERIFY)` : `Note rate ${noteRatePct}%`;
+}
+
 export type BrokerElement =
   | "arranging_licensee"
   | "licensee_active"
@@ -176,6 +208,9 @@ export type UsuryStatus = "lender_exempt" | "within_cap" | "cleared" | "blocked"
 export type UsuryEvaluation = {
   status: UsuryStatus;
   capPct: number;
+  noteRatePct: number;
+  /** Note rate plus lender-retained charges, annualized (the figure tested against the cap). */
+  effectiveRatePct: number;
   aboveCap: boolean;
   lenderExempt: boolean;
   /** Elements missing from the broker-of-record file (recorded on every loan). */
@@ -200,7 +235,9 @@ export function evaluateUsury(input: UsuryFacts): UsuryEvaluation {
   const flags: Flag[] = [];
   const reasons: string[] = [];
   const capPct = usuryCapPct(facts.fedDiscountRatePct);
-  const aboveCap = facts.noteRatePct > capPct;
+  const effective = effectiveRatePct(facts.noteRatePct, facts.lenderCharges);
+  const aboveCap = effective > capPct;
+  const rate = rateLabel(facts.noteRatePct, effective);
   const lenderExempt = lenderIsExempt(facts.lender, flags);
   const realProperty = hasRealPropertyLien(facts.collateral);
   const gateApplies = !lenderExempt && aboveCap;
@@ -226,20 +263,20 @@ export function evaluateUsury(input: UsuryFacts): UsuryEvaluation {
     reasons.push(`${facts.lender.name} is recorded as an exempt lender category (${facts.lender.category}).`);
   } else if (!aboveCap) {
     status = "within_cap";
-    reasons.push(`Note rate ${facts.noteRatePct}% does not exceed the art. XV cap of ${capPct}%.`);
+    reasons.push(`${rate} does not exceed the art. XV cap of ${capPct}%.`);
   } else if (!realProperty) {
     status = "held_for_counsel";
-    flags.push({ code: "held_for_counsel", reason: `Non-exempt lender at ${facts.noteRatePct}% (cap ${capPct}%) with no real-property lien.`, authority: "Cal. Const. art. XV" });
+    flags.push({ code: "held_for_counsel", reason: `Non-exempt lender: ${rate} exceeds the ${capPct}% cap with no real-property lien.`, authority: "Cal. Const. art. XV" });
   } else if (missing.length) {
     status = "blocked";
     if (missing.includes("officer_approval")) flags.push({ code: "officer_approval_required", reason: "Designated-officer approval is required before funding." });
-    reasons.push(`Non-exempt lender at ${facts.noteRatePct}% exceeds the ${capPct}% cap; every broker-of-record element and officer approval must be recorded first.`);
+    reasons.push(`Non-exempt lender: ${rate} exceeds the ${capPct}% cap; every broker-of-record element and officer approval must be recorded first.`);
   } else {
     status = "cleared";
     reasons.push("All broker-of-record elements and officer approval are recorded. This is not a determination that any exemption applies.");
   }
 
-  return { status, capPct, aboveCap, lenderExempt, missing, blocking: status === "blocked" || status === "held_for_counsel", flags, reasons };
+  return { status, capPct, noteRatePct: facts.noteRatePct, effectiveRatePct: effective, aboveCap, lenderExempt, missing, blocking: status === "blocked" || status === "held_for_counsel", flags, reasons };
 }
 
 /** SB 1146 (Stats. 2024, ch. 601) applies to modifications effective on/after this date. */
@@ -249,6 +286,10 @@ export type ModificationStatus = "held_for_counsel" | "no_exemption_representati
 
 export type ModificationEvaluation = {
   status: ModificationStatus;
+  /** Rate after the change, and with the lender's charges for it annualized (the figure tested against the cap). */
+  noteRatePct?: number;
+  effectiveRatePct?: number;
+  aboveCap?: boolean;
   /** A licensed broker's arrangement is documented (still not an exemption determination). */
   brokerArrangementDocumented: boolean;
   lenderNoticeRequired: boolean;
@@ -266,11 +307,14 @@ export function evaluateModification(input: ModificationFacts, loan: LoanContext
   const flags: Flag[] = [];
   const capPct = usuryCapPct(loan.fedDiscountRatePct);
   const lenderExempt = lenderIsExempt(loan.lender, []);
-  const gateApplies = !lenderExempt && mod.noteRatePct > capPct;
+  const effective = effectiveRatePct(mod.noteRatePct, mod.lenderCharges);
+  const aboveCap = effective > capPct;
+  const gateApplies = !lenderExempt && aboveCap;
+  const rates = { noteRatePct: mod.noteRatePct, effectiveRatePct: effective, aboveCap };
 
   if (mod.effectiveDate < SB1146_EFFECTIVE_DATE) {
     flags.push({ code: "held_for_counsel", reason: `${mod.kind} effective ${mod.effectiveDate} predates SB 1146; counsel must review.`, authority: "Civ. Code §1916.1 (SB 1146)" });
-    return { status: "held_for_counsel", brokerArrangementDocumented: false, lenderNoticeRequired: false, missing: [], blocking: true, flags };
+    return { status: "held_for_counsel", ...rates, brokerArrangementDocumented: false, lenderNoticeRequired: false, missing: [], blocking: true, flags };
   }
 
   if (!hasRealPropertyLien(collateral)) {
@@ -281,7 +325,7 @@ export function evaluateModification(input: ModificationFacts, loan: LoanContext
     flags.push({ code: "no_exemption_representation", reason: `${mod.kind} negotiated only by the lender or servicer; Kubera makes no exemption representation.`, authority: "Civ. Code §1916.1 (SB 1146)" });
     const lenderNoticeRequired = !mod.lenderNoticeSentAt;
     if (lenderNoticeRequired) flags.push({ code: "lender_written_notice_required", reason: "Send the lender written notice that Kubera did not arrange this change and makes no exemption representation." });
-    return { status: "no_exemption_representation", brokerArrangementDocumented: false, lenderNoticeRequired, missing: [], blocking: false, flags };
+    return { status: "no_exemption_representation", ...rates, brokerArrangementDocumented: false, lenderNoticeRequired, missing: [], blocking: false, flags };
   }
 
   const missing: ModificationEvaluation["missing"] = [];
@@ -294,11 +338,14 @@ export function evaluateModification(input: ModificationFacts, loan: LoanContext
 
   if (missing.length) {
     flags.push({ code: "broker_of_record_incomplete", reason: `${mod.kind} file is missing: ${missing.join(", ")}.` });
-    if (missing.includes("officer_approval")) flags.push({ code: "officer_approval_required", reason: `Designated-officer approval is required for this ${mod.kind}.` });
+    if (missing.includes("officer_approval")) {
+      flags.push({ code: "officer_approval_required", reason: `Designated-officer approval is required for this ${mod.kind}: ${rateLabel(mod.noteRatePct, effective)} exceeds the ${capPct}% cap.` });
+    }
   }
   const blocking = missing.length > 0 && gateApplies;
   return {
     status: missing.length ? "incomplete" : "documented",
+    ...rates,
     brokerArrangementDocumented: missing.length === 0,
     lenderNoticeRequired: false,
     missing,
@@ -347,7 +394,18 @@ export const BROKER_OF_RECORD_FILE_MISSING =
   "Record the loan's broker-of-record file (lender, category, note rate, collateral and broker-of-record elements) before closing.";
 
 export function evaluateDealCompliance(input: DealComplianceInput): DealCompliance {
-  const mlds = mldsRequirement(input.mlds.facts);
+  let mlds = mldsRequirement(input.mlds.facts);
+  // Once an MLDS case is open it stays required until it is signed (or
+  // superseded), whatever the collateral facts say now: editing the collateral
+  // must not drop an open RE 882 from the closing gate.
+  if (!mlds.required && input.mlds.status !== null && input.mlds.status !== "superseded") {
+    mlds = {
+      ...mlds,
+      required: true,
+      form: "RE882",
+      reasons: [...mlds.reasons, "An MLDS case is already open on this deal, so a signed MLDS is still required."],
+    };
+  }
   const caseState: MldsCaseState = { requirement: mlds, status: input.mlds.status };
   const flags: Flag[] = [...mlds.flags];
 

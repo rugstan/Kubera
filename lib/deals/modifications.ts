@@ -62,6 +62,7 @@ function borRow(deal: Deal, loan: LoanBrokerOfRecord, facts: ModificationFacts):
     collateral: loan.collateral,
     noteRatePct: f.noteRatePct,
     fedDiscountRatePct: loan.fedDiscountRatePct,
+    ...(f.lenderCharges ? { lenderCharges: f.lenderCharges } : {}),
     elements: f.elements,
     parentId: loan.id,
     effectiveDate: f.effectiveDate,
@@ -76,7 +77,7 @@ export type ModificationDeps = { store: DealDeskStore; gate: ApprovalGate; now: 
 
 export type ChangeFeeInput = { principalCents: number; pct?: number; flatCents?: number; payer: "borrower" | "lender" };
 
-async function reevaluate(deps: ModificationDeps, m: ModificationRecord, facts: ModificationFacts, actor: string, extra: Partial<ModificationRecord> = {}): Promise<ModificationRecord> {
+async function reevaluate(deps: Pick<ModificationDeps, "store" | "now">, m: ModificationRecord, facts: ModificationFacts, actor: string, extra: Partial<ModificationRecord> = {}): Promise<ModificationRecord> {
   const deal = await deps.store.getDeal(m.dealId);
   const loan = await deps.store.getLoanBrokerOfRecord(m.dealId);
   if (!deal || !loan) throw new ModificationError("no_loan_record", "The deal or its loan-level broker-of-record file is missing");
@@ -84,6 +85,18 @@ async function reevaluate(deps: ModificationDeps, m: ModificationRecord, facts: 
   const status = modificationStatusFor(evaluation);
   if (m.brokerOfRecordId) await deps.store.updateBrokerOfRecordRow(m.brokerOfRecordId, borRow(deal, loan, facts));
   return deps.store.updateModification(m.id, { ...extra, facts, evaluation, status, flags: [...new Set(evaluation.flags.map((f) => f.code))] }, actor, deps.now());
+}
+
+/**
+ * Re-runs gate H on every open change after the loan-level file changed (a new
+ * lender category, rate cap inputs or collateral change the result). Applied
+ * and withdrawn changes are history and keep their evaluation.
+ */
+export async function reevaluateOpenModifications(deps: Pick<ModificationDeps, "store" | "now">, dealId: string, actor: string): Promise<ModificationRecord[]> {
+  const open = (await deps.store.listModifications(dealId)).filter((m) => m.status !== "withdrawn" && !m.termsAppliedAt);
+  const out: ModificationRecord[] = [];
+  for (const m of open) out.push(await reevaluate(deps, m, m.facts, actor));
+  return out;
 }
 
 /** The written no-exemption notice exactly as the broker approves it. */
@@ -305,7 +318,13 @@ export async function updateModificationFacts(deps: ModificationDeps, id: string
 
 const TERMS_ALLOWED: ReadonlySet<ModificationStatus> = new Set(["documented", "no_exemption_representation"]);
 
-/** Applies the changed economic terms to the deal under this modification's override reference. */
+/**
+ * Applies the changed economic terms to the deal under this modification's
+ * override reference. The note rate is always the one gate H evaluated
+ * (m.facts.noteRatePct): a different rate would bypass the above-cap block and
+ * officer approval, so it is refused; record the new rate on the change with
+ * updateModificationFacts (which re-runs gate H) instead.
+ */
 export async function applyModificationTerms(
   deps: ModificationDeps,
   id: string,
@@ -315,10 +334,17 @@ export async function applyModificationTerms(
   const m = await load(deps.store, id);
   if (!TERMS_ALLOWED.has(m.status)) throw new ModificationError("terms_not_allowed", `Terms change only after the ${m.kind} is documented (status: ${m.status.replace(/_/g, " ")})`);
   if (m.termsAppliedAt) throw new ModificationError("invalid_status", "These terms were already applied");
+  const requested = patch.lockedTerms?.noteRatePct;
+  if (requested !== undefined && requested !== null && Number(requested) !== m.facts.noteRatePct) {
+    throw new ModificationError(
+      "terms_not_allowed",
+      `Gate H evaluated this ${m.kind} at ${m.facts.noteRatePct}%; ${String(requested)}% was never evaluated. Update the change's rate (gate H runs again) before applying it.`,
+    );
+  }
   const deal = await deps.store.getDeal(m.dealId);
   if (!deal) throw new ModificationError("deal_not_found", "Deal not found");
   const next: Partial<Deal> = { ...patch, lockOverrideRef: m.id };
-  if (patch.lockedTerms) next.lockedTerms = { ...(deal.lockedTerms ?? {}), ...patch.lockedTerms };
+  next.lockedTerms = { ...(deal.lockedTerms ?? {}), ...(patch.lockedTerms ?? {}), noteRatePct: m.facts.noteRatePct };
   assertEditable(deal, next);
   const now = deps.now();
   const updatedDeal = await deps.store.updateDeal(deal.id, deal.recordVersion, next, actor, now);

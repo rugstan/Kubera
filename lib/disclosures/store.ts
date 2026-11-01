@@ -73,6 +73,8 @@ export interface DisclosureStore {
   getByProviderRequest(provider: EsignProviderName, requestId: string): Promise<DisclosureRecord | null>;
   /** Current (non-superseded) disclosures for a lead or deal. */
   listForDeal(ref: { leadId?: string; dealId?: string }): Promise<DisclosureRecord[]>;
+  /** MLDS records not yet delivered (required, generated or held for counsel), soonest due first: the §10240 clock sweep. */
+  listUndeliveredMlds(limit?: number): Promise<DisclosureRecord[]>;
   /** Optimistic update: applies only when the stored version equals `expectedVersion`; bumps the version. */
   update(id: string, expectedVersion: number, patch: Partial<Omit<DisclosureRecord, "id" | "version" | "createdAt">>, now: Date): Promise<DisclosureRecord>;
   /** Append to the audit trail. Returns false when `providerEventId` was already recorded. */
@@ -85,6 +87,9 @@ export interface DisclosureStore {
 export interface DocumentStorage {
   put(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
 }
+
+/** MLDS statuses before delivery to the borrower (the B&P §10240 clock is still running). */
+export const UNDELIVERED_MLDS: readonly DisclosureStatus[] = ["required", "generated", "held_for_counsel"];
 
 export class MemoryDisclosureStore implements DisclosureStore {
   readonly rows = new Map<string, DisclosureRecord>();
@@ -141,6 +146,14 @@ export class MemoryDisclosureStore implements DisclosureStore {
   async listForDeal(ref: { leadId?: string; dealId?: string }): Promise<DisclosureRecord[]> {
     return [...this.rows.values()]
       .filter((r) => r.status !== "superseded" && ((ref.leadId && r.leadId === ref.leadId) || (ref.dealId && r.dealId === ref.dealId)))
+      .map((r) => structuredClone(r));
+  }
+
+  async listUndeliveredMlds(limit = 500): Promise<DisclosureRecord[]> {
+    return [...this.rows.values()]
+      .filter((r) => r.kind === "MLDS_RE882" && UNDELIVERED_MLDS.includes(r.status))
+      .sort((a, b) => (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999"))
+      .slice(0, limit)
       .map((r) => structuredClone(r));
   }
 

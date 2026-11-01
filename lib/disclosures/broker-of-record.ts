@@ -7,9 +7,11 @@
 import { z } from "zod";
 import { evaluateModification, evaluateUsury, type ModificationEvaluation, type UsuryEvaluation } from "@/lib/compliance/gates";
 import {
+  KUBERA_NAME,
   arrangers,
   brokerOfRecordElementsSchema,
   collateralSchema,
+  lenderChargesSchema,
   lenderSchema,
   modificationKinds,
   type ModificationFacts,
@@ -26,6 +28,8 @@ const base = {
   collateral: collateralSchema,
   noteRatePct: z.number().finite().min(0).max(100),
   fedDiscountRatePct: z.number().finite().min(0).max(25),
+  /** Points, exit fee and minimum interest the lender keeps (counted as interest for the cap test; VERIFY). */
+  lenderCharges: lenderChargesSchema.optional(),
   elements: brokerOfRecordElementsSchema,
   /** §10240 statement (MLDS) date for the loan, when one was given. */
   mldsSignedOn: z.iso.date().optional(),
@@ -39,7 +43,22 @@ export const loanBrokerOfRecordSchema = z.object({
   /** True funding source when table funded. */
   trueFundingSource: z.string().trim().max(160).optional(),
   tableFundedInKuberaName: z.boolean().default(false),
+  /**
+   * Beneficiary named on the deed of trust and originator / lender named on
+   * the note, exactly as the loan documents show them. Recorded as written
+   * (not rejected) so a document naming Kubera holds the deal for counsel.
+   */
+  deedBeneficiaryName: z.string().trim().max(160).optional(),
+  originatorName: z.string().trim().max(160).optional(),
 });
+
+/** Gate-A/H facts derived from the names on the loan documents (Kubera is never beneficiary or originator). */
+export function namesKubera(r: { deedBeneficiaryName?: string | null; originatorName?: string | null }): { namesKuberaAsBeneficiary: boolean; namesKuberaAsOriginator: boolean } {
+  return {
+    namesKuberaAsBeneficiary: Boolean(r.deedBeneficiaryName && KUBERA_NAME.test(r.deedBeneficiaryName)),
+    namesKuberaAsOriginator: Boolean(r.originatorName && KUBERA_NAME.test(r.originatorName)),
+  };
+}
 
 export const modificationBrokerOfRecordSchema = z.object({
   recordKind: z.enum(modificationKinds),
@@ -62,6 +81,7 @@ export function toUsuryFacts(r: z.output<typeof loanBrokerOfRecordSchema>): Usur
     lender: r.lender,
     noteRatePct: r.noteRatePct,
     fedDiscountRatePct: r.fedDiscountRatePct,
+    ...(r.lenderCharges ? { lenderCharges: r.lenderCharges } : {}),
     collateral: r.collateral,
     elements: r.elements,
     tableFundedInKuberaName: r.tableFundedInKuberaName,
@@ -77,6 +97,7 @@ export function toModificationFacts(r: z.output<typeof modificationBrokerOfRecor
     otherBroker: r.otherBroker,
     agreementRecitesBrokerArrangement: r.agreementRecitesBrokerArrangement,
     noteRatePct: r.noteRatePct,
+    ...(r.lenderCharges ? { lenderCharges: r.lenderCharges } : {}),
     elements: r.elements,
     lenderNoticeSentAt: r.lenderNoticeSentAt,
   };
@@ -130,6 +151,14 @@ export function brokerOfRecordRow(input: BrokerOfRecordInput): Record<string, un
     business_purpose_certified: e.businessPurposeCertified,
     note_rate_pct: r.noteRatePct,
     fed_discount_rate_pct: r.fedDiscountRatePct,
+    lender_points_pct: r.lenderCharges?.lenderPointsPct ?? null,
+    lender_exit_fee_pct: r.lenderCharges?.exitFeePct ?? null,
+    minimum_interest_months: r.lenderCharges?.minimumInterestMonths ?? null,
+    charges_term_months: r.lenderCharges?.termMonths ?? null,
+    recorded_effective_rate_pct: r.lenderCharges?.effectiveRatePct ?? null,
+    effective_rate_pct: evaluation.result.effectiveRatePct ?? r.noteRatePct,
+    deed_beneficiary_name: r.recordKind === "loan" ? (r.deedBeneficiaryName ?? null) : null,
+    originator_name: r.recordKind === "loan" ? (r.originatorName ?? null) : null,
     table_funded: r.recordKind === "loan" ? r.tableFunded : false,
     true_funding_source: r.recordKind === "loan" ? (r.trueFundingSource ?? null) : null,
     table_funded_in_kubera_name: r.recordKind === "loan" ? r.tableFundedInKuberaName : false,

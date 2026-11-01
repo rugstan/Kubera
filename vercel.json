@@ -8,6 +8,7 @@
     { "path": "/api/notify/sweep", "schedule": "* * * * *" },
     { "path": "/api/documents/scan", "schedule": "* * * * *" },
     { "path": "/api/cron/construction-takeouts", "schedule": "41 13 * * *" },
-    { "path": "/api/outreach/sweep", "schedule": "*/5 * * * *" }
+    { "path": "/api/outreach/sweep", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/mlds-clock", "schedule": "53 * * * *" }
   ]
 }

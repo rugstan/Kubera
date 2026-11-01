@@ -26,11 +26,12 @@ import { mldsTemplateId } from "@/lib/esign";
 import { parseLender } from "@/lib/deals/lenders";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
 import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, kuberaAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
-import { StaffAccessError, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
+import { StaffAccessError, can, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from "@/lib/deals/types";
-import type { ModificationFacts } from "@/lib/compliance/schemas";
+import { lenderCategories, type LenderCategory, type LenderChargesInput, type ModificationFacts } from "@/lib/compliance/schemas";
+import { BrokerOfRecordError, approveLoanBrokerOfRecord, recordLoanBrokerOfRecord, type LoanFileInput } from "@/lib/deals/broker-of-record";
 
-const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, LockedFieldError, LedgerError, MoneyError, InvoiceError, PackageError, ModificationError, Form159BlockedError, MldsDeskError, DisclosureBlockedError, InvalidTransitionError];
+const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, LockedFieldError, LedgerError, MoneyError, InvoiceError, PackageError, ModificationError, BrokerOfRecordError, Form159BlockedError, MldsDeskError, DisclosureBlockedError, InvalidTransitionError];
 
 function messageOf(err: unknown): string {
   if (err instanceof ZodError) return err.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
@@ -126,7 +127,10 @@ export async function editDealAction(f: FormData): Promise<never> {
       collateralRealProperty: str(f, "collateral") === "" ? null : str(f, "collateral") === "real_property",
       ...(str(f, "loanAmount") ? { loanAmountCents: dollarsToCents(str(f, "loanAmount")) } : {}),
     };
-    await editDeal({ store: rt.store, now: rt.now }, id, Number(str(f, "version")), patch, staff.actor);
+    const overrideReason = str(f, "collateralOverrideReason");
+    await editDeal({ store: rt.store, now: rt.now, disclosures: rt.disclosures }, id, Number(str(f, "version")), patch, staff.actor, {
+      ...(overrideReason ? { collateralOverride: { officer: can(staff, "officer"), reason: overrideReason } } : {}),
+    });
     return "Deal updated.";
   });
 }
@@ -305,6 +309,98 @@ export async function revokeLinkAction(f: FormData): Promise<never> {
   });
 }
 
+// Loan broker-of-record file (gate H) ----------------------------------------------------------------
+
+const PARTIES = ["borrower", "lender", "borrower_and_lender"] as const;
+type PartyValue = (typeof PARTIES)[number];
+const party = (f: FormData, k: string): PartyValue | undefined => {
+  const v = str(f, k);
+  if (!v) return undefined;
+  if (!(PARTIES as readonly string[]).includes(v)) throw new DealError(`Pick who ${k === "payer" ? "pays" : "Kubera acts for"}`);
+  return v as PartyValue;
+};
+/** A view of `f` reading `prefix + key` (str/num/bool only call get). */
+function prefixed(f: FormData, prefix: string): FormData {
+  return { get: (k: string) => f.get(`${prefix}${k}`) } as unknown as FormData;
+}
+const NEGOTIATION_KINDS = ["term_sheet", "lender_submission", "counteroffer", "communication"] as const;
+
+/** The loan file's lender-retained charges; omitted when none were entered. */
+function lenderCharges(b: FormData): LenderChargesInput | undefined {
+  const charges = {
+    lenderPointsPct: num(b, "lenderPointsPct") ?? 0,
+    exitFeePct: num(b, "exitFeePct") ?? 0,
+    minimumInterestMonths: num(b, "minimumInterestMonths") ?? 0,
+    ...(num(b, "chargesTermMonths") !== undefined ? { termMonths: num(b, "chargesTermMonths") } : {}),
+    ...(num(b, "recordedEffectiveRatePct") !== undefined ? { effectiveRatePct: num(b, "recordedEffectiveRatePct") } : {}),
+  };
+  const any = charges.lenderPointsPct || charges.exitFeePct || charges.minimumInterestMonths || "termMonths" in charges || "effectiveRatePct" in charges;
+  return any ? charges : undefined;
+}
+
+export async function recordLoanBrokerOfRecordAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  // The file's fields carry a bor_ prefix (other deal-desk forms on the page use the same names).
+  const b = prefixed(f, "bor_");
+  return run(dealPath(id), "write", async ({ staff, rt }) => {
+    const category = str(b, "lenderCategory");
+    if (!(lenderCategories as readonly string[]).includes(category)) throw new DealError("Pick the lender's category");
+    const collateral = str(b, "collateralKind");
+    if (!["real_property", "equity_pledge_or_ucc"].includes(collateral)) throw new DealError("Pick the collateral");
+    const noteRatePct = num(b, "noteRatePct");
+    const fedDiscountRatePct = num(b, "fedDiscountRatePct");
+    if (noteRatePct === undefined) throw new DealError("Enter the note rate");
+    if (fedDiscountRatePct === undefined) throw new DealError("Enter the Fed discount rate for the art. XV cap");
+    const comp = num(b, "compensation");
+    const payer = party(b, "payer");
+    const logKind = str(b, "negotiationKind") || "term_sheet";
+    if (!(NEGOTIATION_KINDS as readonly string[]).includes(logKind)) throw new DealError("Pick the negotiation entry type");
+    const charges = lenderCharges(b);
+    const actsFor = party(b, "actsFor");
+    const file: LoanFileInput = {
+      lender: { name: str(b, "lenderName"), category: category as LenderCategory, ...(str(b, "lenderEvidenceRef") ? { evidenceRef: str(b, "lenderEvidenceRef") } : {}) },
+      noteRatePct,
+      fedDiscountRatePct,
+      ...(charges ? { lenderCharges: charges } : {}),
+      collateral: {
+        realPropertyLien: collateral === "real_property",
+        equityPledgeOrUccOnly: collateral === "equity_pledge_or_ucc",
+        ...(str(b, "apn") ? { apn: str(b, "apn") } : {}),
+        ...(num(b, "lienPosition") !== undefined ? { lienPosition: num(b, "lienPosition") } : {}),
+      },
+      transactionDate: str(b, "transactionDate"),
+      tableFunded: bool(b, "tableFunded"),
+      ...(str(b, "trueFundingSource") ? { trueFundingSource: str(b, "trueFundingSource") } : {}),
+      tableFundedInKuberaName: bool(b, "tableFundedInKuberaName"),
+      ...(str(b, "deedBeneficiaryName") ? { deedBeneficiaryName: str(b, "deedBeneficiaryName") } : {}),
+      ...(str(b, "originatorName") ? { originatorName: str(b, "originatorName") } : {}),
+      ...(actsFor ? { actsFor } : {}),
+      ...(str(b, "engagementRef") ? { engagementAgreementRef: str(b, "engagementRef") } : {}),
+      ...(comp !== undefined && payer ? { compensation: { amountUsd: comp, payer, expected: true, ...(str(b, "closingStatementLine") ? { closingStatementLine: str(b, "closingStatementLine") } : {}) } } : {}),
+      businessPurposeCertified: bool(b, "businessPurpose"),
+      // The arranging licensee is the signed-in staff member (their DRE license is on their profile).
+      ...(staff.dreLicense ? { arrangingLicensee: { name: staff.name, dreLicense: staff.dreLicense, activeAtTransaction: bool(b, "licenseActive") } } : {}),
+      ...(str(b, "negotiationRef")
+        ? { negotiationEntry: { at: rt.now().toISOString(), kind: logKind as (typeof NEGOTIATION_KINDS)[number], ref: str(b, "negotiationRef"), summary: str(b, "negotiationSummary"), byLicensee: staff.name } }
+        : {}),
+    };
+    const r = await recordLoanBrokerOfRecord({ store: rt.store, now: rt.now, disclosures: rt.disclosures }, { dealId: id, file, actor: staff.actor });
+    const parts = [r.created ? "Broker-of-record file recorded." : "Broker-of-record file updated."];
+    if (r.officerApprovalCleared) parts.push("The loan facts changed, so the officer must approve again.");
+    if (r.heldForCounsel) parts.push("The loan documents name Kubera (or the loan is table funded in Kubera's name): the deal is held for counsel.");
+    if (!staff.dreLicense) parts.push("Your profile has no DRE license, so the arranging licensee is not recorded.");
+    return parts.join(" ");
+  });
+}
+
+export async function approveLoanBrokerOfRecordAction(f: FormData): Promise<never> {
+  const id = str(f, "dealId");
+  return run(dealPath(id), "officer", async ({ staff, rt }) => {
+    await approveLoanBrokerOfRecord({ store: rt.store, now: rt.now, disclosures: rt.disclosures }, id, { name: staff.name, dreLicense: staff.dreLicense ?? "" }, staff.actor);
+    return "Designated-officer approval recorded on the broker-of-record file.";
+  });
+}
+
 // Modifications (gate H) ------------------------------------------------------------------------
 
 export async function submitModificationAction(f: FormData): Promise<never> {
@@ -351,11 +447,10 @@ export async function modificationAction(f: FormData): Promise<never> {
       case "retry_notice":
         return lenderNoticeMessage(await retryLenderNotice(deps, modId, staff.actor));
       case "apply_terms": {
-        const lockedTerms = Object.fromEntries(
-          Object.entries({ noteRatePct: num(f, "noteRatePct"), termMonths: num(f, "termMonths") }).filter(([, v]) => v !== undefined),
-        );
-        await applyModificationTerms(deps, modId, { lockedTerms, ...(str(f, "loanAmount") ? { loanAmountCents: dollarsToCents(str(f, "loanAmount")) } : {}) }, staff.actor);
-        return "Modified terms applied to the deal.";
+        // The note rate is the one gate H evaluated on the change (applyModificationTerms applies it); only the term is entered here.
+        const termMonths = num(f, "termMonths");
+        const r = await applyModificationTerms(deps, modId, { lockedTerms: termMonths !== undefined ? { termMonths } : {}, ...(str(f, "loanAmount") ? { loanAmountCents: dollarsToCents(str(f, "loanAmount")) } : {}) }, staff.actor);
+        return `Modified terms applied to the deal at the evaluated ${String(r.deal.lockedTerms?.noteRatePct)}% note rate.`;
       }
       case "withdraw":
         await withdrawModification(deps, modId, staff.actor);
@@ -421,6 +516,7 @@ export async function generateMldsAction(f: FormData): Promise<never> {
       today: rt.now().toISOString().slice(0, 10),
     });
     const record = await generateDealMlds({ ...mldsDeps(rt), render: renderPdf }, { dealId: id, disclosureId: str(f, "disclosureId"), mlds: input, actor: staff.actor });
+    if (record.status === "held_for_counsel") return `MLDS held for counsel review: ${record.heldReason ?? "the figures name Kubera as lender or lienholder"}. Borrower documents and closing are blocked until it is released.`;
     return record.flags.includes("draft_template")
       ? "MLDS generated on the DRAFT template (pending counsel review); it cannot be sent to borrowers yet."
       : "MLDS generated. Each borrower now gives e-sign consent in the portal.";

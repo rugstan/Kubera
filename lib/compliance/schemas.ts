@@ -122,17 +122,55 @@ export const brokerOfRecordElementsSchema = z.object({
 });
 export type BrokerOfRecordElements = z.input<typeof brokerOfRecordElementsSchema>;
 
+/** Kubera is a broker and is never the lender of record (Global rule 1). */
+export const KUBERA_NAME = /\bkubera\b/i;
+
 export const lenderSchema = z.object({
-  name: z.string().trim().min(1).max(160),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .refine((n) => !KUBERA_NAME.test(n), "Kubera is a broker and is never the lender of record"),
   category: z.enum(lenderCategories),
   /** Charter / license number evidencing the category. */
   evidenceRef: z.string().trim().max(200).optional(),
 });
 
+/**
+ * Compensation the lender retains beyond the note rate. Under the California
+ * usury analysis these are generally treated as interest, so gate H tests the
+ * effective annualized rate, not only the note rate.
+ * VERIFY (counsel gate H): which charges count as interest and how they are
+ * spread (stated term vs. earliest payoff), and whether late or default
+ * charges belong here.
+ */
+export const lenderChargesSchema = z
+  .object({
+    /** Points / origination the lender keeps, % of principal. */
+    lenderPointsPct: z.number().finite().min(0).max(25).default(0),
+    /** Exit (release) fee the lender keeps, % of principal. */
+    exitFeePct: z.number().finite().min(0).max(25).default(0),
+    /** Months of interest the borrower owes even if the loan is repaid sooner. */
+    minimumInterestMonths: z.number().int().min(0).max(120).default(0),
+    /** Stated term in months (for a change: the period it covers); spreads the one-time charges. */
+    termMonths: z.number().int().min(1).max(600).optional(),
+    /** An effective rate counsel or the lender computed (e.g. from the closing statement); the higher figure is used. */
+    effectiveRatePct: z.number().finite().min(0).max(200).optional(),
+  })
+  .refine((c) => c.termMonths !== undefined || (c.lenderPointsPct === 0 && c.exitFeePct === 0 && c.minimumInterestMonths === 0), {
+    message: "Enter the term in months so lender points, exit fees and minimum interest can be annualized",
+    path: ["termMonths"],
+  });
+export type LenderCharges = z.output<typeof lenderChargesSchema>;
+export type LenderChargesInput = z.input<typeof lenderChargesSchema>;
+
 export const usuryFactsSchema = z.object({
   lender: lenderSchema,
   /** Highest contract (note) rate, % per year, including default-free step-ups. */
   noteRatePct: z.number().finite().min(0).max(100),
+  /** Lender-retained charges counted as interest for the cap test (VERIFY). */
+  lenderCharges: lenderChargesSchema.optional(),
   /**
    * FRBSF discount rate (%) on the 25th day of the month before the earlier of
    * contract or loan execution (Cal. Const. art. XV §1(2)).
@@ -158,6 +196,8 @@ export const modificationFactsSchema = z.object({
   agreementRecitesBrokerArrangement: z.boolean().default(false),
   /** Rate after the modification (% per year). */
   noteRatePct: z.number().finite().min(0).max(100),
+  /** Charges the lender keeps for this change (extension fee, points), counted as interest (VERIFY). */
+  lenderCharges: lenderChargesSchema.optional(),
   elements: brokerOfRecordElementsSchema.default({ negotiationLog: [], businessPurposeCertified: false }),
   /** Written notice to the lender that no exemption representation is made has been sent. */
   lenderNoticeSentAt: isoDateTime.optional(),

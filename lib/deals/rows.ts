@@ -32,7 +32,14 @@ export function loanBrokerOfRecordFromRow(r: Row): LoanBrokerOfRecord {
     ...(r.acts_for ? { actsFor: r.acts_for as "borrower" | "lender" | "borrower_and_lender" } : {}),
     ...(r.engagement_agreement_ref ? { engagementAgreementRef: String(r.engagement_agreement_ref) } : {}),
     ...(r.compensation_amount_usd !== null && r.compensation_amount_usd !== undefined && r.compensation_payer
-      ? { compensation: { amountUsd: Number(r.compensation_amount_usd), payer: r.compensation_payer as "borrower" | "lender" | "borrower_and_lender", expected: r.compensation_expected !== false } }
+      ? {
+          compensation: {
+            amountUsd: Number(r.compensation_amount_usd),
+            payer: r.compensation_payer as "borrower" | "lender" | "borrower_and_lender",
+            expected: r.compensation_expected !== false,
+            ...(r.closing_statement_line ? { closingStatementLine: String(r.closing_statement_line) } : {}),
+          },
+        }
       : {}),
     negotiationLog: (r.negotiation_log as BrokerOfRecordElements["negotiationLog"]) ?? [],
     businessPurposeCertified: Boolean(r.business_purpose_certified),
@@ -40,6 +47,8 @@ export function loanBrokerOfRecordFromRow(r: Row): LoanBrokerOfRecord {
       ? { officerApproval: { name: String(r.officer_approved_by), dreLicense: String(r.officer_approved_dre), approvedAt: new Date(String(r.officer_approved_at)).toISOString() } }
       : {}),
   };
+  const numOrUndef = (k: string) => (r[k] === null || r[k] === undefined ? undefined : Number(r[k]));
+  const hasCharges = ["lender_points_pct", "lender_exit_fee_pct", "minimum_interest_months", "charges_term_months", "recorded_effective_rate_pct"].some((k) => r[k] !== null && r[k] !== undefined);
   return {
     id: String(r.id),
     dealId: str("deal_id") ?? null,
@@ -47,6 +56,17 @@ export function loanBrokerOfRecordFromRow(r: Row): LoanBrokerOfRecord {
     lender: { name: String(r.lender_name), category: r.lender_category as LenderCategory, ...(r.lender_evidence_ref ? { evidenceRef: String(r.lender_evidence_ref) } : {}) },
     noteRatePct: Number(r.note_rate_pct),
     fedDiscountRatePct: Number(r.fed_discount_rate_pct),
+    ...(hasCharges
+      ? {
+          lenderCharges: {
+            lenderPointsPct: numOrUndef("lender_points_pct") ?? 0,
+            exitFeePct: numOrUndef("lender_exit_fee_pct") ?? 0,
+            minimumInterestMonths: numOrUndef("minimum_interest_months") ?? 0,
+            ...(numOrUndef("charges_term_months") !== undefined ? { termMonths: numOrUndef("charges_term_months") } : {}),
+            ...(numOrUndef("recorded_effective_rate_pct") !== undefined ? { effectiveRatePct: numOrUndef("recorded_effective_rate_pct") } : {}),
+          },
+        }
+      : {}),
     collateral: {
       realPropertyLien: Boolean(r.collateral_real_property_lien),
       equityPledgeOrUccOnly: Boolean(r.collateral_equity_pledge_or_ucc_only),
@@ -54,7 +74,13 @@ export function loanBrokerOfRecordFromRow(r: Row): LoanBrokerOfRecord {
       ...(r.collateral_lien_position ? { lienPosition: Number(r.collateral_lien_position) } : {}),
     },
     elements,
+    tableFunded: Boolean(r.table_funded),
+    ...(r.true_funding_source ? { trueFundingSource: String(r.true_funding_source) } : {}),
     tableFundedInKuberaName: Boolean(r.table_funded_in_kubera_name),
-    transactionDate: String(r.transaction_date),
+    ...(r.deed_beneficiary_name ? { deedBeneficiaryName: String(r.deed_beneficiary_name) } : {}),
+    ...(r.originator_name ? { originatorName: String(r.originator_name) } : {}),
+    transactionDate: r.transaction_date instanceof Date ? r.transaction_date.toISOString().slice(0, 10) : String(r.transaction_date).slice(0, 10),
+    ...(numOrUndef("effective_rate_pct") !== undefined ? { effectiveRatePct: numOrUndef("effective_rate_pct") } : {}),
+    ...(r.updated_at ? { updatedAt: String(r.updated_at) } : {}),
   };
 }

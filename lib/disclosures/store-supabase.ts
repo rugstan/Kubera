@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EsignProviderName } from "@/lib/esign/types";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 import { brokerOfRecordRow, type BrokerOfRecordInput } from "./broker-of-record";
-import { ConcurrentUpdateError, type DisclosureEvent, type DisclosureRecord, type DisclosureStore, type DocumentStorage, type NewDisclosure } from "./store";
+import { ConcurrentUpdateError, UNDELIVERED_MLDS, type DisclosureEvent, type DisclosureRecord, type DisclosureStore, type DocumentStorage, type NewDisclosure } from "./store";
 
 // Supabase-backed disclosure store (service role; RLS denies anon and
 // authenticated roles on these tables). Column names follow the WS-W migration.
@@ -103,6 +103,18 @@ export class SupabaseDisclosureStore implements DisclosureStore {
     q = ref.leadId && ref.dealId ? q.or(`lead_id.eq.${ref.leadId},deal_id.eq.${ref.dealId}`) : ref.leadId ? q.eq("lead_id", ref.leadId) : q.eq("deal_id", ref.dealId as string);
     const { data, error } = await q.order("created_at", { ascending: false });
     if (error) throw new Error(`disclosures list: ${error.message}`);
+    return (data as Row[]).map(fromRow);
+  }
+
+  async listUndeliveredMlds(limit = 500): Promise<DisclosureRecord[]> {
+    const { data, error } = await this.db
+      .from("disclosures")
+      .select()
+      .eq("kind", "MLDS_RE882")
+      .in("status", [...UNDELIVERED_MLDS])
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(limit);
+    if (error) throw new Error(`disclosures undelivered: ${error.message}`);
     return (data as Row[]).map(fromRow);
   }
 

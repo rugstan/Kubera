@@ -3,6 +3,7 @@
 // locks, frozen ledger entries, locked package versions, append-only audit).
 // The Supabase implementation is store-supabase.ts (server only).
 
+import { loanBrokerOfRecordFromRow } from "./rows";
 import type { StageTemplate } from "./stages";
 import type {
   AuditEntry,
@@ -424,8 +425,14 @@ export class MemoryDealDeskStore implements DealDeskStore {
   }
 
   async getLoanBrokerOfRecord(dealId: string): Promise<LoanBrokerOfRecord | null> {
-    for (const r of this.brokerOfRecord.values()) if (r.record_kind === "loan" && r.dealId === dealId) return clone(r) as unknown as LoanBrokerOfRecord;
-    return null;
+    // Latest loan file for the deal: seeded (camelCase) test rows or rows written with brokerOfRecordRow (snake_case columns).
+    let found: LoanBrokerOfRecord | null = null;
+    for (const r of this.brokerOfRecord.values()) {
+      if (r.record_kind !== "loan") continue;
+      if (r.dealId === dealId) found = clone(r) as unknown as LoanBrokerOfRecord;
+      else if (r.deal_id === dealId) found = loanBrokerOfRecordFromRow(clone(r));
+    }
+    return found;
   }
 
   async insertBrokerOfRecordRow(row: Record<string, unknown>): Promise<string> {
