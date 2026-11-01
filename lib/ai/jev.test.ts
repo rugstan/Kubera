@@ -100,6 +100,47 @@ describe("Jev: construction intakes", () => {
     const senior = intakeSchema.parse({ assetType: "ASSISTED_LIVING", transaction: "CONSTRUCTION", loanAmount: 12_000_000, noi: 1_600_000, value: 18_000_000, unitCount: 90 });
     expect(decideWithRules(senior, rates).sizing.quotes.some((q) => q.id === "HUD_232_NEW_CONST")).toBe(true);
   });
+
+  // Regression: the qualifier labels the value field "Acquisition or land cost" on a construction
+  // deal; Jev used to apply LTC to that land figure as if it were total project cost.
+  it("does not size ground-up assisted living on the land cost alone", () => {
+    const base = { assetType: "ASSISTED_LIVING", transaction: "CONSTRUCTION", loanAmount: 20_000_000, noi: 2_400_000, unitCount: 120 } as const;
+    const withLand = decideWithRules(intakeSchema.parse({ ...base, value: 4_000_000 }), rates);
+    const blank = decideWithRules(intakeSchema.parse(base), rates);
+    expect(withLand.decision.leadUrgencyTier).not.toBe("UNQUALIFIED");
+    expect(withLand.decision.leadUrgencyTier).toBe(blank.decision.leadUrgencyTier);
+    expect(withLand.primaryQuote?.loanAmount).toBe(blank.primaryQuote?.loanAmount);
+    expect(withLand.primaryQuote?.loanAmount ?? 0).toBeGreaterThan(15_000_000);
+    expect(withLand.sizing.quotes.find((q) => q.id === "HUD_232_NEW_CONST")?.loanAmount ?? 0).toBeGreaterThan(15_000_000);
+    expect(withLand.rationale.some((l) => /No construction budget/.test(l) && /land/.test(l))).toBe(true);
+  });
+
+  it("does not size a ground-up flagged hotel on the land cost alone", () => {
+    const base = { assetType: "HOTEL_FLAGGED", transaction: "CONSTRUCTION", loanAmount: 15_000_000, noi: 2_200_000, unitCount: 140, franchiseTier: "PREMIUM_FLAG" } as const;
+    const withLand = decideWithRules(intakeSchema.parse({ ...base, value: 3_000_000 }), rates);
+    const blank = decideWithRules(intakeSchema.parse(base), rates);
+    expect(withLand.decision.leadUrgencyTier).not.toBe("UNQUALIFIED");
+    expect(withLand.decision.leadUrgencyTier).toBe(blank.decision.leadUrgencyTier);
+    expect(withLand.primaryQuote?.loanAmount ?? 0).toBeGreaterThan(12_000_000);
+    expect(withLand.rationale.some((l) => /No construction budget/.test(l))).toBe(true);
+  });
+
+  it("uses land plus the budget as total cost when a care construction budget is given", () => {
+    const r = decideWithRules(
+      intakeSchema.parse({
+        assetType: "MEMORY_CARE",
+        transaction: "CONSTRUCTION",
+        loanAmount: 18_000_000,
+        noi: 2_400_000,
+        unitCount: 100,
+        value: 4_000_000,
+        construction: { landCost: 4_000_000, hardCosts: 18_000_000, softCosts: 2_000_000, contingencyPct: 5, developerFeePct: 0 },
+      }),
+      rates,
+    );
+    expect(r.sizing.value).toBe(4_000_000 + 18_000_000 + 2_000_000 + 900_000);
+    expect(r.rationale.some((l) => /No construction budget/.test(l))).toBe(false);
+  });
 });
 
 describe("Jev: rentals and agency", () => {

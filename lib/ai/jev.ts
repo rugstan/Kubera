@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import type { Benchmarks } from "@/lib/rates";
-import { FALLBACK_BENCHMARKS, HUD } from "@/lib/sizing/assumptions";
+import { BRIDGE, FALLBACK_BENCHMARKS, HUD } from "@/lib/sizing/assumptions";
 import { sizeHospitality, sizeSenior } from "@/lib/sizing/programs";
 import { CONSTRUCTION } from "@/lib/sizing/programs/assumptions";
 import { sizeConstruction } from "@/lib/sizing/programs/construction";
@@ -120,6 +120,39 @@ const ASSUMED_LTC_WITHOUT_BUDGET = CONSTRUCTION.boxes.BANK.maxLtc;
 const constructionRouted = (intake: Intake) =>
   intake.transaction === "CONSTRUCTION" && ["MULTIFAMILY", "MIXED_USE", "COMMERCIAL", "RESIDENTIAL_2_4"].includes(intake.assetType);
 
+/**
+ * Ground-up care facilities and hotels size on the senior / hospitality boxes, which apply
+ * LTC to the value they are given. The qualifier asks for "Acquisition or land cost" on a
+ * construction deal, so that field is a land figure, not the total development cost.
+ */
+const careOrHotelConstruction = (intake: Intake): "SENIOR" | "HOTEL" | null => {
+  if (intake.transaction !== "CONSTRUCTION") return null;
+  const vertical = verticalFor(intake);
+  if (vertical === "SENIOR_LIVING_CARE") return "SENIOR";
+  if (vertical === "HOSPITALITY_HOTEL") return "HOTEL";
+  return null;
+};
+
+/** LTC used to read a care or hotel construction request as a share of total cost when no budget is given. */
+const CARE_HOTEL_ASSUMED_LTC = { SENIOR: HUD.section232.newConstruction.maxLtc, HOTEL: BRIDGE.construction.maxLtc } as const;
+
+/**
+ * The total-cost basis for a care or hotel construction intake: land plus the budget when
+ * one is given, otherwise the request read at the program's construction LTC (never below
+ * the figure the borrower entered). Undefined when the intake is not care/hotel construction.
+ */
+export function careOrHotelConstructionCost(intake: Intake): number | undefined {
+  const kind = careOrHotelConstruction(intake);
+  if (!kind) return undefined;
+  const c = intake.construction;
+  if (c) {
+    const contingency = c.hardCosts * ((c.contingencyPct ?? 0) / 100);
+    const developerFee = (c.hardCosts + (c.softCosts ?? 0)) * ((c.developerFeePct ?? 0) / 100);
+    return (c.landCost || intake.value || 0) + c.hardCosts + (c.softCosts ?? 0) + contingency + developerFee;
+  }
+  return Math.max(intake.value ?? 0, intake.loanAmount / CARE_HOTEL_ASSUMED_LTC[kind]);
+}
+
 function hardMoneyPropertyType(intake: Intake): HardMoneyPropertyType {
   if (intake.assetType === "RESIDENTIAL_2_4") return "RESIDENTIAL_1_4";
   if (intake.assetType === "MULTIFAMILY" || intake.assetType === "MIXED_USE") return "MULTIFAMILY";
@@ -133,6 +166,11 @@ export function intakeAssumptions(intake: Intake): string[] {
   if (intake.transaction === "HARD_MONEY" && !intake.value) out.push("No purchase price or value: estimated as the request at 75% of value.");
   if (constructionRouted(intake) && !intake.construction)
     out.push(`No construction budget: total cost estimated as the request at ${Math.round(ASSUMED_LTC_WITHOUT_BUDGET * 100)}% LTC; the desk needs the budget.`);
+  const careHotel = careOrHotelConstruction(intake);
+  if (careHotel && !intake.construction)
+    out.push(
+      `No construction budget: ${intake.value ? "the entered value is read as land cost, and " : ""}total cost is estimated as the request at ${Math.round(CARE_HOTEL_ASSUMED_LTC[careHotel] * 100)}% LTC; the desk needs the budget.`,
+    );
   if (intake.assetType === "RESIDENTIAL_2_4" && !intake.rental && intake.transaction !== "HARD_MONEY" && !constructionRouted(intake))
     out.push("No rent detail: NOI stands in for rent less taxes, insurance and HOA.");
   return out;
@@ -225,7 +263,7 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
         occupancyPct: intake.occupancyPct,
         loanAmount: intake.loanAmount,
         noi: intake.noi,
-        value: intake.value,
+        value: careOrHotelConstructionCost(intake) ?? intake.value,
         transaction: intake.transaction === "CONSTRUCTION" ? "NEW_CONSTRUCTION" : intake.transaction === "PURCHASE" ? "PURCHASE" : "REFINANCE",
         nonRecourseOnly: intake.nonRecourseOnly,
         green: intake.green,
@@ -243,7 +281,7 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
         adr: intake.adr ?? 0,
         occupancyPct: intake.occupancyPct,
         pipBudget: intake.pipBudget ?? 0,
-        value: intake.value,
+        value: careOrHotelConstructionCost(intake) ?? intake.value,
         transaction: intake.transaction === "CONSTRUCTION" ? "CONSTRUCTION" : intake.transaction === "PURCHASE" ? "PURCHASE" : "REFINANCE",
         nonRecourseOnly: intake.nonRecourseOnly,
         green: intake.green,
