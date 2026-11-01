@@ -215,8 +215,19 @@ describe("completeSignIn", () => {
     expect(await completeSignIn(services, await aal1("broker@kubera.test"), "https://evil.example")).toBe("/mfa?next=%2Fpipeline");
   });
 
-  it("sends portal users home and refuses accounts without a role", async () => {
-    expect(await completeSignIn(services, await aal1("borrower@kubera.test"), "")).toBe("/portal");
+  it("signs borrower accounts straight out and points them to their secure link", async () => {
+    jar.set(LOGIN_COOKIE, "pending");
+    const s = await aal1("borrower@kubera.test");
+    expect(await completeSignIn(services, s, "")).toBe("/portal?state=use_link");
+    expect(await completeSignIn(services, await aal1("borrower@kubera.test"), "/portal/profile")).toBe("/portal?state=use_link");
+    expect(jar.has(SESSION_COOKIE)).toBe(false);
+    expect(jar.has(LOGIN_COOKIE)).toBe(false);
+    expect(await provider.getSession(s)).toBeNull();
+    expect(directory.signIns).toHaveLength(0);
+    expect(audit.events.at(-1)).toMatchObject({ action: "auth.access_denied", detail: { reason: "not_staff", roles: ["borrower"] } });
+  });
+
+  it("refuses accounts without a role", async () => {
     const s = await aal1("norole@kubera.test");
     expect(await completeSignIn(services, s, "/pipeline")).toBe("/access-denied?reason=inactive");
     expect(jar.has(SESSION_COOKIE)).toBe(false);
