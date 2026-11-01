@@ -1,7 +1,7 @@
 // In-memory mail provider for tests and local development.
 
 import type { InboundMailbox } from "./mailboxes";
-import { MailProviderError, type MailAttachmentMeta, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
+import { MailProviderError, type KnownIds, type MailAttachmentMeta, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
 
 export type FakeMail = Omit<Partial<MailMessage>, "attachments"> & {
   mailbox: InboundMailbox;
@@ -54,11 +54,14 @@ export class FakeMailProvider implements MailProvider {
     return msg;
   }
 
-  async listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]> {
-    return this.messages
+  async listNew(mailbox: InboundMailbox, since: Date | null, limit: number, knownIds?: KnownIds): Promise<MailSummary[]> {
+    const inWindow = this.messages
       .filter((m) => m.mailbox === mailbox && (!since || Date.parse(m.receivedAt) > since.getTime()))
-      // Like Zoho: the newest `limit`, returned oldest first.
-      .sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt))
+      .sort((a, b) => Date.parse(b.receivedAt) - Date.parse(a.receivedAt));
+    const known = knownIds && inWindow.length ? await knownIds(inWindow.map((m) => m.providerMessageId)) : new Set<string>();
+    // Like Zoho: the newest `limit` unstored messages, returned oldest first.
+    return inWindow
+      .filter((m) => !known.has(m.providerMessageId))
       .slice(0, limit)
       .reverse()
       .map(({ mailbox: mb, providerMessageId, folderId, subject, fromAddress, fromName, toAddresses, ccAddresses, receivedAt, hasAttachments, snippet }) => ({

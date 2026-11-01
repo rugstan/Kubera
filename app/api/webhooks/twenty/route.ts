@@ -12,8 +12,12 @@ export async function POST(req: Request) {
   const secret = process.env.TWENTY_WEBHOOK_SECRET;
   if (!secret) return NextResponse.json({ error: "Webhook secret not configured" }, { status: 503 });
 
+  // Cap the body before buffering or hashing it: this route is reachable unauthenticated.
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large" }, { status: 413 });
   const raw = await readBodyCapped(req, MAX_BODY_BYTES);
   if (raw === null) return NextResponse.json({ error: "Request is too large" }, { status: 413 });
+
   const signature = req.headers.get("x-twenty-webhook-signature") ?? "";
   const timestamp = req.headers.get("x-twenty-webhook-timestamp") ?? "";
   const expected = createHmac("sha256", secret).update(`${timestamp}:${raw}`).digest("hex");
@@ -32,8 +36,9 @@ export async function POST(req: Request) {
 
   const db = supabaseAdmin();
   if (db) {
-    // A signed delivery is accepted once: replays inside the skew window hit the unique index.
-    const dedupeKey = createHash("sha256").update(`${timestamp}:${signature}`).digest("hex");
+    // A signed delivery is accepted once: a redelivery or replay carries the same signed
+    // timestamp and body, maps to the same key and hits the unique index (23505).
+    const dedupeKey = createHash("sha256").update(`${timestamp}:${raw}`).digest("hex");
     const { error } = await db.from("crm_events").insert({
       dedupe_key: dedupeKey,
       event_name: payload.eventName ?? "unknown",

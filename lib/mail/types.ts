@@ -35,12 +35,19 @@ export type MailMessage = MailSummary & {
   dmarc: AuthVerdict;
 };
 
+/** Which of these provider message ids are already stored. */
+export type KnownIds = (ids: string[]) => Promise<Set<string>>;
+
 export interface MailProvider {
   readonly name: string;
   configured(mailbox: InboundMailbox): boolean;
-  /** Messages received after `since` (oldest first), at most `limit`. */
-  /** Every message newer than `since` (at most `limit` scanned; the newest `limit` when `since` is null), oldest first. */
-  listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]>;
+  /**
+   * Every message newer than `since` (the newest `limit` when `since` is null), oldest first.
+   * `knownIds` returns which of the listed provider ids are already stored: those are
+   * skipped and never count toward `limit`, so paging reaches older unstored messages
+   * even when the newest `limit` are all stored.
+   */
+  listNew(mailbox: InboundMailbox, since: Date | null, limit: number, knownIds?: KnownIds): Promise<MailSummary[]>;
   fetchMessage(mailbox: InboundMailbox, ref: MailRef): Promise<MailMessage>;
   fetchAttachment(mailbox: InboundMailbox, ref: MailRef, attachmentId: string): Promise<{ bytes: Uint8Array; contentType: string | null }>;
 }

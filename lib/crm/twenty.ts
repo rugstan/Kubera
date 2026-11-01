@@ -89,7 +89,9 @@ async function crmConsent(contact: Contact, opts?: PushOptions): Promise<CrmCons
 const reachable = (c: CrmConsent) => c.consent && !c.smsRevoked;
 
 async function upsertPerson(contact: Contact, c: CrmConsent, companyId?: string): Promise<string> {
-  const existing = await findPersonByEmail(contact.email).catch(() => null);
+  // A failed lookup (timeout, 429, 5xx) must fail this step, not read as "no such person":
+  // the push checkpoint resumes here on retry, and a create now would duplicate the person.
+  const existing = await findPersonByEmail(contact.email);
   if (existing) {
     // A later submission without consent (or a number revoked since) narrows
     // an existing record. A submission with consent never clears an earlier

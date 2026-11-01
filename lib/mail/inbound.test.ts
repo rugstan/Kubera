@@ -284,6 +284,30 @@ describe("polling", () => {
     expect(seen.size).toBe(250);
   });
 
+  it("returns every message when more than scanLimit fall inside the window and the newest scanLimit are already stored", async () => {
+    const { provider, store, deps } = setup();
+    const t0 = Date.UTC(2026, 10, 3, 6);
+    const anchor = provider.add({ ...SAMPLE_EMAILS.newInquiry, providerMessageId: "anchor", receivedAt: new Date(t0 + 10 * 3_600_000).toISOString() });
+    await processInboundMessage({ mailbox: "deals", providerMessageId: anchor.providerMessageId, folderId: anchor.folderId }, deps);
+    const ids: string[] = [];
+    for (let i = 0; i < 120; i++) {
+      ids.push(provider.add({ ...SAMPLE_EMAILS.newInquiry, providerMessageId: `old-${i}`, receivedAt: new Date(t0 + i * 60_000).toISOString() }).providerMessageId);
+    }
+    // The newest 60 are already stored: a newest-first scan of 30 would see only stored ids forever.
+    const stored = new Set(ids.slice(60));
+    for (const id of stored) store.rows.push({ ...store.rows[0]!, id: `row-${id}`, providerMessageId: id, receivedAt: provider.messages.find((x) => x.providerMessageId === id)!.receivedAt });
+    const seen: string[] = [];
+    for (let round = 0; round < 10; round++) {
+      const batch = await pollMailbox("deals", deps, { scanLimit: 30, limit: 30 });
+      if (!batch.length) break;
+      for (const m of batch) {
+        seen.push(m.providerMessageId);
+        store.rows.push({ ...store.rows[0]!, id: `row-${m.providerMessageId}`, providerMessageId: m.providerMessageId, receivedAt: m.receivedAt });
+      }
+    }
+    expect(seen.sort()).toEqual(ids.filter((id) => !stored.has(id)).sort());
+  });
+
   it("looks back further than Inngest's 24 h dedupe window", async () => {
     const { POLL_LOOKBACK_MS } = await import("./inbound");
     expect(POLL_LOOKBACK_MS).toBeGreaterThan(24 * 60 * 60_000);

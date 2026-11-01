@@ -13,7 +13,10 @@
 import { sharedZohoTokenCache, ZohoAccessTokens, ZohoOAuthError, type ZohoTokenCache } from "@/lib/zoho/oauth";
 import { mailboxAddress, type InboundMailbox } from "./mailboxes";
 import { dmarcVerdict, headerValue, htmlToText, isAutomated, isBulk, messageIds, parseAddress, parseAddressList, parseHeaders } from "./text";
-import { AttachmentListError, MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
+import { AttachmentListError, MailProviderError, type KnownIds, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
+
+/** Hard stop on messages paged through in one listing (a safety net; stored ids are skipped, not capped). */
+const MAX_LIST_SCAN = 100_000;
 
 const DATA_CENTERS = new Set(["com", "eu", "in", "com.au", "jp", "ca", "sa", "com.cn"]);
 
@@ -196,20 +199,25 @@ export class ZohoMailClient implements MailProvider {
   }
 
   /**
-   * Every message newer than `since` (up to `limit` scanned), oldest first.
-   * Zoho lists newest first, so this pages until it reaches `since` instead of
-   * stopping at the newest `limit`; the caller drops already-stored ids.
+   * Every unstored message newer than `since` (up to `limit` of them), oldest
+   * first. Zoho lists newest first, so this pages until it reaches `since` or has
+   * `limit` unstored messages. Ids `knownIds` reports as stored are skipped and do
+   * not count toward `limit`, so a window holding more than `limit` messages is
+   * still paged back to the older unstored ones.
    */
-  async listNew(mailbox: InboundMailbox, since: Date | null, limit: number): Promise<MailSummary[]> {
+  async listNew(mailbox: InboundMailbox, since: Date | null, limit: number, knownIds?: KnownIds): Promise<MailSummary[]> {
     const account = await this.accountId(mailbox);
     const folder = await this.inboxFolder(mailbox);
     const pageSize = Math.min(200, Math.max(1, limit));
     const out: MailSummary[] = [];
-    for (let start = 1; out.length < limit; start += pageSize) {
+    let scanned = 0;
+    for (let start = 1; out.length < limit && scanned < MAX_LIST_SCAN; start += pageSize) {
       const page = await this.json<ZohoListItem[]>(
         mailbox,
         `/accounts/${encodeURIComponent(account)}/messages/view?folderId=${encodeURIComponent(folder)}&start=${start}&limit=${pageSize}&sortBy=date&sortorder=false&includeto=true`,
       );
+      scanned += page.length;
+      const fresh: MailSummary[] = [];
       let reachedSince = false;
       for (const item of page) {
         const s = this.summary(mailbox, item);
@@ -217,11 +225,17 @@ export class ZohoMailClient implements MailProvider {
           reachedSince = true;
           break;
         }
+        fresh.push(s);
+      }
+      const known = knownIds && fresh.length ? await knownIds(fresh.map((m) => m.providerMessageId)) : new Set<string>();
+      for (const s of fresh) {
+        if (known.has(s.providerMessageId)) continue;
         out.push(s);
         if (out.length >= limit) break;
       }
       if (reachedSince || page.length < pageSize) break;
     }
+    if (scanned >= MAX_LIST_SCAN && out.length < limit) console.warn(`[mail] ${mailbox}@ listing stopped after ${scanned} messages; older unstored ones are not reached`);
     return out.reverse();
   }
 

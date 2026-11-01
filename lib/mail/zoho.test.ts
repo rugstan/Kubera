@@ -206,6 +206,40 @@ describe("Zoho Mail client", () => {
     expect(pages).toBe(3);
   });
 
+  it("skips stored ids without counting them toward the limit, paging back to older unstored messages", async () => {
+    const t0 = Date.UTC(2026, 10, 3, 6);
+    const all = Array.from({ length: 450 }, (_, i) => ({ messageId: `m${i}`, folderId: "10", subject: `s${i}`, fromAddress: "a@lender.test", receivedTime: String(t0 + i * 60_000) })).reverse();
+    const json = (data: unknown) => new Response(JSON.stringify({ status: { code: 200 }, data }), { status: 200 });
+    const fetchImpl = (async (input: string) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/oauth/v2/token")) return new Response(JSON.stringify({ access_token: "tok", expires_in: 3600 }), { status: 200 });
+      if (url.pathname === "/api/accounts/222/folders") return json([{ folderId: "10", folderType: "Inbox" }]);
+      if (url.pathname === "/api/accounts/222/messages/view") {
+        const start = Number(url.searchParams.get("start"));
+        const limit = Number(url.searchParams.get("limit"));
+        return json(all.slice(start - 1, start - 1 + limit));
+      }
+      return new Response("nf", { status: 404 });
+    }) as unknown as typeof fetch;
+    const client = new ZohoMailClient({
+      clientId: "c",
+      clientSecret: "s",
+      dc: "com",
+      refreshTokens: { lenders: "r" },
+      accountIds: { lenders: "222" },
+      addresses: { deals: "d@k.co", docs: "d@k.co", lenders: "l@k.co", vendors: "v@k.co", closing: "c@k.co" },
+      fetch: fetchImpl,
+      tokenCache: null,
+    });
+    // The newest 300 (m150..m449) are stored; a scan limit of 100 must still reach m50..m149.
+    const stored = new Set(Array.from({ length: 300 }, (_, i) => `m${150 + i}`));
+    const knownIds = async (ids: string[]) => new Set(ids.filter((id) => stored.has(id)));
+    const listed = await client.listNew("lenders", new Date(t0 - 60_000), 100, knownIds);
+    expect(listed).toHaveLength(100);
+    expect(listed[0]!.providerMessageId).toBe("m50");
+    expect(listed.at(-1)!.providerMessageId).toBe("m149");
+  });
+
   it("fails clearly for a mailbox without a token", async () => {
     const { client } = zohoFake();
     await expect(client.listNew("deals", null, 10)).rejects.toMatchObject({ name: "MailProviderError", retryable: false });
