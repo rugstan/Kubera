@@ -128,6 +128,50 @@ test.describe("express qualifier", () => {
     });
   });
 
+  test("a construction family link preselects Construction once an asset is chosen", async ({ page }) => {
+    await gotoHydrated(page, "/express?family=construction");
+    await expect(page.getByRole("heading", { level: 2, name: /what are you building or renovating\?/i })).toBeVisible();
+    await pickAsset(page, /^multifamily$/i);
+    const transaction = page.getByRole("radiogroup", { name: /^transaction/i });
+    await expect(transaction.getByRole("radio", { name: /^construction$/i })).toBeChecked();
+    await expect(page.getByLabel(/projected stabilized noi/i)).toBeVisible();
+  });
+
+  test("a hard money family link lists only eligible assets and preselects Hard money", async ({ page }) => {
+    await gotoHydrated(page, "/express?family=hard-money");
+    await expect(page.getByRole("heading", { level: 2, name: /what property is the loan for\?/i })).toBeVisible();
+    // Licensed care facilities and conversions are not offered short-term private loans.
+    for (const name of [/^assisted living$/i, /^memory care$/i, /^skilled nursing$/i, /^hotel to senior living$/i]) await expect(page.getByRole("button", { name })).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Senior living and care" })).toHaveCount(0);
+    for (const name of [/^multifamily$/i, /^2 to 4 unit rental$/i, /^flagged hotel$/i]) await expect(page.getByRole("button", { name })).toBeVisible();
+    await pickAsset(page, /^2 to 4 unit rental$/i);
+    await expect(page.getByRole("radiogroup", { name: /^transaction/i }).getByRole("radio", { name: /^hard money or fix-and-flip$/i })).toBeChecked();
+    await expect(page.getByLabel(/after-repair value/i)).toBeVisible();
+  });
+
+  for (const [family, group] of [
+    ["senior-living", "Senior living and care"],
+    ["hotels", "Hospitality"],
+    ["multifamily", "Multifamily and CRE"],
+  ] as const) {
+    test(`a ${family} family link shows the ${group} group first`, async ({ page }) => {
+      await gotoHydrated(page, `/express?family=${family}`);
+      await expect(page.getByRole("heading", { level: 2, name: /what are you financing\?/i })).toBeVisible();
+      const groups = page.locator("form [role='group'][aria-label]");
+      await expect(groups.first()).toHaveAttribute("aria-label", group);
+      await expect(groups).toHaveCount(3);
+    });
+  }
+
+  test("the sizer's explicit asset and transaction win over the family link", async ({ page }) => {
+    await gotoHydrated(page, "/express?family=hard-money&asset=MULTIFAMILY&transaction=CONSTRUCTION&loan=5000000");
+    await expect(page.getByRole("heading", { name: /the numbers/i })).toBeVisible();
+    const transaction = page.getByRole("radiogroup", { name: /^transaction/i });
+    await expect(transaction.getByRole("radio", { name: /^construction$/i })).toBeChecked();
+    await expect(transaction.getByRole("radio", { name: /^hard money or fix-and-flip$/i })).not.toBeChecked();
+    await expect(page.getByLabel(/loan amount requested/i)).toHaveValue("5,000,000");
+  });
+
   test("preselects the asset from the query string and skips the first step", async ({ page }) => {
     await gotoHydrated(page, "/express?asset=MULTIFAMILY&loan=5000000");
     await expect(page.getByRole("heading", { name: /the numbers/i })).toBeVisible();

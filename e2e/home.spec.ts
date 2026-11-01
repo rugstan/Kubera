@@ -35,6 +35,80 @@ test.describe("homepage", () => {
     await page.goto("/");
     await expect(page.getByText(/Real estate broker, California Department of Real Estate/i).first()).toBeAttached();
   });
+
+  test("runs the sections in conversion order", async ({ page }) => {
+    await page.goto("/");
+    const headings = await page.locator("main h2").allTextContents();
+    const order = [/what are you financing/i, /tell us about the deal once/i, /size your loan/i, /we work for you/i, /how deals like yours/i, /questions borrowers ask/i, /tell us about your deal/i];
+    const at = order.map((re) => headings.findIndex((h) => re.test(h)));
+    expect(at.every((i) => i >= 0), JSON.stringify(headings)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    // One black band on the page: Why a broker.
+    await expect(page.locator("main .bg-pro")).toHaveCount(1);
+    await expect(page.locator("main .bg-pro h2")).toHaveText(/we work for you/i);
+  });
+
+  test("shows all five families with hub links, deep-link ids and qualifier links", async ({ page }) => {
+    await page.goto("/");
+    const programs = page.locator("#programs");
+    for (const family of ["senior-living", "hotels", "multifamily", "construction", "hard-money"]) {
+      await expect(programs.locator(`a[href="/financing/${family}"]`).first()).toBeVisible();
+      await expect(programs.locator(`#${family}`)).toHaveCount(1);
+      const options = programs.locator(`#${family}`).getByRole("link", { name: /^get options/i });
+      await expect(options).toHaveAttribute("href", `/express?family=${family}`);
+    }
+    await expect(programs.getByRole("heading", { level: 3 })).toHaveCount(5);
+  });
+
+  test("uses one primary call to action, worded the same everywhere", async ({ page }) => {
+    await page.goto("/");
+    const hero = page.locator("main > section").first();
+    await expect(hero.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
+    await expect(hero.getByRole("link", { name: "Size my loan", exact: true })).toHaveAttribute("href", "/#sizer");
+    await expect(hero.getByRole("link", { name: /book a call/i })).toHaveAttribute("href", "/contact#schedule");
+    const process = page.locator("main > section", { has: page.getByRole("heading", { name: /tell us about the deal once/i }) });
+    await expect(process.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
+    const final = page.locator("main > section", { has: page.getByRole("heading", { name: /tell us about your deal\./i }) });
+    await expect(final.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
+    await expect(final.getByRole("link", { name: "Book a call", exact: true })).toHaveAttribute("href", "/contact#schedule");
+    // One filled primary per homepage section (the sizer's own result bar is the sizer's).
+    for (const section of await page.locator("main > section:not(#sizer)").all()) expect(await section.locator(".pill-primary").count()).toBeLessThanOrEqual(1);
+  });
+
+  test("answers borrower questions with FAQPage JSON-LD", async ({ page }) => {
+    await page.goto("/");
+    const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+    const faq = blocks.map((b) => JSON.parse(b) as { "@type"?: string; mainEntity?: unknown[] }).find((n) => n["@type"] === "FAQPage");
+    expect(faq?.mainEntity?.length).toBeGreaterThanOrEqual(5);
+    const question = page.locator("details", { hasText: /are you a lender/i });
+    await expect(question).toContainText(/not a lender/i);
+  });
+
+  test("never mentions AI in the page content or metadata", async ({ page }) => {
+    await page.goto("/");
+    expect(await page.locator("main").innerText()).not.toMatch(/\bAI\b|AI-assisted|Kubera AI/);
+    await expect(page).toHaveTitle("Kubera Commercial | Commercial Real Estate Loan Broker");
+    const description = await page.locator('meta[name="description"]').getAttribute("content");
+    expect(description).toMatch(/construction, bridge and hard money/);
+    expect(description).not.toMatch(/\bAI\b/);
+  });
+
+  test("on a phone the primary CTA is above the fold with no sideways scroll", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoHydrated(page, "/");
+    const cta = page.locator("main > section").first().getByRole("link", { name: "Get loan options", exact: true });
+    await expect(cta).toBeVisible();
+    const box = (await cta.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(844);
+    expect(box.height).toBeGreaterThanOrEqual(36);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test("a family deep link lands on its card", async ({ page }) => {
+    await gotoHydrated(page, "/#construction");
+    await expect(page.locator("#construction")).toBeInViewport();
+  });
 });
 
 test.describe("platform endpoints", () => {
