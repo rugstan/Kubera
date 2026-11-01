@@ -4,9 +4,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BetaMessage, BetaRawMessageStreamEvent } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 
+// The assistant endpoint is staff-only: staffForMutation resolves a signed-in
+// staff member by default, and the refusal cases swap in a denial.
+const staff = vi.hoisted(() => ({ result: null as unknown as { ok: boolean; status?: number; reason?: string; ctx?: unknown } }));
+const STAFF_OK = { ok: true, ctx: { principal: { userId: "staff-1", email: "advisor@kuberacommercial.com", staffRoles: ["broker"] } } };
+
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/auth/dal", () => ({ staffForMutation: async () => staff.result }));
 vi.mock("@/lib/supabase/server", () => ({ supabaseAdmin: () => null, DOCUMENT_BUCKET: "deal-documents" }));
-vi.mock("next/server", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/server")>()), after: vi.fn() }));
+vi.mock("next/server", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/server")>()), after: vi.fn(), connection: async () => {} }));
 vi.mock("@/lib/rates", async () => {
   const { FALLBACK_BENCHMARKS } = await import("@/lib/sizing/assumptions");
   return { getMarketSnapshot: async () => ({ benchmarks: FALLBACK_BENCHMARKS, items: [], asOf: "2026-10-30", live: false }) };
@@ -70,6 +76,7 @@ function fakeModel(reply: string) {
 }
 
 beforeEach(() => {
+  staff.result = STAFF_OK;
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("LEAD_TOKEN_SECRET", "test-secret-test-secret");
   setRateLimiter(new MemoryRateLimiter());
@@ -196,8 +203,51 @@ describe("POST /api/partners", () => {
   });
 });
 
+describe("/api/ask is staff-only", () => {
+  it.each([
+    { status: 401, reason: "signed_out", error: "Staff sign-in required" },
+    { status: 403, reason: "mfa_required", error: "Not allowed" },
+    { status: 403, reason: "forbidden", error: "Not allowed" },
+    { status: 503, reason: "unavailable", error: "Staff sign-in required" },
+  ])("refuses a caller who is not signed-in staff ($status $reason): no model call, no conversation", async ({ status, reason, error }) => {
+    staff.result = { ok: false, status, reason };
+    const calls = fakeModel("must not run");
+
+    const post = await ask.POST(request("/api/ask", { message: "hi" }, { "x-turnstile-token": turnstile.issue("s1", "ask") }));
+    expect(post.status).toBe(status);
+    expect(post.headers.get("cache-control")).toBe("no-store");
+    expect(((await post.json()) as { error: string }).error).toBe(error);
+
+    const probe = await ask.GET();
+    expect(probe.status).toBe(status);
+    expect(probe.headers.get("cache-control")).toBe("no-store");
+
+    expect(calls).toHaveLength(0);
+    expect(store.rows.size).toBe(0);
+  });
+
+  it("refuses before the key check, the captcha and the rate limit", async () => {
+    staff.result = { ok: false, status: 401, reason: "signed_out" };
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    // No Origin, no captcha token, and no key: still the staff answer, never a 403 or 503 that leaks setup.
+    const bare = request("/api/ask", { message: "hi" });
+    bare.headers.delete("origin");
+    expect((await ask.POST(bare)).status).toBe(401);
+    expect((await ask.GET()).status).toBe(401);
+    // A valid captcha token does not change the answer.
+    const token = turnstile.issue("s2", "ask");
+    expect((await ask.POST(request("/api/ask", { message: "hi" }, { "x-turnstile-token": token }))).status).toBe(401);
+  });
+
+  it("answers the staff probe with 200 when configured and 503 when not", async () => {
+    expect((await ask.GET()).status).toBe(200);
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    expect((await ask.GET()).status).toBe(503);
+  });
+});
+
 describe("POST /api/ask", () => {
-  it("returns 503 when the AI is not configured", async () => {
+  it("returns 503 when the assistant is not configured", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     expect((await ask.POST(request("/api/ask", { message: "hi" }))).status).toBe(503);
   });

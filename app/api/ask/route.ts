@@ -1,5 +1,6 @@
 import { connection, NextResponse } from "next/server";
 import { z } from "zod";
+import { staffForMutation } from "@/lib/auth/dal";
 import { dealContextSchema, streamAdvisorTurn } from "@/lib/ai/advisor";
 import { conversationStore, MAX_TURNS, type Conversation } from "@/lib/conversations/store";
 import { routingSubject } from "@/lib/privacy/requests";
@@ -7,6 +8,11 @@ import { privacyServices } from "@/lib/privacy/server";
 import { getMarketSnapshot } from "@/lib/rates";
 import { checkTurnstile, guardPost, hashIp } from "@/lib/security";
 
+// Staff-only assistant. The public site no longer offers it, so every request
+// must carry a signed-in staff session with MFA; anonymous callers are refused
+// before any key check, rate-limit budget, captcha, conversation write or model
+// call.
+//
 // Protocol: the client sends only its conversation id (omitted on the first
 // message) and the new user message. The server owns the transcript, so
 // assistant turns cannot be forged. The reply streams as text/plain; the
@@ -25,19 +31,32 @@ const TURN_LOCK_MS = 120_000;
 const error = (status: number, message: string, extra?: Record<string, unknown>) =>
   NextResponse.json({ error: message, ...extra }, { status, headers: { "cache-control": "no-store" } });
 
+/** The signed-in staff member (MFA verified), or the refusal to send back. */
+async function staffOnly(): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+  const auth = await staffForMutation();
+  if (auth.ok) return { ok: true };
+  return { ok: false, response: error(auth.status, auth.status === 403 ? "Not allowed" : "Staff sign-in required") };
+}
+
 /**
- * Availability probe for components/ask/availability.ts. Side-effect free: no
- * rate-limit budget, no Turnstile, no model call. 503 hides every AI entry point.
+ * Availability probe for staff tools. Side-effect free: no rate-limit budget,
+ * no Turnstile, no model call. Signed-out callers get 401 and never learn
+ * whether a model key is configured.
  */
 export async function GET() {
-  // Evaluate the key per request, never at build time.
+  // Session and key are evaluated per request, never at build time.
   await connection();
-  if (!process.env.ANTHROPIC_API_KEY) return error(503, "Kubera AI is not configured.");
+  const auth = await staffOnly();
+  if (!auth.ok) return auth.response;
+  if (!process.env.ANTHROPIC_API_KEY) return error(503, "The assistant is not configured.");
   return NextResponse.json({ available: true }, { headers: { "cache-control": "no-store" } });
 }
 
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) return error(503, "Kubera AI is not configured.");
+  // First statement: nothing below runs, and nothing is spent, for a caller who is not staff.
+  const auth = await staffOnly();
+  if (!auth.ok) return auth.response;
+  if (!process.env.ANTHROPIC_API_KEY) return error(503, "The assistant is not configured.");
 
   const guard = await guardPost(req, {
     name: "ask",
@@ -66,12 +85,12 @@ export async function POST(req: Request) {
     } else {
       const claimed = await store.claim(conversationId, TURN_LOCK_MS);
       if (claimed.status === "not_found") return error(404, "This conversation has expired. Start a new one.", { code: "conversation_not_found" });
-      if (claimed.status === "busy") return error(409, "Kubera AI is still answering your last question.", { code: "conversation_busy" });
+      if (claimed.status === "busy") return error(409, "The assistant is still answering your last question.", { code: "conversation_busy" });
       conversation = claimed.conversation;
     }
   } catch (err) {
     console.error("conversation store failed", err instanceof Error ? err.message : err);
-    return error(503, "Kubera AI is temporarily unavailable.");
+    return error(503, "The assistant is temporarily unavailable.");
   }
 
   if (conversation.turnCount >= MAX_TURNS) {
@@ -103,7 +122,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("advisor start failed", err instanceof Error ? err.message : err);
     await store.release(conversation.id);
-    return error(503, "Kubera AI is temporarily unavailable.");
+    return error(503, "The assistant is temporarily unavailable.");
   }
 }
 

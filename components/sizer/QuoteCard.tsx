@@ -21,12 +21,12 @@ export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; 
       // visitors and crawlers); layout keeps re-sorts animated.
       initial={false}
       transition={{ type: "spring", stiffness: 260, damping: 30, delay: index * 0.05 }}
-      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent/70" : ""} ${q.eligible ? "" : "opacity-70"}`}
+      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : "opacity-70"}`}
       aria-label={`${q.name} quote`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        {best && <span className="badge-emerald rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
-        {q.accent === "gold" && <span className="badge-gold rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{q.id.startsWith("HUD") ? "Non-recourse · Long-term" : "Institutional"}</span>}
+        {best && <span className="badge-accent rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
+        {q.accent === "gold" && <span className="badge rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{q.id.startsWith("HUD") ? "Non-recourse · Long-term" : "Institutional"}</span>}
         {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-titanium">Not a fit</span>}
       </div>
       <h3 className="mt-3 text-xl font-semibold">{q.name}</h3>
@@ -39,7 +39,7 @@ export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; 
             {q.ratePct.toFixed(2)}% est. note rate · {q.termLabel}
           </p>
           {q.binding !== "REQUESTED" && (
-            <p className="mt-1 text-[12px] text-amber-700">Limited by {CONSTRAINT_COPY[q.binding]}</p>
+            <p className="mt-1 text-[12px] text-warning">Limited by {CONSTRAINT_COPY[q.binding]}</p>
           )}
 
           {q.tranches.length > 1 && (
@@ -104,7 +104,7 @@ export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; 
       {(q.warnings.length > 0 || q.notes.length > 0) && (
         <ul className="mt-4 space-y-1.5 border-t border-black/[0.05] pt-4 text-[12px] leading-snug">
           {q.warnings.map((w) => (
-            <li key={w} className="flex gap-2 text-amber-800"><span aria-hidden>•</span>{w}</li>
+            <li key={w} className="flex gap-2 text-warning"><span aria-hidden>•</span>{w}</li>
           ))}
           {q.notes.map((n) => (
             <li key={n} className="flex gap-2 text-titanium"><span aria-hidden>•</span>{n}</li>

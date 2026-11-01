@@ -1,9 +1,7 @@
-import "@fontsource-variable/inter";
+import "@fontsource-variable/inter/opsz.css";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { Analytics } from "@/components/analytics/Analytics";
-import { CommandBar } from "@/components/ask/CommandBar";
 import { MotionProvider } from "@/components/ui/MotionProvider";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { site } from "@/lib/site";
@@ -11,18 +9,18 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
   title: {
-    default: "Kubera Commercial | Senior Living, Hotel & CRE Debt",
+    default: "Kubera Commercial | Commercial Real Estate Loan Broker",
     template: "%s · Kubera Commercial",
   },
   description:
-    "Institutional debt advisory for senior living, hotels, and multifamily: HUD 232, SBA 504 hotel stacks, CMBS, PIP bridge, and private bridge financing — sized in 60 seconds.",
+    "Licensed California loan broker for senior living, hotel, multifamily, construction and hard money financing: HUD, SBA, CMBS, agency, bank and private lenders.",
   openGraph: { type: "website", siteName: site.name },
   // No site-wide robots tag: indexing is the default, and a root "index, follow"
   // would also land on every not-found page next to Next's injected noindex.
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f5f7",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
@@ -34,10 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SkipLink />
         <MotionProvider>
           {children}
-          {/* CommandBar reads usePathname; its own boundary lets dynamic routes prerender their shell. */}
-          <Suspense fallback={null}>
-            <CommandBar />
-          </Suspense>
         </MotionProvider>
         <Analytics />
       </body>
