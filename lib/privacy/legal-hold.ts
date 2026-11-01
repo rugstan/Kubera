@@ -32,6 +32,21 @@ export const legalHoldSchema = z
 
 export type LegalHoldInput = z.infer<typeof legalHoldSchema>;
 
+/**
+ * Body of POST /api/privacy/legal-hold. There is no `actor`: the route takes
+ * it from the signed-in administrator's session (any `actor` sent is
+ * ignored). `totp` is the step-up code, required to release a hold.
+ */
+export const legalHoldRequestSchema = z
+  .object({
+    table: z.enum(LEGAL_HOLD_TABLES),
+    id: z.uuid(),
+    hold: z.boolean(),
+    reason: z.string().trim().min(3).max(500).optional(),
+    totp: z.string().trim().max(10).optional(),
+  })
+  .refine((v) => !v.hold || Boolean(v.reason), { path: ["reason"], message: "A reason (matter or demand) is required to place a hold" });
+
 export type LegalHoldPatch = {
   legal_hold: boolean;
   legal_hold_reason?: string;
