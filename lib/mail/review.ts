@@ -36,6 +36,7 @@ export const REVIEW_REASON_LABELS: Readonly<Record<string, string>> = {
   low_confidence: "Low classification confidence",
   human_review_requested: "The sender asked that an advisor handle their requests personally",
   processing_failed: "Processing failed after every retry",
+  attachment_failed: "One or more attachments could not be stored after retrying; ask the sender to resend them",
 };
 
 export function reviewReasonLabel(code: string): string {
