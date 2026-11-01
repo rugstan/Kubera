@@ -16,7 +16,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
         {children}
         <p className="mt-6 text-[13px] leading-relaxed text-titanium">
-          Staff and client sign-in. Questions about your account? Email{" "}
+          Staff sign-in only. Borrowers and partners use the secure link their advisor emails them to open the{" "}
+          <Link className="text-accent underline underline-offset-2" href="/portal">
+            borrower portal
+          </Link>
+          . Questions about your account? Email{" "}
           <a className="text-accent underline underline-offset-2" href={`mailto:${site.email}`}>
             {site.email}
           </a>

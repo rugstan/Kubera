@@ -19,7 +19,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default function LoginPage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <AuthCard title="Sign in" intro="We will email you a 6-digit code and a sign-in link. Staff confirm with an authenticator app next.">
+    <AuthCard title="Sign in" intro="For Kubera staff. We will email you a 6-digit code and a sign-in link, then you confirm with your authenticator app.">
       <Suspense fallback={<div className="h-40" aria-hidden="true" />}>
         <LoginForm searchParams={searchParams} />
       </Suspense>
@@ -52,7 +52,7 @@ async function LoginForm({ searchParams }: { searchParams: SearchParams }) {
       </form>
       {services?.mode === "fake" ? (
         <p className="mt-4 rounded-xl bg-canvas p-3 text-[13px] text-titanium" data-testid="fake-auth-note">
-          Test sign-in (fake provider): use broker@kubera.test, analyst@kubera.test, admin@kubera.test or borrower@kubera.test.
+          Test sign-in (fake provider): use broker@kubera.test, analyst@kubera.test or admin@kubera.test.
         </p>
       ) : null}
     </>

@@ -289,8 +289,28 @@ test("an analyst enrolls TOTP on first sign-in and can view but not approve", as
 
 test("portal accounts cannot enter the staff area", async ({ page }) => {
   await signInWithCode(page, "borrower@kubera.test", "/pipeline");
-  await expect(page).toHaveURL(/\/access-denied\?reason=not_staff/);
-  await expect(page.getByRole("heading", { name: "No access" })).toBeVisible();
+  await expect(page).toHaveURL(`${base}/portal?state=use_link`);
+  // Not kept signed in: the staff area asks for a sign-in again.
+  await page.goto(`${base}/pipeline`);
+  await expect(page).toHaveURL(/\/login\?next=/);
+});
+
+test("a borrower who signs in at /login is sent to the portal and told to use their secure link", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${base}/login`);
+  await expect(page.getByText("Staff sign-in only.")).toBeVisible();
+  await expect(page.getByTestId("fake-auth-note")).not.toContainText("borrower@");
+  await page.getByLabel("Work email").fill("borrower@kubera.test");
+  await page.getByRole("button", { name: "Email me a code" }).click();
+  await expect(page).toHaveURL(/\/login\/verify$/);
+  const code = (await page.getByTestId("fake-code").textContent())?.trim() ?? "";
+  await page.getByLabel("6-digit code").fill(code);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(`${base}/portal?state=use_link`);
+  await expect(page.getByTestId("portal-use-link")).toContainText("for Kubera staff only");
+  await expect(page.getByRole("heading", { name: /sign in with your secure link/i })).toBeVisible();
+  expect((await page.context().cookies()).map((c) => c.name)).not.toContain("kc_session");
+  expect(await seriousViolations(page)).toEqual([]);
 });
 
 test("sign-in and staff pages have no serious accessibility violations", async ({ page }) => {

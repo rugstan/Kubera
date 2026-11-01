@@ -15,7 +15,10 @@ import type { AuthSession } from "./types";
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
-export const PORTAL_HOME = "/portal";
+export const STAFF_HOME = "/pipeline";
+
+/** Where a borrower or partner who tried the staff sign-in is sent: the portal, told to use their secure link. */
+export const PORTAL_USE_LINK = "/portal?state=use_link";
 
 /** Hashed key for rate limits and logs, so raw emails never become cache or limiter keys. */
 export function emailKey(email: string): string {
@@ -44,9 +47,11 @@ export async function clearPendingLogin(): Promise<void> {
 }
 
 /**
- * Stores a fresh aal1 session and decides where the person goes next: staff
- * to MFA (always), portal users to their requested page, anyone without an
- * active profile and role to the access-denied page (signed out again).
+ * Stores a fresh aal1 session and decides where the person goes next. /login
+ * is staff-only: staff go on to MFA (always); borrower and partner accounts
+ * are signed out again and sent to the portal, which they open with the
+ * secure link their advisor emails them (the portal does not read this
+ * session); anyone without an active profile and role goes to access-denied.
  */
 export async function completeSignIn(services: AuthServices, session: AuthSession, next: string): Promise<string> {
   const fp = await requestFingerprint();
@@ -58,12 +63,18 @@ export async function completeSignIn(services: AuthServices, session: AuthSessio
     await auditQuietly(services.audit, { actorId: profile ? session.user.id : null, actorLabel: session.user.email, action: "auth.access_denied", detail: { reason: !profile ? "no_profile" : !profile.active ? "inactive" : "no_role" }, ...fp });
     return "/access-denied?reason=inactive";
   }
+  if (!requiresMfa(roles)) {
+    await services.provider.signOut(session);
+    await clearSessionCookie();
+    await clearPendingLogin();
+    await auditQuietly(services.audit, { actorId: session.user.id, actorLabel: displayName(profile), action: "auth.access_denied", detail: { reason: "not_staff", roles }, ...fp });
+    return PORTAL_USE_LINK;
+  }
   await writeSessionCookie(toStored(session, nowSeconds()));
   await clearPendingLogin();
   await services.directory.recordSignIn(session.user.id, new Date());
   await auditQuietly(services.audit, { actorId: session.user.id, actorLabel: displayName(profile), action: "auth.sign_in", detail: { aal: session.aal, roles }, ...fp });
-  const home = requiresMfa(roles) ? "/pipeline" : PORTAL_HOME;
-  const dest = next ? safeNextPath(next, home) : home;
-  if (requiresMfa(roles) && session.aal !== "aal2") return `/mfa?next=${encodeURIComponent(dest)}`;
+  const dest = next ? safeNextPath(next, STAFF_HOME) : STAFF_HOME;
+  if (session.aal !== "aal2") return `/mfa?next=${encodeURIComponent(dest)}`;
   return dest;
 }

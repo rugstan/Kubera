@@ -30,7 +30,7 @@ export default function PortalHome({ searchParams }: { searchParams: SearchParam
   );
 }
 
-function SignedOut({ state }: { state?: string }) {
+function SignedOut({ state, unavailable = false }: { state?: string; unavailable?: boolean }) {
   return (
     <>
       <h1 className="text-3xl font-semibold sm:text-4xl">Borrower portal</h1>
@@ -39,7 +39,12 @@ function SignedOut({ state }: { state?: string }) {
           You are signed out.
         </p>
       ) : null}
-      {state === "unavailable" ? (
+      {state === "use_link" ? (
+        <p role="status" data-testid="portal-use-link" className="mt-6 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 text-[15px]">
+          The email sign-in is for Kubera staff only, so we did not keep you signed in. Borrowers and partners open the portal with the secure link from their advisor, below.
+        </p>
+      ) : null}
+      {unavailable ? (
         <p role="alert" className="mt-6 rounded-2xl border border-amber-700/40 bg-amber-50 px-4 py-3 text-[15px] text-amber-900">
           The portal is not available right now. Email your documents to your advisor or to docs@kuberacommercial.com.
         </p>
@@ -64,7 +69,7 @@ async function PortalContent({ searchParams }: { searchParams: SearchParams }) {
   const state = Array.isArray(sp.state) ? sp.state[0] : sp.state;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const ctx = await portalContext();
-  if (!isContext(ctx)) return <SignedOut state={ctx.reason === "unconfigured" ? "unavailable" : state} />;
+  if (!isContext(ctx)) return <SignedOut state={state} unavailable={ctx.reason === "unconfigured" || state === "unavailable"} />;
 
   const { session, services } = ctx;
   // Apply finished malware scans first, so a cleared upload shows as received.
