@@ -15,7 +15,7 @@
 // GatewayUnavailableError, which callers turn into a degraded path (e.g. the
 // mail classifier falls back to rules).
 
-import { assertRoutable, prepareForRoute, providerForModel, RoutingRefusedError, type ModelProvider, type RouteDecision } from "@/lib/ai/routing";
+import { assertRoutable, isModelProvider, prepareForRoute, providerForModel, RoutingRefusedError, type ModelProvider, type RouteDecision } from "@/lib/ai/routing";
 import { getTracer, type Tracer } from "@/lib/langfuse";
 import { AnthropicProvider } from "./gateway/anthropic";
 import { NVIDIA_BASE_URL, OpenAICompatibleProvider, XAI_BASE_URL } from "./gateway/openai-compatible";
@@ -119,7 +119,9 @@ export function createGateway(deps: GatewayDeps): ModelGateway {
         decision = assertRoutable(routeReq);
       }
 
-      const provider = decision.provider!;
+      const provider = decision.provider;
+      // Gateway requests only name gateway providers; a direct endpoint (Jev) is never called from here.
+      if (!provider || !isModelProvider(provider)) throw new RoutingRefusedError(decision, routeReq);
       const client = deps.providers[provider];
       if (!client || !client.configured()) throw new GatewayUnavailableError(provider);
 

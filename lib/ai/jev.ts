@@ -20,6 +20,7 @@ import { NEW_PROGRAM_IDS, type NewProgramId, type SizerProgramId, type SizerQuot
 import type { ProgramId } from "@/lib/sizing/types";
 import type { Intake } from "@/lib/validation";
 import { LENDER_ROUTING, WHOLESALE_LENDERS, type WholesaleLender } from "./lenders";
+import { prepareForRoute } from "./routing";
 
 export const ASSET_VERTICALS = [
   "SENIOR_LIVING_CARE",
@@ -469,14 +470,32 @@ export function decideWithRules(intake: Intake, rates: Benchmarks = FALLBACK_BEN
   };
 }
 
+/** Model id the routing guard sees for the remote Jev endpoint. */
+export const JEV_REMOTE_MODEL = "jev-remote";
+
+/**
+ * What may leave for the remote Jev endpoint: the structured intake without the
+ * free-text `notes` (borrowers paste account numbers, SSNs and birth dates
+ * there), passed through the model routing guard so anything above the route's
+ * ceiling is redacted. Null when the guard refuses the route.
+ */
+export function remoteJevPayload(intake: Intake, draft: JevLoanDecisionSchema): { input: Omit<Intake, "notes">; draft: JevLoanDecisionSchema } | null {
+  const { notes: _notes, ...input } = intake;
+  void _notes;
+  const routed = prepareForRoute({ model: JEV_REMOTE_MODEL, provider: "jev", purpose: "lead_scoring", payload: { input, draft } });
+  return routed?.payload ?? null;
+}
+
 async function refineWithRemoteJev(intake: Intake, draft: JevLoanDecisionSchema): Promise<JevLoanDecisionSchema | null> {
   const url = process.env.JEV_API_URL;
   if (!url) return null;
+  const payload = remoteJevPayload(intake, draft);
+  if (!payload) return null;
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.JEV_API_KEY ?? ""}` },
-      body: JSON.stringify({ schema: "JevLoanDecisionSchema", input: intake, draft, jsonSchema: z.toJSONSchema(jevDecisionSchema) }),
+      body: JSON.stringify({ schema: "JevLoanDecisionSchema", input: payload.input, draft: payload.draft, jsonSchema: z.toJSONSchema(jevDecisionSchema) }),
       signal: AbortSignal.timeout(REMOTE_BUDGET_MS),
     });
     if (!res.ok) return null;

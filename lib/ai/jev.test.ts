@@ -1,10 +1,23 @@
 // Jev routing for the new boxes: hard money, construction, DSCR investor and
 // tiered agency intakes land on the right program, lenders and flags.
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NEW_PROGRAM_IDS } from "@/lib/sizing/programs/types";
 import { intakeSchema } from "@/lib/validation";
-import { NEW_BOX_ROUTING, PROGRAM_FITS, decideWithRules, intakeAssumptions, jevDecisionSchema, lendersFor, publicSummary, verticalFor } from "./jev";
+import {
+  JEV_REMOTE_MODEL,
+  NEW_BOX_ROUTING,
+  PROGRAM_FITS,
+  decide,
+  decideWithRules,
+  intakeAssumptions,
+  jevDecisionSchema,
+  lendersFor,
+  publicSummary,
+  remoteJevPayload,
+  verticalFor,
+} from "./jev";
+import { checkRoute } from "./routing";
 
 const rates = { fiveYear: 4.0, tenYear: 4.25, sofr30: 4.0, prime: 7.0 };
 
@@ -226,5 +239,60 @@ describe("Jev: hotel-to-care conversions", () => {
     expect(line).toMatch(/purchase price and conversion budget/);
     expect(intakeAssumptions(intakeSchema.parse({ ...base, value: 11_000_000 })).some((l) => /No purchase price/.test(l))).toBe(false);
     expect(blank.rationale.some((l) => /No purchase price or value/.test(l))).toBe(true);
+  });
+});
+
+describe("Jev: remote refinement privacy", () => {
+  const intake = intakeSchema.parse({
+    assetType: "MULTIFAMILY",
+    transaction: "PURCHASE",
+    loanAmount: 5_000_000,
+    noi: 600_000,
+    value: 8_000_000,
+    unitCount: 60,
+    notes: "My SSN is 123-45-6789, DOB 01/02/1970, acct # 000123456789. Call me at 415-555-0100.",
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("never sends the free-text notes or a restricted value to the remote endpoint", async () => {
+    vi.stubEnv("JEV_API_URL", "https://jev.example.test/decide");
+    vi.stubEnv("JEV_API_KEY", "k");
+    const local = decideWithRules(intake, rates);
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => new Response(JSON.stringify({ output: local.decision }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const r = await decide(intake, rates);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = String(fetchMock.mock.calls[0]![1].body);
+    expect(body).not.toContain("123-45-6789");
+    expect(body).not.toContain("01/02/1970");
+    expect(body).not.toContain("000123456789");
+    expect(body).not.toContain("415-555-0100");
+    const sent = JSON.parse(body) as { input: Record<string, unknown> };
+    expect(sent.input).not.toHaveProperty("notes");
+    expect(sent.input).toMatchObject({ assetType: "MULTIFAMILY", loanAmount: 5_000_000 });
+    expect(r.engine).toBe("jev-remote");
+  });
+
+  it("routes the remote payload through the model routing guard", () => {
+    const payload = remoteJevPayload(intake, decideWithRules(intake, rates).decision);
+    expect(payload).not.toBeNull();
+    expect(payload!.input).not.toHaveProperty("notes");
+    expect(checkRoute({ model: JEV_REMOTE_MODEL, provider: "jev", purpose: "lead_scoring", payload }).allowed).toBe(true);
+    // The raw intake, restricted notes included, would not pass the guard.
+    expect(checkRoute({ model: JEV_REMOTE_MODEL, provider: "jev", purpose: "lead_scoring", payload: { input: intake } }).allowed).toBe(false);
+  });
+
+  it("skips the remote call when no endpoint is configured", async () => {
+    vi.stubEnv("JEV_API_URL", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await decide(intake, rates);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(r.engine).toBe("rules");
   });
 });
