@@ -119,7 +119,7 @@ export function CaliforniaIndex() {
               <Link href={marketPath(m.slug)} className="bento block h-full p-6">
                 <span className="text-xl font-semibold text-ink">{m.name}</span>
                 <span className="mt-2 block text-[15px] leading-relaxed text-titanium">{m.summary}</span>
-                <span className="mt-4 block text-[14px] font-medium text-accent">Read the guide</span>
+                <span className="link-chevron mt-4 text-[14px]">Read the guide</span>
               </Link>
             </li>
           ))}
