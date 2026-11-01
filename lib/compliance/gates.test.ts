@@ -192,7 +192,21 @@ describe("gate H: art. XV cap", () => {
 
 describe("gate H: broker-of-record elements", () => {
   it("finds nothing missing on a complete file", () => {
-    expect(missingBrokerElements(completeElements, { requireOfficerApproval: true })).toEqual([]);
+    expect(missingBrokerElements(completeElements, { requireOfficerApproval: true, collateral: rp })).toEqual([]);
+  });
+
+  it.each([
+    ["APN", { realPropertyLien: true, lienPosition: 1 }],
+    ["blank APN", { realPropertyLien: true, apn: "  ", lienPosition: 1 }],
+    ["lien position", { realPropertyLien: true, apn: "123-456-789" }],
+    ["APN and lien position", { realPropertyLien: true }],
+  ])("reports missing collateral identification without the %s", (_label, collateral) => {
+    expect(missingBrokerElements(completeElements, { requireOfficerApproval: true, collateral })).toEqual(["collateral_identification"]);
+  });
+
+  it("does not ask for an APN when no real-property lien secures the loan", () => {
+    expect(missingBrokerElements(completeElements, { requireOfficerApproval: true, collateral: ucc })).toEqual([]);
+    expect(missingBrokerElements(completeElements, { requireOfficerApproval: true, collateral: businessAssets })).toEqual([]);
   });
 
   it.each<[string, BrokerOfRecordElements, string]>([
@@ -206,15 +220,16 @@ describe("gate H: broker-of-record elements", () => {
     ["business-purpose certification", { ...completeElements, businessPurposeCertified: false }, "business_purpose_certification"],
     ["officer approval", { ...completeElements, officerApproval: undefined }, "officer_approval"],
   ])("reports missing %s", (_label, elements, code) => {
-    expect(missingBrokerElements(elements, { requireOfficerApproval: true })).toEqual([code]);
+    expect(missingBrokerElements(elements, { requireOfficerApproval: true, collateral: rp })).toEqual([code]);
   });
 
   it("validates DRE license format", () => {
-    expect(() => missingBrokerElements({ ...completeElements, arrangingLicensee: { name: "X", dreLicense: "123", activeAtTransaction: true } }, { requireOfficerApproval: false })).toThrow(/8 digits/);
+    expect(() => missingBrokerElements({ ...completeElements, arrangingLicensee: { name: "X", dreLicense: "123", activeAtTransaction: true } }, { requireOfficerApproval: false, collateral: rp })).toThrow(/8 digits/);
   });
 
   it("has a label for every element", () => {
-    expect(Object.keys(BROKER_ELEMENT_LABELS)).toHaveLength(8);
+    expect(Object.keys(BROKER_ELEMENT_LABELS)).toHaveLength(9);
+    expect(BROKER_ELEMENT_LABELS.collateral_identification).toBe("Collateral APN and lien position");
   });
 });
 
@@ -260,6 +275,40 @@ describe("gate H: usury evaluation", () => {
     expect(r.blocking).toBe(false);
     expect(r.reasons.join(" ")).toMatch(/not a determination/);
     expect(containsExemptionClaim(r.reasons.join(" "))).toBe(false);
+  });
+
+  it("blocks a non-exempt, above-cap loan until the collateral APN and lien position are recorded", () => {
+    const noApn = evaluateUsury({
+      lender: { name: "Pacific Bridge Partners LLC", category: "PRIVATE_NON_EXEMPT" },
+      noteRatePct: 12,
+      fedDiscountRatePct: 4.5,
+      collateral: { realPropertyLien: true },
+      elements: completeElements,
+      transactionDate: "2026-11-15",
+    });
+    expect(noApn).toMatchObject({ status: "blocked", blocking: true, missing: ["collateral_identification"] });
+    expect(noApn.flags.find((f) => f.code === "broker_of_record_incomplete")?.reason).toContain("Collateral APN and lien position");
+    expect(evaluateUsury(usury({ noteRatePct: 12, collateral: { realPropertyLien: true, lienPosition: 1 } })).status).toBe("blocked");
+    expect(evaluateUsury(usury({ noteRatePct: 12, collateral: { realPropertyLien: true, apn: "123-456-789" } })).status).toBe("blocked");
+
+    const recorded = evaluateUsury(usury({ noteRatePct: 12, collateral: { realPropertyLien: true, apn: "123-456-789", lienPosition: 2 } }));
+    expect(recorded).toMatchObject({ status: "cleared", blocking: false, missing: [] });
+  });
+
+  it("blocks closing on a cleared-looking file with no APN", () => {
+    const r = evaluateDealCompliance({
+      mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
+      usury: usury({ collateral: { realPropertyLien: true, lienPosition: 1 } }),
+      now: new Date("2026-11-20T18:00:00Z"),
+    });
+    expect(r.gates.closing.allowed).toBe(false);
+    expect(r.gates.closing.reasons).toContain("Missing: Collateral APN and lien position");
+  });
+
+  it("records the missing APN on a within-cap loan without blocking it", () => {
+    const r = evaluateUsury(usury({ noteRatePct: 9, collateral: { realPropertyLien: true } }));
+    expect(r).toMatchObject({ status: "within_cap", blocking: false, missing: ["collateral_identification"] });
+    expect(codes(r.flags)).toContain("broker_of_record_incomplete");
   });
 
   it("uses the higher cap when the discount rate is high", () => {
@@ -321,6 +370,13 @@ describe("gate H: modifications (SB 1146)", () => {
     expect(r.status).toBe("incomplete");
     expect(r.missing).toEqual(["engagement_agreement", "compensation"]);
     expect(r.blocking).toBe(true);
+  });
+
+  it("keeps an above-cap Kubera-arranged modification blocked until the loan's APN and lien position are recorded", () => {
+    const noApn = evaluateModification(mod({ noteRatePct: 12 }), { ...loan, collateral: { realPropertyLien: true, lienPosition: 1 } });
+    expect(noApn).toMatchObject({ status: "incomplete", blocking: true, missing: ["collateral_identification"] });
+    const recorded = evaluateModification(mod({ noteRatePct: 12 }), loan);
+    expect(recorded).toMatchObject({ status: "documented", blocking: false, missing: [] });
   });
 
   it("requires the agreement to recite the broker arrangement", () => {

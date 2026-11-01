@@ -73,7 +73,7 @@ export function loanRecord(dealId: string, over: Partial<LoanBrokerOfRecord> = {
     lender: { name: "Fidelis Private Fund", category: "PRIVATE_NON_EXEMPT" },
     noteRatePct: 12.5,
     fedDiscountRatePct: 4.5,
-    collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false },
+    collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false, apn: "041-1234-005", lienPosition: 1 },
     elements: { negotiationLog: [], businessPurposeCertified: false },
     tableFundedInKuberaName: false,
     transactionDate: "2026-03-01",

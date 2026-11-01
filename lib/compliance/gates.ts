@@ -170,6 +170,7 @@ export type BrokerElement =
   | "engagement_agreement"
   | "compensation"
   | "negotiation_log"
+  | "collateral_identification"
   | "business_purpose_certification"
   | "officer_approval";
 
@@ -180,13 +181,19 @@ export const BROKER_ELEMENT_LABELS: Record<BrokerElement, string> = {
   engagement_agreement: "Signed engagement / fee agreement",
   compensation: "Compensation amount and payer",
   negotiation_log: "Negotiation log showing Kubera actively arranged the loan (term-sheet versions or lender submissions)",
+  collateral_identification: "Collateral APN and lien position",
   business_purpose_certification: "Business-purpose certification",
   officer_approval: "Designated-officer approval",
 };
 
-/** Elements Kubera must record for a broker-arranged loan or modification that are missing. */
-export function missingBrokerElements(input: BrokerOfRecordElements, opts: { requireOfficerApproval: boolean }): BrokerElement[] {
+/**
+ * Elements Kubera must record for a broker-arranged loan or modification that
+ * are missing. `collateral` is the loan's collateral: a real-property lien must
+ * be identified by APN and lien position (Reference, gate H).
+ */
+export function missingBrokerElements(input: BrokerOfRecordElements, opts: { requireOfficerApproval: boolean; collateral: CollateralInput }): BrokerElement[] {
   const e = brokerOfRecordElementsSchema.parse(input);
+  const collateral = collateralSchema.parse(opts.collateral);
   const missing: BrokerElement[] = [];
   if (!e.arrangingLicensee) missing.push("arranging_licensee");
   else if (!e.arrangingLicensee.activeAtTransaction) missing.push("licensee_active");
@@ -194,6 +201,7 @@ export function missingBrokerElements(input: BrokerOfRecordElements, opts: { req
   if (!e.engagementAgreementRef) missing.push("engagement_agreement");
   if (!e.compensation || e.compensation.amountUsd <= 0) missing.push("compensation");
   if (!e.negotiationLog.some((n) => n.kind === "term_sheet" || n.kind === "lender_submission" || n.kind === "counteroffer")) missing.push("negotiation_log");
+  if (collateral.realPropertyLien && (!collateral.apn || collateral.lienPosition === undefined)) missing.push("collateral_identification");
   if (!e.businessPurposeCertified) missing.push("business_purpose_certification");
   if (opts.requireOfficerApproval && !e.officerApproval) missing.push("officer_approval");
   return missing;
@@ -241,7 +249,7 @@ export function evaluateUsury(input: UsuryFacts): UsuryEvaluation {
   const lenderExempt = lenderIsExempt(facts.lender, flags);
   const realProperty = hasRealPropertyLien(facts.collateral);
   const gateApplies = !lenderExempt && aboveCap;
-  const missing = missingBrokerElements(facts.elements, { requireOfficerApproval: gateApplies });
+  const missing = missingBrokerElements(facts.elements, { requireOfficerApproval: gateApplies, collateral: facts.collateral });
 
   if (!realProperty) {
     flags.push({
@@ -349,7 +357,7 @@ export function evaluateModification(input: ModificationFacts, loan: LoanContext
   if (mod.arrangedBy === "other_licensed_broker") {
     if (!mod.otherBroker) missing.push("other_broker_identity");
   } else {
-    missing.push(...missingBrokerElements(mod.elements, { requireOfficerApproval: gateApplies }));
+    missing.push(...missingBrokerElements(mod.elements, { requireOfficerApproval: gateApplies, collateral }));
   }
   if (!mod.agreementRecitesBrokerArrangement) missing.push("agreement_recital");
 
