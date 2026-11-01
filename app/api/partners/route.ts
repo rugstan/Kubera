@@ -53,6 +53,8 @@ export async function POST(req: Request) {
     ))?.id ?? null;
   }
 
+  // CRM sync after the response; /api/cron/crm-retry pushes the row later if
+  // this run is lost or Twenty is not configured yet.
   after(async () => {
     if (!twentyConfigured()) return;
     try {

@@ -17,7 +17,7 @@ const call = (authorization?: string) => GET(new Request("https://kuberacommerci
 /** Chainable stand-in for the supabase-js query builder; every query resolves to `result`. */
 function fakeDb(result: { data: unknown[]; error: null }) {
   const builder: Record<string, unknown> = {};
-  for (const m of ["select", "not", "is", "lt", "order", "limit", "update", "eq"]) builder[m] = () => builder;
+  for (const m of ["select", "or", "not", "is", "lt", "order", "limit", "update", "eq"]) builder[m] = () => builder;
   builder.then = (resolve: (v: unknown) => void) => resolve(result);
   return { from: () => builder };
 }

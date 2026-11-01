@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decideWithRules } from "@/lib/ai/jev";
 import { pushLead, pushPartner, type CrmProgress } from "@/lib/crm/twenty";
@@ -5,6 +6,7 @@ import { FALLBACK_BENCHMARKS } from "@/lib/sizing/assumptions";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
 import {
   BASE_BACKOFF_MS,
+  FIRST_PUSH_GRACE_MS,
   MAX_ATTEMPTS,
   MAX_BACKOFF_MS,
   backoffMs,
@@ -16,7 +18,7 @@ import {
   type RetryStore,
   type RowPatch,
 } from "./retry";
-import { rebuildJevFactory } from "./wiring";
+import { pendingFilter, rebuildJevFactory, supabaseRetryStore } from "./wiring";
 
 const NOW = Date.parse("2026-11-01T12:00:00Z");
 const iso = (msAgo: number) => new Date(NOW - msAgo).toISOString();
@@ -469,5 +471,172 @@ describe("advisor-only (human_review) leads", () => {
     const note = (twenty.sent("notes")[0]!.bodyV2 as { markdown: string }).markdown;
     expect(note).toContain("No automated scoring was run");
     expect(note).not.toContain("Jev decision");
+  });
+});
+
+/**
+ * In-memory stand-in for the Supabase query builder: it evaluates the filters
+ * supabaseRetryStore sends (or/is/not/lt, order, limit, update().eq()) against
+ * table rows, so these tests exercise the real selection rather than a mirror.
+ */
+type DbRow = Record<string, unknown>;
+function fakeDb(tables: Record<"leads" | "partners", DbRow[]>) {
+  const compare = (a: unknown, b: unknown) => {
+    if (typeof a === "number" || typeof b === "number") return Number(a) - Number(b);
+    const da = Date.parse(String(a));
+    const dbt = Date.parse(String(b));
+    if (Number.isFinite(da) && Number.isFinite(dbt)) return da - dbt;
+    return String(a).localeCompare(String(b));
+  };
+  const parseValue = (raw: string) => (raw === "null" ? null : raw.replace(/^"(.*)"$/, "$1"));
+  const clause = (expr: string): ((r: DbRow) => boolean) => {
+    const m = /^(\w+)\.(not\.is|is|lt)\.(.+)$/.exec(expr);
+    if (!m) throw new Error(`unsupported or() clause: ${expr}`);
+    const [, col, op, raw] = m as unknown as [string, string, string, string];
+    const value = parseValue(raw);
+    if (op === "is") return (r) => (r[col] ?? null) === value;
+    if (op === "not.is") return (r) => (r[col] ?? null) !== value;
+    return (r) => r[col] != null && compare(r[col], value) < 0;
+  };
+  const splitOr = (s: string) => s.match(/(?:[^,"]|"[^"]*")+/g) ?? [];
+
+  return {
+    tables,
+    from(table: "leads" | "partners") {
+      const filters: ((r: DbRow) => boolean)[] = [];
+      const orders: { col: string; ascending: boolean; nullsFirst: boolean }[] = [];
+      let max = Infinity;
+      const query = {
+        select: () => query,
+        or(expr: string) {
+          const parts = splitOr(expr).map(clause);
+          filters.push((r) => parts.some((p) => p(r)));
+          return query;
+        },
+        is(col: string, value: null) {
+          filters.push((r) => (r[col] ?? null) === value);
+          return query;
+        },
+        lt(col: string, value: unknown) {
+          filters.push((r) => r[col] != null && compare(r[col], value) < 0);
+          return query;
+        },
+        order(col: string, opts: { ascending: boolean; nullsFirst?: boolean }) {
+          orders.push({ col, ascending: opts.ascending, nullsFirst: opts.nullsFirst ?? !opts.ascending });
+          return query;
+        },
+        limit(n: number) {
+          max = n;
+          return query;
+        },
+        then<T>(resolve: (v: { data: DbRow[]; error: null }) => T) {
+          const rows = tables[table].filter((r) => filters.every((f) => f(r)));
+          rows.sort((a, b) => {
+            for (const o of orders) {
+              const av = a[o.col] ?? null;
+              const bv = b[o.col] ?? null;
+              if (av === bv) continue;
+              if (av === null) return o.nullsFirst ? -1 : 1;
+              if (bv === null) return o.nullsFirst ? 1 : -1;
+              const c = compare(av, bv);
+              if (c !== 0) return o.ascending ? c : -c;
+            }
+            return 0;
+          });
+          return Promise.resolve({ data: rows.slice(0, max).map((r) => ({ ...r })), error: null }).then(resolve);
+        },
+      };
+      return {
+        select: () => query,
+        update(patch: DbRow) {
+          return {
+            eq(col: string, value: unknown) {
+              for (const r of tables[table]) if (r[col] === value) Object.assign(r, patch);
+              return Promise.resolve({ error: null });
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+describe("first pushes that never finished (no crm_error)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  function stubTwenty() {
+    const twenty = fakeTwenty();
+    vi.stubEnv("TWENTY_API_URL", "https://twenty.test");
+    vi.stubEnv("TWENTY_API_KEY", "test-key");
+    vi.stubGlobal("fetch", twenty.fetchImpl);
+    return twenty;
+  }
+
+  const lead = (over: DbRow = {}): DbRow => ({ ...leadRow(), crm_progress: {}, crm_error: null, twenty_person_id: null, created_at: iso(30 * 60_000), ...over });
+  const partner = (over: DbRow = {}): DbRow => ({ ...partnerRow(), crm_progress: {}, crm_error: null, twenty_company_id: null, created_at: iso(30 * 60_000), ...over });
+  const storeFor = (db: ReturnType<typeof fakeDb>) => supabaseRetryStore(db as unknown as SupabaseClient);
+  const DAY = 24 * 60 * 60_000;
+
+  it("resumes a lead whose after() push died mid-way (crm_progress set, no crm_error)", async () => {
+    const twenty = stubTwenty();
+    // The route created the person and checkpointed it, then the instance was killed.
+    const db = fakeDb({ leads: [lead({ crm_progress: { personId: "people-1" } })], partners: [] });
+
+    const summary = await run(storeFor(db), realTwenty);
+    expect(summary.leads).toMatchObject({ candidates: 1, attempted: 1, succeeded: 1 });
+    // The checkpointed person is reused; only the missing steps are created.
+    expect(twenty.creates).toEqual({ opportunities: 1, notes: 1, noteTargets: 1 });
+    expect(db.tables.leads[0]).toMatchObject({ crm_error: null, crm_attempts: 1, twenty_person_id: "people-1" });
+
+    // Synced now, so the next run leaves it alone.
+    const again = await run(storeFor(db), realTwenty, { now: () => NOW + MAX_BACKOFF_MS });
+    expect(again.leads.candidates).toBe(0);
+    expect(twenty.creates).toEqual({ opportunities: 1, notes: 1, noteTargets: 1 });
+  });
+
+  it("pushes leads and partners submitted while Twenty was not configured", async () => {
+    const twenty = stubTwenty();
+    const db = fakeDb({ leads: [lead({ created_at: iso(3 * DAY) })], partners: [partner({ created_at: iso(3 * DAY) })] });
+
+    const summary = await run(storeFor(db), realTwenty);
+    expect(summary.leads).toMatchObject({ attempted: 1, succeeded: 1 });
+    expect(summary.partners).toMatchObject({ attempted: 1, succeeded: 1 });
+    expect(twenty.creates).toMatchObject({ people: 2, opportunities: 1, companies: 1 });
+    expect(db.tables.leads[0]!.twenty_person_id).toBeTruthy();
+    expect(db.tables.partners[0]!.twenty_company_id).toBeTruthy();
+  });
+
+  it("leaves a fresh row to the route's own push so the two never race", async () => {
+    const twenty = stubTwenty();
+    const fresh = iso(FIRST_PUSH_GRACE_MS - 60_000);
+    const db = fakeDb({ leads: [lead({ created_at: fresh, crm_progress: { personId: "people-1" } })], partners: [partner({ created_at: fresh })] });
+
+    const summary = await run(storeFor(db), realTwenty);
+    expect(summary.leads.candidates).toBe(0);
+    expect(summary.partners.candidates).toBe(0);
+    expect(twenty.fetchImpl).not.toHaveBeenCalled();
+
+    // A recorded failure is retried regardless of age.
+    db.tables.leads[0]!.crm_error = "Twenty POST /opportunities: 503";
+    const retried = await run(storeFor(db), realTwenty);
+    expect(retried.leads).toMatchObject({ candidates: 1, succeeded: 1 });
+  });
+
+  it("skips rows already in Twenty or past the attempt cap", async () => {
+    stubTwenty();
+    const db = fakeDb({
+      leads: [lead({ id: "synced", twenty_person_id: "people-7" }), lead({ id: "capped", crm_attempts: MAX_ATTEMPTS, crm_error: "manual" })],
+      partners: [partner({ twenty_company_id: "companies-7" })],
+    });
+    const summary = await run(storeFor(db), realTwenty);
+    expect(summary.leads.candidates).toBe(0);
+    expect(summary.partners.candidates).toBe(0);
+  });
+
+  it("quotes the cutoff timestamp inside the PostgREST or() filter", () => {
+    expect(pendingFilter(NOW)).toBe(`crm_error.not.is.null,created_at.lt."${new Date(NOW - FIRST_PUSH_GRACE_MS).toISOString()}"`);
   });
 });

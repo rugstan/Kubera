@@ -7,6 +7,12 @@
 // exponential backoff and stops after MAX_ATTEMPTS so one poisoned row can't
 // loop forever. Rows that hit the cap keep their last error for staff to triage.
 //
+// It is also the backstop for a first push that never finished: an after()
+// callback killed mid-push leaves no `crm_error`, and a row submitted while
+// Twenty was unconfigured was never pushed at all. Any row with no Twenty id
+// that is older than FIRST_PUSH_GRACE_MS is picked up too, so it reaches the
+// CRM once Twenty is reachable.
+//
 // Pushes are resumable: each Twenty record id is checkpointed into
 // `crm_progress` as soon as it is created, and a retry passes that checkpoint
 // back so steps that already succeeded are skipped. A failure after the
@@ -27,6 +33,17 @@ export const MAX_BACKOFF_MS = 24 * 60 * 60_000;
 export const DEFAULT_BATCH = 25;
 /** Stop starting new pushes after this long so the function finishes inside maxDuration. */
 export const DEFAULT_BUDGET_MS = 45_000;
+/**
+ * How long a row with no `crm_error` is left to the submission route's own
+ * after() push before the cron treats it as lost. Far longer than a push takes
+ * (about six Twenty calls at 8 s each), so the two do not race.
+ */
+export const FIRST_PUSH_GRACE_MS = 10 * 60_000;
+
+/** Rows created before this instant without a Twenty id are treated as never pushed. */
+export function firstPushCutoff(nowMs: number): string {
+  return new Date(nowMs - FIRST_PUSH_GRACE_MS).toISOString();
+}
 
 export type FailedLeadRow = {
   id: string;
@@ -59,9 +76,13 @@ export type RowPatch = {
 
 /** Persistence the job needs. The Supabase implementation lives in ./wiring.ts. */
 export interface RetryStore {
-  /** Leads with `crm_error` set, no Twenty person id, and attempts below the cap. */
-  failedLeads(limit: number): Promise<FailedLeadRow[]>;
-  failedPartners(limit: number): Promise<FailedPartnerRow[]>;
+  /**
+   * Leads with no Twenty person id and attempts below the cap that either carry
+   * `crm_error` or were created before `firstPushCutoff(nowMs)` (never pushed).
+   */
+  failedLeads(limit: number, nowMs: number): Promise<FailedLeadRow[]>;
+  /** Same selection for partners, keyed on the Twenty company id. */
+  failedPartners(limit: number, nowMs: number): Promise<FailedPartnerRow[]>;
   updateLead(id: string, patch: RowPatch): Promise<void>;
   updatePartner(id: string, patch: RowPatch): Promise<void>;
   /** Checkpoints the Twenty ids created so far (written after every step). */
@@ -119,7 +140,7 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
   // Fetch a wider window than the batch: not-yet-due rows are skipped, not counted.
   const window = batch * 4;
 
-  const leads = await deps.store.failedLeads(window);
+  const leads = await deps.store.failedLeads(window, now());
   summary.leads.candidates = leads.length;
   let used = 0;
   for (const row of leads) {
@@ -167,7 +188,7 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
     }
   }
 
-  const partners = await deps.store.failedPartners(window);
+  const partners = await deps.store.failedPartners(window, now());
   summary.partners.candidates = partners.length;
   used = 0;
   for (const row of partners) {
