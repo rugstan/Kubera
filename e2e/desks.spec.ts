@@ -203,6 +203,8 @@ test("a broker records the loan's broker-of-record file and the gate H closing r
 });
 
 test("checklist items and conditions move, and a sanctions match puts the deal on hold", async ({ page }) => {
+  // Long multi-desk flow (about 17s on an idle machine); give it headroom under parallel load.
+  test.slow();
   await signIn(page, "/checklists");
   await page.getByLabel("Deal id").fill(DEALS.memoryCare);
   await page.getByLabel("Program").selectOption("BRIDGE");

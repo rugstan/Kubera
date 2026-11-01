@@ -3,8 +3,9 @@ import { gotoHydrated, mockAskAvailable } from "./helpers";
 
 test.describe("command bar (Ctrl/Cmd+K)", () => {
   test("opens with the keyboard shortcut, focuses the question box and closes on Escape", async ({ page }) => {
-    await mockAskAvailable(page);
+    const { probed } = await mockAskAvailable(page);
     await gotoHydrated(page, "/");
+    await probed;
     const dialog = page.getByRole("dialog", { name: /ask kubera ai/i });
     await expect(dialog).toBeHidden();
 
@@ -17,8 +18,9 @@ test.describe("command bar (Ctrl/Cmd+K)", () => {
   });
 
   test("toggles with the shortcut and opens from the visible Ask button", async ({ page }) => {
-    await mockAskAvailable(page);
+    const { probed } = await mockAskAvailable(page);
     await gotoHydrated(page, "/");
+    await probed;
     const dialog = page.getByRole("dialog", { name: /ask kubera ai/i });
 
     await page.keyboard.press("Control+k");
@@ -32,10 +34,15 @@ test.describe("command bar (Ctrl/Cmd+K)", () => {
 
   test("sends only the new message as JSON and renders the streamed answer", async ({ page }) => {
     const posts: { contentType: string | undefined; body: Record<string, unknown> }[] = [];
+    let answered: () => void = () => {};
+    const probed = new Promise<void>((resolve) => {
+      answered = resolve;
+    });
     await page.route("**/api/ask", async (route) => {
       const req = route.request();
       if (req.method() === "GET") {
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ available: true }) });
+        answered();
         return;
       }
       posts.push({ contentType: req.headers()["content-type"], body: req.postDataJSON() });
@@ -47,6 +54,7 @@ test.describe("command bar (Ctrl/Cmd+K)", () => {
       });
     });
     await gotoHydrated(page, "/");
+    await probed;
     await page.keyboard.press("Control+k");
     await page.getByRole("textbox", { name: /your question/i }).fill("What is HUD 232?");
     await page.keyboard.press("Enter");
@@ -65,8 +73,9 @@ test.describe("command bar (Ctrl/Cmd+K)", () => {
   });
 
   test("shows a readable error when a question fails because the AI is unavailable", async ({ page }) => {
-    await mockAskAvailable(page);
+    const { probed } = await mockAskAvailable(page);
     await gotoHydrated(page, "/");
+    await probed;
     await page.keyboard.press("Control+k");
     await page.getByRole("textbox", { name: /your question/i }).fill("What is HUD 232?");
     await page.keyboard.press("Enter");
