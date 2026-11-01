@@ -23,9 +23,17 @@ describe("AB 1482 cap by region and period", () => {
     for (const row of AB1482_CAP_TABLE) expect(Math.min(5 + row.cpiPct, 10)).toBeLessThanOrEqual(10);
   });
 
-  it("uses the most recent period and says so when the table is out of date", () => {
+  it("resolves a current-date lookup to the Aug 2026 to Jul 2027 period", () => {
     const r = ab1482CapPct("Los Angeles", "2026-10-31");
-    expect(r.capPct).toBe(8);
+    expect(r.capPct).toBe(8.1);
+    expect(r.dataStatus).not.toBe("stale");
+    expect(ab1482CapPct("Los Angeles", "2026-07-31").capPct).toBe(8);
+    expect(ab1482CapPct("Los Angeles", "2026-08-01").capPct).toBe(8.1);
+  });
+
+  it("uses the most recent period and says so when the table is out of date", () => {
+    const r = ab1482CapPct("Los Angeles", "2027-09-01");
+    expect(r.capPct).toBe(8.1);
     expect(r.dataStatus).toBe("stale");
   });
 
@@ -52,9 +60,10 @@ describe("AB 1482 regime", () => {
   });
 
   it("flags a stale table when the as-of date is past the loaded periods", () => {
-    const r = run({ asOf: "2026-10-31" });
+    const r = run({ asOf: "2027-09-01" });
     expect(r.dataStatus).toBe("stale");
     expect(codes(r)).toContain("cap_table_stale");
+    expect(codes(run({ asOf: "2026-10-31" }))).not.toContain("cap_table_stale");
   });
 
   it("is silent about the sunset until the date arrives, then flags it", () => {
@@ -172,7 +181,7 @@ describe("City of Los Angeles RSO", () => {
     const r = run({ ...la, yearBuilt: 1985 });
     expect(r.regime).toBe("ab1482");
     expect(r.exemptions).toEqual([expect.objectContaining({ code: "local_cutoff", scope: "local" })]);
-    expect(r.annualCapPct).toBe(8);
+    expect(r.annualCapPct).toBe(8.1);
   });
 
   it("applies the 15-year exemption on top for a new LA building", () => {

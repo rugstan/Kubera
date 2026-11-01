@@ -189,7 +189,7 @@ async function main() {
 
     // Each sizer tab, each partner tab.
     await go(page, `${BASE}/`);
-    for (const label of ["Hospitality & Hotels", "Multifamily & CRE", "Hard money", "Construction"]) {
+    for (const label of ["Hospitality & hotels", "Multifamily & CRE", "Hard money", "Construction"]) {
       await page.getByRole("tab", { name: label }).click();
       await page.waitForTimeout(900); // let entry animations finish; axe samples live colours
       scans.push(await scan(page, axeSource, `/ sizer tab: ${label}`));
@@ -277,12 +277,12 @@ async function main() {
 
     // Tabs: arrow keys move selection; roles wired.
     await go(page, `${BASE}/`);
-    const first = page.getByRole("tab", { name: "Senior Living & Care" });
+    const first = page.getByRole("tab", { name: "Senior living & care" });
     await first.focus();
     await page.waitForTimeout(150);
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(150);
-    check("sizer tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: "Hospitality & Hotels" }).getAttribute("aria-selected")) === "true");
+    check("sizer tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: "Hospitality & hotels" }).getAttribute("aria-selected")) === "true");
     await page.keyboard.press("End");
     await page.waitForTimeout(150);
     const lastSizerTab = page.locator('#sizer [role="tablist"] [role="tab"]').last();
