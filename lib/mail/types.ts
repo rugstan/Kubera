@@ -55,3 +55,22 @@ export class MailProviderError extends Error {
     this.name = "MailProviderError";
   }
 }
+
+/**
+ * The message was read but its attachment list was not: throttled, 5xx,
+ * timeout, token eviction, or any error while the details say it has
+ * attachments. Always retryable, so the workflow retries it with backoff.
+ * `partial` is the message without attachments, so the last allowed attempt
+ * can park it for staff (needs_review, attachment_failed) instead of saving it
+ * as processed with its files silently dropped.
+ */
+export class AttachmentListError extends MailProviderError {
+  constructor(
+    message: string,
+    status: number | null,
+    readonly partial: MailMessage,
+  ) {
+    super(message, status, true);
+    this.name = "AttachmentListError";
+  }
+}

@@ -36,19 +36,33 @@ export type ZohoSignConfig = {
 
 export const ZOHO_SIGNATURE_HEADER = "x-zs-webhook-signature";
 
+const ALLOWED_DC = new Set(["com", "eu", "in", "com.au", "jp", "ca", "sa", "com.cn"]);
+const warnedDc = new Set<string>();
+
+/**
+ * Null when Zoho Sign is not configured, or when ZOHO_SIGN_DC is not a Zoho
+ * data center: a typo must disable e-sign (logged once), never make every
+ * caller of the provider throw.
+ */
 export function zohoSignConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ZohoSignConfig | null {
   const { ZOHO_SIGN_CLIENT_ID, ZOHO_SIGN_CLIENT_SECRET, ZOHO_SIGN_REFRESH_TOKEN } = env;
   if (!ZOHO_SIGN_CLIENT_ID || !ZOHO_SIGN_CLIENT_SECRET || !ZOHO_SIGN_REFRESH_TOKEN) return null;
+  const dc = env.ZOHO_SIGN_DC?.trim() || "com";
+  if (!ALLOWED_DC.has(dc)) {
+    if (!warnedDc.has(dc)) {
+      warnedDc.add(dc);
+      console.warn(`[esign] ZOHO_SIGN_DC "${dc}" is not a Zoho data center; e-sign disabled`);
+    }
+    return null;
+  }
   return {
     clientId: ZOHO_SIGN_CLIENT_ID,
     clientSecret: ZOHO_SIGN_CLIENT_SECRET,
     refreshToken: ZOHO_SIGN_REFRESH_TOKEN,
-    dc: env.ZOHO_SIGN_DC || "com",
+    dc,
     webhookSecret: env.ZOHO_SIGN_WEBHOOK_SECRET || undefined,
   };
 }
-
-const ALLOWED_DC = new Set(["com", "eu", "in", "com.au", "jp", "ca", "sa", "com.cn"]);
 
 type Json = Record<string, unknown>;
 

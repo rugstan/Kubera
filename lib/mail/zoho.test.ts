@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dmarcVerdict, htmlToText, isAutomated, isBulk, messageIds, parseAddressList, parseHeaders, stripQuotedReply } from "./text";
+import { isRetryable } from "./inbound";
+import { AttachmentListError, MailProviderError } from "./types";
 import { decodeSubject, ZohoMailClient, zohoMailConfigFromEnv, type ZohoMailConfig } from "./zoho";
 
 const RAW_HEADERS = [
@@ -50,15 +52,20 @@ describe("Zoho Mail config", () => {
 
 type Call = { url: string; method: string; auth: string | null; body?: string };
 
-function zohoFake() {
+const zohoJson = (data: unknown) => new Response(JSON.stringify({ status: { code: 200 }, data }), { status: 200, headers: { "content-type": "application/json" } });
+
+/** `override` answers an API path first (return undefined to fall through to the defaults). */
+function zohoFake(override?: (path: string) => Response | undefined) {
   const calls: Call[] = [];
   let tokenCount = 0;
-  const json = (data: unknown) => new Response(JSON.stringify({ status: { code: 200 }, data }), { status: 200, headers: { "content-type": "application/json" } });
+  const json = zohoJson;
   const fetchImpl = (async (input: string, init: RequestInit = {}) => {
     const url = String(input);
     calls.push({ url, method: init.method ?? "GET", auth: (init.headers as Record<string, string> | undefined)?.authorization ?? null, body: init.body ? String(init.body) : undefined });
     if (url.startsWith("https://accounts.zoho.com/oauth/v2/token")) return new Response(JSON.stringify({ access_token: `tok-${++tokenCount}`, expires_in: 3600 }), { status: 200 });
     const path = new URL(url).pathname.replace("/api", "");
+    const custom = override?.(path);
+    if (custom) return custom;
     if (path === "/accounts") return json([{ accountId: "222", primaryEmailAddress: "Lenders@kuberacommercial.com" }]);
     if (path === "/accounts/222/folders") return json([{ folderId: "9", folderName: "Sent", folderType: "Sent" }, { folderId: "10", folderName: "Inbox", folderType: "Inbox" }]);
     if (path === "/accounts/222/messages/view") {
@@ -122,6 +129,45 @@ describe("Zoho Mail client", () => {
     const att = await client.fetchAttachment("lenders", msg, "a1");
     expect(att.contentType).toBe("application/pdf");
     expect([...att.bytes.slice(0, 4)]).toEqual([0x25, 0x50, 0x44, 0x46]);
+  });
+
+  it("never turns a throttled attachment listing into an empty attachment list", async () => {
+    const { client } = zohoFake((path) => {
+      if (path.endsWith("/details")) return zohoJson({ messageId: "m3", folderId: "10", subject: "T-12 and rent roll", fromAddress: "pat.lee@example.com", receivedTime: String(Date.UTC(2026, 10, 3, 12)), hasAttachment: "1" });
+      if (path.endsWith("/attachmentinfo")) return new Response("Too Many Requests", { status: 429 });
+      return undefined;
+    });
+    const err = await client.fetchMessage("lenders", { providerMessageId: "m3", folderId: "10" }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AttachmentListError);
+    expect(err).toBeInstanceOf(MailProviderError);
+    expect(err).toMatchObject({ retryable: true, status: 429 });
+    expect((err as Error).message).toMatch(/attachment list unavailable/);
+    expect(isRetryable(err)).toBe(true);
+    // The partial message keeps the details so the last attempt can park it for staff.
+    expect((err as AttachmentListError).partial).toMatchObject({ providerMessageId: "m3", hasAttachments: true, attachments: [] });
+  });
+
+  it("retries 5xx and timeouts on the attachment listing, and a definitive error when the message has attachments", async () => {
+    for (const res of [() => new Response("oops", { status: 503 }), () => Promise.reject(new TypeError("fetch failed"))]) {
+      const { client } = zohoFake((path) => (path.endsWith("/attachmentinfo") ? (res() as unknown as Response) : undefined));
+      await expect(client.fetchMessage("lenders", { providerMessageId: "m3", folderId: "10" })).rejects.toMatchObject({ name: "AttachmentListError", retryable: true });
+    }
+    const { client } = zohoFake((path) => {
+      if (path.endsWith("/details")) return zohoJson({ messageId: "m3", folderId: "10", subject: "Docs", fromAddress: "pat.lee@example.com", receivedTime: "0", hasAttachment: "1" });
+      if (path.endsWith("/attachmentinfo")) return new Response("not found", { status: 404 });
+      return undefined;
+    });
+    await expect(client.fetchMessage("lenders", { providerMessageId: "m3", folderId: "10" })).rejects.toMatchObject({ name: "AttachmentListError", retryable: true, status: 404 });
+  });
+
+  it("treats a 404 listing as no attachments only when the details say there are none", async () => {
+    const { client } = zohoFake((path) => {
+      if (path.endsWith("/details")) return zohoJson({ messageId: "m2", folderId: "10", subject: "Checking in", fromAddress: "b@lender.test", receivedTime: "0", hasAttachment: "0" });
+      if (path.endsWith("/attachmentinfo")) return new Response("not found", { status: 404 });
+      return undefined;
+    });
+    const msg = await client.fetchMessage("lenders", { providerMessageId: "m2", folderId: "10" });
+    expect(msg).toMatchObject({ hasAttachments: false, attachments: [] });
   });
 
   it("pages newest-first until it reaches `since`, not just the newest page", async () => {

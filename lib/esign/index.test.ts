@@ -23,6 +23,18 @@ describe("e-sign provider selection", () => {
     warn.mockRestore();
   });
 
+  it("returns null (never throws) for a ZOHO_SIGN_DC that is not a Zoho data center, and logs it once", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const env: NodeJS.ProcessEnv = { NODE_ENV: "test", ...zoho, ZOHO_SIGN_DC: "us-typo" };
+    expect(() => esignProviderFromEnv(env)).not.toThrow();
+    expect(esignProviderFromEnv(env)).toBeNull();
+    expect(esignProviderFromEnv({ ...env, ESIGN_PROVIDER: "zoho_sign" })).toBeNull();
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes('ZOHO_SIGN_DC "us-typo" is not a Zoho data center; e-sign disabled'))).toHaveLength(1);
+    // A valid data center still selects Zoho Sign.
+    expect(esignProviderFromEnv({ ...env, ZOHO_SIGN_DC: "eu" })?.name).toBe("zoho_sign");
+    warn.mockRestore();
+  });
+
   it("resolves the MLDS template id per provider", () => {
     expect(mldsTemplateId("zoho_sign", { NODE_ENV: "test", ZOHO_SIGN_MLDS_TEMPLATE_ID: "z1" })).toBe("z1");
     expect(mldsTemplateId("boldsign", { NODE_ENV: "test" })).toBeNull();
