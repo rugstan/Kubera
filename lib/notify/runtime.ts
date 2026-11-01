@@ -33,8 +33,8 @@ export type NotifyRuntime = {
 /**
  * The broker approval gate: WS-I's approvals queue, or the closed gate when it
  * is not configured (templates that are not pre-approved stay pending and
- * nothing sends). A held notification is retried by sending again with the
- * same idempotency key once its approval is approved.
+ * nothing sends). A held notification is sent when a broker approves it, by
+ * the notify approval executor (lib/notify/approved.ts), with the sweep as backstop.
  */
 export function approvalGate(): ApprovalGate {
   return queueGate();

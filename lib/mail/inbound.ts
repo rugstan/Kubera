@@ -194,6 +194,24 @@ export async function processInboundMessage(input: { mailbox: InboundMailbox } &
   }
 
   const attachments = msg.attachments.length ? await processAttachments(msg, classification, route, { provider: deps.provider, sink: deps.sink }) : [];
+  const failedAttachments = attachments.filter((a) => a.status === "failed");
+  if (failedAttachments.length) {
+    // A download or storage error (provider 429/5xx, timeout, token eviction,
+    // Storage or documents insert failure) must not drop the file: saving the
+    // message as processed would never retry it and nobody would see it.
+    // Throwing sends it through the workflow retries and recordInboundFailure's
+    // backoff; retries are idempotent (content-addressed paths, vault rows
+    // keyed by storage path). On the last allowed attempt, or when no retry can
+    // help (the provider says the attachment is gone), the message is kept with
+    // what was stored and parked for staff instead (needs_review pages them).
+    const finalAttempt = (existing?.attempts ?? 0) >= MAX_MAIL_ATTEMPTS - 1;
+    if (!finalAttempt && failedAttachments.some((a) => a.retryable !== false)) {
+      const detail = failedAttachments.map((a) => `${a.fileName}: ${a.error ?? "failed"}`).join("; ");
+      throw new MailProviderError(`${failedAttachments.length} attachment(s) could not be stored: ${detail}`.slice(0, 1000), null, true);
+    }
+    route.status = "needs_review";
+    if (!route.reviewReasons.includes("attachment_failed")) route.reviewReasons.push("attachment_failed");
+  }
   const body = protectBody(msg, deps.keyring === undefined ? piiKeyring() : deps.keyring);
   classification.flags.push(...body.flags);
 

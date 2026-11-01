@@ -135,7 +135,7 @@ describe("approval gate", () => {
     const out = await h.notifier.send(milestoneSms());
     expect(out.status).toBe("pending_approval");
     expect(h.sms.sent).toHaveLength(0);
-    expect(gate.requests[0]).toMatchObject({ kind: "email", templateId: "milestone_update_sms@1", payload: { channel: "sms" } });
+    expect(gate.requests[0]).toMatchObject({ kind: "sms", templateId: "milestone_update_sms@1", payload: { channel: "sms" } });
   });
 
   it("sends on a later retry once the broker approves", async () => {

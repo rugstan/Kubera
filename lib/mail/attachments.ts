@@ -14,7 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { documentKindsIn, type MailClassification, type MailDocumentKind } from "./classify";
 import { MAILBOXES, type InboundMailbox } from "./mailboxes";
 import type { MailRoute } from "./route";
-import type { MailMessage, MailProvider } from "./types";
+import { MailProviderError, type MailMessage, type MailProvider } from "./types";
 
 /** WS-K's private holding bucket (lib/documents/types.ts QUARANTINE_BUCKET). */
 export const QUARANTINE_BUCKET = "deal-documents-quarantine";
@@ -97,6 +97,8 @@ export type AttachmentRecord = {
   documentId: string | null;
   kind: AttachmentKind | null;
   error: string | null;
+  /** On "failed": whether another attempt may succeed (a 429/5xx, timeout or storage error; not a 404). */
+  retryable?: boolean;
 };
 
 export interface AttachmentSink {
@@ -150,7 +152,8 @@ export async function processAttachments(
       }
       out.push(rec);
     } catch (err) {
-      out.push({ ...base, error: err instanceof Error ? err.message.slice(0, 300) : String(err) });
+      // The caller (processInboundMessage) retries the message for a transient failure, so nothing is lost silently.
+      out.push({ ...base, error: err instanceof Error ? err.message.slice(0, 300) : String(err), retryable: !(err instanceof MailProviderError) || err.retryable });
     }
   }
   return out;

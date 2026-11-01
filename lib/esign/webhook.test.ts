@@ -5,6 +5,8 @@ import { generateMlds, openMldsCase, recordUetaConsent, sendMlds } from "@/lib/d
 import { MemoryDisclosureStore, MemoryDocumentStorage } from "@/lib/disclosures/store";
 import { sampleMldsInput } from "@/lib/disclosures/test-fixtures";
 import { UETA_CONSENT_VERSION } from "@/lib/disclosures/ueta";
+import { createHmac } from "node:crypto";
+import { BOLDSIGN_SIGNATURE_HEADER, BoldSignProvider } from "./boldsign";
 import { FakeEsignProvider } from "./fake";
 import { MAX_WEBHOOK_BYTES, handleEsignWebhook, type WebhookDeps } from "./webhook";
 import { ZOHO_SIGNATURE_HEADER, signZohoPayload } from "./zoho-sign";
@@ -119,5 +121,44 @@ describe("e-sign webhook handler", () => {
 
     const res2 = await handleEsignWebhook(completed("nobody-knows"), deps({ otherRequest: async () => false }));
     expect(await res2.json()).toEqual({ ok: true, outcome: "unknown_request" });
+  });
+});
+
+describe("e-sign webhook handler with the BoldSign fallback", () => {
+  it("marks an MLDS sent through BoldSign signed and stores the signed copy", async () => {
+    const s = new MemoryDisclosureStore();
+    const docs = new MemoryDocumentStorage();
+    const clockMs = now().getTime();
+    const signedPdf = new TextEncoder().encode("%PDF-1.7 signed");
+    const bold = new BoldSignProvider(
+      { apiKey: "k", webhookSecret: "bs-secret" },
+      async (url) => (url.includes("/v1/document/download") ? new Response(signedPdf) : Response.json({ documentId: "bold_doc_1" })),
+      () => clockMs,
+    );
+    const { record } = await openMldsCase(
+      { store: s, now },
+      { leadId: "11111111-1111-4111-8111-111111111112", facts: { kuberaRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: now(), actor: "staff" },
+    );
+    const id = record?.id as string;
+    await generateMlds({ store: s, storage: docs, render: async () => new Uint8Array([1, 2, 3]), now, approvedTemplate: true }, id, sampleMldsInput, "staff");
+    for (const b of sampleMldsInput.borrowers) await recordUetaConsent({ store: s, now }, id, { textVersion: UETA_CONSENT_VERSION, consentedAt: now().toISOString(), email: b.email });
+    const sent = await sendMlds(
+      { store: s, provider: bold, gate: new FakeApprovalGate(), effects: new MemoryIdempotencyStore(), now, templateId: "bold_tpl", brokerSigner: { name: "N", email: "n@k.co" }, approvedTemplate: true },
+      id,
+      "staff",
+    );
+    expect(sent.record.providerRequestId).toBe("bold_doc_1");
+
+    const body = JSON.stringify({ event: { id: "evt_bold_1", eventType: "Completed", created: clockMs / 1000 }, data: { documentId: "bold_doc_1" } });
+    const t = clockMs / 1000;
+    const headers = new Headers({ [BOLDSIGN_SIGNATURE_HEADER]: `t=${t}, s0=${createHmac("sha256", "bs-secret").update(`${t}.${body}`).digest("hex")}` });
+    const res = await handleEsignWebhook(new Request("https://kuberacommercial.com/api/webhooks/boldsign", { method: "POST", body, headers }), {
+      provider: bold,
+      secretConfigured: true,
+      backends: { store: s, storage: docs },
+      now,
+    });
+    expect(await res.json()).toEqual({ ok: true, outcome: "transitioned" });
+    expect((await s.get(id))?.status).toBe("signed");
   });
 });

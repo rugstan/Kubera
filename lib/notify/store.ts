@@ -47,7 +47,8 @@ export type NotificationPatch = Partial<
   Pick<NotificationRow, "status" | "provider" | "providerMessageId" | "approvalId" | "consentEventId" | "error" | "sentAt" | "deliveredAt" | "subject" | "metadata">
 > & { incrementAttempts?: boolean };
 
-export type SmsStatus = "queued" | "sent" | "delivered" | "failed" | "received";
+/** "undelivered": the carrier reported the text was not delivered (a delivery receipt); "failed": it never reached the provider. */
+export type SmsStatus = "queued" | "sent" | "delivered" | "failed" | "undelivered" | "received";
 
 export type SmsRow = {
   id: string;
@@ -80,7 +81,14 @@ export type NewSms = {
 
 export type SmsPatch = Partial<Pick<SmsRow, "status" | "keyword" | "processedAt" | "deliveredAt" | "error" | "leadId" | "providerMessageId">>;
 
-export type DeliveryStatus = "sent" | "delivered" | "failed";
+/**
+ * A provider delivery receipt. "undelivered" is the carrier's report that a text
+ * it took was not delivered (Telnyx delivery_failed / sending_failed). It is
+ * kept apart from "failed" (nothing reached the provider, so a retry is safe):
+ * an undelivered text is never resent automatically, since every resend is a
+ * new billed message to a number that just refused one.
+ */
+export type DeliveryStatus = "sent" | "delivered" | "undelivered";
 
 export interface NotifyStore {
   /** Inserts the notification, or returns the existing row for the same idempotency key. */
@@ -93,6 +101,12 @@ export interface NotifyStore {
    */
   reopen(id: string, expected: readonly NotificationStatus[]): Promise<NotificationRow | null>;
   findByKey(idempotencyKey: string): Promise<NotificationRow | null>;
+  /**
+   * Rows that name a broker approval and are still waiting on it (pending_approval)
+   * or were stopped after it (deferred_quiet_hours), created since `since`, oldest
+   * first. Read by the notify sweep (lib/notify/approved.ts).
+   */
+  listHeldForApproval(opts: { since: Date; limit: number }): Promise<NotificationRow[]>;
   /** Inserts the text; for a provider message id already stored, returns the existing row. */
   recordSms(input: NewSms): Promise<{ row: SmsRow; fresh: boolean }>;
   updateSms(id: string, patch: SmsPatch): Promise<SmsRow>;
@@ -100,7 +114,10 @@ export interface NotifyStore {
   applyDelivery(providerMessageId: string, status: DeliveryStatus, at: Date, error?: string | null): Promise<{ notifications: number; sms: number }>;
 }
 
-const RANK: Record<string, number> = { queued: 0, sent: 1, failed: 2, delivered: 3 };
+const RANK: Record<string, number> = { queued: 0, sent: 1, failed: 2, undelivered: 2, delivered: 3 };
+
+/** Statuses listHeldForApproval returns. */
+export const HELD_STATUSES = ["pending_approval", "deferred_quiet_hours"] as const satisfies readonly NotificationStatus[];
 
 /** A delivery status may only advance a row that has been sent (a late "sent" must not undo "delivered"). */
 export function canAdvance(current: string, next: DeliveryStatus): boolean {
@@ -167,6 +184,14 @@ export class MemoryNotifyStore implements NotifyStore {
     return this.notifications.find((n) => n.idempotencyKey === key) ?? null;
   }
 
+  async listHeldForApproval(opts: { since: Date; limit: number }) {
+    const since = opts.since.toISOString();
+    return this.notifications
+      .filter((n) => n.approvalId && (HELD_STATUSES as readonly string[]).includes(n.status) && n.createdAt >= since)
+      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+      .slice(0, opts.limit);
+  }
+
   async recordSms(input: NewSms) {
     if (input.providerMessageId) {
       const existing = this.sms.find((s) => s.providerMessageId === input.providerMessageId);
@@ -206,14 +231,14 @@ export class MemoryNotifyStore implements NotifyStore {
       if (n.providerMessageId !== providerMessageId || !canAdvance(n.status, status)) continue;
       n.status = status;
       if (status === "delivered") n.deliveredAt = at.toISOString();
-      if (status === "failed") n.error = error ?? "delivery failed";
+      if (status === "undelivered") n.error = error ?? "delivery failed";
       notifications += 1;
     }
     for (const s of this.sms) {
       if (s.providerMessageId !== providerMessageId || !canAdvance(s.status, status)) continue;
       s.status = status;
       if (status === "delivered") s.deliveredAt = at.toISOString();
-      if (status === "failed") s.error = error ?? "delivery failed";
+      if (status === "undelivered") s.error = error ?? "delivery failed";
       sms += 1;
     }
     return { notifications, sms };
@@ -333,6 +358,19 @@ export class SupabaseNotifyStore implements NotifyStore {
     return data ? toNotification(data) : null;
   }
 
+  async listHeldForApproval(opts: { since: Date; limit: number }) {
+    const { data, error } = await this.db
+      .from("notifications")
+      .select("*")
+      .in("status", [...HELD_STATUSES])
+      .not("approval_id", "is", null)
+      .gte("created_at", opts.since.toISOString())
+      .order("created_at", { ascending: true })
+      .limit(opts.limit);
+    if (error) throw new Error(`held notification lookup failed: ${error.message}`);
+    return (data ?? []).map(toNotification);
+  }
+
   async recordSms(input: NewSms) {
     const { data, error } = await this.db
       .from("sms_messages")
@@ -372,13 +410,14 @@ export class SupabaseNotifyStore implements NotifyStore {
   }
 
   async applyDelivery(providerMessageId: string, status: DeliveryStatus, at: Date, error?: string | null) {
-    // Only rows that can still advance: delivered is terminal, failed can still become delivered.
+    // Only rows that can still advance: delivered is terminal, undelivered can still become delivered.
+    // ("failed" stays a source for rows recorded before 'undelivered' existed.)
     const advanceFrom: Record<DeliveryStatus, string[]> = {
       sent: ["queued"],
-      failed: ["queued", "sent"],
-      delivered: ["queued", "sent", "failed"],
+      undelivered: ["queued", "sent"],
+      delivered: ["queued", "sent", "failed", "undelivered"],
     };
-    const common = { status, ...(status === "failed" ? { error: (error ?? "delivery failed").slice(0, 1000) } : {}) };
+    const common = { status, ...(status === "undelivered" ? { error: (error ?? "delivery failed").slice(0, 1000) } : {}) };
     const { data: n, error: nErr } = await this.db
       .from("notifications")
       .update({ ...common, ...(status === "delivered" ? { delivered_at: at.toISOString() } : {}) })

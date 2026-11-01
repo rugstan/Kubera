@@ -5,7 +5,8 @@ import { mldsSendExecutor } from "@/lib/deals/mlds";
 import { dealDeskRuntime } from "@/lib/deals/runtime";
 import { gatedCrmSink } from "@/lib/disclosures/deal-record";
 import { mldsTemplateId } from "@/lib/esign";
-import { notifierWithGate } from "@/lib/notify/runtime";
+import { isNotifyApproval, notifyApprovalExecutor } from "@/lib/notify/approved";
+import { notifierWithGate, notifyRuntime } from "@/lib/notify/runtime";
 import { isPortalInviteApproval, portalInviteExecutor, type PortalInviteMailDeps } from "@/lib/principals/portal-mail";
 import { site } from "@/lib/site";
 import type { ApprovalExecutor } from "./executors";
@@ -22,6 +23,10 @@ export function portalInviteMailDeps(): PortalInviteMailDeps | null {
 
 export function approvalExecutors(): ApprovalExecutor[] {
   const executors: ApprovalExecutor[] = [];
+  // Held notifications (milestone updates, document requests, their texts): the
+  // borrower message goes out as soon as a broker approves it. Consent and quiet
+  // hours are checked again at send time; /api/notify/sweep is the backstop.
+  executors.push({ name: "notify_send", matches: isNotifyApproval, run: notifyApprovalExecutor(() => notifyRuntime().notifier) });
   const portal = portalInviteMailDeps();
   if (portal) executors.push({ name: "portal_invite", matches: isPortalInviteApproval, run: portalInviteExecutor(portal) });
   executors.push(...crmApprovalExecutors());

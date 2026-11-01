@@ -9,9 +9,11 @@ import { MemoryAttachmentSink, QUARANTINE_BUCKET, sniffContentType } from "./att
 import type { MailCategory } from "./classify";
 import { FakeMailProvider } from "./fake";
 import { DEAL_ID, LEAD_ID, OTHER_DEAL_ID, SAMPLE_EMAILS } from "./fixtures";
-import { mailBodyContext, pollMailbox, processInboundMessage, type InboundDeps } from "./inbound";
+import { isRetryable, mailBodyContext, pollMailbox, processInboundMessage, recordInboundFailure, type InboundDeps } from "./inbound";
+import { MAX_MAIL_ATTEMPTS } from "./mailboxes";
 import { MemoryDealDirectory } from "./route";
 import { MemoryMailStore } from "./store";
+import { MailProviderError } from "./types";
 
 const keyring = createKeyring({ version: 1, key: randomBytes(32) });
 
@@ -285,6 +287,90 @@ describe("polling", () => {
   it("looks back further than Inngest's 24 h dedupe window", async () => {
     const { POLL_LOOKBACK_MS } = await import("./inbound");
     expect(POLL_LOOKBACK_MS).toBeGreaterThan(24 * 60 * 60_000);
+  });
+});
+
+describe("attachment failures are retried, never dropped", () => {
+  const input = (m: { mailbox: "docs" | "deals" | "lenders" | "vendors" | "closing"; providerMessageId: string; folderId: string }) => ({ mailbox: m.mailbox, providerMessageId: m.providerMessageId, folderId: m.folderId });
+
+  it("throws a retryable error when an attachment download fails once, and the retry files every document in the vault", async () => {
+    const { provider, deps, store, sink } = setup();
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    const real = provider.fetchAttachment.bind(provider);
+    let calls = 0;
+    provider.fetchAttachment = async (...args) => {
+      calls += 1;
+      if (calls === 1) throw new MailProviderError("Zoho 429 Too Many Requests", 429, true);
+      return real(...args);
+    };
+
+    const err = await processInboundMessage(input(m), deps).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(MailProviderError);
+    expect(isRetryable(err)).toBe(true);
+    expect((err as Error).message).toContain("T12 Operating Statement 2026.pdf");
+    // Not saved as processed: the workflow records the failure and the poller retries it.
+    expect(store.rows).toHaveLength(0);
+    await recordInboundFailure({ ...input(m), receivedAt: m.receivedAt }, deps, (err as Error).message);
+    expect(await store.find("docs", m.providerMessageId)).toMatchObject({ status: "failed", attempts: 1 });
+
+    const res = await processInboundMessage(input(m), deps);
+    const row = store.rows.find((r) => r.id === res.mailMessageId)!;
+    expect(row.route.status).toBe("processed");
+    expect(row.error).toBeNull();
+    expect(row.attachments.map((a) => [a.fileName, a.status])).toEqual([
+      ["T12 Operating Statement 2026.pdf", "registered"],
+      ["Rent_Roll_Oct.pdf", "registered"],
+      ["invoice.exe", "skipped_type"],
+    ]);
+    expect(sink.documents.map((d) => d.kind).sort()).toEqual(["RENT_ROLL", "T12"]);
+  });
+
+  it("retries a storage upload error the same way", async () => {
+    const { provider, deps, store, sink } = setup();
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    const realStore = sink.store.bind(sink);
+    let fail = true;
+    sink.store = async (i) => {
+      if (fail) {
+        fail = false;
+        throw new Error("storage upload failed: 503 Service Unavailable");
+      }
+      return realStore(i);
+    };
+    await expect(processInboundMessage(input(m), deps)).rejects.toThrow(/could not be stored/);
+    expect(store.rows).toHaveLength(0);
+    const res = await processInboundMessage(input(m), deps);
+    expect(res.route?.status).toBe("processed");
+    expect(sink.documents).toHaveLength(2);
+  });
+
+  it("on the last allowed attempt keeps the message and parks it for staff with attachment_failed", async () => {
+    const { provider, deps, store } = setup();
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    provider.fetchAttachment = async () => {
+      throw new MailProviderError("Zoho 503", 503, true);
+    };
+    for (let i = 1; i < MAX_MAIL_ATTEMPTS; i++) {
+      const err = await processInboundMessage(input(m), deps).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(MailProviderError);
+      await recordInboundFailure({ ...input(m), receivedAt: m.receivedAt }, deps, (err as Error).message);
+    }
+    const res = await processInboundMessage(input(m), deps);
+    const row = store.rows.find((r) => r.id === res.mailMessageId)!;
+    expect(row.route.status).toBe("needs_review");
+    expect(row.route.reviewReasons).toContain("attachment_failed");
+    expect(row.attachments.filter((a) => a.status === "failed")).toHaveLength(3);
+  });
+
+  it("parks a message whose attachment the provider says is gone without retrying", async () => {
+    const { provider, deps } = setup();
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    provider.fetchAttachment = async () => {
+      throw new MailProviderError("attachment not found", 404, false);
+    };
+    const res = await processInboundMessage(input(m), deps);
+    expect(res.route).toMatchObject({ status: "needs_review" });
+    expect(res.route?.reviewReasons).toContain("attachment_failed");
   });
 });
 
