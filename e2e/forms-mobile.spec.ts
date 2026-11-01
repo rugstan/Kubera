@@ -129,6 +129,38 @@ test.describe("sizer at 390px", () => {
     await shot(page, "sizer-390-results", { fullPage: false });
   });
 
+  test("tabbing through the inputs never hides the focused control behind the best-fit bar", async ({ page }) => {
+    // Reduced motion turns off smooth scrolling, so each focus scroll is finished when measured.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await gotoHydrated(page, "/");
+    const panel = page.locator('#sizer [role="tabpanel"]:visible').first();
+    const lastToggle = panel.getByRole("switch").last();
+    await expect(lastToggle).toBeAttached();
+    // Start at the open tab's first field and Tab forward to its last toggle.
+    await panel.locator("input, select, button").first().focus();
+    const bar = page.getByRole("region", { name: /best-fit summary/i });
+    const covered: string[] = [];
+    for (let i = 0; i < 60; i++) {
+      await page.keyboard.press("Tab");
+      const barBox = (await bar.count()) > 0 ? await bar.boundingBox() : null;
+      if (barBox) {
+        const r = await page.evaluate(() => {
+          const el = document.activeElement as HTMLElement;
+          return { name: (el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 40), bottom: el.getBoundingClientRect().bottom };
+        });
+        if (r.bottom > barBox.y + 1) covered.push(`"${r.name}" bottom ${Math.round(r.bottom)} > bar top ${Math.round(barBox.y)}`);
+      }
+      if (await lastToggle.evaluate((el) => el === document.activeElement)) break;
+    }
+    await expect(lastToggle).toBeFocused();
+    await expect(bar).toBeVisible();
+    const toggle = (await lastToggle.boundingBox())!;
+    const barBox = (await bar.boundingBox())!;
+    expect(toggle.y + toggle.height, "the last toggle sits under the best-fit bar").toBeLessThanOrEqual(barBox.y);
+    expect(covered, "focused controls under the best-fit bar").toEqual([]);
+    await shot(page, "sizer-390-focus-clear-of-bar", { fullPage: false });
+  });
+
   test("next and previous move through the cards and the indicator follows", async ({ page }) => {
     await gotoHydrated(page, "/");
     const results = page.locator("#sizer-results-senior");

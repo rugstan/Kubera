@@ -45,6 +45,13 @@
     scroll-behavior: smooth;
     scroll-padding-top: 72px;
   }
+  /* Staff pages: the sticky header is two rows (brand and account, then the
+     nav), and the nav wraps between sm and lg. HeaderScrollOffset publishes
+     its measured height; before hydration the 8.5rem fallback clears the two-row header.
+     Keeps focused fields clear of it (WCAG 2.2 SC 2.4.11). */
+  html:has([data-staff-shell]) {
+    scroll-padding-top: calc(var(--staff-header-height, 7.75rem) + 0.75rem);
+  }
   body {
     background: var(--color-canvas);
     color: var(--color-ink);

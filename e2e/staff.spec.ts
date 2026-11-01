@@ -351,3 +351,46 @@ test("sign-in and staff pages have no serious accessibility violations", async (
   await expect(page.getByRole("heading", { name: "Extraction review", level: 1 })).toBeVisible();
   expect(await seriousViolations(page)).toEqual([]);
 });
+
+test("keyboard focus on a long deal page never lands under the sticky staff header", async ({ page }) => {
+  // Reduced motion turns off smooth scrolling, so each focus scroll is finished when measured.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const deal = "/deals/10000000-0000-4000-8000-000000000001";
+  await signInBroker(page, deal);
+  await expect(page).toHaveURL(`${base}${deal}`);
+  // A fresh load, so the sign-in screens are not still in the DOM mid-transition.
+  await page.goto(`${base}${deal}`);
+  await expect(page.locator("main")).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByText(/^Loading\b.*…$/)).toHaveCount(0);
+  // 768px wraps the nav onto a second row, so the header is at its tallest there.
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    // Start from the last control on the page and walk backwards (Shift+Tab)
+    // until focus reaches the header, checking every stop on the way.
+    await page.locator("#main-content").evaluate((main) => {
+      const all = main.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+      const last = [...all].filter((el) => el.getClientRects().length > 0).at(-1);
+      last?.focus();
+    });
+    const hidden: string[] = [];
+    let stops = 0;
+    for (let i = 0; i < 400; i++) {
+      await page.keyboard.press("Shift+Tab");
+      const r = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        const header = document.getElementById("staff-header");
+        if (!el || !header || el === document.body || header.contains(el)) return null;
+        const b = el.getBoundingClientRect();
+        const name = `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") || el.getAttribute("name") || el.textContent || "").trim().slice(0, 40)}"`;
+        return { name, top: b.top, empty: b.width === 0 || b.height === 0, headerBottom: header.getBoundingClientRect().bottom };
+      });
+      if (!r) break;
+      stops++;
+      if (!r.empty && r.top < r.headerBottom - 1) hidden.push(`${r.name} top ${Math.round(r.top)} < header bottom ${Math.round(r.headerBottom)}`);
+    }
+    expect(stops, `${width}px: expected to walk through the deal page's controls`).toBeGreaterThan(5);
+    expect(hidden, `${width}px: focused controls under the sticky header`).toEqual([]);
+  }
+});
