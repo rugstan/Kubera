@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
-import { CheckboxField, Form, FormAlert, TextField, postJson, useZodForm, type FormFailure } from "@/components/forms";
+import { CheckboxField, Form, FormAlert, TextField, postJson, useHydrated, useZodForm, type FormFailure } from "@/components/forms";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { NEWSLETTER_CONSENT_TEXTS, CURRENT_NEWSLETTER_CONSENT } from "@/lib/newsletter/consent";
 import { subscribeSchema } from "@/lib/newsletter/schema";
@@ -20,6 +20,7 @@ type Values = { email: string; consent: boolean };
 export function NewsletterSignup({ source, className = "" }: { source: string; className?: string }) {
   const headingId = useId();
   const [failure, setFailure] = useState<FormFailure | null>(null);
+  const hydrated = useHydrated();
   const [done, setDone] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const turnstile = useTurnstile("newsletter");
@@ -62,7 +63,7 @@ export function NewsletterSignup({ source, className = "" }: { source: string; c
           <CheckboxField name="consent" label={CONSENT.text} required />
           <TurnstileSlot turnstile={turnstile} />
           <FormAlert message={failure && Object.keys(failure.fieldErrors).length === 0 ? failure.message : null} />
-          <button type="submit" disabled={submitting} className="pill pill-primary disabled:opacity-60">
+          <button type="submit" disabled={!hydrated || submitting} className="pill pill-primary disabled:opacity-60">
             {submitting ? "Sending" : "Subscribe"}
           </button>
           <NoticeAtCollection point="newsletter" />

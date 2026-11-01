@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import type { FieldErrors } from "react-hook-form";
 import { Analytics } from "@/components/analytics/Analytics";
-import { CheckboxField, ChoiceField, Form, FormAlert, NumericField, RequiredLegend, SelectField, Stepper, TextAreaField, TextField, postJson, useStepHeadingFocus, useZodForm, type FormFailure } from "@/components/forms";
+import { CheckboxField, ChoiceField, Form, FormAlert, NumericField, RequiredLegend, SelectField, Stepper, TextAreaField, TextField, postJson, useHydrated, useStepHeadingFocus, useZodForm, type FormFailure } from "@/components/forms";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 import { AiUseNotice } from "@/components/privacy/AiUseNotice";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
@@ -47,6 +47,7 @@ export function Qualifier() {
   const [step, setStep] = useState(prefill.assetType ? 1 : 0);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<FormFailure | null>(null);
+  const hydrated = useHydrated();
   const [done, setDone] = useState<QualifierResponse | null>(null);
   const [initialStep] = useState(step);
 
@@ -165,7 +166,7 @@ export function Qualifier() {
                 Continue
               </button>
             ) : step === 3 ? (
-              <button key="submit" type="submit" disabled={submitting} aria-busy={submitting} className="pill pill-primary min-w-0 !whitespace-normal text-center !py-2.5 disabled:opacity-60">
+              <button key="submit" type="submit" disabled={!hydrated || submitting} aria-busy={submitting} className="pill pill-primary min-w-0 !whitespace-normal text-center !py-2.5 disabled:opacity-60">
                 {submitting ? "Sending…" : "See my indicative structure"}
               </button>
             ) : null}

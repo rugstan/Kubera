@@ -16,6 +16,7 @@ import {
   TextField,
   flattenErrors,
   postJson,
+  useHydrated,
   useZodForm,
   type FormFailure,
 } from "@/components/forms";
@@ -50,6 +51,7 @@ export function PartnerPortal() {
   const typeRef = useRef<PartnerType>("LENDER");
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [failure, setFailure] = useState<FormFailure | null>(null);
+  const hydrated = useHydrated();
   const [focusSignal, setFocusSignal] = useState(0);
   const doneRef = useRef<HTMLParagraphElement>(null);
   const turnstile = useTurnstile("partners");
@@ -196,7 +198,7 @@ export function PartnerPortal() {
 
               <NoticeAtCollection point="partner" />
               <TurnstileSlot turnstile={turnstile} />
-              <button type="submit" disabled={state === "sending"} aria-busy={state === "sending"} className="pill pill-primary disabled:opacity-60">
+              <button type="submit" disabled={!hydrated || state === "sending"} aria-busy={state === "sending"} className="pill pill-primary disabled:opacity-60">
                 {state === "sending" ? "Submitting…" : "Submit registration"}
               </button>
             </Form>
