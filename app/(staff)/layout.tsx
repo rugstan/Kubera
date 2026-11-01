@@ -6,24 +6,14 @@ import { currentSignIn } from "@/lib/auth/dal";
 import { displayName, evaluateStaffAccess } from "@/lib/auth/policy";
 import { site } from "@/lib/site";
 import { SignInRedirect } from "@/lib/auth/sign-in-redirect";
+// The nav is the single list of staff desks; the Ask button and robots.txt
+// read the same list (lib/auth/staff-routes.ts).
+import { STAFF_NAV } from "@/lib/auth/staff-routes";
 
 export const metadata: Metadata = {
   title: { default: "Staff", template: "%s · Kubera staff" },
   robots: { index: false, follow: false },
 };
-
-const NAV = [
-  { href: "/pipeline", label: "Pipeline" },
-  { href: "/approvals", label: "Approvals" },
-  { href: "/documents", label: "Documents" },
-  { href: "/deals", label: "Deal desk" },
-  { href: "/checklists", label: "Checklists" },
-  { href: "/construction", label: "Construction" },
-  { href: "/lenders", label: "Lenders" },
-  { href: "/ai-review", label: "AI review" },
-  { href: "/reports", label: "Reports" },
-  { href: "/prospects", label: "Prospects" },
-] as const;
 
 // The staff shell. The static chrome prerenders; who is signed in streams in
 // behind Suspense. This layout's check is a convenience: every staff page,
@@ -42,7 +32,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               Phones keep a single scrolling row; from sm up the links wrap. */}
           <nav aria-label="Staff" className="order-3 w-full min-w-0">
             <ul className="flex gap-1 overflow-x-auto sm:flex-wrap sm:overflow-x-visible">
-              {NAV.map((item) => (
+              {STAFF_NAV.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3.5 text-[14px] font-medium text-ink hover:bg-black/5">
                     {item.label}
