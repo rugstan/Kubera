@@ -41,6 +41,21 @@ test.describe("trust pages", () => {
     await noSidewaysScroll(page, "/structures/memory-care-bridge-to-hud");
   });
 
+  test("contact cards keep their content inside the card at 768px", async ({ page }) => {
+    // Long email addresses must wrap: the rightmost card's overflow reaches the page edge.
+    await page.goto("/contact");
+    await page.setViewportSize({ width: 768, height: 900 });
+    const spills = await page.evaluate(() =>
+      [...document.querySelectorAll(".bento")].flatMap((card) => {
+        const edge = card.getBoundingClientRect().right;
+        return [...card.querySelectorAll("*")]
+          .filter((el) => el.getBoundingClientRect().right > edge + 0.5)
+          .map((el) => (el.textContent ?? "").trim().slice(0, 60));
+      }),
+    );
+    expect(spills).toEqual([]);
+  });
+
   test("contact lists the mailbox routing table", async ({ page }) => {
     await page.goto("/contact");
     const table = page.getByRole("table", { name: /which kubera commercial mailbox/i });

@@ -38,7 +38,7 @@ export default function ContactPage() {
           <div className="bento p-7">
             <h3 className="text-lg font-semibold">Email</h3>
             <p className="mt-3 text-[15px]">
-              <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2">{contact.email}</a>
+              <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]">{contact.email}</a>
             </p>
             <p className="mt-2 text-[14px] text-titanium">Best for new financing requests.</p>
           </div>
@@ -65,7 +65,7 @@ export default function ContactPage() {
               // value means neither is configured and the licensing page shows none either.
               <p className="mt-3 text-[15px] text-titanium">
                 Email{" "}
-                <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2">{contact.email}</a>{" "}
+                <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]">{contact.email}</a>{" "}
                 for our office address.
               </p>
             )}
@@ -83,7 +83,7 @@ export default function ContactPage() {
           <div className="bento max-w-3xl p-7">
             <p className="text-[16px] leading-relaxed text-titanium">
               Online scheduling is not set up yet. Email{" "}
-              <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2">{contact.email}</a>{" "}
+              <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]">{contact.email}</a>{" "}
               with two or three times that work for you, or start with the{" "}
               <Link href="/express" className="font-medium text-accent underline underline-offset-2">60-second qualifier</Link>.
             </p>
