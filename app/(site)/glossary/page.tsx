@@ -44,7 +44,7 @@ export default function GlossaryPage() {
           <ul className="flex flex-wrap gap-2">
             {letters.map((l) => (
               <li key={l}>
-                <a href={`#letter-${l}`} className="pill pill-glass !min-h-11 !min-w-11 justify-center !px-3">
+                <a href={`#letter-${l}`} className="pill pill-quiet !min-h-11 !min-w-11 justify-center !px-3">
                   {l}
                 </a>
               </li>

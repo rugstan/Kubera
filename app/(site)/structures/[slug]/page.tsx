@@ -52,7 +52,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
         ]}
       />
 
-      <p role="note" className="max-w-3xl rounded-2xl border border-gold-ink/40 bg-white px-5 py-4 text-[14px] leading-relaxed text-ink">
+      <p role="note" className="notice max-w-3xl rounded-2xl px-5 py-4 text-[14px] leading-relaxed">
         <strong className="font-semibold">Illustrative example.</strong> {disclosures.illustrative} This is not a closed transaction and not an offer or commitment to lend.
       </p>
 
@@ -120,7 +120,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
         <ol className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {s.steps.map((step, i) => (
             <li key={step.title} className="bento p-7">
-              <p className="gold-text text-sm font-semibold">Step {i + 1}</p>
+              <p className="text-sm font-semibold text-titanium">Step {i + 1}</p>
               <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
               <p className="mt-3 text-[14px] leading-relaxed text-titanium">{step.body}</p>
             </li>

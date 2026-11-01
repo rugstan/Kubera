@@ -62,7 +62,7 @@ export function TokenAction({ mode }: { mode: Mode }) {
 
   if (!token) {
     return (
-      <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-[15px] text-rose-800">
+      <p role="alert" className="notice-danger mt-4 rounded-xl px-4 py-3 text-[15px]">
         This link is incomplete. Open the link from your email again, or <Link href="/newsletter" className="font-medium underline">sign up for the newsletter</Link>.
       </p>
     );
@@ -80,7 +80,7 @@ export function TokenAction({ mode }: { mode: Mode }) {
         ref={resultRef}
         tabIndex={-1}
         role={state.kind === "error" ? "alert" : "status"}
-        className={`mt-6 text-[16px] leading-relaxed outline-none ${state.kind === "error" ? "rounded-xl bg-rose-50 px-4 py-3 text-rose-800" : state.kind === "done" ? "rounded-xl bg-emerald-50 px-4 py-3 text-emerald-900" : "sr-only"}`}
+        className={`mt-6 text-[16px] leading-relaxed outline-none ${state.kind === "error" ? "notice-danger rounded-xl px-4 py-3" : state.kind === "done" ? "notice-success rounded-xl px-4 py-3" : "sr-only"}`}
       >
         {state.kind === "done" || state.kind === "error" ? state.message : ""}
       </p>

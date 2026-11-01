@@ -91,7 +91,7 @@ export function Sba504Calculator({ benchmarks, asOf, live }: { benchmarks: Bench
               )}
             </dl>
             {outcome.result.capBinds && (
-              <p className="rounded-xl bg-amber-50 px-4 py-3 text-[14px] leading-relaxed text-amber-900">
+              <p className="notice-warning rounded-xl px-4 py-3 text-[14px] leading-relaxed">
                 The debenture cap of {usd(outcome.result.debentureCap)} binds, so equity is {usd(outcome.result.equityAboveMinimum)} above the program minimum. A larger bank loan or a 7(a) stack can change that; an advisor can model it.
               </p>
             )}

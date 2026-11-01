@@ -54,7 +54,7 @@ export function NewsletterSignup({ source, className = "" }: { source: string; c
       </p>
 
       {done ? (
-        <p role="status" className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-[15px] text-emerald-900">
+        <p role="status" className="notice-success mt-5 rounded-xl px-4 py-3 text-[15px]">
           {done}
         </p>
       ) : (

@@ -58,7 +58,7 @@ export function CalcField({
           onBlur={onBlur}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={`field aria-[invalid=true]:border-rose-700 ${prefix ? "pl-7" : ""} ${suffix ? "pr-10" : ""}`}
+          className={`field aria-[invalid=true]:border-danger ${prefix ? "pl-7" : ""} ${suffix ? "pr-10" : ""}`}
         />
         {suffix && (
           <span aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[15px] text-titanium">
@@ -72,7 +72,7 @@ export function CalcField({
         </p>
       )}
       {error && (
-        <p id={errorId} className="mt-1.5 text-[13px] leading-snug text-rose-700">
+        <p id={errorId} className="mt-1.5 text-[13px] leading-snug text-danger">
           {error}
         </p>
       )}
@@ -142,7 +142,7 @@ export function CalcCheckbox({ label, checked, onChange, hint }: { label: string
 }
 
 export function Stat({ label, value, note, tone }: { label: string; value: ReactNode; note?: ReactNode; tone?: "good" | "warn" }) {
-  const color = tone === "good" ? "text-accent" : tone === "warn" ? "text-rose-700" : "text-ink";
+  const color = tone === "good" ? "text-success" : tone === "warn" ? "text-danger" : "text-ink";
   return (
     <div className="rounded-2xl bg-black/[0.03] p-4">
       <dt className="text-[13px] text-titanium">{label}</dt>
@@ -171,7 +171,7 @@ export function EmptyResults({ children }: { children: ReactNode }) {
 export function ErrorList({ errors }: { errors: string[] }) {
   if (errors.length === 0) return null;
   return (
-    <ul className="space-y-1 text-[14px] text-rose-700">
+    <ul className="space-y-1 text-[14px] text-danger">
       {errors.map((e) => (
         <li key={e}>{e}</li>
       ))}

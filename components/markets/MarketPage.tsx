@@ -33,7 +33,7 @@ function Facts({ facts }: { facts: MarketEntry["facts"] }) {
                   <td className="py-3 pr-4 align-top text-ink">{f.value}</td>
                   <td className="py-3 align-top text-[13px] text-titanium">
                     {f.source}
-                    {f.verify && <span className="ml-1 font-medium text-gold-ink">Re-check before relying on it.</span>}
+                    {f.verify && <span className="ml-1 font-medium text-warning">Re-check before relying on it.</span>}
                   </td>
                 </tr>
               ))}
