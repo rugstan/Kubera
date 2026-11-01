@@ -11,7 +11,7 @@ const WRAP = "mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20";
 function Facts({ facts }: { facts: MarketEntry["facts"] }) {
   return (
     <section aria-labelledby="market-facts-heading" className="mt-14">
-      <h2 id="market-facts-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+      <h2 id="market-facts-heading" className="text-2xl font-semibold md:text-3xl">
         Local rules and program figures
       </h2>
       <p className="mt-2 text-[14px] text-titanium">Planning figures as of {facts[0]?.asOf}. Rules change by statute, ordinance and notice; verify before relying on any of them.</p>
@@ -65,7 +65,7 @@ export function MarketPage({ entry }: { entry: MarketEntry }) {
         <Breadcrumbs items={crumbs} />
         <header className="mt-8">
           <p className="eyebrow">California markets</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{entry.name} commercial real estate loans</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name} commercial real estate loans</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
             <CtaLinks />
@@ -76,13 +76,13 @@ export function MarketPage({ entry }: { entry: MarketEntry }) {
         <FaqList faq={entry.faq} />
         <RelatedPages slugs={entry.relatedPrograms} heading="Programs we arrange here" />
         <section aria-labelledby="nearby-heading" className="mt-14">
-          <h2 id="nearby-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+          <h2 id="nearby-heading" className="text-2xl font-semibold md:text-3xl">
             Other California markets
           </h2>
           <ul className="mt-5 grid gap-4 sm:grid-cols-2">
             {nearby.map((m) => (
               <li key={m.slug}>
-                <Link href={marketPath(m.slug)} className="bento block h-full p-5 transition hover:shadow-md">
+                <Link href={marketPath(m.slug)} className="bento block h-full p-5">
                   <span className="text-[17px] font-semibold text-ink">{m.name}</span>
                   <span className="mt-1 block text-[14px] text-titanium">{m.summary}</span>
                 </Link>
@@ -110,13 +110,13 @@ export function CaliforniaIndex() {
         <Breadcrumbs items={crumbs} />
         <header className="mt-8">
           <p className="eyebrow">California markets</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">California commercial loans by metro</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">California commercial loans by metro</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{CALIFORNIA_INDEX.description}</p>
         </header>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
           {MARKETS.map((m) => (
             <li key={m.slug}>
-              <Link href={marketPath(m.slug)} className="bento block h-full p-6 transition hover:shadow-md">
+              <Link href={marketPath(m.slug)} className="bento block h-full p-6">
                 <span className="text-xl font-semibold text-ink">{m.name}</span>
                 <span className="mt-2 block text-[15px] leading-relaxed text-titanium">{m.summary}</span>
                 <span className="mt-4 block text-[14px] font-medium text-accent">Read the guide</span>

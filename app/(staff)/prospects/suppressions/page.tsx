@@ -18,7 +18,7 @@ export default function SuppressionsPage({ searchParams }: { searchParams: Searc
     <>
       <div>
         <p className="eyebrow">Prospecting</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">Do-not-contact list</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">Do-not-contact list</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">
           Anyone here is skipped by scans and refused by outreach drafts, and an approved draft is blocked again right before it would be sent. Values are stored as one-way hashes; only a masked hint is shown.
         </p>

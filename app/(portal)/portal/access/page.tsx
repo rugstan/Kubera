@@ -31,14 +31,14 @@ async function AccessForm({ searchParams }: { searchParams: SearchParams }) {
   const token = pick(sp.token) ?? "";
   if (error) {
     return (
-      <p role="alert" className="mt-6 max-w-2xl rounded-2xl border border-red-700/40 bg-red-50 px-4 py-3 text-[15px] text-red-900">
+      <p role="alert" className="notice-danger mt-6 max-w-2xl rounded-2xl px-4 py-3 text-[15px]">
         {ERRORS[error] ?? ERRORS.invalid}
       </p>
     );
   }
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) {
     return (
-      <p role="alert" className="mt-6 max-w-2xl rounded-2xl border border-red-700/40 bg-red-50 px-4 py-3 text-[15px] text-red-900">
+      <p role="alert" className="notice-danger mt-6 max-w-2xl rounded-2xl px-4 py-3 text-[15px]">
         {ERRORS.invalid}
       </p>
     );

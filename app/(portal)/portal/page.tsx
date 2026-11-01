@@ -35,17 +35,17 @@ function SignedOut({ state, unavailable = false }: { state?: string; unavailable
     <>
       <h1 className="text-3xl font-semibold sm:text-4xl">Borrower portal</h1>
       {state === "signed_out" ? (
-        <p role="status" className="mt-6 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 text-[15px]">
+        <p role="status" className="notice mt-6 rounded-2xl px-4 py-3 text-[15px]">
           You are signed out.
         </p>
       ) : null}
       {state === "use_link" ? (
-        <p role="status" data-testid="portal-use-link" className="mt-6 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 text-[15px]">
+        <p role="status" data-testid="portal-use-link" className="notice mt-6 rounded-2xl px-4 py-3 text-[15px]">
           The email sign-in is for Kubera staff only, so we did not keep you signed in. Borrowers and partners open the portal with the secure link from their advisor, below.
         </p>
       ) : null}
       {unavailable ? (
-        <p role="alert" className="mt-6 rounded-2xl border border-amber-700/40 bg-amber-50 px-4 py-3 text-[15px] text-amber-900">
+        <p role="alert" className="notice-warning mt-6 rounded-2xl px-4 py-3 text-[15px]">
           The portal is not available right now. Email your documents to your advisor or to docs@kuberacommercial.com.
         </p>
       ) : null}
@@ -164,7 +164,7 @@ function TodoItem({ item, scanning }: { item: DealChecklistItem; scanning: boole
             </p>
           ) : null}
           {item.status === "rejected" && item.reviewNote ? (
-            <p className="mt-2 text-[15px] text-red-900">
+            <p className="mt-2 text-[15px] text-danger">
               <span className="font-semibold">Your advisor asked for a change:</span> {item.reviewNote}
             </p>
           ) : null}
@@ -209,12 +209,12 @@ function EsignConsent({ records, recorded, error }: { records: DisclosureRecord[
         Sign your loan disclosure electronically
       </h2>
       {recorded ? (
-        <p role="status" className="mt-3 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 text-[15px]">
+        <p role="status" className="notice-success mt-3 rounded-2xl px-4 py-3 text-[15px]">
           Thank you. Your consent is recorded; you will receive the Mortgage Loan Disclosure Statement to sign by email.
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="mt-3 rounded-2xl border border-red-700/40 bg-red-50 px-4 py-3 text-[15px] text-red-900">
+        <p role="alert" className="notice-danger mt-3 rounded-2xl px-4 py-3 text-[15px]">
           {error}
         </p>
       ) : null}

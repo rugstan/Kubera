@@ -25,7 +25,7 @@ export default function FinancingIndexPage() {
       <div className="mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20">
         <header>
           <p className="eyebrow">Financing</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Financing programs</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Financing programs</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">
             Kubera Commercial arranges commercial real estate loans as a licensed California real estate broker. Each page below explains one program: how it works, the figures lenders use, what slows a file down, and which alternatives to compare.
           </p>
@@ -34,7 +34,7 @@ export default function FinancingIndexPage() {
           const hub = hubForFamily(family);
           return (
             <section key={family} aria-labelledby={`${family}-heading`} className="mt-14">
-              <h2 id={`${family}-heading`} className="text-2xl font-semibold tracking-tight md:text-3xl">
+              <h2 id={`${family}-heading`} className="text-2xl font-semibold md:text-3xl">
                 <Link href={financingPath(hub.slug)} className="hover:underline">
                   {FAMILY_LABELS[family]}
                 </Link>
@@ -43,7 +43,7 @@ export default function FinancingIndexPage() {
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {programsInFamily(family).map((p) => (
                   <li key={p.slug}>
-                    <Link href={financingPath(p.slug)} className="bento block h-full p-4 transition hover:shadow-md">
+                    <Link href={financingPath(p.slug)} className="bento block h-full p-4">
                       <span className="text-[16px] font-semibold text-ink">{p.name}</span>
                       <span className="mt-1 block text-[14px] text-titanium">{p.summary}</span>
                     </Link>

@@ -28,7 +28,7 @@ export function InsightsIndex() {
       <div className="mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20">
         <header>
           <p className="eyebrow">Insights</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Insights on commercial real estate debt</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Insights on commercial real estate debt</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">
             Analysis of HUD, SBA, CMBS and bridge financing for senior living, hotels and multifamily, with the numbers behind each program. Written by a licensed California broker; every figure comes from the same assumptions as our loan sizer.
           </p>
@@ -37,9 +37,9 @@ export function InsightsIndex() {
         <ul className="mt-12 space-y-5">
           {items.map((i) => (
             <li key={i.slug}>
-              <article className="bento p-6 transition hover:shadow-md md:p-7">
+              <article className="bento p-6 md:p-7">
                 <p className="eyebrow">{i.category}</p>
-                <h2 className="mt-2 text-2xl font-semibold leading-snug tracking-tight">
+                <h2 className="mt-2 text-2xl font-semibold leading-snug">
                   <Link href={insightPath(i.slug)} className="hover:underline">
                     {i.title}
                   </Link>

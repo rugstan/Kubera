@@ -36,7 +36,7 @@ async function DocumentDetail({ params }: { params: Promise<{ id: string }> }) {
   return (
     <article className="bento mt-4 p-7">
       <p className="eyebrow">{kindLabel(doc.kind)}</p>
-      <h1 className="mt-1 break-words font-display text-[28px] font-semibold tracking-tight text-ink">{doc.fileName}</h1>
+      <h1 className="mt-1 break-words font-display text-[28px] font-semibold text-ink">{doc.fileName}</h1>
       <dl className="mt-6 grid gap-x-8 gap-y-4 text-[15px] sm:grid-cols-2">
         <div>
           <dt className="text-[13px] text-titanium">Deal</dt>
@@ -67,7 +67,7 @@ async function DocumentDetail({ params }: { params: Promise<{ id: string }> }) {
           </a>
         </div>
       ) : (
-        <p role="status" className="mt-7 rounded-xl border border-red-700/30 bg-red-50 px-4 py-3 text-[14px] text-red-800">
+        <p role="status" className="notice-danger mt-7 rounded-xl px-4 py-3 text-[14px]">
           {s.message}
         </p>
       )}

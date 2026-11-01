@@ -9,13 +9,13 @@ export const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v
 export function Notice({ ok, error }: { ok?: string; error?: string }) {
   if (error)
     return (
-      <p role="alert" className="mb-6 rounded-2xl border border-red-700/40 bg-red-50 px-4 py-3 text-[15px] text-red-900">
+      <p role="alert" className="notice-danger mb-6 rounded-2xl px-4 py-3 text-[15px]">
         {error}
       </p>
     );
   if (ok)
     return (
-      <p role="status" className="mb-6 rounded-2xl border border-accent/40 bg-accent/5 px-4 py-3 text-[15px] text-ink">
+      <p role="status" className="notice-success mb-6 rounded-2xl px-4 py-3 text-[15px]">
         {ok}
       </p>
     );
@@ -23,9 +23,9 @@ export function Notice({ ok, error }: { ok?: string; error?: string }) {
 }
 
 const TONE: Record<string, string> = {
-  good: "border-accent/40 bg-accent/10 text-accent-hover",
-  warn: "border-amber-700/40 bg-amber-50 text-amber-900",
-  bad: "border-red-700/40 bg-red-50 text-red-900",
+  good: "border-success/40 bg-success-surface text-success",
+  warn: "border-warning/40 bg-warning-surface text-warning",
+  bad: "border-danger/40 bg-danger-surface text-danger",
   muted: "border-black/15 bg-black/[0.03] text-ink/80",
 };
 

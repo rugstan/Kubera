@@ -170,7 +170,7 @@ export function Stepper({ steps, current, label = "Progress" }: { steps: readonl
           const state = i < current ? "completed" : i === current ? "current" : "upcoming";
           return (
             <li key={s} aria-current={i === current ? "step" : undefined}>
-              <div className={`h-1.5 rounded-full transition-colors ${i <= current ? "bg-accent" : "bg-black/15"}`} aria-hidden="true" />
+              <div className={`h-1.5 rounded-full transition-colors ${i <= current ? "bg-accent-fill" : "bg-black/15"}`} aria-hidden="true" />
               <p className={`mt-2 text-xs font-medium ${i === current ? "text-ink" : "text-titanium"}`}>
                 {s}
                 <span className="sr-only">

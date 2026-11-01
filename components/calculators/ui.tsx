@@ -144,7 +144,7 @@ export function CalcCheckbox({ label, checked, onChange, hint }: { label: string
 export function Stat({ label, value, note, tone }: { label: string; value: ReactNode; note?: ReactNode; tone?: "good" | "warn" }) {
   const color = tone === "good" ? "text-success" : tone === "warn" ? "text-danger" : "text-ink";
   return (
-    <div className="rounded-2xl bg-black/[0.03] p-4">
+    <div className="rounded-2xl bg-white p-4">
       <dt className="text-[13px] text-titanium">{label}</dt>
       <dd className={`mt-1 text-2xl font-semibold tabular-nums tracking-tight ${color}`}>{value}</dd>
       {note && <dd className="mt-1 text-xs leading-snug text-titanium">{note}</dd>}

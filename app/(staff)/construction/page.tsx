@@ -18,7 +18,7 @@ export default function ConstructionDeskPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-3xl">
           <p className="eyebrow">Construction desk</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-5xl">Construction projects</h1>
+          <h1 className="mt-3 text-3xl font-semibold md:text-5xl">Construction projects</h1>
           <p className="mt-3 text-[17px] leading-relaxed text-titanium">
             Third-party reports before closing, then conversion and take-out after construction. The lender of record funds and administers construction; Kubera does not review draws or handle funds.
           </p>

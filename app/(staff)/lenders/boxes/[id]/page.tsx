@@ -56,7 +56,7 @@ async function BoxData({ params, searchParams }: { params: Params; searchParams:
         <Link className="text-sm text-titanium hover:text-ink" href="/lenders">
           ← All credit boxes
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">{box.label}</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-ink">{box.label}</h1>
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge tone={box.status === "approved" ? "good" : box.status === "pending_review" ? "warn" : box.status === "rejected" ? "bad" : "neutral"}>{box.status.replace("_", " ")}</Badge>
           <Badge>{box.source === "partner_registration" ? "From /partners registration" : "Staff entry"}</Badge>

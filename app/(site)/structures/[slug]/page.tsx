@@ -151,7 +151,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
         <ul className="grid gap-3 md:grid-cols-3">
           {others.map((o) => (
             <li key={o.slug}>
-              <Link href={structurePath(o.slug)} className="bento block p-5 text-[15px] hover:border-black/20">
+              <Link href={structurePath(o.slug)} className="bento block p-5 text-[15px]">
                 <span className="font-semibold">{o.amount} {o.asset}</span>
                 <span className="mt-1 block text-accent">{o.program}</span>
               </Link>

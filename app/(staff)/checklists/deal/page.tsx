@@ -114,7 +114,7 @@ async function DealDesk({ searchParams }: { searchParams: SearchParams }) {
         <Notice ok={first(sp.ok)} error={first(sp.error)} />
       </div>
 
-      <section aria-labelledby="gate-title" className={`mb-8 rounded-3xl border p-5 sm:p-7 ${gate.held ? "border-red-700/40 bg-red-50" : gate.ready ? "border-accent/40 bg-accent/5" : "border-amber-700/40 bg-amber-50"}`}>
+      <section aria-labelledby="gate-title" className={`mb-8 rounded-3xl p-5 sm:p-7 ${gate.held ? "notice-danger" : gate.ready ? "notice-success" : "notice-warning"}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="gate-title" className="text-xl font-semibold">
             {gate.held ? "On hold" : gate.ready ? "Checklist side ready for closing" : "Not ready for closing"}
@@ -176,7 +176,7 @@ async function DealDesk({ searchParams }: { searchParams: SearchParams }) {
                     <form action={revokeInviteAction}>
                       <input type="hidden" name="dealId" value={dealId} />
                       <input type="hidden" name="inviteId" value={inv.id} />
-                      <button type="submit" className="text-[14px] font-medium text-red-900 underline underline-offset-2">
+                      <button type="submit" className="text-[14px] font-medium text-danger underline underline-offset-2">
                         Revoke<span className="sr-only"> link for {inv.email}</span>
                       </button>
                     </form>

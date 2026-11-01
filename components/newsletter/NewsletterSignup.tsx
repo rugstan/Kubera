@@ -46,7 +46,7 @@ export function NewsletterSignup({ source, className = "" }: { source: string; c
 
   return (
     <section aria-labelledby={headingId} data-newsletter-signup className={`bento p-6 md:p-8 ${className}`}>
-      <h2 id={headingId} className="text-2xl font-semibold tracking-tight">
+      <h2 id={headingId} className="text-2xl font-semibold">
         Get the Kubera newsletter
       </h2>
       <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-titanium">

@@ -71,7 +71,7 @@ async function VerifyForm({ searchParams }: { searchParams: SearchParams }) {
         <SubmitButton>Sign in</SubmitButton>
       </form>
       {fakeCode ? (
-        <p className="mt-4 rounded-xl bg-canvas p-3 text-[13px] text-titanium">
+        <p className="mt-4 rounded-xl bg-white p-3 text-[13px] text-titanium">
           Test sign-in (fake provider) code: <code data-testid="fake-code">{fakeCode}</code>
         </p>
       ) : null}

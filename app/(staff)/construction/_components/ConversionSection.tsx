@@ -92,7 +92,7 @@ export function ConversionSection({ project, view }: { project: ConstructionProj
         ) : (
           <p className="text-[15px] text-titanium">No snapshots yet. Add the first one below.</p>
         )}
-        {metrics.stale && metrics.asOf && <p className="mt-3 text-[14px] text-amber-900">The latest snapshot is more than {STABILIZATION.staleSnapshotDays} days old.</p>}
+        {metrics.stale && metrics.asOf && <p className="mt-3 text-[14px] text-warning">The latest snapshot is more than {STABILIZATION.staleSnapshotDays} days old.</p>}
 
         <ActionForm action={leaseUpAction} submitLabel="Save snapshot" className="mt-6 grid gap-4 md:grid-cols-5">
           <Hidden name="projectId" value={project.id} />

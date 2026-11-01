@@ -11,7 +11,7 @@ export default function NewsletterPage() {
     <div className="mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20">
       <header>
         <p className="eyebrow">Newsletter</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Commercial real estate debt, once a month</h1>
+        <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Commercial real estate debt, once a month</h1>
         <p className="mt-5 text-lg leading-relaxed text-ink/85">{NEWSLETTER_PAGE.lead}</p>
       </header>
       <ul className="mt-8 list-disc space-y-2 pl-6 text-[17px] leading-relaxed text-ink/85">

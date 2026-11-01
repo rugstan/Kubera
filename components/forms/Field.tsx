@@ -370,7 +370,7 @@ export function CheckboxField({ name, label, hint, required, className = "", box
     <Bind name={name}>
       {({ field, error }) => (
         <div className={className}>
-          <div className={boxed ? "rounded-2xl bg-black/[0.03] p-4" : ""}>
+          <div className={boxed ? "rounded-2xl bg-white p-4" : ""}>
             <label htmlFor={ids.id} className="flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[13px] leading-relaxed text-ink/80">
               <input
                 {...controlAria({ name, hasHint: Boolean(hint), error, required })}

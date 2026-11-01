@@ -77,7 +77,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
         <Link className="text-sm text-titanium hover:text-ink" href="/deals">
           ← All deals
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">{deal.title}</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-ink">{deal.title}</h1>
         <div className="mt-2 flex flex-wrap gap-2">
           <Badge>{DEAL_PROGRAM_LABELS[deal.program]}</Badge>
           <Badge tone="good">{stageLabel(deal.program, deal.stage)}</Badge>
@@ -87,7 +87,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
       </div>
       <Flash error={sp.error} notice={sp.notice} />
       {shareUrl ? (
-        <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status">
+        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="status">
           <p className="font-medium">Approved. Send this link to the lender from your mailbox now; it is shown only once.</p>
           <p className="mt-1 break-all font-mono text-xs">{shareUrl}</p>
         </div>
@@ -179,7 +179,7 @@ async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime
         ) : null}
       </ul>
       {ctx.holds?.length ? (
-        <div className="mt-3 rounded-2xl border border-red-700/30 bg-red-50 p-3 text-sm text-red-900" role="alert">
+        <div className="notice-danger mt-3 rounded-2xl p-3 text-sm" role="alert">
           <p className="font-medium">This deal is on hold. Only withdrawing or marking it lost is possible until the hold is released.</p>
           <ul className="mt-1 list-disc pl-5">
             {ctx.holds.map((h) => (
@@ -189,21 +189,21 @@ async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime
         </div>
       ) : null}
       {ctx.closingGate && !ctx.closingGate.ready && !ctx.holds?.length ? (
-        <ul className="mt-3 list-disc pl-5 text-sm text-red-900">
+        <ul className="mt-3 list-disc pl-5 text-sm text-danger">
           {ctx.closingGate.reasons.map((r) => (
             <li key={r}>{r}</li>
           ))}
         </ul>
       ) : null}
       {compliance && !compliance.gates.closing.allowed ? (
-        <ul className="mt-3 list-disc pl-5 text-sm text-red-900">
+        <ul className="mt-3 list-disc pl-5 text-sm text-danger">
           {compliance.gates.closing.reasons.map((r) => (
             <li key={r}>{r}</li>
           ))}
         </ul>
       ) : null}
       {missingRecords.length ? (
-        <ul className="mt-3 list-disc pl-5 text-sm text-amber-900">
+        <ul className="mt-3 list-disc pl-5 text-sm text-warning">
           {missingRecords.map((r) => (
             <li key={r}>{r}</li>
           ))}
@@ -662,7 +662,7 @@ async function MldsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDeskRuntime;
             {mlds.signedAt ? <span className="text-titanium">Signed {when(mlds.signedAt)}; keep until {mlds.retainUntil}</span> : null}
             {mlds.flags.includes("draft_template") ? <Badge tone="bad">Draft template</Badge> : null}
           </div>
-          {mlds.heldReason ? <p className="text-sm text-red-900">Held for counsel: {mlds.heldReason}</p> : null}
+          {mlds.heldReason ? <p className="text-sm text-danger">Held for counsel: {mlds.heldReason}</p> : null}
           {signers.length ? (
             <Table
               empty="No borrowers."
@@ -843,7 +843,7 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
   return (
     <Section description="Each change must itself be arranged by a licensed broker (SB 1146). Gate H runs on every change." title="Forbearance, extension and modification">
       {!loan ? (
-        <p className="text-sm text-amber-900">
+        <p className="text-sm text-warning">
           Record the loan&apos;s <a className="underline" href="#broker-of-record">broker-of-record file</a> before any change can be submitted.
         </p>
       ) : null}
@@ -1018,7 +1018,7 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
       title="Broker-of-record file"
     >
       {!loan || !evaluation ? (
-        <p className="text-sm text-amber-900">{BROKER_OF_RECORD_FILE_MISSING}</p>
+        <p className="text-sm text-warning">{BROKER_OF_RECORD_FILE_MISSING}</p>
       ) : (
         <div className="space-y-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
@@ -1038,8 +1038,8 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
           </ul>
           {evaluation.missing.length ? (
             <div>
-              <p className="font-medium text-red-900">Missing from the file</p>
-              <ul className="list-disc pl-5 text-red-900">
+              <p className="font-medium text-danger">Missing from the file</p>
+              <ul className="list-disc pl-5 text-danger">
                 {evaluation.missing.map((m) => (
                   <li key={m}>{BROKER_ELEMENT_LABELS[m]}</li>
                 ))}

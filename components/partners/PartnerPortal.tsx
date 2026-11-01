@@ -142,7 +142,7 @@ export function PartnerPortal() {
       <Analytics />
       <TabsList className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Partner type">
         {TYPES.map((t) => (
-          <TabsTrigger key={t.id} id={t.hash} value={t.id} className={`bento min-h-11 p-4 text-left transition md:p-5 ${type === t.id ? "ring-2 ring-accent" : "hover:-translate-y-0.5"}`}>
+          <TabsTrigger key={t.id} id={t.hash} value={t.id} className={`bento bento-interactive min-h-11 p-4 text-left md:p-5 ${type === t.id ? "ring-2 ring-accent-fill" : ""}`}>
             <span className="block text-[15px] font-semibold md:text-[17px]">{t.title}</span>
             <span className="mt-1.5 hidden text-[13px] leading-snug text-titanium md:block">{t.blurb}</span>
           </TabsTrigger>

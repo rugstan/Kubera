@@ -24,7 +24,7 @@ export function HardMoneySection({ dealId, file }: { dealId: string; file: HmUnd
           <p>LTC / LTARV <strong className="block text-[17px]">{pct(m.ltc)} / {pct(m.ltarv)}</strong></p>
           <p>Tier ({m.verifiedProjects} verified) <strong className="block text-[17px]">{m.tier.toLowerCase()} · max {usd(m.maxLoan)}</strong></p>
           {m.flags.length ? (
-            <ul className="list-disc pl-5 text-[13px] text-amber-900 sm:col-span-4">
+            <ul className="list-disc pl-5 text-[13px] text-warning sm:col-span-4">
               {m.flags.map((f) => (
                 <li key={f}>{f}</li>
               ))}

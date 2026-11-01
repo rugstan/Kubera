@@ -55,7 +55,7 @@ export function HotelDebtYieldCalculator({ benchmarks, asOf, live }: { benchmark
       results={
         outcome.ok ? (
           <div className="space-y-5">
-            <h2 className="text-lg font-semibold tracking-tight">Debt yield</h2>
+            <h2 className="text-lg font-semibold">Debt yield</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Stat
                 label="Debt yield"
@@ -71,7 +71,7 @@ export function HotelDebtYieldCalculator({ benchmarks, asOf, live }: { benchmark
               <Stat label="Coverage at this rate" value={multiple(outcome.result.dscr)} note={`30-year amortization; CMBS lenders look for about ${multiple(CMBS.minDscr)}.`} />
               {outcome.result.ltv !== undefined && <Stat label="Loan to value" value={pctOf(outcome.result.ltv, 1)} />}
             </dl>
-            <div className="rounded-2xl bg-black/[0.03] p-4 text-[14px] leading-relaxed">
+            <div className="rounded-2xl bg-white p-4 text-[14px] leading-relaxed">
               <p className="font-semibold text-ink">
                 Largest loan across the CMBS limits: {usd(outcome.result.maxLoan)}
               </p>

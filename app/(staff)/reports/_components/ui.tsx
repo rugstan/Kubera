@@ -31,7 +31,7 @@ export function Panel({ title, description, children, action }: { title: string;
     <section aria-labelledby={id} className="bento min-w-0 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={id} className="text-[18px] font-semibold tracking-tight text-ink">
+          <h2 id={id} className="text-[18px] font-semibold text-ink">
             {title}
           </h2>
           {description ? <p className="mt-1 max-w-3xl text-[14px] text-titanium">{description}</p> : null}
@@ -88,13 +88,13 @@ export function Bar({ value, max }: { value: number; max: number }) {
   const width = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
   return (
     <span aria-hidden="true" className="block h-2 w-full min-w-16 rounded-full bg-black/5">
-      <span className="block h-2 rounded-full bg-accent" style={{ width: `${width}%` }} />
+      <span className="block h-2 rounded-full bg-accent-fill" style={{ width: `${width}%` }} />
     </span>
   );
 }
 
 export function Pill({ tone = "neutral", children }: { tone?: "neutral" | "good" | "warn"; children: React.ReactNode }) {
-  const tones = { neutral: "bg-black/5 text-ink", good: "badge-emerald", warn: "badge-gold" } as const;
+  const tones = { neutral: "bg-black/5 text-ink", good: "badge-success", warn: "badge-warning" } as const;
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ${tones[tone]}`}>{children}</span>;
 }
 
@@ -129,7 +129,7 @@ export function RangeNav({ view, range }: { view: ReportView; range: RangeKey })
             <Link
               href={href(view, r)}
               aria-current={range === r ? "true" : undefined}
-              className={`inline-flex min-h-11 items-center rounded-full px-3.5 text-[13px] font-medium ${range === r ? "bg-accent text-white" : "border border-black/10 bg-white text-ink"}`}
+              className={`inline-flex min-h-11 items-center rounded-full px-3.5 text-[13px] font-medium ${range === r ? "bg-accent-fill text-white" : "border border-black/10 bg-white text-ink"}`}
             >
               {RANGE_LABELS[r]}
             </Link>

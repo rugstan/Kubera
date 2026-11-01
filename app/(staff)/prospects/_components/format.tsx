@@ -35,7 +35,7 @@ export function ScoreBar({ score }: { score: number }) {
     <span className="inline-flex items-center gap-2">
       <span className="w-8 text-right text-sm font-semibold tabular-nums text-ink">{score}</span>
       <span aria-hidden="true" className="block h-1.5 w-16 overflow-hidden rounded-full bg-black/10">
-        <span className="block h-full rounded-full bg-[var(--color-accent)]" style={{ width: `${score}%` }} />
+        <span className="block h-full rounded-full bg-accent-fill" style={{ width: `${score}%` }} />
       </span>
     </span>
   );

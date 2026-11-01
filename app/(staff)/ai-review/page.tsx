@@ -17,7 +17,7 @@ export default function AiReviewPage({ searchParams }: { searchParams: SearchPar
     <>
       <div className="mb-6">
         <p className="eyebrow">AI supervision</p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">AI review</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">AI review</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">
           Ask Kubera AI conversations. Sentences the output guardrails caught are rewritten before the borrower sees them and flagged here. Flag, annotate and
           sign off conversations so wrong or risky answers get fixed at the source.
@@ -44,7 +44,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
   } catch (err) {
     console.error("[ai-review] could not load conversations:", err instanceof Error ? err.message : err);
     return (
-      <div role="alert" className="bento p-8 text-red-800">
+      <div role="alert" className="bento p-8 text-danger">
         The conversations could not be loaded. Try again in a moment.
       </div>
     );
@@ -83,9 +83,9 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
             <li key={c.id}>
               <article className="bento p-5" aria-labelledby={`conv-${c.id}`}>
                 <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                  {c.flagged ? <span className="badge-gold rounded-full px-2.5 py-0.5 font-medium">Flagged</span> : null}
-                  {c.guardrailCount > 0 ? <span className="rounded-full bg-red-50 px-2.5 py-0.5 font-medium text-red-900">Guardrail: {c.guardrailCount}</span> : null}
-                  <span className={`rounded-full px-2.5 py-0.5 font-medium ${c.reviewStatus === "reviewed" ? "badge-emerald" : "border border-black/10 bg-canvas text-ink"}`}>{REVIEW_STATUS_LABELS[c.reviewStatus]}</span>
+                  {c.flagged ? <span className="badge-warning rounded-full px-2.5 py-0.5 font-medium">Flagged</span> : null}
+                  {c.guardrailCount > 0 ? <span className="badge-danger rounded-full px-2.5 py-0.5 font-medium">Guardrail: {c.guardrailCount}</span> : null}
+                  <span className={`rounded-full px-2.5 py-0.5 font-medium ${c.reviewStatus === "reviewed" ? "badge-success" : "badge"}`}>{REVIEW_STATUS_LABELS[c.reviewStatus]}</span>
                   {c.annotationCount > 0 ? <span className="text-titanium">{c.annotationCount} {c.annotationCount === 1 ? "note" : "notes"}</span> : null}
                 </div>
                 <h2 id={`conv-${c.id}`} className="mt-2 text-[16px] font-semibold leading-snug text-ink">

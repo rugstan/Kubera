@@ -48,7 +48,7 @@ export async function RatesData() {
       )}
 
       <section aria-labelledby="benchmarks-heading" className="mt-12">
-        <h2 id="benchmarks-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+        <h2 id="benchmarks-heading" className="text-2xl font-semibold md:text-3xl">
           Benchmark rates
         </h2>
         <p className="mt-2 text-[15px] text-titanium">The indexes commercial loans are priced from.</p>
@@ -92,7 +92,7 @@ export async function RatesData() {
       </section>
 
       <section aria-labelledby="programs-heading" className="mt-14">
-        <h2 id="programs-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+        <h2 id="programs-heading" className="text-2xl font-semibold md:text-3xl">
           Indicative loan rates by program
         </h2>
         <p className="mt-2 text-[15px] text-titanium">

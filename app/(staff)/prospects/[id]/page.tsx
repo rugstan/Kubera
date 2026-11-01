@@ -44,7 +44,7 @@ async function ProspectData({ params, searchParams }: { params: Params; searchPa
       </Link>
       <div>
         <p className="eyebrow">Prospect</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">{p.addressLine1}</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">{p.addressLine1}</h1>
         <p className="mt-1 text-sm text-titanium">
           {[p.city, p.state, p.zip].filter(Boolean).join(", ")} · {typeLabel(p)}
         </p>
@@ -55,7 +55,7 @@ async function ProspectData({ params, searchParams }: { params: Params; searchPa
         </div>
       </div>
       <Flash error={error} notice={notice} />
-      {rt.mode === "demo" ? <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Demo data: this property and owner are invented.</p> : null}
+      {rt.mode === "demo" ? <p className="notice-warning rounded-2xl px-4 py-3 text-sm">Demo data: this property and owner are invented.</p> : null}
 
       <Section title="Why this score" description="Each factor is scored on its own. Thresholds are starting points for the desk to tune; the program is a conversation starter, not an eligibility finding.">
         <Table
@@ -147,7 +147,7 @@ function DraftForm({ prospect, channel, blocked }: { prospect: Prospect; channel
       <h3 className="text-sm font-semibold text-ink">{label}</h3>
       <p className="mt-1 text-xs text-titanium">{channel === "email" ? `To ${prospect.contactEmail ?? "no email on file"}` : `To the owner's mailing address${prospect.mailing?.line1 ? ` (${prospect.mailing.line1})` : ""}`}</p>
       {blocked ? (
-        <p className="mt-3 text-sm text-amber-900" role="status">
+        <p className="mt-3 text-sm text-warning" role="status">
           {blocked}
         </p>
       ) : (
@@ -181,7 +181,7 @@ function OutreachCard({ o, prospectId }: { o: ProspectOutreach; prospectId: stri
         {o.recipient}
       </p>
       <p className="text-sm font-medium text-ink">{o.subject}</p>
-      {o.error ? <p className="mt-1 text-sm text-red-900">{o.error}</p> : null}
+      {o.error ? <p className="mt-1 text-sm text-danger">{o.error}</p> : null}
       {o.sentAt ? <p className="mt-1 text-xs text-titanium">Sent {when(o.sentAt)}</p> : null}
       {o.mailedAt ? <p className="mt-1 text-xs text-titanium">Mailed {when(o.mailedAt)} by {o.mailedBy}</p> : null}
       <details className="mt-3">

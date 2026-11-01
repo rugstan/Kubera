@@ -17,7 +17,7 @@ export function Section({ title, id, children, description }: { title: string; i
   const headingId = id ? `${id}-heading` : undefined;
   return (
     <section aria-labelledby={headingId} className="bento p-5 sm:p-6" id={id}>
-      <h2 className="text-lg font-semibold tracking-tight text-ink" id={headingId}>
+      <h2 className="text-lg font-semibold text-ink" id={headingId}>
         {title}
       </h2>
       {description ? <p className="mt-1 text-sm text-titanium">{description}</p> : null}
@@ -29,9 +29,9 @@ export function Section({ title, id, children, description }: { title: string; i
 export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "good" | "warn" | "bad"; children: React.ReactNode }) {
   const tones = {
     neutral: "bg-black/5 text-ink",
-    good: "bg-emerald-50 text-emerald-900",
-    warn: "bg-amber-50 text-amber-900",
-    bad: "bg-red-50 text-red-900",
+    good: "bg-success-surface text-success",
+    warn: "bg-warning-surface text-warning",
+    bad: "bg-danger-surface text-danger",
   } as const;
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
 }
@@ -39,7 +39,7 @@ export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "good
 export function Flash({ notice, error }: { notice?: string; error?: string }) {
   if (!notice && !error) return null;
   return (
-    <div className={`rounded-2xl px-4 py-3 text-sm ${error ? "bg-red-50 text-red-900" : "bg-emerald-50 text-emerald-900"}`} role={error ? "alert" : "status"}>
+    <div className={`rounded-2xl px-4 py-3 text-sm ${error ? "notice-danger" : "notice-success"}`} role={error ? "alert" : "status"}>
       {error ?? notice}
     </div>
   );

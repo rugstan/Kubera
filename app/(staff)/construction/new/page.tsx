@@ -21,7 +21,7 @@ export default function NewProjectPage() {
         <span aria-hidden> / </span>
         <span>New project</span>
       </nav>
-      <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">New construction project</h1>
+      <h1 className="mt-4 text-3xl font-semibold md:text-4xl">New construction project</h1>
       <p className="mt-3 text-[17px] leading-relaxed text-titanium">
         The required third-party reports are added to the tracker from the program, state and project type. You can add or cancel reports afterwards.
       </p>

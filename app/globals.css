@@ -180,10 +180,13 @@
   }
   .bg-canvas .bento,
   [data-staff-shell] .bento,
+  .page-bands > section:nth-of-type(odd) .bento,
   .bento .bento {
     background: var(--color-surface);
     box-shadow: var(--shadow-bento);
   }
+  /* Trust pages: full-width sections alternate canvas and white. */
+  .page-bands > section:nth-of-type(odd) { background: var(--color-canvas); }
   a.bento,
   .bento-interactive {
     transition: box-shadow 0.2s, transform 0.2s;

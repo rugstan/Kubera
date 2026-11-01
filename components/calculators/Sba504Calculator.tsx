@@ -51,7 +51,7 @@ export function Sba504Calculator({ benchmarks, asOf, live }: { benchmarks: Bench
       results={
         outcome.ok ? (
           <div className="space-y-5">
-            <h2 className="text-lg font-semibold tracking-tight">Indicative 504 structure</h2>
+            <h2 className="text-lg font-semibold">Indicative 504 structure</h2>
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Capital stack table">
               <table className="w-full min-w-[420px] border-collapse text-left text-[14px]">
                 <caption className="sr-only">Sources of funds for the project</caption>

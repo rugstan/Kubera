@@ -17,7 +17,7 @@ export default function DocumentsPage({ searchParams }: { searchParams: SearchPa
     <>
       <div className="mb-6">
         <p className="eyebrow">Vault</p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Documents</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">Documents</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">Borrower files from the private vault. Every open is logged, and links expire after a minute.</p>
         <p className="mt-2 flex flex-wrap gap-x-6 text-[14px]">
           <Link href="/documents/extractions" className="inline-flex min-h-11 items-center text-accent underline underline-offset-2">
@@ -107,7 +107,7 @@ async function DocumentList({ searchParams }: { searchParams: SearchParams }) {
                       <time dateTime={d.createdAt}>{dateFmt.format(new Date(d.createdAt))}</time>
                     </td>
                     <td className="px-4 py-3">
-                      {s.ok ? <span className="text-titanium">Available</span> : <span className="font-medium text-red-800">Quarantined</span>}
+                      {s.ok ? <span className="text-titanium">Available</span> : <span className="font-medium text-danger">Quarantined</span>}
                     </td>
                   </tr>
                 );

@@ -21,7 +21,7 @@ export default function ApprovalsPage({ searchParams }: { searchParams: SearchPa
     <>
       <div className="mb-6">
         <p className="eyebrow">Broker approval gate</p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Approvals</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">Approvals</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">
           Nothing leaves Kubera (email, text, lender submission, e-sign or CRM change) until a licensed broker approves it here. Requests that time out
           expire and are never sent.
@@ -72,13 +72,13 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
       </div>
 
       {justDecided && justDecided.status !== "pending" ? (
-        <p role="status" className="badge-emerald mb-5 rounded-xl px-4 py-3 text-[14px]">
+        <p role="status" className="notice-success mb-5 rounded-xl px-4 py-3 text-[14px]">
           {kindLabel(justDecided.kind)} {justDecided.status}: {justDecided.summary}
         </p>
       ) : null}
 
       {lic.status === "expiring" && ctx.principal.staffRoles.includes("broker") ? (
-        <p role="status" className="badge-gold mb-5 rounded-xl px-4 py-3 text-[14px]">
+        <p role="status" className="notice-warning mb-5 rounded-xl px-4 py-3 text-[14px]">
           Your DRE license on file expires in {lic.daysToExpiry} {lic.daysToExpiry === 1 ? "day" : "days"}. Renew it and ask an administrator to update your profile.
         </p>
       ) : null}
@@ -103,11 +103,11 @@ function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject 
   return (
     <article className="bento p-6" aria-labelledby={`approval-${r.id}`}>
       <div className="flex flex-wrap items-center gap-2 text-[13px]">
-        <span className="badge-emerald rounded-full px-2.5 py-0.5 font-medium">{kindLabel(r.kind)}</span>
+        <span className="badge rounded-full px-2.5 py-0.5 font-medium">{kindLabel(r.kind)}</span>
         {pending ? (
           <span className="text-titanium">{relativeExpiry(r.expiresAt, now)}</span>
         ) : (
-          <span className={`rounded-full px-2.5 py-0.5 font-medium ${r.status === "approved" ? "badge-emerald" : "border border-black/10 bg-canvas text-ink"}`}>{statusLabel(r)}</span>
+          <span className={`rounded-full px-2.5 py-0.5 font-medium ${r.status === "approved" ? "badge-success" : "badge"}`}>{statusLabel(r)}</span>
         )}
       </div>
       <h2 id={`approval-${r.id}`} className="mt-2 text-[17px] font-semibold leading-snug text-ink">

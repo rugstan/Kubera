@@ -23,7 +23,7 @@ const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric
 
 function MldsBadge({ status }: { status: PipelineRow["mldsStatus"] }) {
   if (!status) return <span className="text-titanium">—</span>;
-  const tone = status === "signed" ? "badge-emerald" : status === "held_for_counsel" ? "border border-red-700/30 bg-red-50 text-red-800" : "badge-gold";
+  const tone = status === "signed" ? "badge-success" : status === "held_for_counsel" ? "badge-danger" : "badge-warning";
   return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ${tone}`}>{MLDS_LABELS[status]}</span>;
 }
 
