@@ -9,13 +9,12 @@ const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 type Violation = { id: string; impact: string | null; nodes: { target: string[] }[] };
 
-// An unmatched URL is a hard 404. A [slug] route with cacheComponents streams
-// its prerendered shell before notFound() resolves on the first uncached hit,
-// so that response can be a 200 soft 404; the noindex tag is what keeps it out
-// of search results either way.
+// Every one of these must be a real 404 on the first request. A [slug] route
+// with cacheComponents would stream its prerendered shell before notFound()
+// resolves (a 200 soft 404), so proxy.ts answers unknown slugs itself.
 const ROUTES = [
   { url: "/does-not-exist", label: "unmatched URL", hard404: true },
-  { url: "/financing/does-not-exist", label: "notFound() in a (site) [slug] route", hard404: false },
+  { url: "/financing/does-not-exist", label: "unknown slug in a (site) [slug] route", hard404: true },
 ];
 
 for (const width of [390, 768, 1440]) {
@@ -70,4 +69,21 @@ test("skip link moves focus to the 404 page's main landmark", async ({ page }) =
   await expect(page.getByRole("link", { name: "Skip to main content" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("main#main-content")).toBeFocused();
+});
+
+test("the first request for an unknown slug is a 404, not a streamed 200", async ({ request }) => {
+  const stamp = Date.now().toString(36);
+  for (const prefix of ["financing", "insights", "structures", "calculators", "california"]) {
+    const url = `/${prefix}/zz-${stamp}`;
+    const first = await request.get(url);
+    expect(first.status(), `${url} first hit`).toBe(404);
+    expect((await request.get(url)).status(), `${url} second hit`).toBe(404);
+    expect((await request.get(`${url}/`)).status(), `${url}/`).toBe(404);
+  }
+});
+
+test("known slugs still render", async ({ request }) => {
+  for (const url of ["/financing/hud-223f-multifamily", "/insights/hud-232-or-bridge-first", "/calculators/dscr", "/california/los-angeles"]) {
+    expect((await request.get(url)).status(), url).toBe(200);
+  }
 });

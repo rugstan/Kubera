@@ -248,7 +248,11 @@ test.describe("newsletter", () => {
 
   test("a link without a token explains itself", async ({ page }) => {
     await gotoHydrated(page, "/newsletter/unsubscribe");
+    await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.locator("h1")).toHaveText("Unsubscribe from the newsletter");
     await expect(page.locator("p[role=alert]")).toContainText("This link is incomplete");
+    await gotoHydrated(page, "/newsletter/confirm");
+    await expect(page.locator("h1")).toHaveText("Confirm your subscription");
   });
 });
 

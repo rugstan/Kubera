@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { NOINDEX_HEADER, expressAction, isExpressHost, isPreviewDeployment } from "@/lib/seo/hosts";
+import { isUnknownSlugPath } from "@/lib/seo/known-slugs";
 import { site } from "@/lib/site";
+
+/** No route matches this path, so rewriting to it renders the branded 404 with status 404. */
+const UNMATCHED_PATH = "/__not-found";
 
 // Next 16 renamed middleware.ts to proxy.ts; behavior is identical.
 //
@@ -21,6 +25,16 @@ export function proxy(req: NextRequest) {
   const preview = isPreviewDeployment();
 
   if (!isExpressHost(host)) {
+    // Unknown slugs on the dynamic public routes answer 404 before rendering;
+    // otherwise cacheComponents streams the shell first and the response is a
+    // 200 soft 404 that also creates a cache entry per random slug. Rewriting
+    // to a path no route matches gives the branded not-found page with a real 404.
+    if (isUnknownSlugPath(req.nextUrl.pathname)) {
+      const url = req.nextUrl.clone();
+      url.pathname = UNMATCHED_PATH;
+      url.search = "";
+      return noindex(NextResponse.rewrite(url));
+    }
     return preview ? noindex(NextResponse.next()) : NextResponse.next();
   }
 
