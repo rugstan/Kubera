@@ -39,7 +39,7 @@ const TRUST_FILES = [
 ];
 
 const FORBIDDEN: [RegExp, string][] = [
-  [/\bautonomous\b/i, "positioning is advisor-led, AI-assisted"],
+  [/\bautonomous\b/i, "positioning is advisor-led"],
   [/\b(?:you(?:'|&apos;)?re|you are|is|are|been|get|getting)\s+(?:pre-?)?approved\b/i, "no approval claims"],
   [/\bpre-?approved\b/i, "no approval claims"],
   [/\bqualified for\b/i, "no 'qualified for' claims"],
@@ -48,6 +48,31 @@ const FORBIDDEN: [RegExp, string][] = [
   [/\bwill call you today\b/i, "no same-day call promises"],
   [/\bguaranteed? (?:closing|approval|rate|terms?)\b/i, "no guarantees"],
   [/\b(?:loan|it) is (?:usury[- ])?exempt\b/i, "never state a specific loan is usury-exempt"],
+];
+
+// Everything a visitor can read or a crawler can fetch must stay free of AI
+// wording; the assistant is a staff tool now. This list is separate from
+// COPY_FILES on purpose: those files are also held to the CTA and timeline rules.
+// Identifiers such as AiUseNotice or AI_NOTICE_HREF are not copy, and neither
+// pattern matches them. Staff screens (app/(staff)) are intentionally not scanned.
+const NO_AI_FILES = [
+  ...COPY_FILES,
+  ...TRUST_FILES,
+  "app/express/page.tsx",
+  "components/program/parts.tsx",
+  ...list("components/privacy"),
+  "app/(site)/about/page.tsx",
+  "app/opengraph-image.tsx",
+  "app/manifest.ts",
+  "app/layout.tsx",
+  "content/programs/hubs.ts",
+  "lib/seo/llms.ts",
+  "lib/seo/sitemap-routes.ts",
+  "components/sizer/LoanSizer.tsx",
+];
+const NO_AI: [RegExp, string][] = [
+  [/\bAI\b/, "no 'AI' on public surfaces"],
+  [/Kubera AI|AI-assisted|artificial intelligence|machine learning|chatbot|⌘K/i, "no assistant, chatbot or shortcut wording"],
 ];
 
 // A closing timeline like "10–21 days" must be conditional in the same file.
@@ -63,6 +88,11 @@ describe("copy guard", () => {
     const src = read(file);
     if (!TIMELINE.test(src)) return;
     expect(src, `${file} mentions a timeline without "not guaranteed"`).toMatch(/not guaranteed|disclosures\.timeline/);
+  });
+
+  it.each([...new Set(NO_AI_FILES)])("%s mentions no AI", (file) => {
+    const src = read(file);
+    for (const [re, why] of NO_AI) expect(src, `${file}: ${why} (${re})`).not.toMatch(re);
   });
 
   it("uses sentence case on primary CTAs", () => {
