@@ -353,6 +353,10 @@ test("sign-in and staff pages have no serious accessibility violations", async (
 });
 
 test("keyboard focus on a long deal page never lands under the sticky staff header", async ({ page }) => {
+  // A full Shift+Tab walk of the deal page at three widths. Stops are measured
+  // in the page (below), so each costs one key press, but the walk still needs
+  // more than the default 30s budget on a loaded machine.
+  test.setTimeout(120_000);
   // Reduced motion turns off smooth scrolling, so each focus scroll is finished when measured.
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -364,33 +368,74 @@ test("keyboard focus on a long deal page never lands under the sticky staff head
   await expect(page.locator("main")).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText(/^Loading\b.*…$/)).toHaveCount(0);
+  type Stop = { name: string; top: number; empty: boolean; headerBottom: number };
+  type Walk = { stops: Stop[]; done: boolean; started: boolean; measure: () => void };
   // 768px wraps the nav onto a second row, so the header is at its tallest there.
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 844 });
-    // Start from the last control on the page and walk backwards (Shift+Tab)
-    // until focus reaches the header, checking every stop on the way.
+    // HeaderScrollOffset turns the header's height into scroll-padding-top,
+    // which is what keeps a focused control clear of it.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const header = document.getElementById("staff-header");
+          const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+          return header ? padding - header.getBoundingClientRect().height : -1;
+        }),
+      )
+      .toBeGreaterThanOrEqual(0);    // Start from the last control on the page and walk backwards (Shift+Tab)
+    // until focus reaches the header, checking every stop on the way. A stop
+    // is measured in the page when the next Tab keydown arrives, before focus
+    // moves on, so the browser has finished scrolling it into view and the
+    // walk needs no round trip per stop.
     await page.locator("#main-content").evaluate((main) => {
+      const w = window as unknown as { __focusWalk?: Walk };
+      const header = document.getElementById("staff-header");
+      const walk: Walk = {
+        stops: [],
+        done: false,
+        // The starting control is focused by script, not the keyboard, so it is not a stop.
+        started: false,
+        measure() {
+          if (walk.done) return;
+          if (!walk.started) {
+            walk.started = true;
+            return;
+          }
+          const el = document.activeElement as HTMLElement | null;
+          if (!el || !header || el === document.body || header.contains(el)) {
+            walk.done = true;
+            return;
+          }
+          const b = el.getBoundingClientRect();
+          const name = `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") || el.getAttribute("name") || el.textContent || "").trim().slice(0, 40)}"`;
+          walk.stops.push({ name, top: b.top, empty: b.width === 0 || b.height === 0, headerBottom: header.getBoundingClientRect().bottom });
+        },
+      };
+      if (!w.__focusWalk) {
+        document.addEventListener("keydown", (e) => e.key === "Tab" && w.__focusWalk?.measure(), { capture: true });
+      }
+      w.__focusWalk = walk;
       const all = main.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
       const last = [...all].filter((el) => el.getClientRects().length > 0).at(-1);
       last?.focus();
     });
-    const hidden: string[] = [];
-    let stops = 0;
     for (let i = 0; i < 400; i++) {
       await page.keyboard.press("Shift+Tab");
-      const r = await page.evaluate(() => {
-        const el = document.activeElement as HTMLElement | null;
-        const header = document.getElementById("staff-header");
-        if (!el || !header || el === document.body || header.contains(el)) return null;
-        const b = el.getBoundingClientRect();
-        const name = `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") || el.getAttribute("name") || el.textContent || "").trim().slice(0, 40)}"`;
-        return { name, top: b.top, empty: b.width === 0 || b.height === 0, headerBottom: header.getBoundingClientRect().bottom };
-      });
-      if (!r) break;
-      stops++;
-      if (!r.empty && r.top < r.headerBottom - 1) hidden.push(`${r.name} top ${Math.round(r.top)} < header bottom ${Math.round(r.headerBottom)}`);
+      // Look for the end of the walk every 20 presses rather than after each one.
+      if (i % 20 === 19 && (await page.evaluate(() => (window as unknown as { __focusWalk: Walk }).__focusWalk.done))) break;
     }
-    expect(stops, `${width}px: expected to walk through the deal page's controls`).toBeGreaterThan(5);
+    // Measure where the last press left focus, then collect the walk.
+    const walk = await page.evaluate(() => {
+      const w = (window as unknown as { __focusWalk: Walk }).__focusWalk;
+      w.measure();
+      return { stops: w.stops, done: w.done };
+    });
+    expect(walk.done, `${width}px: Shift+Tab should reach the staff header`).toBe(true);
+    expect(walk.stops.length, `${width}px: expected to walk through the deal page's controls`).toBeGreaterThan(5);
+    const hidden = walk.stops
+      .filter((s) => !s.empty && s.top < s.headerBottom - 1)
+      .map((s) => `${s.name} top ${Math.round(s.top)} < header bottom ${Math.round(s.headerBottom)}`);
     expect(hidden, `${width}px: focused controls under the sticky header`).toEqual([]);
   }
 });
