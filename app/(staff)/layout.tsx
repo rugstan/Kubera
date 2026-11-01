@@ -36,8 +36,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <Link href="/pipeline" className="rounded-md text-[15px] font-semibold tracking-tight text-ink">
             {site.name} <span className="font-normal text-titanium">· Staff</span>
           </Link>
-          <nav aria-label="Staff" className="order-3 w-full min-w-0 lg:order-none lg:w-auto lg:flex-1">
-            <ul className="flex gap-1 overflow-x-auto">
+          {/* The nav takes its own full-width row at every width: next to the
+              brand and account menu it had ~820px for ~970px of links, so the
+              last sections were clipped with no cue that the row scrolled.
+              Phones keep a single scrolling row; from sm up the links wrap. */}
+          <nav aria-label="Staff" className="order-3 w-full min-w-0">
+            <ul className="flex gap-1 overflow-x-auto sm:flex-wrap sm:overflow-x-visible">
               {NAV.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3.5 text-[14px] font-medium text-ink hover:bg-black/5">

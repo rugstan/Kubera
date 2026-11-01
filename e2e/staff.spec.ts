@@ -229,6 +229,28 @@ test("the staff shell has no sideways page scroll at 640px, 768px or 1024px", as
   }
 });
 
+test("every staff nav link sits fully inside the nav at 640px to 1440px", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signInBroker(page, "/pipeline");
+  await expect(page).toHaveURL(`${base}/pipeline`);
+  const nav = page.getByRole("navigation", { name: "Staff" });
+  await expect(nav.getByRole("link")).toHaveCount(10);
+  for (const width of [640, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const { box, clipped } = await nav.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      const clipped = [...el.querySelectorAll("a")]
+        .filter((a) => {
+          const r = a.getBoundingClientRect();
+          return r.left < b.left - 0.5 || r.right > b.right + 0.5 || r.top < b.top - 0.5 || r.bottom > b.bottom + 0.5;
+        })
+        .map((a) => a.textContent?.trim());
+      return { box: { left: b.left, right: b.right }, clipped };
+    });
+    expect(clipped, `${width}px: links outside the staff nav (${box.left}-${box.right})`).toEqual([]);
+  }
+});
+
 test("staff review low-confidence extractions: correct and approve, or reject", async ({ page }) => {
   await signInBroker(page, "/documents/extractions");
   await expect(page).toHaveURL(`${base}/documents/extractions`);
