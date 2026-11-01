@@ -164,9 +164,10 @@ describe("navigation", () => {
   it("footer and header link to every trust page", () => {
     // The footer renders an async cached year, so check its link list from source.
     const src = readFileSync(path.resolve(import.meta.dirname, "../site/Footer.tsx"), "utf8");
-    const header = readFileSync(path.resolve(import.meta.dirname, "../site/GlassHeader.tsx"), "utf8");
+    // The header's links live in components/site/nav.ts, shared with the mobile menu.
+    const nav = readFileSync(path.resolve(import.meta.dirname, "../site/nav.ts"), "utf8");
     for (const href of ["/about", "/team", "/track-record", "/structures", "/contact"]) expect(src).toContain(`href: "${href}"`);
-    for (const href of ["/about", "/contact"]) expect(header).toContain(`href: "${href}"`);
+    for (const href of ["/about", "/contact"]) expect(nav).toContain(`href: "${href}"`);
   });
 });
 
