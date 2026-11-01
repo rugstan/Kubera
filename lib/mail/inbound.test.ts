@@ -13,7 +13,7 @@ import { isRetryable, mailBodyContext, pollMailbox, processInboundMessage, recor
 import { MAX_MAIL_ATTEMPTS } from "./mailboxes";
 import { MemoryDealDirectory } from "./route";
 import { MemoryMailStore } from "./store";
-import { MailProviderError } from "./types";
+import { AttachmentListError, MailProviderError } from "./types";
 
 const keyring = createKeyring({ version: 1, key: randomBytes(32) });
 
@@ -360,6 +360,53 @@ describe("attachment failures are retried, never dropped", () => {
     expect(row.route.status).toBe("needs_review");
     expect(row.route.reviewReasons).toContain("attachment_failed");
     expect(row.attachments.filter((a) => a.status === "failed")).toHaveLength(3);
+  });
+
+  it("never saves a message as processed when its attachment list could not be read (Zoho 429)", async () => {
+    const { provider, deps, store, sink } = setup();
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    const real = provider.fetchMessage.bind(provider);
+    let throttled = true;
+    provider.fetchMessage = async (mb, ref) => {
+      const msg = await real(mb, ref);
+      if (throttled) throw new AttachmentListError("attachment list unavailable (Zoho Mail /attachmentinfo → HTTP 429)", 429, { ...msg, attachments: [] });
+      return msg;
+    };
+
+    const err = await processInboundMessage(input(m), deps).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(MailProviderError);
+    expect(isRetryable(err)).toBe(true);
+    expect(store.rows).toHaveLength(0);
+    expect(store.rows.some((r) => r.route.status === "processed")).toBe(false);
+    await recordInboundFailure({ ...input(m), receivedAt: m.receivedAt }, deps, (err as Error).message);
+    expect(await store.find("docs", m.providerMessageId)).toMatchObject({ status: "failed", attempts: 1 });
+
+    // Once Zoho answers, the retry files every document.
+    throttled = false;
+    const res = await processInboundMessage(input(m), deps);
+    expect(res.route?.status).toBe("processed");
+    expect(sink.documents.map((d) => d.kind).sort()).toEqual(["RENT_ROLL", "T12"]);
+  });
+
+  it("parks a message for staff with attachment_failed when the attachment list is still unreadable on the last attempt", async () => {
+    const { provider, deps, store } = setup();
+    const m = provider.add(SAMPLE_EMAILS.documentSubmission);
+    const real = provider.fetchMessage.bind(provider);
+    provider.fetchMessage = async (mb, ref) => {
+      const msg = await real(mb, ref);
+      throw new AttachmentListError("attachment list unavailable (HTTP 503)", 503, { ...msg, attachments: [] });
+    };
+    for (let i = 1; i < MAX_MAIL_ATTEMPTS; i++) {
+      const err = await processInboundMessage(input(m), deps).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(AttachmentListError);
+      await recordInboundFailure({ ...input(m), receivedAt: m.receivedAt }, deps, (err as Error).message);
+    }
+    const res = await processInboundMessage(input(m), deps);
+    const row = store.rows.find((r) => r.id === res.mailMessageId)!;
+    expect(row.error).toBeNull();
+    expect(row.route.status).toBe("needs_review");
+    expect(row.route.reviewReasons).toContain("attachment_failed");
+    expect(row.classification.flags).toContain("attachment_list_unavailable");
   });
 
   it("parks a message whose attachment the provider says is gone without retrying", async () => {

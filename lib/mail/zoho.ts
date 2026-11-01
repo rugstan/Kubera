@@ -13,7 +13,7 @@
 import { sharedZohoTokenCache, ZohoAccessTokens, ZohoOAuthError, type ZohoTokenCache } from "@/lib/zoho/oauth";
 import { mailboxAddress, type InboundMailbox } from "./mailboxes";
 import { dmarcVerdict, headerValue, htmlToText, isAutomated, isBulk, messageIds, parseAddress, parseAddressList, parseHeaders } from "./text";
-import { MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
+import { AttachmentListError, MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
 
 const DATA_CENTERS = new Set(["com", "eu", "in", "com.au", "jp", "ca", "sa", "com.cn"]);
 
@@ -228,27 +228,47 @@ export class ZohoMailClient implements MailProvider {
   async fetchMessage(mailbox: InboundMailbox, ref: MailRef): Promise<MailMessage> {
     const account = encodeURIComponent(await this.accountId(mailbox));
     const base = `/accounts/${account}/folders/${encodeURIComponent(ref.folderId)}/messages/${encodeURIComponent(ref.providerMessageId)}`;
-    const [details, content, header, attachments] = await Promise.all([
+    type AttachmentInfo = { attachments?: { attachmentId: string; attachmentName?: string; attachmentSize?: number | string }[] };
+    // Settled, not swallowed: whether a listing failure is fatal depends on the details.
+    const listing = this.json<AttachmentInfo>(mailbox, `${base}/attachmentinfo`).then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
+    const [details, content, header, attachmentResult] = await Promise.all([
       this.json<ZohoListItem>(mailbox, `${base}/details`),
       this.json<{ content?: string }>(mailbox, `${base}/content?includeBlockContent=true`),
       this.json<{ headerContent?: string | Record<string, string[]> }>(mailbox, `${base}/header?raw=true`),
-      this.json<{ attachments?: { attachmentId: string; attachmentName?: string; attachmentSize?: number | string }[] }>(mailbox, `${base}/attachmentinfo`).catch(() => ({ attachments: [] })),
+      listing,
     ]);
     const rawHeaders = typeof header.headerContent === "string" ? header.headerContent : Object.entries(header.headerContent ?? {}).map(([k, v]) => `${k}: ${[v].flat().join(", ")}`).join("\n");
     const h = parseHeaders(rawHeaders);
     const summary = this.summary(mailbox, { ...details, messageId: ref.providerMessageId, folderId: ref.folderId });
     const html = content.content ?? "";
-    return {
+    const message: MailMessage = {
       ...summary,
       internetMessageId: messageIds(headerValue(h, "message-id"))[0] ?? null,
       inReplyTo: messageIds(headerValue(h, "in-reply-to"))[0] ?? null,
       references: messageIds(headerValue(h, "references")),
       bodyText: /<[a-z][\s\S]*>/i.test(html) ? htmlToText(html) : html.trim(),
-      attachments: (attachments.attachments ?? []).map((a) => ({ attachmentId: String(a.attachmentId), fileName: a.attachmentName ?? "attachment", size: Number(a.attachmentSize ?? 0), contentType: null })),
+      attachments: [],
       automated: isAutomated(h),
       bulk: isBulk(h),
       dmarc: dmarcVerdict(h),
     };
+    if (attachmentResult.ok) {
+      message.attachments = (attachmentResult.value.attachments ?? []).map((a) => ({ attachmentId: String(a.attachmentId), fileName: a.attachmentName ?? "attachment", size: Number(a.attachmentSize ?? 0), contentType: null }));
+      return message;
+    }
+    const err = attachmentResult.error;
+    // Only a definitive answer (a non-retryable error such as a 404 for a
+    // message whose details say it has no attachments) means "no attachments".
+    // Throttling, 5xx, timeouts and token eviction are retried, and so is any
+    // failure on a message that has attachments: an empty list would save it
+    // as processed and lose its files without a trace.
+    if (err instanceof MailProviderError && !err.retryable && !summary.hasAttachments) return message;
+    const status = err instanceof MailProviderError ? err.status : null;
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new AttachmentListError(`attachment list unavailable (${cause})`.slice(0, 1000), status, message);
   }
 
   async fetchAttachment(mailbox: InboundMailbox, ref: MailRef, attachmentId: string): Promise<{ bytes: Uint8Array; contentType: string | null }> {

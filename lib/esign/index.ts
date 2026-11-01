@@ -19,6 +19,24 @@ let cached: { key: string; provider: EsignProvider | null } | null = null;
 let warned = false;
 let refusedWarned = false;
 let warnedBoldOnly = false;
+let constructWarned = false;
+
+/**
+ * Backstop for Global rule 3: a provider that refuses its configuration
+ * disables e-sign (logged once) instead of throwing from every page, webhook,
+ * cron and approval executor that asks for one.
+ */
+function construct(label: string, build: () => EsignProvider): EsignProvider | null {
+  try {
+    return build();
+  } catch (err) {
+    if (!constructWarned) {
+      constructWarned = true;
+      console.error(`[esign] ${label} is misconfigured (${err instanceof Error ? err.message : String(err)}); e-sign disabled.`);
+    }
+    return null;
+  }
+}
 
 export function esignProviderFromEnv(env: NodeJS.ProcessEnv = process.env): EsignProvider | null {
   const explicit = env.ESIGN_PROVIDER as EsignProviderName | undefined;
@@ -41,11 +59,11 @@ export function esignProviderFromEnv(env: NodeJS.ProcessEnv = process.env): Esig
     // the public default out of any env-built provider.
     return new FakeEsignProvider(env.ZOHO_SIGN_WEBHOOK_SECRET || randomBytes(32).toString("hex"));
   }
-  if ((explicit === "zoho_sign" || !explicit) && zoho) return new ZohoSignProvider(zoho);
+  if ((explicit === "zoho_sign" || !explicit) && zoho) return construct("Zoho Sign", () => new ZohoSignProvider(zoho));
   // BoldSign is an opt-in fallback (lib/esign/boldsign.ts: verify against a
   // sandbox before switching). A stray BOLDSIGN_API_KEY alone must not route
   // MLDS sends through it.
-  if (explicit === "boldsign" && bold) return new BoldSignProvider(bold);
+  if (explicit === "boldsign" && bold) return construct("BoldSign", () => new BoldSignProvider(bold));
   if (!explicit && bold && !warnedBoldOnly) {
     warnedBoldOnly = true;
     console.warn("[esign] BOLDSIGN_API_KEY is set but ESIGN_PROVIDER is not \"boldsign\"; BoldSign is not used.");
@@ -67,7 +85,7 @@ export function mldsTemplateId(provider: EsignProviderName, env: NodeJS.ProcessE
 /** Process-wide provider (cached per configuration). */
 export function esignProvider(): EsignProvider | null {
   const e = process.env;
-  const key = [e.ESIGN_PROVIDER, e.ZOHO_SIGN_CLIENT_ID, e.BOLDSIGN_API_KEY, Boolean(e.ZOHO_SIGN_WEBHOOK_SECRET), e.VERCEL_ENV, e.DEPLOY_ENV, e.NODE_ENV, Boolean(e.SUPABASE_SERVICE_ROLE_KEY?.trim())].join("|");
+  const key = [e.ESIGN_PROVIDER, e.ZOHO_SIGN_CLIENT_ID, e.ZOHO_SIGN_DC, e.BOLDSIGN_API_KEY, Boolean(e.ZOHO_SIGN_WEBHOOK_SECRET), e.VERCEL_ENV, e.DEPLOY_ENV, e.NODE_ENV, Boolean(e.SUPABASE_SERVICE_ROLE_KEY?.trim())].join("|");
   if (!cached || cached.key !== key) cached = { key, provider: esignProviderFromEnv() };
   return cached.provider;
 }

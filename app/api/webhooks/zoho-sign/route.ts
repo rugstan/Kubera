@@ -18,8 +18,14 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 function provider() {
   const configured = esignProvider();
   if (configured && (configured.name === "zoho_sign" || configured.name === "fake")) return configured;
+  // Null (an invalid ZOHO_SIGN_DC included) → handleEsignWebhook answers 503.
   const zoho = zohoSignConfigFromEnv();
-  return zoho ? new ZohoSignProvider(zoho) : null;
+  if (!zoho) return null;
+  try {
+    return new ZohoSignProvider(zoho);
+  } catch {
+    return null;
+  }
 }
 
 export async function POST(req: Request) {

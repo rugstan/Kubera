@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EsignError, type FetchLike } from "./types";
 import { ZOHO_SIGNATURE_HEADER, ZohoSignProvider, parseZohoWebhook, signZohoPayload, verifyZohoSignature, zohoSignConfigFromEnv, type ZohoSignConfig } from "./zoho-sign";
 
@@ -218,5 +218,14 @@ describe("Zoho Sign config", () => {
       dc: "com",
       webhookSecret: undefined,
     });
+  });
+
+  it("is null for an unknown data center instead of a config the constructor would reject", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const env = { NODE_ENV: "test" as const, ZOHO_SIGN_CLIENT_ID: "a", ZOHO_SIGN_CLIENT_SECRET: "b", ZOHO_SIGN_REFRESH_TOKEN: "c" };
+    expect(zohoSignConfigFromEnv({ ...env, ZOHO_SIGN_DC: "us" })).toBeNull();
+    expect(zohoSignConfigFromEnv({ ...env, ZOHO_SIGN_DC: " com.au " })?.dc).toBe("com.au");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('ZOHO_SIGN_DC "us" is not a Zoho data center'));
+    warn.mockRestore();
   });
 });

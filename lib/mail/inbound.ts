@@ -24,7 +24,7 @@ import { routeMail, type DealDirectory, type MailRoute } from "./route";
 import type { ReviewAlertInput } from "./review";
 import type { MailRow, MailStore } from "./store";
 import { stripQuotedReply } from "./text";
-import { MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
+import { AttachmentListError, MailProviderError, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
 import type { GatewayResponse } from "@/lib/ai/gateway";
 
 export const MAX_BODY_CHARS = 200_000;
@@ -159,7 +159,21 @@ export async function processInboundMessage(input: { mailbox: InboundMailbox } &
   // A failed row is processed again (the poller re-enqueued it); anything else is done.
   if (existing && existing.status !== "failed") return { mailMessageId: existing.id, created: false, skipped: "already_processed", classification: null, route: null, modelCalls: [], fallbackReason: null };
 
-  const msg = await deps.provider.fetchMessage(input.mailbox, input);
+  // The last allowed attempt keeps what it can and parks the message for staff
+  // instead of throwing again (the poller would never retry it).
+  const finalAttempt = (existing?.attempts ?? 0) >= MAX_MAIL_ATTEMPTS - 1;
+  let msg: MailMessage;
+  let attachmentListFailed: string | null = null;
+  try {
+    msg = await deps.provider.fetchMessage(input.mailbox, input);
+  } catch (err) {
+    // The attachment list could not be read (throttled, 5xx, timeout, or an
+    // error on a message that has attachments). Retry; never save the message
+    // as processed with no attachments.
+    if (!(err instanceof AttachmentListError) || !finalAttempt) throw err;
+    msg = err.partial;
+    attachmentListFailed = err.message;
+  }
   // Classify the newest reply only; quoted history belongs to earlier messages.
   const forModel: MailMessage = { ...msg, bodyText: stripQuotedReply(msg.bodyText) || msg.bodyText };
   const subject = deps.subjectFor ? await deps.subjectFor(msg.fromAddress).catch(() => ({ aiProcessingOptOut: true, humanReviewOnly: true })) : undefined;
@@ -204,13 +218,17 @@ export async function processInboundMessage(input: { mailbox: InboundMailbox } &
     // keyed by storage path). On the last allowed attempt, or when no retry can
     // help (the provider says the attachment is gone), the message is kept with
     // what was stored and parked for staff instead (needs_review pages them).
-    const finalAttempt = (existing?.attempts ?? 0) >= MAX_MAIL_ATTEMPTS - 1;
     if (!finalAttempt && failedAttachments.some((a) => a.retryable !== false)) {
       const detail = failedAttachments.map((a) => `${a.fileName}: ${a.error ?? "failed"}`).join("; ");
       throw new MailProviderError(`${failedAttachments.length} attachment(s) could not be stored: ${detail}`.slice(0, 1000), null, true);
     }
     route.status = "needs_review";
     if (!route.reviewReasons.includes("attachment_failed")) route.reviewReasons.push("attachment_failed");
+  }
+  if (attachmentListFailed) {
+    route.status = "needs_review";
+    if (!route.reviewReasons.includes("attachment_failed")) route.reviewReasons.push("attachment_failed");
+    classification.flags.push("attachment_list_unavailable");
   }
   const body = protectBody(msg, deps.keyring === undefined ? piiKeyring() : deps.keyring);
   classification.flags.push(...body.flags);
