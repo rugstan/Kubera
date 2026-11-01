@@ -9,6 +9,8 @@ export const NOTIFICATION_STATUSES = [
   "sent",
   "delivered",
   "failed",
+  /** A text whose provider call timed out or errored ambiguously: it may have gone out, so it is never retried. */
+  "send_unknown",
   "skipped_no_consent",
   "skipped_unconfigured",
   "deferred_quiet_hours",

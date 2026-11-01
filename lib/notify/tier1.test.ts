@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import type { LeadRecord } from "./leads";
 import { DAYTIME, makeHarness, NIGHT } from "./testing";
@@ -98,13 +98,28 @@ describe("Tier-1 alert", () => {
     expect(h.email.sent).toHaveLength(1);
   });
 
-  it("retries the text on the next run after a provider failure", async () => {
+  it("retries the text on the next run after Telnyx definitively refused it", async () => {
     const h = makeHarness();
-    h.sms.failNext = new (await import("./sms/types")).SmsError("Telnyx 500", 500);
+    h.sms.failNext = new (await import("./sms/types")).SmsError("Telnyx 422: invalid", 422);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     const first = await alertTier1Lead(lead(), h.notifier, { phones: [STAFF.phones[0] as string], emails: [] }, () => h.clock.now);
+    spy.mockRestore();
     expect(first.sms[0]?.status).toBe("failed");
     const second = await alertTier1Lead(lead(), h.notifier, { phones: [STAFF.phones[0] as string], emails: [] }, () => h.clock.now);
     expect(second.sms[0]?.status).toBe("sent");
+    expect(h.sms.sent).toHaveLength(1);
+  });
+
+  it("does not text the broker again after a 5xx the sweep cannot tell apart from a send", async () => {
+    const h = makeHarness();
+    h.sms.failNext = new (await import("./sms/types")).SmsError("Telnyx 500", 500);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const first = await alertTier1Lead(lead(), h.notifier, { phones: [STAFF.phones[0] as string], emails: [] }, () => h.clock.now);
+    spy.mockRestore();
+    expect(first.sms[0]?.status).toBe("send_unknown");
+    const second = await alertTier1Lead(lead(), h.notifier, { phones: [STAFF.phones[0] as string], emails: [] }, () => h.clock.now);
+    expect(second.sms[0]).toMatchObject({ status: "duplicate", previousStatus: "send_unknown" });
+    expect(h.sms.sent).toHaveLength(0);
   });
 });
 

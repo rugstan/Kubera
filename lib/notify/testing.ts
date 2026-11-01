@@ -39,6 +39,8 @@ export type HarnessOptions = {
   preApproved?: string[];
   email?: boolean;
   sms?: boolean;
+  /** Staff mailboxes alerted about texts with unknown delivery. */
+  staffEmails?: string[];
 };
 
 export function makeHarness(opts: HarnessOptions = {}) {
@@ -58,6 +60,7 @@ export function makeHarness(opts: HarnessOptions = {}) {
     consent,
     gate,
     preApproved: new Set(opts.preApproved ?? []),
+    staffEmails: opts.staffEmails,
     now: () => clock.now,
   });
 

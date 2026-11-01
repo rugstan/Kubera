@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import { EmailError } from "./email/types";
+import { Notifier } from "./service";
+import { TelnyxSmsClient } from "./sms/telnyx";
+import { SmsError } from "./sms/types";
 import { makeHarness, NIGHT } from "./testing";
 
 const PHONE = "+14155550100";
@@ -227,7 +230,7 @@ describe("idempotency and failure handling", () => {
     expect(h.sms.sent).toHaveLength(1);
   });
 
-  it("records a provider failure and allows a retry", async () => {
+  it("records an email provider failure and allows a retry (Resend dedupes on the idempotency key)", async () => {
     const h = makeHarness();
     h.email.failNext = new EmailError("Resend 500: boom", 500);
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -238,6 +241,113 @@ describe("idempotency and failure handling", () => {
     expect(h.store.notifications[0]).toMatchObject({ status: "failed", attempts: 1 });
     expect((await h.notifier.send(req)).status).toBe("sent");
     expect(h.store.notifications[0]?.attempts).toBe(2);
+  });
+
+  const staffSms = (key: string) => ({ templateId: "staff_tier1_sms" as const, to: { audience: "staff" as const, phone: PHONE }, data: { reference: "ABCD1234", summary: "$5.0M hotel", contactOk: true }, idempotencyKey: key });
+
+  /** A Notifier on the real Telnyx client with a scripted fetch, counting POSTs that reach "Telnyx". */
+  const telnyxHarness = (respond: (call: number) => Promise<Response>) => {
+    const h = makeHarness({ staffEmails: ["deals@kuberacommercial.com"] });
+    const calls = { n: 0 };
+    const fetchMock = (async () => respond(++calls.n)) as typeof fetch;
+    const sms = new TelnyxSmsClient({ apiKey: "k", from: "+13105550199", fetch: fetchMock });
+    const notifier = new Notifier({ email: h.email, sms, store: h.store, consent: h.consent, gate: h.gate, staffEmails: ["deals@kuberacommercial.com"], now: () => h.clock.now });
+    return { ...h, notifier, calls };
+  };
+  const timeout = () => Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
+  const ok = () => Promise.resolve(new Response(JSON.stringify({ data: { id: "msg_1" } }), { status: 200 }));
+
+  it("never resends a text whose Telnyx call timed out; staff are told instead", async () => {
+    const h = telnyxHarness((n) => (n === 1 ? timeout() : ok()));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const first = await h.notifier.send(staffSms("tier1:lead-1:sms:+14155550100"));
+    expect(first.status).toBe("send_unknown");
+    expect(first.reason).toMatch(/timed out/);
+    const row = h.store.notifications.find((n) => n.idempotencyKey === "tier1:lead-1:sms:+14155550100");
+    expect(row).toMatchObject({ status: "send_unknown", provider: "telnyx", attempts: 1 });
+
+    // The sweep cron calls again with the same key: the provider is not reached a second time.
+    const again = await h.notifier.send(staffSms("tier1:lead-1:sms:+14155550100"));
+    spy.mockRestore();
+    expect(again).toMatchObject({ status: "duplicate", previousStatus: "send_unknown" });
+    expect(h.calls.n).toBe(1);
+    expect(row?.attempts).toBe(1);
+
+    // One staff email, masked number only.
+    expect(h.email.sent).toHaveLength(1);
+    expect(h.email.sent[0]?.to).toBe("deals@kuberacommercial.com");
+    expect(h.email.sent[0]?.text).toContain("staff_tier1_sms");
+    expect(h.email.sent[0]?.text).not.toContain(PHONE);
+  });
+
+  it.each([
+    ["a 5xx", () => Promise.resolve(new Response("upstream", { status: 503 }))],
+    ["a 408", () => Promise.resolve(new Response("timeout", { status: 408 }))],
+    ["a 429", () => Promise.resolve(new Response("slow down", { status: 429 }))],
+    ["a network error", () => Promise.reject(new TypeError("fetch failed"))],
+    ["a 2xx without a message id", () => Promise.resolve(new Response("{}", { status: 200 }))],
+  ])("treats %s from Telnyx as unknown delivery and never retries it", async (_label, first) => {
+    const h = telnyxHarness((n) => (n === 1 ? first() : ok()));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect((await h.notifier.send(staffSms("u-1"))).status).toBe("send_unknown");
+    expect((await h.notifier.send(staffSms("u-1"))).status).toBe("duplicate");
+    spy.mockRestore();
+    expect(h.calls.n).toBe(1);
+  });
+
+  it("retries a text Telnyx definitively refused (4xx)", async () => {
+    const h = telnyxHarness((n) => (n === 1 ? Promise.resolve(new Response("bad number", { status: 422 })) : ok()));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const first = await h.notifier.send(staffSms("r-1"));
+    spy.mockRestore();
+    expect(first.status).toBe("failed");
+    expect(h.email.sent).toHaveLength(0);
+    expect((await h.notifier.send(staffSms("r-1"))).status).toBe("sent");
+    expect(h.calls.n).toBe(2);
+  });
+
+  it("marks a text failed (retryable) when the error is raised before the request goes out", async () => {
+    const h = makeHarness();
+    h.sms.failNext = new SmsError("could not build the request", undefined, { notSent: true });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect((await h.notifier.send(staffSms("p-1"))).status).toBe("failed");
+    spy.mockRestore();
+    expect((await h.notifier.send(staffSms("p-1"))).status).toBe("sent");
+    expect(h.sms.sent).toHaveLength(1);
+  });
+
+  it("keeps a sent text sent when the database write after the send fails", async () => {
+    const h = makeHarness();
+    const update = h.store.update.bind(h.store);
+    let failures = 0;
+    h.store.update = async (id, patch) => {
+      if (patch.status === "sent" && failures < 1) {
+        failures++;
+        throw new Error("supabase unavailable");
+      }
+      return update(id, patch);
+    };
+    const out = await h.notifier.send(staffSms("b-1"));
+    expect(out.status).toBe("sent");
+    expect(h.store.notifications[0]).toMatchObject({ status: "sent", providerMessageId: out.providerMessageId });
+    expect(h.sms.sent).toHaveLength(1);
+  });
+
+  it("never reports or retries a delivered text as failed when every bookkeeping write fails", async () => {
+    const h = makeHarness();
+    const update = h.store.update.bind(h.store);
+    h.store.update = async (id, patch) => {
+      if (patch.status === "sent") throw new Error("supabase unavailable");
+      return update(id, patch);
+    };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const out = await h.notifier.send(staffSms("b-2"));
+    expect(out.status).toBe("sent");
+    expect(h.store.notifications[0]?.status).not.toBe("failed");
+    expect(spy).toHaveBeenCalledWith(expect.stringMatching(/could not record the send/), "supabase unavailable");
+    spy.mockRestore();
+    expect((await h.notifier.send(staffSms("b-2"))).status).toBe("duplicate");
+    expect(h.sms.sent).toHaveLength(1);
   });
 
   it("skips quietly when the provider is not configured", async () => {
