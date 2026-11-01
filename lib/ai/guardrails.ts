@@ -69,7 +69,7 @@ export type GuardrailRule = {
 const NEGATOR = /\b(?:not|no|never|cannot|can't|can’t|won't|won’t|don't|don’t|doesn't|doesn’t|didn't|isn't|isn’t|aren't|aren’t|wouldn't|shouldn't|couldn't|without|nor|neither|unable|avoid|refrain)\b|n't\b/i;
 
 /** A lead-in that makes an approval statement hypothetical. */
-const CONDITIONAL = /\b(?:once|after|until|when|whenever|if|before|unless|whether|so that|in case)\s+(?:\w+\s+){0,3}$/i;
+const CONDITIONAL = /\b(?:once|after|until|when|whenever|if|before|unless|whether|so that|in case)\s+(?:[\w'’]+\s+){0,3}$/i;
 
 /** Clause breaks end the reach of a negator. */
 const CLAUSE_BREAK = /[,;:—–]|\s-\s|\b(?:but|however|although|though|while|whereas|yet)\b/gi;
@@ -98,6 +98,22 @@ const KUBERA_SUBJECT = String.raw`(?:we|kubera(?: commercial)?|our (?:team|staff
 const MODIFIERS = String.raw`(?:[\w'’$%.-]+\s+){0,2}`;
 /** A count of days, weeks or hours ("14 days", "two weeks", "10–21 days"). */
 const DURATION = String.raw`(?:about |around |roughly |just |only |under |less than |as (?:little|few) as )?(?:\d+(?:\s*(?:-|–|to)\s*\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|forty-five|sixty|ninety|a few|a couple of|a)\s+(?:business |calendar |working )?(?:days?|weeks?|hours?)\b`;
+/** A usury phrase about this loan: a loan reference, or "here" ("usury doesn't apply here"; not "here's"). */
+const LOAN_OR_HERE_REF = new RegExp(String.raw`${LOAN_REF.source}|\bhere\b(?!['’]s)`, "i");
+/** Negated verbs a "usury doesn't apply / won't be an issue" claim is built on. */
+const NEG_VERB = String.raw`(?:doesn't|doesn’t|does not|don't|don’t|do not|won't|won’t|will not|wouldn't|wouldn’t|would not|isn't|isn’t|is not|aren't|aren’t|are not|shouldn't|shouldn’t|should not)`;
+/** What the negated verb says usury does not do. */
+const NOT_APPLY_PREDICATE = String.raw`(?:apply|be\s+an?\s+(?:\w+\s+)?(?:issue|concern|problem|factor|obstacle|risk)|an?\s+(?:issue|concern|problem|factor)|limit|restrict|reach|cover|govern|matter)\b`;
+/** A broker or "Kubera arranged it" reason: the §1916.1 claim applied to a loan. */
+const BROKER_WORD = String.raw`\b(?:brokers?|brokered|kubera|arrang(?:e|es|ed|ing))\b`;
+const BROKER_REF = new RegExp(BROKER_WORD, "i");
+/** A causal lead-in ("because", "since", "as", "with a licensed broker ..."). */
+const CAUSE = String.raw`\b(?:since|because|as|given that|now that|thanks to)\b`;
+/** A day, month-end or date a closing or funding could be promised "by". */
+const BY_DATE = String.raw`(?:(?:this|next)\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|(?:month|year|quarter)[- ]end|eom|(?:the\s+)?end\s+of\s+(?:the\s+|this\s+|next\s+)?(?:week|month|quarter|year)|next\s+(?:week|month)|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|the\s+\d{1,2}(?:st|nd|rd|th))\b`;
+/** Required, planned or hoped-for dates are not promises ("you need to close by Friday", "we aim to get it funded by month-end"). */
+const NOT_A_PROMISE_LEAD = String.raw`(?<!\b(?:need|needs|needed|needing|have|has|had|must|want|wants|wanted|plan|plans|planned|planning|aim|aims|aiming|hope|hopes|hoping|try|tries|trying|required|deadline|ought)\s+to\s+(?:be\s+|get\s+(?:\S+\s+)?|have\s+(?:\S+\s+)?)?)`;
+
 /** Hedges that make a timeline a general, non-binding statement. */
 const TIMELINE_HEDGE = /\b(?:typically|typical|usually|often|generally|many|on average|in many cases|not guaranteed|isn't guaranteed|isn’t guaranteed|is not guaranteed|no guarantee|never guaranteed)\b/i;
 
@@ -143,9 +159,74 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "usury_exemption",
     "Says usury limits do not reach, cover or govern the borrower's loan",
     /\busury\s+(?:caps?|limits?|laws?|ceilings?|rules?|statutes?)\b[^.]{0,30}?\b(?:doesn't|doesn’t|does not|don't|don’t|do not|won't|won’t|will not|wouldn't|wouldn’t|would not)\s+(?:reach|cover|govern|touch|apply to|affect)\b/i,
-    { negateInside: false, requires: LOAN_REF },
+    { negateInside: false, requires: LOAN_OR_HERE_REF },
   ),
-  R("usury.not-apply", "usury_exemption", "Says usury limits do not apply to the borrower's loan", /\busury\b[^.]{0,60}\b(?:doesn't|does not|won't|will not|isn't|is not|don't|do not|don’t|doesn’t|aren't|are not)\s+(?:apply|a (?:concern|issue|problem)|an? (?:issue|concern|problem)|matter)\b/i, { negateInside: false, requires: LOAN_REF }),
+  R(
+    "usury.not-apply",
+    "usury_exemption",
+    "Says usury limits do not apply to the borrower's loan",
+    new RegExp(String.raw`\busury\b[^.]{0,60}\b${NEG_VERB}\s+(?:${USURY_ADVERB}\s+)?${NOT_APPLY_PREDICATE}`, "i"),
+    { negateInside: false, requires: LOAN_OR_HERE_REF },
+  ),
+  // "Usury limits don't apply since a licensed broker arranged it." / "The usury law won't be an
+  // issue here since we're brokers." The broker reason makes it a §1916.1 claim about this loan,
+  // so no loan reference is needed.
+  R(
+    "usury.broker-reason",
+    "usury_exemption",
+    "Says usury does not apply because a broker or Kubera arranged the loan",
+    new RegExp(String.raw`\busury\b[^.]{0,60}?\b${NEG_VERB}\s+(?:${USURY_ADVERB}\s+)?${NOT_APPLY_PREDICATE}[^.]{0,60}?${CAUSE}[^.]{0,60}?${BROKER_WORD}`, "i"),
+    { negateInside: false },
+  ),
+  // The same claim with the reason first: "Because Kubera arranged it, usury doesn't apply." The
+  // reason sits in a lookbehind so a disclaimer in the main clause ("..., I can't say usury
+  // doesn't apply") still clears it.
+  R(
+    "usury.broker-reason-first",
+    "usury_exemption",
+    "Says usury does not apply, after giving a broker or Kubera reason",
+    new RegExp(String.raw`(?<=\b(?:since|because|given that|now that|with)\b[^.]{0,60}?${BROKER_WORD}[^.]{0,60}?)\busury\b[^.]{0,60}?\b${NEG_VERB}\s+(?:${USURY_ADVERB}\s+)?${NOT_APPLY_PREDICATE}`, "i"),
+    { negateInside: false },
+  ),
+  // "With a licensed broker arranging it, the 10% cap doesn't limit your bridge loan."
+  R(
+    "usury.cap-not-limit",
+    "usury_exemption",
+    "Says the usury or rate cap does not limit the borrower's loan",
+    new RegExp(
+      String.raw`\b(?:usury|interest[- ]rate|rate|\d+(?:\.\d+)?\s*%|constitutional|art(?:icle|\.)\s*XV)\s+(?:caps?|limits?|ceilings?)\s+${NEG_VERB}\s+(?:${USURY_ADVERB}\s+)?(?:limit|restrict|apply to|cover|reach|govern|affect|constrain|bind)\s+(?:your|this|that)\b`,
+      "i",
+    ),
+    { negateInside: false },
+  ),
+  // "Your lender can charge more than 10% because we're brokers." / "Because Kubera arranged it,
+  // the lender can charge 14% legally."
+  R(
+    "usury.lender-can-charge",
+    "usury_exemption",
+    "Says a lender may charge a stated rate because a broker arranged the loan",
+    /\b(?:(?:your\s+|the\s+|this\s+|that\s+)?lenders?|they)\s+(?:can|could|may|is allowed to|are allowed to|is permitted to|are permitted to|is free to|are free to)\s+(?:legally\s+|lawfully\s+)?charge\s+(?:you\s+)?(?:more than\s+|over\s+|above\s+|up to\s+|as much as\s+)?\d+(?:\.\d+)?\s*%|\byou\s+(?:can|could|may)\s+(?:legally\s+|lawfully\s+)?be\s+charged\s+(?:more than\s+|over\s+|above\s+|up to\s+|as much as\s+)?\d+(?:\.\d+)?\s*%/i,
+    { requires: BROKER_REF },
+  ),
+  // "Because a broker arranges it, there's no cap on what your lender can charge."
+  R(
+    "usury.no-cap",
+    "usury_exemption",
+    "Says there is no cap on the borrower's rate because a broker arranged the loan",
+    /\b(?:there(?:'s|’s| is| are| will be)\s+)?no\s+(?:usury\s+|interest[- ]rate\s+|rate\s+|legal\s+)?(?:caps?|limits?|ceilings?)\s+on\s+(?:what|how much|the rate|your rate|the interest|your interest)\b/i,
+    { negateInside: false, requires: BROKER_REF },
+  ),
+  // "Your rate of 13% is permissible because Kubera arranged the loan."
+  R(
+    "usury.permitted-because-broker",
+    "usury_exemption",
+    "Says a rate is permitted because a broker or Kubera arranged the loan",
+    new RegExp(
+      String.raw`\b(?:is|are|would be|will be|becomes?)\s+(?:${USURY_ADVERB}\s+)?(?:permissible|permitted|allowed|legal|lawful|fine|ok|okay|acceptable)\s+(?:here\s+)?${CAUSE}[^.]{0,60}?${BROKER_WORD}`,
+      "i",
+    ),
+    { requires: /\d\s*%|\b(?:rates?|usury|usurious|interest)\b/i },
+  ),
   // "qualifies for / falls under / is covered by ... the broker exemption" about the borrower's loan.
   R(
     "usury.qualifies-for-exemption",
@@ -226,7 +307,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "usury_exemption",
     "Says usury law will not be a problem for the borrower's loan",
     /\busury\b[^.]{0,60}?\b(?:won't|won’t|will not|wouldn't|wouldn’t|would not|shouldn't|shouldn’t|should not|isn't going to|isn’t going to|is not going to)\s+be\s+(?:an?\s+)?(?:\w+\s+)?(?:problem|issue|concern|risk|factor|obstacle)s?\b/i,
-    { negateInside: false, requires: LOAN_REF },
+    { negateInside: false, requires: LOAN_OR_HERE_REF },
   ),
 
   // --- timelines -------------------------------------------------------------------------
@@ -257,11 +338,53 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     ),
     { unlessUnit: TIMELINE_HEDGE },
   ),
+  // "Closing will take 10 days."
+  R(
+    "timeline.will-take",
+    "guaranteed_timeline",
+    "Says closing or funding will take a stated time",
+    new RegExp(
+      String.raw`\b(?:closing|funding|(?:your|the|this|that) (?:loan|deal|closing|funding|financing|bridge|refinance|close|process))\s+(?:will|is going to|'ll|’ll|is only going to)\s+(?:only\s+|just\s+|definitely\s+|certainly\s+)?take\s+(?:(?:in|within)\s+)?${DURATION}`,
+      "i",
+    ),
+    { unlessUnit: TIMELINE_HEDGE },
+  ),
+  // "You'll have funds in 10 days." / "The funds will be in your account within a week."
+  R(
+    "timeline.funds-in",
+    "guaranteed_timeline",
+    "Says the borrower will have funds in a stated time",
+    new RegExp(
+      String.raw`\b(?:you(?:'ll|’ll| will| would| should| can)?|we(?:'ll|’ll| will)?)\s+(?:have|get|receive|see)\s+(?:the\s+|your\s+)?(?:funds?|funding|money|proceeds|cash|wire)\b(?:\s+in your account)?\s+(?:in|within)\s+${DURATION}|` +
+        String.raw`(?<!\bof\s)\b(?:the\s+|your\s+)?funds\s+(?:will\s+(?:be\s+)?|should\s+be\s+|are\s+)?(?:(?:in your account|available|ready|wired|disbursed|released)\s+)?(?:in|within)\s+${DURATION}`,
+      "i",
+    ),
+    { unlessUnit: TIMELINE_HEDGE },
+  ),
+  // "You'll be funded by Friday." / "We will get this closed by month-end."
+  R(
+    "timeline.by-date",
+    "guaranteed_timeline",
+    "Says the loan will be funded or closed by a stated day or date",
+    new RegExp(String.raw`${NOT_A_PROMISE_LEAD}\b(?:funded|closed|closes|close|funds|fund)\s+(?:by|before|no later than)\s+${BY_DATE}`, "i"),
+    { unlessUnit: TIMELINE_HEDGE },
+  ),
+  // "Expect to close within 10 days." / "Expect funding by Friday."
+  R(
+    "timeline.expect",
+    "guaranteed_timeline",
+    "Tells the borrower to expect closing or funding in a stated time",
+    new RegExp(
+      String.raw`\bexpect\s+(?:to\s+(?:close|fund|be funded|be closed|have (?:the\s+|your\s+)?(?:funds?|funding|money))|funding|closing|(?:the\s+|your\s+)?funds)\s+(?:(?:in|within)\s+${DURATION}|(?:by|before)\s+${BY_DATE})`,
+      "i",
+    ),
+    { unlessUnit: TIMELINE_HEDGE },
+  ),
   R("timeline.closing-certain", "guaranteed_timeline", "Says closing is certain or fixed", /\b(?:closing|close|funding)(?: date| timeline)?\s+(?:is|will be)\s+(?:guaranteed|assured|certain|locked in|fixed|firm)\b/i),
   R("timeline.get-you-closed", "guaranteed_timeline", "Promises a closing date", /\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:definitely |certainly )?(?:get|have)\s+(?:you|your (?:loan|deal|financing))\s+(?:closed|funded)\s+(?:in|within|by|before)\b/i),
 
   // --- broker-only role (Global rule 1) --------------------------------------------------
-  R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:are|is|act as|serve as|be|will be|will act as|would be)\s+(?:the |your |a )?(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
+  R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)(?:'ll|’ll|['’]d|['’]re)?\s+(?:(?:can|could|will|would|may|might|shall|should|also|directly|ourselves|itself|happily|sometimes|then)\s+)*(?:are|is|be|acts? as|serves? as|step in as|stand in as|be acting as|be serving as)\s+(?:the |your |a |an |its own |our own )?(?:direct |actual |private )?(?:lender|originator|servicer|beneficiary)\b|\bwe(?:'re|’re)\s+(?:also\s+)?(?:the |your |a )(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
   R(
     "role.holds-funds",
     "broker_role",

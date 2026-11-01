@@ -16,6 +16,8 @@
 //     (PFS, tax returns and bank statements are restricted by nature).
 //   - A person who opted out of AI processing (privacy_preferences) has no
 //     personal data sent to any model.
+//   - The remote Jev lead-scoring endpoint (lib/ai/jev.ts) gets the structured
+//     intake only, up to confidential, never the free-text notes.
 
 import {
   classifyPayload,
@@ -28,10 +30,23 @@ import {
   type Finding,
 } from "@/lib/privacy/classification";
 
+/** Providers the model gateway (lib/ai/gateway.ts) can call. */
 export const MODEL_PROVIDERS = ["anthropic", "nvidia", "xai"] as const;
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 
-export const AI_PURPOSES = ["advisor", "document_extraction", "classification", "embedding", "drafting", "market_intel"] as const;
+/**
+ * Model endpoints called directly rather than through the gateway, which still
+ * pass this guard: `jev` is the remote Jev lead-scoring endpoint (JEV_API_URL,
+ * lib/ai/jev.ts).
+ */
+export const DIRECT_PROVIDERS = ["jev"] as const;
+export type RouteProvider = ModelProvider | (typeof DIRECT_PROVIDERS)[number];
+
+export function isModelProvider(p: RouteProvider): p is ModelProvider {
+  return (MODEL_PROVIDERS as readonly string[]).includes(p);
+}
+
+export const AI_PURPOSES = ["advisor", "document_extraction", "classification", "embedding", "drafting", "market_intel", "lead_scoring"] as const;
 export type AiPurpose = (typeof AI_PURPOSES)[number];
 
 type ProviderPolicy = {
@@ -44,7 +59,7 @@ type ProviderPolicy = {
   note: string;
 };
 
-export const PROVIDER_POLICY: Readonly<Record<ModelProvider, ProviderPolicy>> = {
+export const PROVIDER_POLICY: Readonly<Record<RouteProvider, ProviderPolicy>> = {
   anthropic: {
     ceiling: "restricted",
     restrictedPurposes: ["document_extraction"],
@@ -63,6 +78,12 @@ export const PROVIDER_POLICY: Readonly<Record<ModelProvider, ProviderPolicy>> = 
     forbiddenCategories: ["borrower", "partner", "deal"],
     note: "Market intelligence from public signals only. Never borrower data.",
   },
+  jev: {
+    ceiling: "confidential",
+    restrictedPurposes: [],
+    forbiddenCategories: [],
+    note: "Remote Jev lead-scoring refinement. Structured intake only: never restricted fields, and the free-text notes are not sent.",
+  },
 };
 
 type PurposePolicy = { ceiling: Classification; forbiddenCategories: readonly DataCategory[] };
@@ -74,6 +95,7 @@ export const PURPOSE_POLICY: Readonly<Record<AiPurpose, PurposePolicy>> = {
   embedding: { ceiling: "confidential", forbiddenCategories: [] },
   drafting: { ceiling: "confidential", forbiddenCategories: [] },
   market_intel: { ceiling: "internal", forbiddenCategories: ["borrower", "partner", "deal"] },
+  lead_scoring: { ceiling: "confidential", forbiddenCategories: [] },
 };
 
 /** Ceiling for a provider or model we cannot identify. */
@@ -103,7 +125,7 @@ export type RouteRequest = {
   /** Model id as sent to the provider. */
   model: string;
   /** Explicit provider (gateway routes); must agree with the model id when both are known. */
-  provider?: ModelProvider;
+  provider?: RouteProvider;
   purpose: AiPurpose;
   /** Everything that will be sent: system prompt, messages, documents, tool inputs. */
   payload: unknown;
@@ -121,7 +143,7 @@ export type RouteRequest = {
 
 export type RouteDecision = {
   allowed: boolean;
-  provider: ModelProvider | null;
+  provider: RouteProvider | null;
   level: Classification;
   categories: DataCategory[];
   /** Effective ceiling for this provider × purpose. */
@@ -131,7 +153,7 @@ export type RouteDecision = {
 };
 
 /** Effective ceiling for a provider and purpose (the lower of the two). */
-export function routeCeiling(provider: ModelProvider | null, purpose: AiPurpose): Classification {
+export function routeCeiling(provider: RouteProvider | null, purpose: AiPurpose): Classification {
   if (!provider) return UNKNOWN_CEILING;
   const p = PROVIDER_POLICY[provider];
   let ceiling: Classification = levelRank(p.ceiling) < levelRank(PURPOSE_POLICY[purpose].ceiling) ? p.ceiling : PURPOSE_POLICY[purpose].ceiling;

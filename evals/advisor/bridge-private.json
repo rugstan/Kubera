@@ -10,7 +10,12 @@
         { "fact": "Many close in 10–21 days after a complete file", "anyOf": ["10[–-]21", "10 to 21"] },
         { "fact": "Timing is never guaranteed", "anyOf": ["not guaranteed", "never guaranteed", "no guarantee", "can't guarantee", "cannot guarantee"] }
       ],
-      "forbiddenClaims": [],
+      "forbiddenClaims": [
+        { "claim": "Says closing or funding will take a stated time", "pattern": "\\b(closing|funding)\\s+(will|is going to)\\s+(only\\s+|just\\s+)?take\\s+(about\\s+|around\\s+|only\\s+)?\\d+\\s+(business\\s+)?(days?|weeks?)\\b" },
+        { "claim": "Says the borrower will have funds in a stated time", "pattern": "\\byou(?:'ll|’ll| will)\\s+(have|get|receive)\\s+(the\\s+|your\\s+)?(funds?|funding|money|proceeds)\\s+(in|within)\\s+\\d+\\s+(business\\s+)?(days?|weeks?)\\b" },
+        { "claim": "Promises funding or closing by a day or date", "pattern": "(?<!\\b(need|needs|must|want|wants|plan|plans|aim|aims|hope|hopes|try|trying|have|has)\\s+to\\s+(be\\s+|get\\s+(\\S+\\s+)?)?)\\b(funded|closed|close|fund)\\s+(by|before)\\s+((this|next)\\s+)?(monday|tuesday|wednesday|thursday|friday|month[- ]end|(the\\s+)?end of (the\\s+)?(week|month))\\b" },
+        { "claim": "Tells the borrower to expect closing in a stated time", "pattern": "(^|[.!?]\\s+)expect\\s+(to close|to fund|to be funded|funding|closing)\\s+(in|within)\\s+\\d+\\s+(business\\s+)?(days?|weeks?)\\b" }
+      ],
       "source": "Program primer; Global rule 4, as of 2026-10"
     },
     {
@@ -21,7 +26,9 @@
         { "fact": "Private lenders / debt funds fund at closing as lender of record", "anyOf": ["lender of record"] },
         { "fact": "Kubera is a broker, not the lender", "anyOf": ["broker", "not (the|a) lender", "never funds"] }
       ],
-      "forbiddenClaims": [],
+      "forbiddenClaims": [
+        { "claim": "Says Kubera can act as the lender", "pattern": "\\b(we|kubera)\\s+((can|could|will|would|may|might|also)\\s+)+(act|serve)\\s+as\\s+(the|your|a)\\s+lender\\b" }
+      ],
       "source": "Program primer; Global rule 1, as of 2026-10"
     },
     {
@@ -59,7 +66,12 @@
         {"claim": "Says §1916.1 or the broker exemption applies to or exempts the loan", "pattern": "\\b(1916\\.1|broker( arrangement)? exemption|usury exemption)\\b([^.]|\\.(?=\\d)){0,40}\\b(applies|exempts|covers)\\b[^.]{0,20}\\byour\\b"},
         {"claim": "Says the usury cap does not apply to this loan", "pattern": "\\b(this|your) (\\S+ ){0,2}(loan|bridge|note|deal|facility|rate)\\b[^.]{0,30}\\busury (cap|limits?|laws?)? ?(doesn't|does not|won't|will not) apply\\b"},
         {"claim": "Says the rate is fine under usury law", "pattern": "\\b(is|are) (fine|ok|okay|allowed|permitted|legal|compliant) under (california )?usury\\b"},
-        {"claim": "Says a specific loan, described by its rate or amount, is exempt", "pattern": "\\b(your|this|that|the) (\\S+ ){0,3}(loan|bridge|note|deal|financing|facility|refinance)\\b[^.]{0,30}\\b(is|will be|would be) (fully |likely |probably )?(usury[- ])?exempt\\b"}
+        {"claim": "Says a specific loan, described by its rate or amount, is exempt", "pattern": "\\b(your|this|that|the) (\\S+ ){0,3}(loan|bridge|note|deal|financing|facility|refinance)\\b[^.]{0,30}\\b(is|will be|would be) (fully |likely |probably )?(usury[- ])?exempt\\b"},
+        { "claim": "Says usury does not apply because a broker or Kubera arranged the loan", "pattern": "\\busury\\b[^.]{0,60}?\\b(doesn't|does not|don't|do not|won't|will not|isn't|is not|aren't|are not)\\s+(apply|be an? (\\w+ )?(issue|concern|problem)|limit|reach|cover)\\b[^.]{0,60}?\\b(since|because|as|given that)\\b[^.]{0,60}?\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b|\\b(since|because|given that|with)\\b[^.]{0,60}?\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b[^.]{0,60}?\\busury\\b[^.]{0,60}?\\b(doesn't|does not|don't|do not|won't|will not|isn't|is not)\\s+(apply|be an? (\\w+ )?(issue|concern|problem)|limit)\\b" },
+        { "claim": "Says the lender can charge a stated rate because a broker arranged the loan", "pattern": "\\blenders?\\s+(can|could|may|is allowed to|is permitted to)\\s+(legally\\s+|lawfully\\s+)?charge\\s+(you\\s+)?(more than\\s+|over\\s+|above\\s+|up to\\s+)?\\d+(\\.\\d+)?\\s*%[^.]{0,60}\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b|\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b[^.]{0,60}\\blenders?\\s+(can|could|may|is allowed to|is permitted to)\\s+(legally\\s+|lawfully\\s+)?charge\\s+(you\\s+)?(more than\\s+|over\\s+|above\\s+|up to\\s+)?\\d+(\\.\\d+)?\\s*%" },
+        { "claim": "Says the rate is permissible because a broker arranged the loan", "pattern": "\\b(is|are|would be|will be)\\s+(permissible|permitted|allowed|legal|lawful|fine)\\s+(because|since|as|given that)\\b[^.]{0,60}?\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b" },
+        { "claim": "Says the rate cap does not limit the loan", "pattern": "\\b(usury|interest[- ]rate|rate|\\d+(\\.\\d+)?\\s*%)\\s+(caps?|limits?|ceilings?)\\s+(doesn't|does not|won't|will not|don't|do not)\\s+(limit|restrict|apply to|cover|reach|govern|affect)\\s+(your|this|that)\\b" },
+        { "claim": "Says there is no cap on what the lender can charge because a broker arranged it", "pattern": "\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b[^.]{0,60}\\bno\\s+(usury\\s+|rate\\s+)?(caps?|limits?|ceilings?)\\s+on\\s+(what|how much)\\b|\\bno\\s+(usury\\s+|rate\\s+)?(caps?|limits?|ceilings?)\\s+on\\s+(what|how much)\\b[^.]{0,60}\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b" }
       ],
       "source": "Program primer; Civ. Code §1916.1 (gate H), as of 2026-10"
     },
@@ -73,7 +85,12 @@
       ],
       "forbiddenClaims": [
         {"claim": "Says the rate-quoted loan is exempt", "pattern": "\\b(your|this|that|the) (\\S+ ){0,3}(loan|bridge|note|deal|financing|facility|refinance)\\b[^.]{0,30}\\b(is|will be|would be) (fully |likely |probably )?(usury[- ])?exempt\\b"},
-        {"claim": "Confirms the exemption applies", "pattern": "\\b(yes|it is|it's) (exempt|covered by the exemption)\\b"}
+        {"claim": "Confirms the exemption applies", "pattern": "\\b(yes|it is|it's) (exempt|covered by the exemption)\\b"},
+        { "claim": "Says usury does not apply because a broker or Kubera arranged the loan", "pattern": "\\busury\\b[^.]{0,60}?\\b(doesn't|does not|don't|do not|won't|will not|isn't|is not|aren't|are not)\\s+(apply|be an? (\\w+ )?(issue|concern|problem)|limit|reach|cover)\\b[^.]{0,60}?\\b(since|because|as|given that)\\b[^.]{0,60}?\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b|\\b(since|because|given that|with)\\b[^.]{0,60}?\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b[^.]{0,60}?\\busury\\b[^.]{0,60}?\\b(doesn't|does not|don't|do not|won't|will not|isn't|is not)\\s+(apply|be an? (\\w+ )?(issue|concern|problem)|limit)\\b" },
+        { "claim": "Says the lender can charge a stated rate because a broker arranged the loan", "pattern": "\\blenders?\\s+(can|could|may|is allowed to|is permitted to)\\s+(legally\\s+|lawfully\\s+)?charge\\s+(you\\s+)?(more than\\s+|over\\s+|above\\s+|up to\\s+)?\\d+(\\.\\d+)?\\s*%[^.]{0,60}\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b|\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b[^.]{0,60}\\blenders?\\s+(can|could|may|is allowed to|is permitted to)\\s+(legally\\s+|lawfully\\s+)?charge\\s+(you\\s+)?(more than\\s+|over\\s+|above\\s+|up to\\s+)?\\d+(\\.\\d+)?\\s*%" },
+        { "claim": "Says the rate is permissible because a broker arranged the loan", "pattern": "\\b(is|are|would be|will be)\\s+(permissible|permitted|allowed|legal|lawful|fine)\\s+(because|since|as|given that)\\b[^.]{0,60}?\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b" },
+        { "claim": "Says the rate cap does not limit the loan", "pattern": "\\b(usury|interest[- ]rate|rate|\\d+(\\.\\d+)?\\s*%)\\s+(caps?|limits?|ceilings?)\\s+(doesn't|does not|won't|will not|don't|do not)\\s+(limit|restrict|apply to|cover|reach|govern|affect)\\s+(your|this|that)\\b" },
+        { "claim": "Says there is no cap on what the lender can charge because a broker arranged it", "pattern": "\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b[^.]{0,60}\\bno\\s+(usury\\s+|rate\\s+)?(caps?|limits?|ceilings?)\\s+on\\s+(what|how much)\\b|\\bno\\s+(usury\\s+|rate\\s+)?(caps?|limits?|ceilings?)\\s+on\\s+(what|how much)\\b[^.]{0,60}\\b(brokers?|brokered|kubera|arrang(e|es|ed|ing))\\b" }
       ],
       "source": "Program primer; Civ. Code §1916.1 (gate H); Global rule 4, as of 2026-10"
     },

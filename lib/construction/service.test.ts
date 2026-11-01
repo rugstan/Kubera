@@ -58,7 +58,7 @@ describe("report orders go through the broker approval gate", () => {
   it("marks the report ordered only after approval and sets the vendor due date", async () => {
     const { deps, report } = await setup();
     const updated = await requestReportOrder(deps, "analyst@kubera.test", report("phase_i").id, vendor);
-    expect(updated).toMatchObject({ status: "ordered", vendorName: "Terracon", approvalId: "appr_1", orderedAt: "2026-11-04T18:00:00.000Z", dueAt: "2026-11-30" });
+    expect(updated).toMatchObject({ status: "ordered", vendorName: "Terracon", approvalId: "appr_1", orderedAt: "2026-11-04T18:00:00.000Z", dueAt: "2026-11-27" });
     expect(deps.gate.requests).toHaveLength(1);
     expect(deps.gate.requests[0]).toMatchObject({ kind: "email", requestedBy: "analyst@kubera.test" });
     expect(deps.gate.requests[0]!.templateId).toBeUndefined();

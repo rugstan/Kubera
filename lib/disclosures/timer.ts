@@ -4,6 +4,10 @@
 // The MLDS is due by the EARLIER of (a) the end of the third business day after
 // receipt or (b) the moment the borrower becomes obligated on the note. Staff
 // are warned from the start of business day 2.
+//
+// Business days follow the strictest calendar (federal holidays only) until
+// counsel rules on optional California holidays and sets
+// MLDS_CA_OPTIONAL_HOLIDAYS=true; see ./business-days.ts.
 
 import { addBusinessDays, businessDaysBetween, civilDateOf, endOfOfficeDay, startOfOfficeDay, type CivilDate } from "./business-days";
 
