@@ -26,7 +26,9 @@ export async function POST(req: Request) {
   const p = provider();
   return handleEsignWebhook(req, {
     provider: p,
-    secretConfigured: p?.name === "fake" || Boolean(process.env.ZOHO_SIGN_WEBHOOK_SECRET),
+    // The fake too: without an explicit secret it would verify against a
+    // public test value, so anyone could forge a 'signed' MLDS.
+    secretConfigured: Boolean(process.env.ZOHO_SIGN_WEBHOOK_SECRET),
     backends: supabaseDisclosureBackends(),
     deal: gatedCrmSink(approvalGate()),
     async otherRequest(event) {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { FakeEsignProvider } from "./fake";
 import { esignProviderFromEnv, mldsTemplateId } from "./index";
 
 const zoho = { ZOHO_SIGN_CLIENT_ID: "a", ZOHO_SIGN_CLIENT_SECRET: "b", ZOHO_SIGN_REFRESH_TOKEN: "c" };
@@ -24,8 +25,24 @@ describe("e-sign provider selection", () => {
     expect(mldsTemplateId("fake", { NODE_ENV: "test" })).toBe("fake_mlds_template");
   });
 
-  it("allows the fake outside production only", () => {
+  it("allows the fake only outside production and without the Supabase service role", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(esignProviderFromEnv({ NODE_ENV: "test", ESIGN_PROVIDER: "fake" })?.name).toBe("fake");
-    expect(() => esignProviderFromEnv({ NODE_ENV: "production", VERCEL_ENV: "production", ESIGN_PROVIDER: "fake" })).toThrow(/not allowed/);
+    expect(esignProviderFromEnv({ NODE_ENV: "production", VERCEL_ENV: "preview", ESIGN_PROVIDER: "fake" })?.name).toBe("fake");
+    expect(esignProviderFromEnv({ NODE_ENV: "production", VERCEL_ENV: "production", ESIGN_PROVIDER: "fake" })).toBeNull();
+    expect(esignProviderFromEnv({ NODE_ENV: "test", DEPLOY_ENV: "production", ESIGN_PROVIDER: "fake" })).toBeNull();
+    expect(esignProviderFromEnv({ NODE_ENV: "production", VERCEL_ENV: "preview", ESIGN_PROVIDER: "fake", SUPABASE_SERVICE_ROLE_KEY: "service-role" })).toBeNull();
+    expect(esignProviderFromEnv({ NODE_ENV: "test", ESIGN_PROVIDER: "fake", SUPABASE_SERVICE_ROLE_KEY: "service-role" })).toBeNull();
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(String(error.mock.calls[0]?.[0])).toMatch(/not allowed in production/);
+    error.mockRestore();
+  });
+
+  it("never gives an env-built fake the public default webhook secret", () => {
+    const fallback = esignProviderFromEnv({ NODE_ENV: "test", ESIGN_PROVIDER: "fake" }) as FakeEsignProvider;
+    expect(fallback.webhookSecret).not.toBe("fake-webhook-secret");
+    expect(fallback.webhookSecret.length).toBeGreaterThanOrEqual(32);
+    const explicit = esignProviderFromEnv({ NODE_ENV: "test", ESIGN_PROVIDER: "fake", ZOHO_SIGN_WEBHOOK_SECRET: "s" }) as FakeEsignProvider;
+    expect(explicit.webhookSecret).toBe("s");
   });
 });

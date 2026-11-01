@@ -191,4 +191,17 @@ describe("scannerFromEnv", () => {
     expect(scannerFromEnv({ SCANNER_PROVIDER: "fake" })?.name).toBe("fake");
     expect(() => scannerFromEnv({ SCANNER_PROVIDER: "fake", NODE_ENV: "production", VERCEL_ENV: "production" })).toThrow(/not allowed in production/);
   });
+
+  it("refuses the fake in the container worker when the service-role key is set (no NODE_ENV or VERCEL_ENV)", () => {
+    expect(() => scannerFromEnv({ SCANNER_PROVIDER: "fake", SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-role" })).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
+  });
+
+  it("refuses the fake on a self-hosted DEPLOY_ENV=production", () => {
+    expect(() => scannerFromEnv({ SCANNER_PROVIDER: "fake", DEPLOY_ENV: "production" })).toThrow(/not allowed in production/);
+  });
+
+  it("refuses the fake on a Vercel preview wired to a real Supabase", () => {
+    expect(() => scannerFromEnv({ SCANNER_PROVIDER: "fake", NODE_ENV: "production", VERCEL_ENV: "preview", SUPABASE_SERVICE_ROLE_KEY: "service-role" })).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
+    expect(scannerFromEnv({ SCANNER_PROVIDER: "fake", NODE_ENV: "production", VERCEL_ENV: "preview" })?.name).toBe("fake");
+  });
 });

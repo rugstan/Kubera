@@ -23,6 +23,9 @@ export class FakeEsignProvider implements EsignProvider {
   private seq = 0;
 
   constructor(
+    // The default is a public test value for unit tests only. esignProviderFromEnv
+    // never uses it, and the webhook route refuses the fake without
+    // ZOHO_SIGN_WEBHOOK_SECRET.
     readonly webhookSecret = "fake-webhook-secret",
     private readonly signedPdf: Uint8Array = new TextEncoder().encode("%PDF-1.4\n% fake signed copy\n%%EOF\n"),
   ) {}

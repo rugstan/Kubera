@@ -8,7 +8,7 @@
 //   disabled  nothing configured: sign-in pages explain that staff sign-in is
 //             not set up, and every staff page refuses access.
 
-import { deploymentEnv } from "@/lib/site";
+import { fakeProviderRefusal } from "@/lib/deploy-env";
 
 type Env = Record<string, string | undefined>;
 
@@ -19,13 +19,11 @@ export type AuthMode =
 
 export function resolveAuthMode(env: Env = process.env): AuthMode {
   const requested = (env.AUTH_PROVIDER ?? "").trim().toLowerCase();
-  const production = deploymentEnv(env) === "production";
 
   if (requested === "fake") {
-    if (production) return { mode: "disabled", reason: "AUTH_PROVIDER=fake is not allowed in production" };
     // Fake identities must never reach real data.
-    if ((env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim()) return { mode: "disabled", reason: "AUTH_PROVIDER=fake cannot run with SUPABASE_SERVICE_ROLE_KEY set" };
-    return { mode: "fake" };
+    const refused = fakeProviderRefusal("AUTH_PROVIDER", env);
+    return refused ? { mode: "disabled", reason: refused } : { mode: "fake" };
   }
   if (requested && requested !== "supabase") return { mode: "disabled", reason: `Unknown AUTH_PROVIDER "${requested}"` };
 

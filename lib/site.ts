@@ -3,6 +3,8 @@
 // DRE license number on first-point-of-contact materials, websites included
 // (Bus. & Prof. Code § 10140.6, 10 CCR § 2773).
 
+import { deploymentEnv } from "./deploy-env";
+
 type Env = Record<string, string | undefined>;
 
 export const site = {
@@ -25,20 +27,8 @@ export const site = {
 /** DRE license IDs are eight digits (leading zeros are significant). */
 export const DRE_LICENSE_PATTERN = /^\d{8}$/;
 
-export type DeploymentEnv = "production" | "preview" | "development";
-
-/**
- * Where this build will be served. Vercel sets VERCEL_ENV; other hosts set
- * DEPLOY_ENV=production. A plain `next build` (CI, local) is treated as a
- * preview so the guard below does not block test builds.
- */
-export function deploymentEnv(env: Env = process.env): DeploymentEnv {
-  const declared = env.VERCEL_ENV || env.DEPLOY_ENV;
-  if (declared === "production") return "production";
-  if (declared === "preview") return "preview";
-  if (env.NODE_ENV === "production") return "preview";
-  return "development";
-}
+// Where this build will be served (lib/deploy-env.ts, side-effect free).
+export { deploymentEnv, type DeploymentEnv } from "./deploy-env";
 
 export class LicenseConfigurationError extends Error {
   constructor(message: string) {
