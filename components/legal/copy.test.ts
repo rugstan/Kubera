@@ -13,6 +13,13 @@ const list = (dir: string, except: string[] = []) =>
   readdirSync(path.join(root, dir))
     .filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !except.includes(f))
     .map((f) => `${dir}/${f}`);
+/** Every .ts and .tsx source under a directory, tests excluded. */
+const walk = (dir: string): string[] =>
+  readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) => {
+    const rel = `${dir}/${e.name}`;
+    if (e.isDirectory()) return walk(rel);
+    return /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) ? [rel] : [];
+  });
 
 const COPY_FILES = [
   ...list("components/home", ["Reveal.tsx"]),
@@ -51,28 +58,54 @@ const FORBIDDEN: [RegExp, string][] = [
 ];
 
 // Everything a visitor can read or a crawler can fetch must stay free of AI
-// wording; the assistant is a staff tool now. This list is separate from
-// COPY_FILES on purpose: those files are also held to the CTA and timeline rules.
-// Identifiers such as AiUseNotice or AI_NOTICE_HREF are not copy, and neither
-// pattern matches them. Staff screens (app/(staff)) are intentionally not scanned.
+// wording and of the names of internal automation; the assistant and the
+// scoring and routing tools are staff-side operations. This list is separate
+// from COPY_FILES on purpose: those files are also held to the CTA and timeline
+// rules. Every public page, every content file and every component directory a
+// public page renders is scanned whole, so a new article, glossary entry or
+// market page is covered without being listed. Identifiers such as AiUseNotice
+// or AI_NOTICE_HREF are not copy, and no pattern matches them. Staff screens
+// (app/(staff)) are intentionally not scanned.
+const PUBLIC_COMPONENT_DIRS = [
+  "home",
+  "site",
+  "express",
+  "partners",
+  "legal",
+  "privacy",
+  "insights",
+  "calculators",
+  "markets",
+  "rates",
+  "program",
+  "ticker",
+  "trust",
+  "newsletter",
+  "sizer",
+  "seo",
+  "forms",
+];
 const NO_AI_FILES = [
   ...COPY_FILES,
   ...TRUST_FILES,
-  "app/express/page.tsx",
-  "components/program/parts.tsx",
-  ...list("components/privacy"),
-  "app/(site)/about/page.tsx",
+  ...walk("app/(site)"),
+  ...walk("app/express"),
+  ...walk("content"),
+  ...PUBLIC_COMPONENT_DIRS.flatMap((d) => walk(`components/${d}`)),
   "app/opengraph-image.tsx",
   "app/manifest.ts",
   "app/layout.tsx",
-  "content/programs/hubs.ts",
+  "app/not-found.tsx",
+  "app/llms.txt/route.ts",
   "lib/seo/llms.ts",
   "lib/seo/sitemap-routes.ts",
-  "components/sizer/LoanSizer.tsx",
+  "lib/site.ts",
 ];
 const NO_AI: [RegExp, string][] = [
   [/\bAI\b/, "no 'AI' on public surfaces"],
   [/Kubera AI|AI-assisted|artificial intelligence|machine learning|chatbot|⌘K/i, "no assistant, chatbot or shortcut wording"],
+  [/\bJev\b/, "no internal system names"],
+  [/routing engine|rules engine|scoring (?:engine|model)|lead scor/i, "no internal automation wording"],
 ];
 
 // A closing timeline like "10–21 days" must be conditional in the same file.
@@ -93,6 +126,18 @@ describe("copy guard", () => {
   it.each([...new Set(NO_AI_FILES)])("%s mentions no AI", (file) => {
     const src = read(file);
     for (const [re, why] of NO_AI) expect(src, `${file}: ${why} (${re})`).not.toMatch(re);
+  });
+
+  it("scans every public page, content file and the partner hero", () => {
+    const files = new Set(NO_AI_FILES);
+    for (const f of ["app/(site)/partners/page.tsx", "app/(site)/glossary/page.tsx", "content/glossary.ts", "content/insights/articles.ts", "content/markets/california.ts", "content/deal-structures.ts", "components/site/nav.ts"]) {
+      expect(files.has(f), f).toBe(true);
+    }
+    // The guard itself catches the wording that slipped through before.
+    const hit = (text: string) => NO_AI.some(([re]) => re.test(text));
+    expect(hit("feeds Jev, our routing engine")).toBe(true);
+    expect(hit("Kubera rent-control rules engine")).toBe(true);
+    expect(hit("const AI_NOTICE_HREF = x; <AiUseNotice />")).toBe(false);
   });
 
   it("uses sentence case on primary CTAs", () => {

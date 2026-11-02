@@ -174,6 +174,16 @@ test.describe("express qualifier", () => {
     await pick.click();
     await pickAsset(page, /^multifamily$/i);
     await expect(page.getByRole("radiogroup", { name: /^transaction/i }).getByRole("radio", { name: /^construction$/i })).toBeChecked();
+
+    // Back to step 1, undo the pick and choose the property again: Construction is no longer preselected.
+    await page.getByRole("button", { name: /^back$/i }).click();
+    await expect(pick).toHaveAttribute("aria-pressed", "true");
+    await pick.click();
+    await expect(pick).toHaveAttribute("aria-pressed", "false");
+    await pickAsset(page, /^multifamily$/i);
+    const transaction = page.getByRole("radiogroup", { name: /^transaction/i });
+    await expect(transaction.getByRole("radio", { name: /^construction$/i })).not.toBeChecked();
+    await expect(transaction.getByRole("radio", { checked: true })).toHaveCount(0);
   });
 
   for (const [family, group] of [

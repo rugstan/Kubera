@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { STAFF_ROUTE_PREFIXES } from "./lib/auth/staff-routes";
 import { securityHeaders } from "./lib/csp";
 
 const nextConfig: NextConfig = {
@@ -23,6 +24,12 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders() },
       // JSON endpoints are never indexed.
       { source: "/api/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
+      // Staff desks are noindexed by header rather than listed in the public
+      // robots.txt (see lib/seo/robots.ts). `:path*` also matches the bare prefix.
+      ...STAFF_ROUTE_PREFIXES.map((prefix) => ({
+        source: `${prefix}/:path*`,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      })),
     ];
   },
 };

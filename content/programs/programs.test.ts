@@ -146,6 +146,16 @@ describe("structure", () => {
     }
   });
 
+  it("never repeats a hub's own programs in its related links", () => {
+    // A hub lists its family under "Programs we arrange"; related links point elsewhere.
+    const hubEntries = [...hubs, ...programs.filter((p) => p.isHub)];
+    expect(hubEntries.map((h) => h.family).sort()).toEqual([...PROGRAM_FAMILIES].sort());
+    for (const h of hubEntries) {
+      const family = new Set(programsInFamily(h.family).map((p) => p.slug));
+      for (const slug of h.related) expect(family.has(slug), `${h.slug} -> ${slug}`).toBe(false);
+    }
+  });
+
   it("links every page from at least one other page", () => {
     const linked = new Set(allEntries.flatMap((e) => e.related));
     for (const slug of financingSlugs) {

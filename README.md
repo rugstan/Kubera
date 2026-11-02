@@ -20,7 +20,7 @@ app/(site)/page.tsx          Homepage: hero, five program families, how it works
 app/(site)/partners          Lender / referral / operator / vendor portal
 app/express                  60-second qualifier (served at kubera.loans/ by proxy.ts)
 app/api/qualify              Intake → Jev → Supabase → Twenty (after response)
-app/api/ask                  Staff-only streaming Claude advisor + term sheets (no public entry point)
+app/api/ask                  Staff-only (MFA) streaming Claude advisor API. Dormant: no screen calls it since the public command bar was removed; wire a staff panel to it or retire it
 app/api/partners             Partner registration → Supabase → Twenty
 app/api/documents            Signed upload URLs into the private document vault
 app/api/cron/rates           15-min cron: refresh rate cache, snapshot to Supabase

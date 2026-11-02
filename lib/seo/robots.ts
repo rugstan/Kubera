@@ -1,23 +1,18 @@
 import type { MetadataRoute } from "next";
-import { STAFF_ROUTE_PREFIXES } from "@/lib/auth/staff-routes";
 import { canonicalUrl, isExpressHost, isPreviewDeployment } from "./hosts";
 
 /** AI search and assistant crawlers that are explicitly welcome on the main site. */
 export const AI_CRAWLERS = ["GPTBot", "OAI-SearchBot", "PerplexityBot", "ClaudeBot", "Google-Extended"] as const;
 
 /**
- * Paths no crawler needs: the API, the staff app, the borrower portal and the
- * sign-in pages (which also send noindex metadata).
+ * Paths no crawler needs: the API, the borrower portal and the sign-in pages
+ * (which also send noindex metadata). The staff desks are deliberately not
+ * listed: robots.txt is public, so naming each desk would publish the back
+ * office's route map. They need a session (anonymous requests redirect to
+ * /login, which is disallowed here) and send `X-Robots-Tag: noindex` from
+ * next.config.ts plus noindex metadata from the staff layout.
  */
-export const DISALLOWED_PATHS = [
-  "/api/",
-  ...STAFF_ROUTE_PREFIXES,
-  "/portal",
-  "/login",
-  "/mfa",
-  "/auth",
-  "/access-denied",
-];
+export const DISALLOWED_PATHS = ["/api/", "/portal", "/login", "/mfa", "/auth", "/access-denied"];
 
 /**
  * robots.txt content for a request host.

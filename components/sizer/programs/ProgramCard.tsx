@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { usd } from "@/lib/sizing/programs";
 import { SIZER_CONSTRAINT_COPY, isInterim } from "@/lib/sizing/programs/quote";
 import type { ExitResult, SizerQuote, StackLayer } from "@/lib/sizing/programs/types";
+import { coarseTimeline } from "../timeline";
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -55,11 +56,12 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
       // No entrance state: cards must be visible in the server HTML.
       initial={false}
       transition={{ type: "spring", stiffness: 260, damping: 30, delay: index * 0.05 }}
-      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : INELIGIBLE}`}
+      // Blue marks only what can be pressed, so the best-fit card and badge are ink.
+      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-ink" : ""} ${q.eligible ? "" : INELIGIBLE}`}
       aria-label={`${q.name} quote`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        {best && <span className="badge-accent rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
+        {best && <span className="rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-semibold text-white">Best fit</span>}
         {badge && <span className={`${badge === "Short-term" ? "bg-black/[0.05] text-ink/80" : "badge"} rounded-full px-2.5 py-0.5 text-[11px] font-semibold`}>{badge}</span>}
         {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-graphite">Not a fit</span>}
       </div>
@@ -110,7 +112,7 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
           <div className="mt-4 space-y-1 text-[12px] text-ink/70">
             <p><span className="text-titanium">Recourse:</span> {q.recourse}</p>
             <p><span className="text-titanium">Amortization:</span> {q.amortLabel}</p>
-            <p><span className="text-titanium">Typical close:</span> {q.closeTimeline}</p>
+            <p><span className="text-titanium">Typical close:</span> {coarseTimeline(q.closeTimeline)}</p>
             {q.equityRequired !== undefined && <p><span className="text-titanium">Equity required:</span> {usd(q.equityRequired)}</p>}
           </div>
 

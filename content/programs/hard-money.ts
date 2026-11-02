@@ -11,10 +11,12 @@ export const hardMoneyPrograms: ProgramEntry[] = [
   {
     slug: "hard-money",
     family: "hard-money",
-    name: "Hard money loans",
-    title: "Hard money loans",
+    // Named for the family it heads, as in the menu ("Hard money and bridge"),
+    // because this page is also the family hub.
+    name: "Hard money and bridge loans",
+    title: "Hard money and bridge loans",
     description:
-      "Hard money loans are short-term, asset-based loans from private lenders for fast closings. See typical rates, points, leverage, extensions and exit costs.",
+      "Hard money and private bridge loans are short-term, asset-based loans for fast closings. See typical rates, points, leverage, extensions and exit costs.",
     summary: "Short-term, asset-based private loans for speed and flexibility.",
     definition:
       "A hard money loan is a short-term, interest-only loan from a private lender, secured by real estate and underwritten mainly on the value of the asset and the borrower's exit plan rather than on the borrower's credit or income, which is why it can close faster than bank or agency debt.",
@@ -76,7 +78,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
         answer: LENDER_OF_RECORD,
       },
     ],
-    related: ["fix-and-flip", "private-bridge", "multifamily-bridge", "construction-loans", "construction"],
+    related: ["multifamily-bridge", "dscr-investor", "bridge-to-hud", "construction-loans", "construction"],
   },
   {
     slug: "fix-and-flip",

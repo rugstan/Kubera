@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
+import { LicenseId } from "@/components/trust/LicenseId";
 import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShell";
 import { SchedulerEmbed } from "@/components/trust/SchedulerEmbed";
 import { HEADER_CTA, SIZER_LINK } from "@/components/site/nav";
 import { contactPageSchema } from "@/components/trust/schemas";
-import { MAILBOXES, contactDetails, mailboxAddress } from "@/content/contact";
+import { MAILBOXES, callLink, contactDetails, mailboxAddress } from "@/content/contact";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { licenseLine, site } from "@/lib/site";
@@ -17,11 +18,28 @@ export const metadata: Metadata = pageMetadata({ title: meta.title, description:
 
 export default function ContactPage() {
   const contact = contactDetails();
+  // "Book a call" jumps to the scheduler below once online booking is set up; until then it is "Email an advisor".
+  const call = callLink();
   return (
     <PageShell
       eyebrow="Contact"
       title="Talk to a licensed advisor."
-      intro={<p>Tell us about the property and the loan you have in mind. An advisor reads every message and replies by email or phone.</p>}
+      intro={
+        <>
+          <p>Tell us about the property and the loan you have in mind. An advisor reads every message and replies by email or phone.</p>
+          {/* The actions sit above the fold, before any mailbox detail. */}
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <Link href={HEADER_CTA.href} className="pill pill-primary">{HEADER_CTA.label}</Link>
+            <a href={call.kind === "book" ? "#schedule" : call.href} className="pill pill-secondary">{call.label}</a>
+          </div>
+          {contact.telHref && (
+            <p className="mt-4 text-[15px]">
+              Or call{" "}
+              <a href={`tel:${contact.telHref}`} className="font-medium text-accent underline underline-offset-2">{contact.phone}</a>
+            </p>
+          )}
+        </>
+      }
       breadcrumb={[{ href: meta.path, label: "Contact" }]}
     >
       <JsonLd
@@ -56,17 +74,15 @@ export default function ContactPage() {
               </p>
             </div>
           )}
+          {/* The office card needs a real address (NEXT_PUBLIC_OFFICE_ADDRESS or the DRE licensed address);
+              without one, the card shows the license instead of asking visitors to email for it. */}
           <div className="bento p-7">
-            <h3 className="text-lg font-semibold">Office</h3>
+            <h3 className="text-lg font-semibold">{contact.address ? "Office" : "Licensing"}</h3>
             {contact.address ? (
               <address className="mt-3 text-[15px] not-italic leading-relaxed text-titanium">{contact.address}</address>
             ) : (
-              // contact.address already falls back to the licensed address, so an empty
-              // value means neither is configured and the licensing page shows none either.
-              <p className="mt-3 text-[15px] text-titanium">
-                Email{" "}
-                <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]">{contact.email}</a>{" "}
-                for our office address.
+              <p className="mt-3 text-[15px] leading-relaxed text-titanium">
+                {site.legalName} is a licensed California real estate broker. DRE Corp. License <LicenseId id={site.dreCorporateLicense} />
               </p>
             )}
             <p className="mt-2 text-[14px] text-titanium">
@@ -93,6 +109,21 @@ export default function ContactPage() {
           </div>
         </Section>
       )}
+
+      <Section id="not-sure" title="Not sure where to start?">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Link href={HEADER_CTA.href} className="pill pill-primary">
+            {HEADER_CTA.label}
+          </Link>
+          <Link href={SIZER_LINK.href} className="pill pill-glass">
+            {SIZER_LINK.label}
+          </Link>
+        </div>
+        <p className="mt-5 text-[14px] text-titanium">
+          Lender, referral broker or vendor?{" "}
+          <Link href="/partners" className="font-medium text-accent underline underline-offset-2">Register as a partner</Link>.
+        </p>
+      </Section>
 
       <Section id="mailboxes" title="Which address to use" lead="Writing to the right mailbox gets your message to the right person sooner.">
         <div role="region" aria-label="Mailbox routing" tabIndex={0} className="bento overflow-x-auto">
@@ -129,23 +160,8 @@ export default function ContactPage() {
         </p>
       </Section>
 
-      <Section id="not-sure" title="Not sure where to start?">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link href={HEADER_CTA.href} className="pill pill-primary">
-            {HEADER_CTA.label}
-          </Link>
-          <Link href={SIZER_LINK.href} className="pill pill-glass">
-            {SIZER_LINK.label}
-          </Link>
-        </div>
-        <p className="mt-5 text-[14px] text-titanium">
-          Lender, referral broker or vendor?{" "}
-          <Link href="/partners" className="font-medium text-accent underline underline-offset-2">Register as a partner</Link>.
-        </p>
-      </Section>
-
       <LicenseFootnote>
-        {licenseLine()} {site.legalName} is a broker, not a lender. Messages are not an application, and a reply is not a commitment to lend.
+        {licenseLine()}. {site.legalName} is a broker, not a lender. Messages are not an application, and a reply is not a commitment to lend.
       </LicenseFootnote>
     </PageShell>
   );

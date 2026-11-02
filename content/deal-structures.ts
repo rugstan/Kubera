@@ -112,7 +112,7 @@ export function sba504Stack({ totalUsd, debentureCapUsd, specialPurpose }: Sba50
 const pts = (n: number) => `${Number(n.toFixed(3))}%`;
 
 const SBA_ASSUMPTION_NOTE = `Modeled assumption, reviewed ${ASSUMPTIONS_REVIEWED}; confirm against the SBA SOP in effect at application.`;
-const HUD_ASSUMPTION_NOTE = `VERIFY against the current HUD handbook; modeled assumption reviewed ${ASSUMPTIONS_REVIEWED}.`;
+const HUD_ASSUMPTION_NOTE = `Modeled on the current HUD handbook, reviewed ${ASSUMPTIONS_REVIEWED}; confirm with a HUD lender.`;
 const PROGRAM_NOTE = `Modeled assumption, reviewed ${PROGRAM_ASSUMPTIONS_REVIEWED}; confirm with the lender.`;
 
 const BANK = CONSTRUCTION.boxes.BANK;
@@ -235,7 +235,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       { label: "HUD 232 refinance max LTV", value: pct(HUD.section232.refi.maxLtv), note: HUD_ASSUMPTION_NOTE },
       { label: "HUD 232 refinance min DSCR", value: `${HUD.section232.refi.minDscr.toFixed(2)}x`, note: HUD_ASSUMPTION_NOTE },
       { label: "HUD 232 term", value: `${HUD.section232.refi.termYears} years`, note: HUD_ASSUMPTION_NOTE },
-      { label: "HUD 232 annual / upfront MIP", value: `${pct(HUD.section232.refi.annualMip)} / ${pct(HUD.section232.refi.upfrontMip)}`, note: "VERIFY whether the flat 0.25% MIP notice reaches Section 232." },
+      { label: "HUD 232 annual / upfront MIP", value: `${pct(HUD.section232.refi.annualMip)} / ${pct(HUD.section232.refi.upfrontMip)}`, note: "Modeled at the Section 232 rates; a HUD lender confirms whether the flat 0.25% MIP notice applies." },
       { label: "HUD stabilized occupancy test", value: pct(HUD.section232.stabilizedOccupancy), note: HUD_ASSUMPTION_NOTE },
       { label: "Years since completion for 223(f)", value: `${HUD.section232.minYearsSinceCompletion}`, note: HUD_ASSUMPTION_NOTE },
     ],

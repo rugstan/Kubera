@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { blend, contrast } from "./contrast";
@@ -14,7 +14,7 @@ function theme(name: string): string {
 
 /** Value a dark-surface rule re-points a token to (titanium only; accent text uses --color-accent-on-dark). */
 function darkOverride(name: string): string {
-  const block = /\.bg-ink,[\s\S]*?\.on-dark\s*\{([\s\S]*?)\}/.exec(css);
+  const block = /\.bg-ink,[\s\S]*?\.bento-pro\s*\{([\s\S]*?)\}/.exec(css);
   if (!block) throw new Error("dark surface override block not found");
   const m = new RegExp(`--color-${name}:\\s*(#[0-9a-fA-F]{3,6})`).exec(block[1]!);
   if (!m) throw new Error(`dark override for --color-${name} not found`);
@@ -155,5 +155,74 @@ describe("design tokens (WCAG 2.2 AA)", () => {
     // The base rule must leave content visible; the fade lives inside @supports + no-preference.
     expect(css).toMatch(/\.reveal\s*\{\s*opacity:\s*1/);
     expect(css).toMatch(/@supports \(animation-timeline: view\(\)\)\s*\{\s*@media \(prefers-reduced-motion: no-preference\)/);
+  });
+});
+
+// Pairs that look fine but fail WCAG 1.4.3 for normal-size text. They were
+// once only comments in globals.css; these tests pin the numbers and keep the
+// pairs out of the components.
+describe("near-miss colour pairs (documented failures)", () => {
+  const titanium = () => theme("titanium");
+  const canvas = () => theme("canvas");
+
+  it("titanium fails on the chip fill and on black tints over the canvas", () => {
+    expect(contrast(titanium(), theme("fill"))).toBeLessThan(AA);
+    // .badge and bg-black/5 over the canvas.
+    expect(contrast(titanium(), blend(BLACK, 0.05, canvas()))).toBeLessThan(AA);
+    // bg-black/[0.03] over the canvas.
+    expect(contrast(titanium(), blend(BLACK, 0.03, canvas()))).toBeLessThan(AA);
+  });
+
+  it("titanium fails on the nav glass when a black band shows through it", () => {
+    expect(contrast(titanium(), blend("#fafafc", 0.8, BLACK))).toBeLessThan(AA);
+  });
+
+  it("quiet grey fails as small text on white and on the canvas", () => {
+    expect(contrast(theme("quiet"), WHITE)).toBeLessThan(AA);
+    expect(contrast(theme("quiet"), canvas())).toBeLessThan(AA);
+  });
+});
+
+describe("near-miss colour pairs (source scan)", () => {
+  const root = path.resolve(import.meta.dirname, "../..");
+  const walk = (dir: string): string[] =>
+    readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) => {
+      const rel = `${dir}/${e.name}`;
+      if (e.isDirectory()) return e.name === "node_modules" ? [] : walk(rel);
+      return e.name.endsWith(".tsx") && !e.name.endsWith(".test.tsx") ? [rel] : [];
+    });
+  const files = [...walk("app"), ...walk("components")];
+  /** Every static className string, quoted or a template literal. */
+  const classLists = (src: string) => [...src.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)].map((m) => (m[1] ?? m[2])!);
+  const has = (list: string, cls: RegExp) => list.split(/[\s"'`{}$]+/).some((c) => cls.test(c));
+  const LIGHT_TINT = /^(?:bg-fill|badge|bg-black\/5|bg-black\/\[0\.0[3-5]\])$/;
+  const LARGE_OR_DARK = /^(?:(?:md:|lg:)?text-(?:[2-9]xl|tile|hero(?:-lg)?|section|headline)|bg-ink|bg-pro|bento-pro)$/;
+
+  it("scans the app and component sources", () => {
+    expect(files.length).toBeGreaterThan(50);
+  });
+
+  it("never puts titanium text on the chip fill, a badge or a light black tint", () => {
+    const offenders = files.flatMap((f) =>
+      classLists(readFileSync(path.join(root, f), "utf8"))
+        .filter((list) => has(list, /^text-titanium$/) && has(list, LIGHT_TINT))
+        .map((list) => `${f}: ${list}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("uses quiet grey as text only when large or on a dark surface", () => {
+    const offenders = files.flatMap((f) =>
+      classLists(readFileSync(path.join(root, f), "utf8"))
+        .filter((list) => has(list, /^text-quiet$/) && !has(list, LARGE_OR_DARK))
+        .map((list) => `${f}: ${list}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("would catch the pairs it guards against", () => {
+    expect(has("rounded-full bg-fill px-3 text-titanium", LIGHT_TINT) && has("rounded-full bg-fill px-3 text-titanium", /^text-titanium$/)).toBe(true);
+    expect(has("text-[12px] text-quiet", LARGE_OR_DARK)).toBe(false);
+    expect(has("text-3xl text-quiet", LARGE_OR_DARK)).toBe(true);
   });
 });

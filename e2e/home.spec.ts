@@ -52,8 +52,10 @@ test.describe("homepage", () => {
     await page.goto("/");
     const programs = page.locator("#programs");
     for (const family of ["senior-living", "hotels", "multifamily", "construction", "hard-money"]) {
-      await expect(programs.locator(`a[href="/financing/${family}"]`).first()).toBeVisible();
       await expect(programs.locator(`#${family}`)).toHaveCount(1);
+      const hub = programs.locator(`#${family}`).getByRole("link", { name: /^explore /i });
+      await expect(hub).toBeVisible();
+      await expect(hub).toHaveAttribute("href", `/financing/${family}`);
       const options = programs.locator(`#${family}`).getByRole("link", { name: /^get options/i });
       await expect(options).toHaveAttribute("href", `/express?family=${family}`);
     }
@@ -105,6 +107,60 @@ test.describe("homepage", () => {
     expect(box.height).toBeGreaterThanOrEqual(36);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test("every family has an entry point in the hero, above a 1440x900 fold", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoHydrated(page, "/");
+    const families = page.getByRole("navigation", { name: "What we finance" });
+    for (const [name, href] of [
+      ["Senior living", "/financing/senior-living"],
+      ["Hotels", "/financing/hotels"],
+      ["Multifamily", "/financing/multifamily"],
+      ["Construction", "/financing/construction"],
+      ["Hard money and bridge", "/financing/hard-money"],
+    ] as const) {
+      const link = families.getByRole("link", { name, exact: true });
+      await expect(link).toHaveAttribute("href", href);
+      const box = (await link.boundingBox())!;
+      expect(box.y + box.height, name).toBeLessThanOrEqual(900);
+    }
+    // The facts row under the hero clears the fold too.
+    const facts = (await page.locator("main > section").first().locator("dl").boundingBox())!;
+    expect(facts.y + facts.height).toBeLessThanOrEqual(900);
+  });
+
+  test("on a phone all five family cards fit in about a screen and a half", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoHydrated(page, "/");
+    const cards = page.locator("#programs article");
+    await expect(cards).toHaveCount(5);
+    const first = (await cards.first().boundingBox())!;
+    const last = (await cards.last().boundingBox())!;
+    expect(last.y + last.height - first.y).toBeLessThanOrEqual(844 * 1.6);
+    // Each card shows its lead program and a link to the rest.
+    await expect(page.locator("#multifamily").getByRole("link", { name: /^\+\d+ more multifamily programs$/ })).toBeVisible();
+    // The card footers share one layout: the link and the pill on one row.
+    for (const card of await cards.all()) {
+      const explore = (await card.getByRole("link", { name: /^explore /i }).boundingBox())!;
+      const options = (await card.getByRole("link", { name: /^get options/i }).boundingBox())!;
+      expect(Math.abs(explore.y + explore.height / 2 - (options.y + options.height / 2))).toBeLessThan(6);
+    }
+  });
+
+  test("keeps the DRE number on one line in the hero eyebrow on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    const license = page.locator("main > section").first().locator(".eyebrow span.whitespace-nowrap");
+    await expect(license).toHaveText(/^CA DRE #\S+$/);
+    const box = (await license.boundingBox())!;
+    expect(box.height).toBeLessThan(30);
+  });
+
+  test("states no day-range closing timelines", async ({ page }) => {
+    await gotoHydrated(page, "/");
+    await expect(page.locator("#sizer").getByText(/Typical close:/).first()).toBeVisible();
+    expect(await page.locator("main").innerText()).not.toMatch(/\b\d+\s*[–-]\s*\d+\s+(?:days|business days)\b/);
   });
 
   test("a family deep link lands on its card", async ({ page }) => {

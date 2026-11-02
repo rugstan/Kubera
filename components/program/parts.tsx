@@ -19,7 +19,7 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
                   {item.name}
                 </span>
               ) : (
-                <Link href={item.path} className="underline-offset-2 hover:text-ink hover:underline">
+                <Link href={item.path} className="inline-flex items-center underline-offset-2 hover:text-ink hover:underline max-md:min-h-9">
                   {item.name}
                 </Link>
               )}
@@ -126,7 +126,7 @@ export function FaqList({ faq }: { faq: ProgramFaq[] }) {
         {faq.map((q) => (
           <details key={q.question} className="bento group p-5">
             <summary className="cursor-pointer list-none text-[17px] font-semibold marker:hidden">
-              <span className="flex items-start justify-between gap-4">
+              <span className="flex min-h-9 items-center justify-between gap-4">
                 {q.question}
                 <span aria-hidden="true" className="text-titanium transition-transform group-open:rotate-45">+</span>
               </span>
@@ -139,8 +139,15 @@ export function FaqList({ faq }: { faq: ProgramFaq[] }) {
   );
 }
 
-export function RelatedPages({ slugs, heading = "Related programs" }: { slugs: string[]; heading?: string }) {
-  const cards = slugs.map((s) => pageCard(s)).filter((c): c is NonNullable<ReturnType<typeof pageCard>> => Boolean(c));
+/**
+ * Cards for the page's related links. `shown` holds slugs the page already
+ * links to in its own program list, which are left out here.
+ */
+export function RelatedPages({ slugs, shown = [], heading = "Related programs" }: { slugs: string[]; shown?: string[]; heading?: string }) {
+  const cards = slugs
+    .filter((s) => !shown.includes(s))
+    .map((s) => pageCard(s))
+    .filter((c): c is NonNullable<ReturnType<typeof pageCard>> => Boolean(c));
   if (cards.length === 0) return null;
   return (
     <section aria-labelledby="related-heading" className="mt-14">
@@ -150,10 +157,10 @@ export function RelatedPages({ slugs, heading = "Related programs" }: { slugs: s
       <ul className="mt-5 grid gap-4 sm:grid-cols-2">
         {cards.map((c) => (
           <li key={c.slug}>
+            {/* The whole card is the link and the program name leads it, as on /financing, so link lists read "C-PACE …", not "Read more". */}
             <Link href={c.href} className="bento block h-full p-5 transition hover:shadow-md">
               <span className="text-[17px] font-semibold text-ink">{c.name}</span>
               <span className="mt-1 block text-[14px] text-titanium">{c.summary}</span>
-              <span className="mt-3 block text-[14px] font-medium text-accent">Read more</span>
             </Link>
           </li>
         ))}

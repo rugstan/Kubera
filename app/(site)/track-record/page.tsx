@@ -11,7 +11,13 @@ import { licenseLine } from "@/lib/site";
 
 const meta = TRUST_PAGES.trackRecord;
 
-export const metadata: Metadata = pageMetadata({ title: meta.title, description: meta.description, path: meta.path });
+// Until the first verified closing is published the page explains the standard
+// but proves nothing, so it stays out of search results (and the sitemap and
+// footer, see content/trust-pages.ts and components/site/Footer.tsx).
+export const metadata: Metadata = {
+  ...pageMetadata({ title: meta.title, description: meta.description, path: meta.path }),
+  ...(publishableRecords().length === 0 ? { robots: { index: false, follow: true } } : {}),
+};
 
 export default function TrackRecordPage() {
   const records = publishableRecords();

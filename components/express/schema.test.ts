@@ -16,6 +16,7 @@ import {
   prefillFromParams,
   qualifierSchema,
   transactionAfterAssetChoice,
+  transactionAfterFamilyChange,
   transactionOptions,
   valueLabel,
   type QualifierValues,
@@ -144,6 +145,20 @@ describe("family deep links", () => {
     expect(transactionAfterAssetChoice("SNF", "HARD_MONEY", "construction")).toBe("CONSTRUCTION");
     expect(transactionAfterAssetChoice("SNF", "HARD_MONEY")).toBe("");
     expect(transactionAfterAssetChoice("HOTEL_TO_SENIOR_CONVERSION", "CONSTRUCTION")).toBe("");
+  });
+
+  it("drops the transaction a cancelled family pick preselected, and keeps any other", () => {
+    // Construction pick, then Multifamily (Construction preselected), then the pick is undone.
+    expect(transactionAfterFamilyChange("MULTIFAMILY", "CONSTRUCTION", "construction", undefined)).toBe("");
+    expect(transactionAfterFamilyChange("MULTIFAMILY", "HARD_MONEY", "hard-money", undefined)).toBe("");
+    // Switching picks drops the old family's transaction too.
+    expect(transactionAfterFamilyChange("MULTIFAMILY", "CONSTRUCTION", "construction", "hard-money")).toBe("");
+    // A transaction the pick did not set stays.
+    expect(transactionAfterFamilyChange("MULTIFAMILY", "PURCHASE", "construction", undefined)).toBe("PURCHASE");
+    expect(transactionAfterFamilyChange("", "", "construction", undefined)).toBe("");
+    expect(transactionAfterFamilyChange("MULTIFAMILY", "CONSTRUCTION", undefined, "construction")).toBe("CONSTRUCTION");
+    // After the undo, picking the property again leaves the transaction open.
+    expect(transactionAfterAssetChoice("MULTIFAMILY", transactionAfterFamilyChange("MULTIFAMILY", "CONSTRUCTION", "construction", undefined))).toBe("");
   });
 
   it("offers construction and hard money picks that behave like their family links", () => {

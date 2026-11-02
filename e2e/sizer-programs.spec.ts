@@ -8,6 +8,11 @@ type Violation = { id: string; impact: string | null; nodes: { target: string[] 
 
 /** Serious or critical axe violations inside the sizer section. */
 async function sizerViolations(page: Page): Promise<string[]> {
+  // axe's target-size rule counts a control as obscured when the sticky header
+  // happens to sit over it at the current scroll position, which depends on where
+  // the last click scrolled. Scan from one fixed position, the sizer's top edge
+  // (scroll-padding keeps it clear of the header), so results depend on the layout only.
+  await page.locator("#sizer").evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
   await page.addScriptTag({ path: axePath });
   const violations = await page.evaluate<Violation[], string[]>(
     async (tags) =>

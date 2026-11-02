@@ -16,9 +16,12 @@ export function legalApproved(env: Env = process.env): boolean {
  * revision on the same day. "2026-11-02.2" scopes the automated-sending
  * statement to what the code does (pre-approved templates send automatically;
  * drafts and lender packages wait for an advisor) and adds call summaries and
- * consent-only artificial-voice calls. Counsel to confirm.
+ * consent-only artificial-voice calls. Counsel to confirm. "2026-11-02.3" lists
+ * NVIDIA and Voyage as service providers on deployments that switch those
+ * integrations on (see serviceProviders below). Counsel to confirm the
+ * no-training statement for each of them.
  */
-export const PRIVACY_POLICY_VERSION = "2026-11-02.2";
+export const PRIVACY_POLICY_VERSION = "2026-11-02.3";
 export const LEGAL_EFFECTIVE_DATE = "November 2, 2026";
 
 export const LEGAL_PAGES = [
@@ -222,8 +225,10 @@ export function categoriesSentence(point: CollectionPoint): string {
   return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
 }
 
-/** Service providers that process personal information for us. */
-export const SERVICE_PROVIDERS = [
+const isSet = (v: string | undefined) => Boolean(v?.trim());
+
+/** Service providers that receive personal information on every deployment. */
+const CORE_SERVICE_PROVIDERS = [
   { name: "Vercel", role: "Website hosting" },
   { name: "Supabase", role: "Database and encrypted document storage" },
   { name: "Twenty", role: "Customer relationship management" },
@@ -234,3 +239,33 @@ export const SERVICE_PROVIDERS = [
   { name: "Cloudflare", role: "Bot protection" },
   { name: "Sentry", role: "Error monitoring, with personal details removed" },
 ] as const;
+
+export type ServiceProvider = { name: string; role: string };
+
+/**
+ * Service providers that process personal information for us on this
+ * deployment: the core list, plus the providers whose integration an
+ * environment variable switches on, so the privacy policy and the access
+ * request export name exactly who receives data here.
+ * - NVIDIA: document text and table extraction (NVIDIA_NEMO_RETRIEVER_URL,
+ *   lib/agents/documents/nemo.ts) and NVIDIA-hosted models and embeddings
+ *   (NVIDIA_API_KEY, lib/ai/gateway.ts and lib/ai/embeddings.ts).
+ * - Voyage: search embeddings for the advisors' reference library
+ *   (VOYAGE_API_KEY, lib/ai/embeddings.ts).
+ * xAI is not listed: lib/ai/routing.ts lets it see public market data only.
+ * The remote scoring endpoint (JEV_API_URL) is not listed either; if it is
+ * hosted by a third party, add that provider here. Counsel to confirm.
+ */
+export function serviceProviders(env: Env = process.env): ServiceProvider[] {
+  const embeddingsOff = ["off", "none"].includes(env.EMBEDDINGS_PROVIDER?.trim().toLowerCase() ?? "");
+  const nvidia = isSet(env.NVIDIA_NEMO_RETRIEVER_URL) || isSet(env.NVIDIA_API_KEY);
+  const voyage = isSet(env.VOYAGE_API_KEY) && !embeddingsOff;
+  return [
+    ...CORE_SERVICE_PROVIDERS,
+    ...(nvidia ? [{ name: "NVIDIA", role: "Reading text and tables from some uploaded documents, and automated tools used by our advisors" }] : []),
+    ...(voyage ? [{ name: "Voyage (MongoDB)", role: "Search indexing for the reference library our advisors use" }] : []),
+  ];
+}
+
+/** Service providers for this deployment's environment. */
+export const SERVICE_PROVIDERS: readonly ServiceProvider[] = serviceProviders();

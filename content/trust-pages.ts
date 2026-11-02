@@ -5,6 +5,7 @@
 
 import type { SitemapRoute } from "@/lib/seo/sitemap-routes";
 import { DEAL_STRUCTURES, structurePath } from "./deal-structures";
+import { publishableRecords } from "./track-record";
 
 export interface TrustPageMeta {
   path: string;
@@ -46,8 +47,13 @@ export const TRUST_PAGES = {
   },
 } as const satisfies Record<string, TrustPageMeta>;
 
+/** Trust pages worth indexing now: /track-record waits for its first published closing (it is noindex until then). */
+export function indexedTrustPages(records = publishableRecords()): TrustPageMeta[] {
+  return Object.values(TRUST_PAGES).filter((p) => p.path !== TRUST_PAGES.trackRecord.path || records.length > 0);
+}
+
 export const trustRoutes: SitemapRoute[] = [
-  ...Object.values(TRUST_PAGES).map((p) => ({
+  ...indexedTrustPages().map((p) => ({
     path: p.path,
     title: p.title,
     description: p.description,

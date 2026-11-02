@@ -41,6 +41,18 @@ export function GlassHeader({ phone, telHref, call }: { phone?: string | null; t
   // 100dvh minus the bar; the CSS max-height is the first-frame fallback.
   const [panelMax, setPanelMax] = useState<number | null>(null);
 
+  // Menu links close the menus when clicked; browser back and forward change the
+  // page without one, so they close both too (an open flyout's scrim would
+  // otherwise stay over the next page).
+  useEffect(() => {
+    const onHistory = () => {
+      setFlyout(false);
+      setOpen(false);
+    };
+    window.addEventListener("popstate", onHistory);
+    return () => window.removeEventListener("popstate", onHistory);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     let frame = 0;
@@ -244,9 +256,16 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
         setPanelMax(Math.max(0, Math.floor(window.innerHeight - bottom)));
       });
     };
+    const onResize = () => {
+      // The bar's links (and this trigger) are hidden below the desktop
+      // breakpoint, so a flyout left open by a resize would leave its scrim
+      // over the page with no visible way to close it.
+      if (window.innerWidth < DESKTOP_MIN) onOpenChange(false);
+      else measure();
+    };
     measure();
     window.addEventListener("scroll", measure, { passive: true });
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", onResize);
     const onPointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) onOpenChange(false);
     };
@@ -260,7 +279,7 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", measure);
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", onResize);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
@@ -307,7 +326,7 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
             <div className="mx-auto grid max-w-[1024px] gap-10 px-[22px] py-10 md:grid-cols-[1.4fr_1fr_1fr]">
               <FlyoutColumn
                 id={typesId}
-                heading="By property type"
+                heading={"What you're financing"}
                 links={[...FINANCING_FAMILIES, ALL_FINANCING]}
                 large
                 offset={0}

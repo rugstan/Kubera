@@ -65,11 +65,30 @@ test.describe("footer", () => {
       ["Multifamily", "/financing/multifamily"],
       ["Construction", "/financing/construction"],
       ["Hard money and bridge", "/financing/hard-money"],
-      ["Track record", "/track-record"],
     ] as const) {
       await expect(footer.getByRole("link", { name, exact: true }), name).toHaveAttribute("href", href);
     }
     await expect(footer.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
+  });
+
+  test("on a phone the columns fold into disclosure rows and the license line stays visible", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoHydrated(page, "/");
+    const footer = page.getByRole("contentinfo");
+    const box = (await footer.boundingBox())!;
+    expect(box.height).toBeLessThan(1400);
+    await expect(footer.getByText(/Real estate broker, California Department of Real Estate/).first()).toBeVisible();
+    await expect(footer.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Staff sign in", exact: true })).toBeVisible();
+    // Folded links are not reachable until their row opens.
+    await expect(footer.getByRole("link", { name: "Glossary", exact: true })).toHaveCount(0);
+    const tools = footer.locator("summary", { hasText: "Tools and resources" });
+    expect((await tools.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await tools.click();
+    const glossary = footer.getByRole("link", { name: "Glossary", exact: true });
+    await expect(glossary).toBeVisible();
+    expect((await glossary.boundingBox())!.height).toBeGreaterThanOrEqual(36);
+    await footer.locator("summary", { hasText: "Financing" }).click();
+    await expect(footer.getByRole("link", { name: "Construction", exact: true })).toBeVisible();
   });
 
   test("ends with the borrower portal and staff sign-in links", async ({ page }) => {

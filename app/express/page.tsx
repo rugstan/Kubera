@@ -61,7 +61,7 @@ export default function ExpressPage() {
           <ul className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
             {EXPRESS_LEGAL_LINKS.map((page) => (
               <li key={page.href}>
-                <a href={page.href} className="underline-offset-2 hover:text-ink hover:underline">
+                <a href={page.href} className="inline-flex items-center underline-offset-2 hover:text-ink hover:underline max-md:min-h-9">
                   {page.label}
                 </a>
               </li>

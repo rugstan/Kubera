@@ -8,6 +8,9 @@ import { hubBreadcrumbs, hubJsonLd, programBreadcrumbs, programJsonLd } from "./
 
 const WRAP = "mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20";
 
+/** Slugs a hub already lists under "Programs we arrange", so the related list never repeats them. */
+const familySlugs = (family: ProgramEntry["family"]) => programsInFamily(family).map((p) => p.slug);
+
 function FamilyList({ family, currentSlug, heading }: { family: ProgramEntry["family"]; currentSlug?: string; heading: string }) {
   const members = programsInFamily(family).filter((p) => p.slug !== currentSlug);
   if (members.length === 0) return null;
@@ -46,9 +49,9 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
         </header>
         <FactsTable facts={entry.facts} asOf={AS_OF} />
         <Sections sections={entry.sections} />
-        {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="More in this category" />}
+        {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="Programs we arrange" />}
         <FaqList faq={entry.faq} />
-        <RelatedPages slugs={entry.related} />
+        <RelatedPages slugs={entry.related} shown={entry.isHub ? familySlugs(entry.family) : []} />
         <CtaBand family={entry.family} />
         <ProgramDisclosures />
       </article>
@@ -73,7 +76,7 @@ export function HubPage({ entry }: { entry: HubEntry }) {
         <FamilyList family={entry.family} heading="Programs we arrange" />
         <Sections sections={entry.sections} />
         <FaqList faq={entry.faq} />
-        <RelatedPages slugs={entry.related} heading="Related financing" />
+        <RelatedPages slugs={entry.related} shown={familySlugs(entry.family)} heading="Related financing" />
         <CtaBand family={entry.family} />
         <ProgramDisclosures />
       </article>

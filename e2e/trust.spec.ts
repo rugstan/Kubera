@@ -70,8 +70,26 @@ test.describe("trust pages", () => {
     await expect(page.locator("iframe")).toHaveCount(0);
   });
 
-  test("track record ships empty and points to representative structures", async ({ page }) => {
+  test("contact puts both actions above the fold on a phone, before the mailbox table", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/contact");
+    const main = page.locator("main");
+    const primary = main.getByRole("link", { name: "Get loan options", exact: true }).first();
+    await expect(primary).toHaveAttribute("href", "/express");
+    expect(((await primary.boundingBox())!.y) + 44).toBeLessThanOrEqual(844);
+    // No booking handle in e2e, so the second action emails an advisor.
+    const second = main.getByRole("link", { name: "Email an advisor", exact: true }).first();
+    await expect(second).toHaveAttribute("href", /^mailto:\S+@/);
+    expect(((await second.boundingBox())!.y) + 44).toBeLessThanOrEqual(844);
+    // The routing table for lenders, partners and vendors comes last.
+    const ids = await main.locator("section[id]").evaluateAll((els) => els.map((e) => e.id));
+    expect(ids.at(-1)).toBe("mailboxes");
+    await expect(main).not.toContainText(/for our office address/i);
+  });
+
+  test("track record ships empty, stays out of search and points to representative structures", async ({ page }) => {
     await page.goto("/track-record");
+    await expect(page.locator('meta[name="robots"]').first()).toHaveAttribute("content", /noindex/);
     await expect(page.getByRole("heading", { name: /no closed transactions published yet/i })).toBeVisible();
     await page.getByRole("link", { name: /see representative structures/i }).click();
     await expect(page).toHaveURL(/\/structures$/);
@@ -97,16 +115,22 @@ test.describe("trust pages", () => {
   test("header and footer link to the trust pages", async ({ page }) => {
     await page.goto("/about");
     const footer = page.getByRole("contentinfo");
-    for (const name of ["About Kubera", "Our advisors", "Track record", "Representative structures", "Contact"]) {
+    for (const name of ["About Kubera", "Representative structures", "Contact"]) {
       await expect(footer.getByRole("link", { name })).toBeVisible();
     }
+    // The e2e build has no published closings and only a placeholder advisor, so the
+    // two proof pages stay out of the footer until they have something to show.
+    await expect(footer.getByRole("link", { name: "Track record", exact: true })).toHaveCount(0);
+    await expect(footer.getByRole("link", { name: "Our advisors", exact: true })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Contact" })).toBeAttached();
   });
 
   test("sitemap lists the trust pages", async ({ request }) => {
     const xml = await (await request.get("/sitemap.xml")).text();
-    for (const p of ["/about", "/team", "/contact", "/track-record", "/structures", "/structures/memory-care-bridge-to-hud"]) {
+    for (const p of ["/about", "/team", "/contact", "/structures", "/structures/memory-care-bridge-to-hud"]) {
       expect(xml).toContain(`${p}</loc>`);
     }
+    // No published closings yet: /track-record is noindex and left out of the sitemap.
+    expect(xml).not.toContain("/track-record</loc>");
   });
 });

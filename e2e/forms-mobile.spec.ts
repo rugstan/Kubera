@@ -161,20 +161,34 @@ test.describe("sizer at 390px", () => {
     await shot(page, "sizer-390-focus-clear-of-bar", { fullPage: false });
   });
 
-  test("next and previous move through the cards and the indicator follows", async ({ page }) => {
+  test("opens on the best-fit card, and next and previous move through the cards with the indicator", async ({ page }) => {
     await gotoHydrated(page, "/");
     const results = page.locator("#sizer-results-senior");
     await results.scrollIntoViewIfNeeded();
     const status = page.getByText(/^Structure \d+ of \d+$/);
-    await expect(status).toHaveText(/^Structure 1 of \d+$/);
+    // The first card in view is the one marked "Best fit", which the results bar names.
+    const slides = results.locator('[role="group"]');
+    const labels = await slides.evaluateAll((els) => els.map((el) => ({ label: el.getAttribute("aria-label") ?? "", best: /Best fit/.test(el.textContent ?? "") })));
+    const bestAt = labels.findIndex((l) => l.best);
+    expect(bestAt, JSON.stringify(labels)).toBeGreaterThanOrEqual(0);
+    await expect(status).toHaveText(new RegExp(`^Structure ${bestAt + 1} of ${labels.length}$`));
+    await expect(slides.nth(bestAt)).toBeInViewport({ ratio: 0.8 });
+
     const next = page.getByRole("button", { name: /next structure/i });
     const previous = page.getByRole("button", { name: /previous structure/i });
-    await expect(previous).toBeDisabled();
     expect((await next.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+    // Back to the first card, then step forward.
+    for (let i = bestAt; i > 0; i--) {
+      await previous.click();
+      await expect(status).toHaveText(new RegExp(`^Structure ${i} of \\d+$`));
+    }
+    await expect(status).toHaveText(/^Structure 1 of \d+$/);
+    await expect(previous).toBeDisabled();
+    await expect.poll(() => results.evaluate((el) => el.scrollLeft)).toBeLessThan(5);
 
     await next.click();
     await expect(status).toHaveText(/^Structure 2 of \d+$/);
-    expect(await results.evaluate((el) => el.scrollLeft)).toBeGreaterThan(100);
+    await expect.poll(() => results.evaluate((el) => el.scrollLeft)).toBeGreaterThan(100);
     await shot(page, "sizer-390-card-2", { fullPage: false });
 
     await previous.click();

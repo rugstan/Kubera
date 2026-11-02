@@ -62,8 +62,53 @@ test.describe("financing pages", () => {
 
   test("the hard-money URL is both the program and its hub", async ({ page }) => {
     await page.goto("/financing/hard-money");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hard money loans");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hard money and bridge loans");
     await expect(page.getByRole("link", { name: /Fix-and-flip loans/ }).first()).toBeVisible();
+  });
+
+  test("the index shows all five families above the fold at 1440px", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/financing");
+    const tiles = page.getByRole("navigation", { name: "Financing by family" });
+    for (const [family, name] of [["senior-living", "senior living"], ["hotels", "hotels"], ["multifamily", "multifamily"], ["construction", "construction"], ["hard-money", "hard money and bridge"]] as const) {
+      const explore = tiles.getByRole("link", { name: `Explore ${name} financing`, exact: true });
+      await expect(explore).toHaveAttribute("href", `/financing/${family}`);
+      const box = (await explore.boundingBox())!;
+      expect(box.y + box.height, family).toBeLessThanOrEqual(900);
+      await expect(tiles.locator(`a[href="#${family}-heading"]`)).toHaveCount(1);
+    }
+    // Each family heading is a link to its hub.
+    await expect(page.locator("#construction-heading a")).toHaveAttribute("href", "/financing/construction");
+  });
+
+  test("on a phone the sticky jump bar reaches construction and hard money", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/financing");
+    const bar = page.getByRole("navigation", { name: "Jump to a financing family" });
+    await expect(bar).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Financing by family" })).toBeHidden();
+    await bar.getByRole("link", { name: "Hard money and bridge" }).click();
+    await expect(page).toHaveURL(/#hard-money-heading$/);
+    await expect(page.locator("#hard-money-heading")).toBeInViewport();
+    // Still stuck under the header after the jump, and the heading is not hidden behind it.
+    const barBox = (await bar.boundingBox())!;
+    const headingBox = (await page.locator("#hard-money-heading").boundingBox())!;
+    expect(barBox.y).toBeGreaterThanOrEqual(0);
+    expect(headingBox.y).toBeGreaterThanOrEqual(barBox.y + barBox.height - 1);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test("hub pages never repeat their own programs under related links", async ({ page }) => {
+    for (const family of ["senior-living", "hotels", "multifamily", "construction", "hard-money"]) {
+      await page.goto(`/financing/${family}`);
+      const own = await page.locator('section[aria-labelledby="family-heading"] a').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+      const related = await page.locator('section[aria-labelledby="related-heading"] a').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+      expect(own.length, family).toBeGreaterThan(0);
+      for (const href of related) expect(own, `${family}: ${href}`).not.toContain(href);
+      await expect(page.locator('section[aria-labelledby="family-heading"] h2')).toHaveText("Programs we arrange");
+      await expect(page.getByText("Read more", { exact: true })).toHaveCount(0);
+    }
   });
 
   test("unknown slugs return 404", async ({ request }) => {

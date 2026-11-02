@@ -2,6 +2,8 @@ import Link from "next/link";
 import { LEGAL_PAGES } from "@/components/legal/legal";
 import { contactDetails } from "@/content/contact";
 import { CALIFORNIA_BASE, MARKETS, marketPath } from "@/content/markets/california";
+import { TEAM, teamCards } from "@/content/team";
+import { publishableRecords } from "@/content/track-record";
 import { disclosures, licenseLine, site } from "@/lib/site";
 import { Logo } from "./Logo";
 import { ACCOUNT_LINKS, ALL_FINANCING, FINANCING_FAMILIES, HEADER_CTA, type NavLink } from "./nav";
@@ -60,12 +62,30 @@ const COLUMNS: { title: string; links: readonly NavLink[] }[] = [
   { title: "Legal", links: LEGAL_PAGES },
 ];
 
+/**
+ * Proof pages are linked only once they have something to show: /team when at
+ * least one advisor profile is complete enough for production (a real bio and a
+ * DRE number), /track-record after the first verified closing. An empty proof
+ * page linked from every page reads as a weakness on a site built to convert.
+ */
+const SHOW_WHEN: Partial<Record<string, () => boolean>> = {
+  "/team": () => teamCards(TEAM, { production: true }).length > 0,
+  "/track-record": () => publishableRecords().length > 0,
+};
+
+function footerColumns() {
+  return COLUMNS.map((c) => ({ ...c, links: c.links.filter((l) => SHOW_WHEN[l.href]?.() ?? true) }));
+}
+
+const LINK = "text-graphite hover:underline max-md:flex max-md:min-h-9 max-md:items-center";
+
 export function Footer() {
   const { telHref, phone } = contactDetails();
+  const columns = footerColumns();
   return (
     <footer className="border-t border-hairline bg-canvas text-[12px]">
       <div className="mx-auto max-w-[1280px] px-5 py-16 md:px-8">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(6,1fr)] lg:gap-8">
+        <div className="grid gap-12 md:grid-cols-3 lg:grid-cols-[1.4fr_repeat(6,1fr)] lg:gap-8">
           <div>
             <Logo />
             <p className="mt-4 max-w-xs leading-relaxed text-graphite">
@@ -85,20 +105,45 @@ export function Footer() {
               </a>
             ) : null}
           </div>
-          {COLUMNS.map((c) => (
-            <div key={c.title}>
+          {columns.map((c) => (
+            <div key={c.title} className="max-md:hidden">
               <h2 className="text-[12px] font-semibold text-ink">{c.title}</h2>
-              {/* On phones each link is a 36px row, so the footer stays easy to tap. */}
-              <ul className="mt-4 space-y-2 max-md:mt-2 max-md:space-y-0">
+              <ul className="mt-4 space-y-2">
                 {c.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-graphite hover:underline max-md:flex max-md:min-h-9 max-md:items-center">
+                    <Link href={l.href} className={LINK}>
                       {l.label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
+          ))}
+        </div>
+        {/*
+          Phones: each column folds into a 44px disclosure row, as on apple.com, so the
+          footer is a short list instead of seven stacked columns. Native <details>
+          works without JavaScript. The desktop columns above are display:none here,
+          so assistive technology meets each link once.
+        */}
+        <div className="mt-10 divide-y divide-hairline border-y border-hairline md:hidden">
+          {columns.map((c) => (
+            <details key={c.title} className="group">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-[14px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+                {c.title}
+                <span aria-hidden className="text-[17px] font-normal text-titanium transition-transform group-open:rotate-45">+</span>
+              </summary>
+              {/* Each link is a 36px row, so the footer stays easy to tap. */}
+              <ul className="pb-3">
+                {c.links.map((l) => (
+                  <li key={l.label}>
+                    <Link href={l.href} className={`${LINK} text-[14px]`}>
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
           ))}
         </div>
         <div className="mt-14 space-y-3 border-t border-hairline pt-8 leading-relaxed text-titanium">

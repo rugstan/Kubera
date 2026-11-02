@@ -143,12 +143,9 @@
      overrides. Backgrounds (bg-accent, pill-primary) are deliberately untouched. */
   .bg-ink,
   .bg-pro,
-  .bento-pro,
-  .glass-dark,
-  .on-dark {
+  .bento-pro {
     --color-titanium: #a1a1a6;
   }
-  kbd { color: color-mix(in srgb, var(--color-ink) 78%, transparent); }
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -163,11 +160,6 @@
 @layer components {
   .glass {
     background: rgb(250 250 252 / 0.8);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-  }
-  .glass-dark {
-    background: rgb(22 22 23 / 0.8);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
@@ -308,7 +300,6 @@
 
   /* Badges set colour only; padding and radius stay in utilities. */
   .badge { background: rgb(0 0 0 / 0.05); color: var(--color-ink); }
-  .badge-accent { background: rgb(0 102 204 / 0.1); color: var(--color-accent-hover); }
   .badge-success { background: var(--color-success-surface); color: var(--color-success); }
   .badge-warning { background: var(--color-warning-surface); color: var(--color-warning); }
   .badge-danger { background: var(--color-danger-surface); color: var(--color-danger); }
@@ -394,43 +385,29 @@
   color: rgb(255 255 255 / 0.68) !important;
 }
 
-/* Radix dialog enter/exit. Reduced motion collapses these via the base layer. */
-.dialog-overlay[data-state="open"] { animation: dialog-fade 0.18s ease-out; }
-.dialog-content[data-state="open"] { animation: dialog-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1); }
-@keyframes dialog-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes dialog-pop { from { opacity: 0; scale: 0.98; } to { opacity: 1; scale: 1; } }
-
 /* Accent text, outlined buttons and focus rings on dark surfaces. The filled
    pill-primary keeps accent-fill on black (4.5:1 as a non-text boundary). */
 .bg-ink .text-accent,
 .bg-pro .text-accent,
 .bento-pro .text-accent,
-.glass-dark .text-accent,
-.on-dark .text-accent,
 .bg-ink .link-chevron,
 .bg-pro .link-chevron,
-.bento-pro .link-chevron,
-.glass-dark .link-chevron,
-.on-dark .link-chevron { color: var(--color-accent-on-dark); }
+.bento-pro .link-chevron { color: var(--color-accent-on-dark); }
 .bg-ink .pill-secondary,
 .bg-pro .pill-secondary,
 .bento-pro .pill-secondary,
-.on-dark .pill-secondary,
 .bg-ink .pill-glass,
 .bg-pro .pill-glass,
-.bento-pro .pill-glass,
-.on-dark .pill-glass {
+.bento-pro .pill-glass {
   border-color: var(--color-accent-on-dark);
   color: var(--color-accent-on-dark);
 }
 .bg-ink .pill-secondary:hover,
 .bg-pro .pill-secondary:hover,
 .bento-pro .pill-secondary:hover,
-.on-dark .pill-secondary:hover,
 .bg-ink .pill-glass:hover,
 .bg-pro .pill-glass:hover,
-.bento-pro .pill-glass:hover,
-.on-dark .pill-glass:hover {
+.bento-pro .pill-glass:hover {
   background: var(--color-accent-fill);
   border-color: var(--color-accent-fill);
   color: #fff;
@@ -438,11 +415,9 @@
 .bg-ink :focus-visible,
 .bg-pro :focus-visible,
 .bento-pro :focus-visible,
-.on-dark :focus-visible,
 .bg-ink .pill:has(> input:focus-visible),
 .bg-pro .pill:has(> input:focus-visible),
-.bento-pro .pill:has(> input:focus-visible),
-.on-dark .pill:has(> input:focus-visible) { outline-color: var(--color-accent-on-dark); }
+.bento-pro .pill:has(> input:focus-visible) { outline-color: var(--color-accent-on-dark); }
 
 /* Rate ticker. Unlayered with !important because Tailwind's animate-marquee
    utility sets the animation shorthand and would otherwise win. It pauses via

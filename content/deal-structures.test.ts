@@ -115,11 +115,20 @@ describe("illustrative structures", () => {
     }
   });
 
-  it("flag unverified HUD parameters for re-checking", () => {
+  it("tell readers to confirm modeled HUD parameters with a HUD lender", () => {
     const memory = getDealStructure("memory-care-bridge-to-hud")!;
     const hud = memory.facts.filter((f) => f.label.startsWith("HUD"));
     expect(hud.length).toBeGreaterThan(0);
-    expect(hud.every((f) => /VERIFY/.test(f.note ?? ""))).toBe(true);
+    for (const f of hud) expect(f.note ?? "", f.label).toMatch(/HUD lender/);
+  });
+
+  it("show no internal review markers on the public pages", () => {
+    // Every string a structure page renders, nested lists included.
+    const strings = (v: unknown): string[] =>
+      typeof v === "string" ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === "object" ? Object.values(v).flatMap(strings) : [];
+    for (const s of DEAL_STRUCTURES) {
+      for (const text of strings(s)) expect(text, s.slug).not.toMatch(/\bVERIFY\b|\bTODO\b|\bTBD\b|\bFIXME\b/);
+    }
   });
 
   it("describe no role in loan funds or construction draws", () => {

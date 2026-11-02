@@ -192,6 +192,32 @@ test.describe("primary header layout", () => {
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
+  test("the flyout and its scrim close when the window shrinks below the desktop layout", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await gotoHydrated(page, "/");
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "Financing" }).click();
+    await expect(page.locator("[data-nav-scrim]")).toHaveCount(1);
+    await page.setViewportSize({ width: 900, height: 800 });
+    await expect(page.locator("[data-nav-scrim]")).toHaveCount(0);
+    // The page is usable again: the menu button opens the stacked menu.
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: /open menu/i }).click();
+    await expect(page.locator("#mobile-nav")).toBeVisible();
+  });
+
+  test("browser back closes an open flyout", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await gotoHydrated(page, "/about");
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await nav.getByRole("link", { name: "Contact", exact: true }).click();
+    await expect(page).toHaveURL(/\/contact$/);
+    await nav.getByRole("button", { name: "Financing" }).click();
+    await expect(page.locator("[data-nav-scrim]")).toHaveCount(1);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/about$/);
+    await expect(page.locator("[data-nav-scrim]")).toHaveCount(0);
+    await expect(nav.getByRole("button", { name: "Financing" })).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("with reduced motion the flyout appears in place", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.setViewportSize({ width: 1280, height: 800 });

@@ -15,7 +15,7 @@ export default function PartnersPage() {
         <p className="eyebrow">Partner portal</p>
         <h1 className="mt-4 text-5xl font-semibold leading-[1.06] md:text-6xl">Plug into the deal flow.</h1>
         <p className="mt-5 text-lg text-titanium">
-          Every registration is reviewed by our team and feeds Jev, our routing engine, so the deals that fit your criteria reach your desk. Compensation is always set by signed agreement.
+          Every registration is reviewed by our team, so the deals that fit your criteria reach your desk. Compensation is always set by signed agreement.
         </p>
       </div>
       <div className="mt-14">

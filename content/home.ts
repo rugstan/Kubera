@@ -51,7 +51,8 @@ export const HOME_FAMILIES: readonly HomeFamily[] = [
     family: "hard-money",
     audience: "Investors who need speed: purchases, fix-and-flip and short-term bridge loans.",
     fact: `${HARD_MONEY_MARKET.term}, sized on the property and your exit`,
-    programSlugs: ["hard-money", "fix-and-flip", "private-bridge"],
+    // Fix-and-flip leads: the card's own "Explore" link already opens the hard money hub.
+    programSlugs: ["fix-and-flip", "private-bridge", "hard-money"],
     note: "A private lender funds the loan and is the lender of record.",
   },
 ];
@@ -64,7 +65,7 @@ export interface HomeStep {
 export const HOME_STEPS: readonly HomeStep[] = [
   {
     title: "Share the basics",
-    body: "Property type, loan amount, income and timing. The qualifier takes about a minute, or you can call us.",
+    body: "Property type, loan amount, income and timing. The qualifier takes about a minute, or you can talk to an advisor first.",
   },
   {
     title: "We match programs and lenders",

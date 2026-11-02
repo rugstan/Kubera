@@ -49,7 +49,7 @@ export const hubs: HubEntry[] = [
         answer: disclosures.brokerNotLender,
       },
     ],
-    related: ["hud-232", "hotels", "multifamily", "construction"],
+    related: ["hotel-to-senior-living-conversion", "hotels", "multifamily", "construction"],
   },
   {
     slug: "hotels",
@@ -91,7 +91,7 @@ export const hubs: HubEntry[] = [
         answer: disclosures.indicative,
       },
     ],
-    related: ["sba-504-hotel", "senior-living", "multifamily", "construction"],
+    related: ["c-pace", "senior-living", "multifamily", "construction"],
   },
   {
     slug: "multifamily",
@@ -134,7 +134,7 @@ export const hubs: HubEntry[] = [
         answer: "No. HUD multifamily now uses a single flat annual premium for applications on or after its effective date.",
       },
     ],
-    related: ["hud-223f-multifamily", "senior-living", "hotels", "construction"],
+    related: ["hard-money", "senior-living", "hotels", "construction"],
   },
   {
     slug: "construction",
@@ -176,6 +176,6 @@ export const hubs: HubEntry[] = [
         answer: "No. The construction lender funds and administers draws. Kubera has no role in them.",
       },
     ],
-    related: ["construction-loans", "hud-221d4", "multifamily", "hard-money"],
+    related: ["hud-221d4", "bridge-to-hud", "multifamily", "hard-money"],
   },
 ];

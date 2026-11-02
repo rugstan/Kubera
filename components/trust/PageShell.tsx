@@ -41,12 +41,12 @@ export function PageShell({
           <nav aria-label="Breadcrumb" className="mb-8 text-[13px] text-titanium">
             <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <li>
-                <Link href="/" className="hover:text-ink hover:underline">Home</Link>
+                <Link href="/" className="inline-flex items-center hover:text-ink hover:underline max-md:min-h-9">Home</Link>
               </li>
               {breadcrumb.map((b) => (
                 <li key={b.href} className="flex items-center gap-2">
                   <span aria-hidden>/</span>
-                  <Link href={b.href} className="hover:text-ink hover:underline">{b.label}</Link>
+                  <Link href={b.href} className="inline-flex items-center hover:text-ink hover:underline max-md:min-h-9">{b.label}</Link>
                 </li>
               ))}
             </ol>

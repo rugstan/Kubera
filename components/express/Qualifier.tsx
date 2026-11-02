@@ -36,6 +36,7 @@ import {
   prefillFromParams,
   qualifierSchema,
   transactionAfterAssetChoice,
+  transactionAfterFamilyChange,
   transactionOptions,
   unitLabel,
   valueLabel,
@@ -100,6 +101,12 @@ export function Qualifier() {
     go(step + 1);
   }
 
+  function chooseFamily(next: ProgramFamily | undefined) {
+    const kept = transactionAfterFamilyChange(getValues("assetType"), getValues("transaction"), family, next);
+    if (kept !== getValues("transaction")) setValue("transaction", kept);
+    setFamily(next);
+  }
+
   function chooseAsset(a: Asset) {
     setValue("assetType", a, { shouldValidate: true });
     // "Construction" and "Conversion" are different options per asset: keep a pick the asset still offers,
@@ -153,7 +160,7 @@ export function Qualifier() {
       <div className="bento p-6 md:p-8">
         <Form form={form} onSubmit={submit} onInvalid={onInvalid}>
           <motion.section key={step} initial={step === initialStep ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="space-y-5" aria-labelledby="qualifier-step-heading">
-            {step === 0 && <AssetStep headingRef={headingRef} selected={asset} onChoose={chooseAsset} family={family} onFamily={linkedFamily ? undefined : setFamily} />}
+            {step === 0 && <AssetStep headingRef={headingRef} selected={asset} onChoose={chooseAsset} family={family} onFamily={linkedFamily ? undefined : chooseFamily} />}
             {step === 1 && <DealStep headingRef={headingRef} asset={asset} transaction={transaction} />}
             {step === 2 && <TermsStep headingRef={headingRef} />}
             {step === 3 && <ContactStep headingRef={headingRef} turnstile={turnstile} />}

@@ -348,3 +348,15 @@ export function transactionAfterAssetChoice(asset: Asset, current: Transaction |
   if (current && transactionOptions(asset).some((o) => o.value === current)) return current;
   return familyTransaction(asset, family) ?? "";
 }
+
+/**
+ * The transaction to keep when a step-1 pick changes the family. Undoing (or
+ * switching away from) the construction or hard money pick also drops the
+ * transaction that pick preselected, so a cancelled choice does not come back
+ * when the visitor picks the property again.
+ */
+export function transactionAfterFamilyChange(asset: Asset | "", current: Transaction | "", previous: ProgramFamily | undefined, next: ProgramFamily | undefined): Transaction | "" {
+  const fromPrevious = familyTransaction(asset, previous);
+  if (current && current === fromPrevious && current !== familyTransaction(asset, next)) return "";
+  return current;
+}

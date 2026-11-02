@@ -207,7 +207,7 @@ export const MARKETS: readonly MarketPage[] = [
       {
         label: "Orange County cities with their own rent ordinance on Kubera's review list",
         value: joinList(localCities("santa ana")) || "None listed",
-        source: "Kubera rent-control rules engine; the list is not exhaustive and is reviewed by hand for each property",
+        source: "Kubera review of local rent-control ordinances; the list is not exhaustive and is reviewed by hand for each property",
         asOf: AS_OF,
         verify: true,
       },
@@ -282,7 +282,7 @@ export const MARKETS: readonly MarketPage[] = [
       {
         label: "Bay Area cities with their own rent ordinance on Kubera's review list",
         value: joinList(localCities("alameda", "berkeley", "east palo alto", "hayward", "los gatos", "mountain view", "oakland", "richmond", "san francisco", "san jose")),
-        source: "Kubera rent-control rules engine; the list is not exhaustive and is reviewed by hand for each property",
+        source: "Kubera review of local rent-control ordinances; the list is not exhaustive and is reviewed by hand for each property",
         asOf: AS_OF,
         verify: true,
       },

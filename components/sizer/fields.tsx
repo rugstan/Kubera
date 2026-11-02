@@ -38,7 +38,7 @@ export function RangeField({ label, value, onChange, min, max, step = 1, suffix 
         <label htmlFor={id} className="field-label !mb-0">{label}</label>
         <input
           aria-label={`${label} value`}
-          className="min-h-6 w-20 rounded-md bg-transparent px-1 text-right text-sm font-medium tabular-nums text-ink hover:bg-black/[0.04] focus-visible:bg-black/[0.04]"
+          className="min-h-6 w-20 rounded-md max-md:min-h-9 bg-transparent px-1 text-right text-sm font-medium tabular-nums text-ink hover:bg-black/[0.04] focus-visible:bg-black/[0.04]"
           value={value}
           inputMode="numeric"
           onChange={(e) => onChange(Math.min(max * 2, Number(e.target.value.replace(/[^\d.]/g, "")) || 0))}

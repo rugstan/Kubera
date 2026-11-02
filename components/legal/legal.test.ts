@@ -6,7 +6,7 @@ import LicensingPage from "@/app/(site)/(legal)/licensing/page";
 import PrivacyPage from "@/app/(site)/(legal)/privacy/page";
 import TermsPage from "@/app/(site)/(legal)/terms/page";
 import { DraftNotice } from "./DraftNotice";
-import { categoriesSentence, categoryById, COLLECTION_POINTS, LEGAL_PAGES, legalApproved, PI_CATEGORIES, PURPOSES, type CollectionPoint } from "./legal";
+import { categoriesSentence, categoryById, COLLECTION_POINTS, LEGAL_PAGES, legalApproved, PI_CATEGORIES, PURPOSES, serviceProviders, type CollectionPoint } from "./legal";
 import { canonicalUrl } from "@/lib/seo/hosts";
 import { legalMetadata } from "./metadata";
 import { NoticeAtCollection } from "./NoticeAtCollection";
@@ -201,5 +201,30 @@ describe("legalMetadata", () => {
     expect((m.twitter as { card?: string }).card).toBe("summary_large_image");
     expect((m.twitter as { images?: string[] }).images).toEqual(["/opengraph-image"]);
     expect((m.openGraph as { title?: string }).title).toBe("Terms of use · Kubera Commercial");
+  });
+});
+
+describe("service providers", () => {
+  const names = (env: Record<string, string | undefined>) => serviceProviders(env).map((p) => p.name);
+
+  it("names only the core providers when no optional integration is switched on", () => {
+    expect(names({})).toEqual(["Vercel", "Supabase", "Twenty", "Anthropic", "Zoho", "Resend", "Telnyx", "Cloudflare", "Sentry"]);
+  });
+
+  it("adds NVIDIA when document extraction or NVIDIA-hosted models are configured", () => {
+    expect(names({ NVIDIA_NEMO_RETRIEVER_URL: "https://nim.example" })).toContain("NVIDIA");
+    expect(names({ NVIDIA_API_KEY: "k" })).toContain("NVIDIA");
+    expect(names({ NVIDIA_API_KEY: "  " })).not.toContain("NVIDIA");
+  });
+
+  it("adds Voyage when it receives search queries, and not when embeddings are off", () => {
+    expect(names({ VOYAGE_API_KEY: "k" })).toContain("Voyage (MongoDB)");
+    expect(names({ VOYAGE_API_KEY: "k", EMBEDDINGS_PROVIDER: "off" })).not.toContain("Voyage (MongoDB)");
+  });
+
+  it("never lists a provider twice and keeps the public copy free of AI wording", () => {
+    const all = serviceProviders({ NVIDIA_API_KEY: "k", NVIDIA_NEMO_RETRIEVER_URL: "u", VOYAGE_API_KEY: "k" });
+    expect(new Set(all.map((p) => p.name)).size).toBe(all.length);
+    for (const p of all) expect(`${p.name} ${p.role}`).not.toMatch(/\bAI\b/);
   });
 });

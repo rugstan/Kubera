@@ -1,4 +1,5 @@
 import { callLink } from "@/content/contact";
+import { FAMILY_LABELS, PROGRAM_FAMILIES, financingPath, hubForFamily } from "@/content/programs";
 import { site } from "@/lib/site";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
@@ -17,13 +18,19 @@ export function Hero() {
   const call = callLink();
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-[1280px] px-5 pb-20 pt-12 text-center md:px-8 md:pb-32 md:pt-24">
+      {/* Sized so the facts row clears a 1440x900 fold: 56px headline, tighter top padding. */}
+      <div className="mx-auto max-w-[1280px] px-5 pb-20 pt-12 text-center md:px-8 md:pb-28 md:pt-16">
         <Reveal className="mx-auto max-w-[980px]">
           <p className="eyebrow">
             Commercial real estate loan broker
-            {site.dreCorporateLicense ? ` · CA DRE #${site.dreCorporateLicense}` : null}
+            {site.dreCorporateLicense ? (
+              <>
+                {" · "}
+                <span className="whitespace-nowrap">CA DRE #{site.dreCorporateLicense}</span>
+              </>
+            ) : null}
           </p>
-          <h1 className="mt-4 text-tile font-semibold md:text-hero lg:text-hero-lg">We find the right lender for your commercial real estate loan.</h1>
+          <h1 className="mt-4 text-tile font-semibold md:text-hero">We help you find the right lender for your commercial real estate loan.</h1>
           <p className="mx-auto mt-6 max-w-3xl text-[17px] text-titanium md:text-lede">
             Kubera Commercial is a licensed California real estate broker. We arrange senior living, hotel, multifamily, construction and hard money loans,
             comparing HUD, SBA, CMBS, agency, bank and private lenders for you. We are not a lender, so we are not tied to one lender&apos;s loans.
@@ -40,9 +47,26 @@ export function Hero() {
               {call.kind === "book" ? "Prefer to talk? Book a call with an advisor" : "Questions first? Email an advisor"}
             </TrackedLink>
           </p>
+          {/* Every family has an entry point above the fold, construction and hard money included. */}
+          <nav aria-label="What we finance" className="mx-auto mt-8 max-w-3xl border-t border-hairline pt-6">
+            <ul className="flex flex-wrap justify-center gap-2">
+              {PROGRAM_FAMILIES.map((family) => (
+                <li key={family}>
+                  <TrackedLink
+                    href={financingPath(hubForFamily(family).slug)}
+                    cta="family_hub"
+                    section="hero"
+                    className="inline-flex min-h-9 items-center rounded-full bg-canvas px-4 text-[15px] text-ink transition-colors hover:bg-fill"
+                  >
+                    {FAMILY_LABELS[family]}
+                  </TrackedLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </Reveal>
         <Reveal delay={0.16}>
-          <dl className="mx-auto mt-14 grid max-w-4xl grid-cols-2 gap-y-8 md:mt-20 md:grid-cols-4">
+          <dl className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-y-8 md:mt-14 md:grid-cols-4">
             {PROOF.map((p, i) => (
               <div key={p.k} className={`border-hairline px-4 ${divider(i)}`}>
                 <dt className="text-[21px] font-semibold leading-tight text-ink">{p.k}</dt>

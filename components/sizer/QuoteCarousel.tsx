@@ -18,10 +18,27 @@ export function QuoteCarousel({ quotes, bestId, tab }: { quotes: SizerQuote[]; b
   const listRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
   const [active, setActive] = useState(0);
+  // Slide the code scrolled to itself, so that scroll is not reported as a swipe.
+  const programmatic = useRef<number | null>(null);
   const count = quotes.length;
   const best = quotes.find((q) => q.id === bestId);
+  const bestIndex = Math.max(0, quotes.findIndex((q) => q.id === bestId));
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  // Phones open on the recommended card, the one the results bar names, and
+  // follow it when the tab or the best fit changes. The desktop grid does not
+  // scroll, so its order is untouched.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || list.scrollWidth <= list.clientWidth + 1) return;
+    const left = slideOffsets(list)[bestIndex] ?? 0;
+    if (Math.abs(list.scrollLeft - left) > 1) {
+      programmatic.current = bestIndex;
+      list.scrollTo({ left, behavior: "auto" });
+    }
+    setActive(bestIndex);
+  }, [tab, bestId, bestIndex]);
 
   function slideOffsets(list: HTMLElement): number[] {
     return Array.from(list.children).map((c) => (c as HTMLElement).offsetLeft - list.offsetLeft);
@@ -33,8 +50,10 @@ export function QuoteCarousel({ quotes, bestId, tab }: { quotes: SizerQuote[]; b
       const list = listRef.current;
       if (!list) return;
       const next = nearestIndex(slideOffsets(list), list.scrollLeft);
+      const auto = programmatic.current === next;
+      programmatic.current = null;
       setActive((prev) => {
-        if (prev !== next) track("sizer_quote_swiped", { index: next, count });
+        if (prev !== next && !auto) track("sizer_quote_swiped", { index: next, count });
         return next;
       });
     });

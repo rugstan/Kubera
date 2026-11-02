@@ -31,20 +31,28 @@ export function FinalCta() {
             {call.label}
           </TrackedLink>
         </div>
-        <p className="mt-6 text-[15px] text-titanium">
-          Or email{" "}
-          <a href={`mailto:${site.email}`} className="text-accent underline-offset-2 hover:underline">
-            {site.email}
-          </a>
-          {contact.telHref && (
-            <>
-              {" · call "}
-              <a href={`tel:${contact.telHref}`} className="text-accent underline-offset-2 hover:underline">
-                {contact.phone}
-              </a>
-            </>
-          )}
-        </p>
+        {/* Until online booking is set up the second pill already emails an advisor, so the
+            address is not offered twice; the phone shows whenever it is configured. */}
+        {(call.kind === "book" || contact.telHref) && (
+          <p className="mt-6 text-[15px] text-titanium">
+            {call.kind === "book" && (
+              <>
+                Or email{" "}
+                <a href={`mailto:${site.email}`} className="text-accent underline-offset-2 hover:underline">
+                  {site.email}
+                </a>
+              </>
+            )}
+            {contact.telHref && (
+              <>
+                {call.kind === "book" ? " · call " : "Or call "}
+                <a href={`tel:${contact.telHref}`} className="text-accent underline-offset-2 hover:underline">
+                  {contact.phone}
+                </a>
+              </>
+            )}
+          </p>
+        )}
         {advisor && <p className="mt-2 text-[13px] text-titanium">{advisor}</p>}
       </Reveal>
     </section>

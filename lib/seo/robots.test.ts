@@ -19,9 +19,20 @@ describe("buildRobots", () => {
     expect(ai.disallow).toContain("/api/");
   });
 
-  it("disallows every staff desk", () => {
+  it("does not publish the staff desks, which are noindexed by header instead", async () => {
+    const text = JSON.stringify(buildRobots("kuberacommercial.com", {}));
+    for (const f of staffRouteFolders()) expect(text, `/${f}`).not.toContain(`"/${f}"`);
+    expect(text).not.toMatch(/ai-review/);
+    // Sign-in and the portal stay disallowed, so a redirect from a desk lands on a blocked path.
     const star = rules(buildRobots("kuberacommercial.com", {})).find((x) => x.userAgent === "*")!;
-    for (const f of staffRouteFolders()) expect(star.disallow, `/${f}`).toContain(`/${f}`);
+    for (const p of ["/login", "/mfa", "/auth", "/portal", "/api/"]) expect(star.disallow, p).toContain(p);
+    // Every desk sends X-Robots-Tag: noindex from next.config.ts.
+    const { default: config } = await import("@/next.config");
+    const headers = await config.headers!();
+    for (const f of staffRouteFolders()) {
+      const rule = headers.find((h) => h.source === `/${f}/:path*`);
+      expect(rule?.headers, `/${f}`).toEqual(expect.arrayContaining([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]));
+    }
   });
 
   it("express host: crawlable root, no sitemap", () => {

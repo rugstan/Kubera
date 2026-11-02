@@ -28,7 +28,7 @@ export default function OpenGraphImage() {
           <div style={{ fontSize: 36, fontWeight: 600 }}>Kubera Commercial</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.08, letterSpacing: -2 }}>We find the right lender for your commercial real estate loan.</div>
+          <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.08, letterSpacing: -2 }}>We help you find the right lender for your commercial real estate loan.</div>
           <div style={{ fontSize: 30, color: "#6e6e73" }}>HUD, SBA, CMBS, agency, construction and hard money loans. Advisor-led.</div>
         </div>
         <div style={{ fontSize: 22, color: "#6e6e73" }}>Licensed California real estate broker. Not a lender.</div>

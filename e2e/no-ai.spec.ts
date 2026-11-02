@@ -6,7 +6,7 @@ import { gotoHydrated } from "./helpers";
 // The assistant is a staff tool: nothing a visitor can read, press or fetch may
 // mention AI or offer a way to ask it a question. Staff screens (app/(staff))
 // are behind sign-in and are not scanned here.
-const AI_WORDING = /\bAI\b|Kubera AI|AI-assisted/;
+const AI_WORDING = /\bAI\b|Kubera AI|AI-assisted|\bJev\b|routing engine|rules engine/;
 
 const PAGES = ["/", "/financing", "/financing/construction", "/financing/hard-money", "/express", "/rates", "/about", "/contact", "/privacy", "/terms", "/accessibility"];
 
@@ -39,6 +39,26 @@ test.describe("no public AI references", () => {
       expect(errors).toEqual([]);
     });
   }
+
+  test("every sitemap route has no AI wording in its text, title or share tags", async ({ page, request }) => {
+    test.setTimeout(240_000);
+    const xml = await (await request.get("/sitemap.xml")).text();
+    const paths = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
+    expect(paths.length).toBeGreaterThan(40);
+    for (const path of paths) {
+      const res = await page.goto(path, { waitUntil: "domcontentloaded" });
+      expect(res?.status(), path).toBe(200);
+      expect(await page.evaluate(() => document.body.innerText), `${path}: body text`).not.toMatch(AI_WORDING);
+      expect(await page.title(), `${path}: title`).not.toMatch(AI_WORDING);
+      const tags = await page.$$eval(
+        'meta[name="description"], meta[property^="og:"], meta[name^="twitter:"]',
+        (nodes) => nodes.map((n) => n.getAttribute("content") ?? ""),
+      );
+      for (const content of tags) expect(content, `${path}: meta`).not.toMatch(AI_WORDING);
+      const ld = await page.$$eval('script[type="application/ld+json"]', (nodes) => nodes.map((n) => n.textContent ?? ""));
+      for (const block of ld) expect(block, `${path}: JSON-LD`).not.toMatch(AI_WORDING);
+    }
+  });
 
   test("llms.txt and the web manifest have no AI wording", async ({ request }) => {
     const llms = await request.get("/llms.txt");
