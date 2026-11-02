@@ -1,6 +1,6 @@
 // Accessibility gate: runs axe-core (WCAG 2.0/2.1/2.2 A and AA rules) against
 // the production build in headless Chromium, plus keyboard/behaviour checks for
-// the command bar, tabs and ticker. Exits non-zero on any serious or critical
+// the tabs, ticker and skip link. Exits non-zero on any serious or critical
 // violation or failed behaviour check, and records the run in
 // docs/a11y/axe-results.md.
 //
@@ -60,7 +60,6 @@ const SCAN_ROUTES = [
   "/express",
   "/partners",
   "/privacy",
-  "/privacy/ai",
   "/terms",
   "/licensing",
   "/accessibility",
@@ -165,12 +164,6 @@ async function main() {
 
     // ---- axe scans -----------------------------------------------------------
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-    // The audit server has no model key, so the real availability probe
-    // (GET /api/ask) answers 503 and hides the AI entry points. Treat the
-    // backend as configured here; page-level routes below still override it.
-    await ctx.route(/\/api\/ask$/, (route) =>
-      route.request().method() === "GET" ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ available: true }) }) : route.fallback(),
-    );
     const page = await ctx.newPage();
 
     for (const route of SCAN_ROUTES) {
@@ -201,79 +194,13 @@ async function main() {
       scans.push(await scan(page, axeSource, `/partners tab: ${String(label)}`));
     }
 
-    // Command bar open (needs the ask API treated as available).
-    await go(page, `${BASE}/`);
-    await page.keyboard.press("Control+k");
-    await page.getByRole("dialog").waitFor({ state: "visible" });
-    scans.push(await scan(page, axeSource, "/ with command bar open"));
-    await page.keyboard.press("Escape");
-
     // ---- behaviour checks ----------------------------------------------------
-    // Command bar: focus trap, close button, focus return, Escape.
+    // The public site has no assistant: no entry points, and the old shortcut opens nothing.
     await go(page, `${BASE}/`);
-    await page.getByRole("button", { name: /^Ask Kubera AI/ }).first().focus();
+    check("no assistant entry points on the page", (await page.locator("[data-ask-entry], [data-ask-floating]").count()) === 0);
     await page.keyboard.press("Control+k");
-    await page.getByRole("dialog").waitFor({ state: "visible" });
-    check("command bar: dialog is modal", (await page.getByRole("dialog").getAttribute("aria-modal")) !== "false");
-    check("command bar: input focused on open", (await page.evaluate<string>("document.activeElement?.getAttribute('aria-label') ?? ''")) === "Your question");
-    await page.waitForTimeout(500); // dialog scale-in
-    const closeBox = await page.getByRole("button", { name: "Close Ask Kubera AI" }).boundingBox();
-    check("command bar: close button is at least 44x44", !!closeBox && closeBox.width >= 44 && closeBox.height >= 44, closeBox ? `${closeBox.width}x${closeBox.height}` : "missing");
-    check("command bar: conversation is an aria-live polite log", (await page.locator('[role="log"][aria-live="polite"]').count()) === 1);
-    check("command bar: page behind is inert", (await page.evaluate<boolean>("document.querySelector('main')?.closest('[inert]') !== null")) === true);
-    for (let i = 0; i < 12; i++) await page.keyboard.press("Tab");
-    check("command bar: focus stays trapped after 12 Tab presses", (await page.evaluate<boolean>("!!document.activeElement?.closest('[role=dialog]')")) === true);
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(250);
-    check("command bar: Escape closes", (await page.getByRole("dialog").count()) === 0);
-    check("command bar: focus returns to the opener", (await page.evaluate<string>("document.activeElement?.textContent ?? ''")).includes("Ask Kubera AI"));
-
-    // Command bar: error states are distinct and offer the advisor fallback.
-    for (const [status, kind] of [[503, "unavailable"], [429, "rate_limited"], [500, "error"]] as const) {
-      const p = await ctx.newPage();
-      await p.route(/\/api\/ask$/, (route) =>
-        route.request().method() === "POST" ? route.fulfill({ status, contentType: "application/json", body: JSON.stringify({ error: "x" }) }) : route.fallback(),
-      );
-      await go(p, `${BASE}/`);
-      await p.keyboard.press("Control+k");
-      await p.getByRole("dialog").waitFor({ state: "visible" });
-      await p.keyboard.type("What is HUD 232?");
-      await p.keyboard.press("Enter");
-      await p.locator(`[data-ask-error="${kind}"]`).waitFor({ timeout: 5_000 });
-      const hasFallback = (await p.getByRole("link", { name: "Talk to an advisor" }).count()) > 0;
-      check(`command bar: ${status} shows "${kind}" state with advisor fallback`, hasFallback);
-      if (status === 503) {
-        await p.keyboard.press("Escape");
-        await p.waitForTimeout(250);
-        check("AI entry points marked data-ask-entry hide after a 503", (await p.locator("[data-ask-entry]:visible").count()) === 0);
-      }
-      await p.close();
-    }
-
-    // Probe-driven hiding: the status probe reports 503 before any question is asked.
-    const probed = await ctx.newPage();
-    await probed.route(/\/api\/ask$/, (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "not configured" }) }));
-    await go(probed, `${BASE}/`);
-    await probed.waitForTimeout(300);
-    check("floating Ask button hidden when /api/ask reports 503", (await probed.locator("button[data-ask-floating]").count()) === 0 || !(await probed.locator("button[data-ask-floating]").first().isVisible()));
-    await probed.close();
-
-    // Floating button routes + desktop reveal.
-    await go(page, `${BASE}/express`);
-    check("floating Ask button absent on /express", (await page.locator("button[data-ask-floating]").count()) === 0);
-    await go(page, `${BASE}/partners`);
-    check("floating Ask button absent on /partners", (await page.locator("button[data-ask-floating]").count()) === 0);
-    await go(page, `${BASE}/`);
-    const floating = page.locator("button[data-ask-floating]").first();
-    check("floating Ask button hidden on desktop at top of page", !(await floating.isVisible()));
-    await page.evaluate("window.scrollTo(0, 1400)");
-    await page.waitForTimeout(250);
-    check("floating Ask button shown on desktop after scrolling", await floating.isVisible());
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.evaluate("window.scrollTo(0, 0)");
-    await page.waitForTimeout(250);
-    check("floating Ask button visible on mobile at top of page", await floating.isVisible());
-    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForTimeout(300);
+    check("Ctrl+K opens no dialog", (await page.getByRole("dialog").count()) === 0);
 
     // Tabs: arrow keys move selection; roles wired.
     await go(page, `${BASE}/`);

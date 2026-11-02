@@ -60,8 +60,6 @@ export function MobileResultsBar({ best, resultsId, tab }: { best: SizerQuote | 
   return (
     <>
       {reserve}
-      {/* Lift the floating Ask button above the bar while it is showing. */}
-      <style>{`body:has([data-mobile-results-bar]) [data-ask-floating] { bottom: 6rem; }`}</style>
       <div
         data-mobile-results-bar
         role="region"

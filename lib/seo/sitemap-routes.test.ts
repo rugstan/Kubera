@@ -35,8 +35,8 @@ describe("sitemap", () => {
     for (const r of coreRoutes) expect(hasPage(r.path), r.path).toBe(true);
   });
 
-  it("legal pages are the four compliance routes plus the AI-use page", () => {
-    expect(legalRoutes.map((r) => r.path)).toEqual(["/privacy", "/privacy/ai", "/terms", "/licensing", "/accessibility"]);
+  it("legal pages are the four compliance routes", () => {
+    expect(legalRoutes.map((r) => r.path)).toEqual(["/privacy", "/terms", "/licensing", "/accessibility"]);
   });
 
   it("dedupes paths and trailing slashes across sources", () => {

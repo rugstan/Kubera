@@ -1,8 +1,7 @@
 // The staff app's top-level routes, in nav order. Pure data with no
-// server-only imports, so the (staff) layout, the public "Ask Kubera AI"
-// button (a client component) and robots.txt all read the same list. A new
-// staff desk is added here once; lib/auth/staff-routes.test.ts fails if a
-// folder under app/(staff)/ is missing.
+// server-only imports, so the (staff) layout, client components and robots.txt
+// all read the same list. A new staff desk is added here once;
+// lib/auth/staff-routes.test.ts fails if a folder under app/(staff)/ is missing.
 
 export const STAFF_NAV = [
   { href: "/pipeline", label: "Pipeline" },

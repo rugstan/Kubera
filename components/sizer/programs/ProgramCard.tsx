@@ -15,19 +15,22 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 }
 
 const EXIT_STYLE: Record<ExitResult, { label: string; className: string }> = {
-  PASS: { label: "Passes", className: "badge-emerald" },
-  MARGINAL: { label: "Marginal", className: "bg-amber-100 text-amber-900" },
-  FAIL: { label: "Falls short", className: "bg-red-100 text-red-900" },
+  PASS: { label: "Passes", className: "badge-success" },
+  MARGINAL: { label: "Marginal", className: "badge-warning" },
+  FAIL: { label: "Falls short", className: "badge-danger" },
 };
 
 // Layer fills use the design tokens; the list beside the bar carries the numbers for screen readers.
 const LAYER_FILL: Record<StackLayer["kind"], string> = {
-  SENIOR: "bg-accent",
-  C_PACE: "bg-gold",
-  MEZZANINE: "bg-gold-ink",
-  PREFERRED_EQUITY: "bg-ink/60",
+  SENIOR: "bg-accent-fill",
+  C_PACE: "bg-accent-fill/60",
+  MEZZANINE: "bg-accent-hover",
+  PREFERRED_EQUITY: "bg-ink/50",
   COMMON_EQUITY: "bg-ink/20",
 };
+
+// A 2px surface-colored seam on each segment's left edge. A shadow, not a flex gap or border, so segment widths stay exactly proportional to the numbers beside the bar.
+const SEGMENT_GAP = "shadow-[-2px_0_0_var(--color-surface)]";
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
@@ -47,12 +50,12 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
       // No entrance state: cards must be visible in the server HTML.
       initial={false}
       transition={{ type: "spring", stiffness: 260, damping: 30, delay: index * 0.05 }}
-      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent/70" : ""} ${q.eligible ? "" : "opacity-70"}`}
+      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : "opacity-70"}`}
       aria-label={`${q.name} quote`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        {best && <span className="badge-emerald rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
-        {badge && <span className={`${badge === "Short-term" ? "bg-black/[0.05] text-ink/80" : "badge-gold"} rounded-full px-2.5 py-0.5 text-[11px] font-semibold`}>{badge}</span>}
+        {best && <span className="badge-accent rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
+        {badge && <span className={`${badge === "Short-term" ? "bg-black/[0.05] text-ink/80" : "badge"} rounded-full px-2.5 py-0.5 text-[11px] font-semibold`}>{badge}</span>}
         {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-titanium">Not a fit</span>}
       </div>
       <h3 className="mt-3 text-xl font-semibold">{q.name}</h3>
@@ -64,7 +67,7 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
           <p className="mt-1.5 text-[13px] text-titanium">
             {q.ratePct.toFixed(2)}% est. note rate · {q.termLabel}
           </p>
-          {q.binding !== "REQUESTED" && <p className="mt-1 text-[12px] text-amber-800">Limited by {SIZER_CONSTRAINT_COPY[q.binding]}</p>}
+          {q.binding !== "REQUESTED" && <p className="mt-1 text-[12px] text-warning">Limited by {SIZER_CONSTRAINT_COPY[q.binding]}</p>}
 
           {q.tranches.length > 1 && (
             <ul className="mt-4 space-y-1.5 rounded-2xl bg-black/[0.03] p-3 text-[12px]">
@@ -111,7 +114,7 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
               <p className="text-[12px] font-medium text-ink">Capital stack · {usd(q.stack.totalCost)}</p>
               <div aria-hidden className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-black/[0.05]">
                 {q.stack.layers.map((l) => (
-                  <span key={l.kind} className={LAYER_FILL[l.kind]} style={{ width: `${Math.max(0, l.pctOfCost * 100)}%` }} />
+                  <span key={l.kind} className={`${LAYER_FILL[l.kind]} ${SEGMENT_GAP}`} style={{ width: `${Math.max(0, l.pctOfCost * 100)}%` }} />
                 ))}
               </div>
               <dl className="mt-2 space-y-1 text-[12px]">
@@ -186,7 +189,7 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
       {(q.warnings.length > 0 || q.notes.length > 0) && (
         <ul className="mt-4 space-y-1.5 border-t border-black/[0.05] pt-4 text-[12px] leading-snug">
           {q.warnings.map((w) => (
-            <li key={w} className="flex gap-2 text-amber-800"><span aria-hidden>•</span>{w}</li>
+            <li key={w} className="flex gap-2 text-warning"><span aria-hidden>•</span>{w}</li>
           ))}
           {q.notes.map((n) => (
             <li key={n} className="flex gap-2 text-titanium"><span aria-hidden>•</span>{n}</li>

@@ -30,7 +30,7 @@ export const coreRoutes: SitemapRoute[] = [
   {
     path: "/",
     title: "Kubera Commercial home",
-    description: "Advisor-led, AI-assisted commercial real estate loan brokerage with a 60-second loan sizer.",
+    description: "Licensed California commercial real estate loan broker for senior living, hotels, multifamily, construction and hard money.",
     changeFrequency: "weekly",
     priority: 1,
     section: "Tools",
@@ -56,7 +56,6 @@ export const coreRoutes: SitemapRoute[] = [
 // Legal pages are built by the compliance workstream under `app/(site)/(legal)/`.
 export const legalRoutes: SitemapRoute[] = [
   { path: "/privacy", title: "Privacy policy", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
-  { path: "/privacy/ai", title: "AI use and your choices", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
   { path: "/terms", title: "Terms of use", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
   { path: "/licensing", title: "Licensing and disclosures", changeFrequency: "yearly", priority: 0.4, section: "Legal" },
   { path: "/accessibility", title: "Accessibility statement", changeFrequency: "yearly", priority: 0.3, section: "Legal" },

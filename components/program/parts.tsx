@@ -34,11 +34,11 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
 export function CtaLinks({ sizerLabel = "Size this loan" }: { sizerLabel?: string }) {
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/#sizer" className="pill pill-primary max-w-full whitespace-normal text-center">
-        {sizerLabel}
+      <Link href="/express" className="pill pill-primary max-w-full whitespace-normal text-center">
+        Get loan options
       </Link>
-      <Link href="/express" className="pill pill-glass max-w-full whitespace-normal text-center">
-        Start the 60-second qualifier
+      <Link href="/#sizer" className="pill pill-secondary max-w-full whitespace-normal text-center">
+        {sizerLabel}
       </Link>
     </div>
   );
@@ -48,7 +48,7 @@ export function FactsTable({ facts, asOf, title = "Key facts" }: { facts: Progra
   if (facts.length === 0) return null;
   return (
     <section aria-labelledby="facts-heading" className="mt-14">
-      <h2 id="facts-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+      <h2 id="facts-heading" className="text-2xl font-semibold md:text-3xl">
         {title}
       </h2>
       <p className="mt-2 text-[14px] text-titanium">
@@ -72,7 +72,7 @@ export function FactsTable({ facts, asOf, title = "Key facts" }: { facts: Progra
                   <td className="py-3 pr-4 align-top text-ink">{f.value}</td>
                   <td className="py-3 align-top text-[13px] text-titanium">
                     {f.source}; as of {f.asOf}
-                    {f.verify && <span className="ml-1 font-medium text-gold-ink">Re-check before relying on it.</span>}
+                    {f.verify && <span className="ml-1 font-medium text-warning">Re-check before relying on it.</span>}
                   </td>
                 </tr>
               ))}
@@ -89,7 +89,7 @@ export function Sections({ sections }: { sections: ProgramSection[] }) {
     <>
       {sections.map((s) => (
         <section key={s.heading} className="mt-14">
-          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{s.heading}</h2>
+          <h2 className="text-2xl font-semibold md:text-3xl">{s.heading}</h2>
           <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
             {s.paragraphs.map((p) => (
               <p key={p}>{p}</p>
@@ -112,7 +112,7 @@ export function Sections({ sections }: { sections: ProgramSection[] }) {
 export function FaqList({ faq }: { faq: ProgramFaq[] }) {
   return (
     <section aria-labelledby="faq-heading" className="mt-14">
-      <h2 id="faq-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+      <h2 id="faq-heading" className="text-2xl font-semibold md:text-3xl">
         Frequently asked questions
       </h2>
       <div className="mt-5 space-y-3">
@@ -137,7 +137,7 @@ export function RelatedPages({ slugs, heading = "Related programs" }: { slugs: s
   if (cards.length === 0) return null;
   return (
     <section aria-labelledby="related-heading" className="mt-14">
-      <h2 id="related-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+      <h2 id="related-heading" className="text-2xl font-semibold md:text-3xl">
         {heading}
       </h2>
       <ul className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -158,9 +158,9 @@ export function RelatedPages({ slugs, heading = "Related programs" }: { slugs: s
 export function CtaBand({ heading = "Talk through your deal with an advisor" }: { heading?: string }) {
   return (
     <section className="bento-pro on-dark mt-14 p-6 text-white sm:p-8 md:p-10">
-      <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{heading}</h2>
+      <h2 className="text-2xl font-semibold md:text-3xl">{heading}</h2>
       <p className="mt-3 max-w-2xl text-[16px] text-white/80">
-        Size the loan in 60 seconds, or send the basics and a licensed Kubera advisor reviews which programs may fit. Advisor-led, AI-assisted.
+        Send the basics and a licensed Kubera advisor reviews which programs and lenders may fit, or size the loan yourself first.
       </p>
       <div className="mt-6">
         <CtaLinks />

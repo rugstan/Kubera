@@ -12,7 +12,7 @@ export function buildLlmsTxt(routes: SitemapRoute[] = allSitemapRoutes()): strin
   const lines: string[] = [
     `# ${site.name}`,
     "",
-    `> ${site.legalName} is a California Department of Real Estate licensed real estate broker that arranges commercial real estate loans for senior living, hotel and multifamily owners. Kubera is a broker, not a lender: loans are funded by the lenders it introduces. Service is advisor-led and AI-assisted.`,
+    `> ${site.legalName} is a California Department of Real Estate licensed real estate broker that arranges commercial real estate loans for senior living, hotel, multifamily, construction and hard money borrowers. Kubera is a broker, not a lender: loans are funded by the lenders it introduces. A licensed advisor leads every engagement.`,
     "",
     "## About",
     "",

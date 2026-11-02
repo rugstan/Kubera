@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { openCommandBar } from "@/components/ask/events";
 import type { Benchmarks } from "@/lib/rates";
 import { disclosures } from "@/lib/site";
 import { sizeHospitality, sizeSenior, usd } from "@/lib/sizing/programs";
@@ -15,7 +14,6 @@ import type { HospitalityInputs, SeniorInputs } from "@/lib/sizing/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "./fields";
 import { ConstructionForm } from "./programs/ConstructionForm";
-import { buildDealContext } from "./programs/dealContext";
 import { CONSTRUCTION_DEFAULT, HARD_MONEY_DEFAULT, MULTIFAMILY_DEFAULT } from "./programs/defaults";
 import { upd, type FormProps } from "./programs/form";
 import { HardMoneyForm } from "./programs/HardMoneyForm";
@@ -80,9 +78,6 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
   const inputs = { senior, hospitality: hotel, multifamily: mf, hardMoney: hm, construction: build }[tab];
   const best = result.quotes.find((q) => q.id === result.bestFit);
 
-  const dealContext = () =>
-    buildDealContext({ vertical: TABS.find((t) => t.id === tab)?.label ?? "", inputs, result, benchmarks });
-
   const expressHref = useMemo(() => {
     const noi = tab === "senior" ? senior.noi : tab === "hospitality" ? hotel.noi : tab === "multifamily" ? mf.noi : tab === "construction" ? build.stabilizedNoi : (hm.stabilizedNoi ?? 0);
     const p = new URLSearchParams({ loan: String(inputs.loanAmount), noi: String(noi) });
@@ -139,19 +134,14 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
           <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl bg-ink p-6 text-white md:flex-row md:items-center">
             <div>
               <p className="text-lg font-semibold">{best ? `${best.name} looks strongest: ${usd(best.loanAmount)} at ~${best.ratePct.toFixed(2)}%.` : "No structure fits yet — adjust the inputs or talk to us."}</p>
-              <p className="text-sm text-white/60">Rates use {live ? "today's" : "indicative"} Treasury, SOFR, and Prime benchmarks.</p>
+              <p className="text-sm text-white/60">
+                Rates use {live ? "today's" : "indicative"} Treasury, SOFR, and Prime benchmarks.{" "}
+                <Link href="/rates" className="text-accent underline underline-offset-2">See today&rsquo;s rates</Link>
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={!best}
-                data-ask-entry
-                onClick={() => openCommandBar({ mode: "term_sheet", dealContext: dealContext(), prompt: `Draft an indicative term sheet for the ${best?.name} structure.`, autoSubmit: true })}
-                className="pill bg-white !py-2.5 !text-[15px] text-ink hover:bg-white/90 disabled:opacity-40"
-              >
-                Generate term sheet
-              </button>
-              <Link href={expressHref} className="pill pill-primary !py-2.5 !text-[15px]">Get real terms</Link>
+              <Link href={expressHref} className="pill pill-primary !py-2.5 !text-[15px]">Send this to an advisor</Link>
+              <Link href="/contact#schedule" className="pill pill-secondary !py-2.5 !text-[15px]">Book a call</Link>
             </div>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-titanium">{disclosures.indicative}</p>

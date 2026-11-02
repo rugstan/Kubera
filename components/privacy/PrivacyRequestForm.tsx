@@ -4,13 +4,13 @@ import { useId, useRef, useState } from "react";
 import { NoticeAtCollection } from "@/components/legal/NoticeAtCollection";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 
-// Public privacy request form (/privacy/ai#request). Posts to
+// Public privacy request form (/privacy#request). Posts to
 // /api/privacy/request, which files a ticket in the compliance queue.
 
 type RequestType = "human_review" | "access" | "deletion" | "correction" | "opt_out_sale_share";
 
 export const REQUEST_OPTIONS: { value: RequestType; label: string; hint: string }[] = [
-  { value: "human_review", label: "Advisor-only handling", hint: "An advisor handles your requests personally, and we do not send your personal information to AI tools. Takes effect right away." },
+  { value: "human_review", label: "Advisor-only handling", hint: "An advisor handles your requests personally, without automated scoring and without sending your personal information to automated tools. Takes effect right away." },
   { value: "access", label: "Get a copy of my information", hint: "We verify your identity first, then send you what we hold about you." },
   { value: "deletion", label: "Delete my information", hint: "We verify your identity first. Some records, such as required loan disclosures, must be kept for a time." },
   { value: "correction", label: "Correct my information", hint: "Tell us what is wrong and what it should say." },

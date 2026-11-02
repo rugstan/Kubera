@@ -21,7 +21,7 @@ test.describe("financing pages", () => {
     await expect(page.locator("details").first()).toHaveAttribute("open", "");
 
     await expect(page.getByRole("link", { name: "Size this loan" }).first()).toHaveAttribute("href", "/#sizer");
-    await expect(page.getByRole("link", { name: "Start the 60-second qualifier" }).first()).toHaveAttribute("href", "/express");
+    await expect(page.getByRole("link", { name: "Get loan options" }).first()).toHaveAttribute("href", "/express");
     expect(errors).toEqual([]);
   });
 
@@ -71,7 +71,7 @@ test.describe("financing pages", () => {
     test(`${path} does not scroll sideways at 320px`, async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 640 });
       expect((await page.goto(path))?.status()).toBe(200);
-      await expect(page.getByRole("link", { name: "Start the 60-second qualifier" }).last()).toBeVisible();
+      await expect(page.getByRole("link", { name: "Get loan options" }).last()).toBeVisible();
       const { scroll, client } = await page.evaluate(() => ({
         scroll: document.documentElement.scrollWidth,
         client: document.documentElement.clientWidth,

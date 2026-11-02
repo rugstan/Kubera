@@ -193,7 +193,7 @@ export async function buildSubjectExport(
     about: {
       categories: PI_CATEGORIES.map((c) => ({ category: c.label, examples: c.examples, sensitive: c.sensitive, retention: c.retention })),
       sources: [
-        "You, through our website forms, Kubera AI, email, phone, and text",
+        "You, through our website forms and tools, email, phone, and text",
         "People you authorize, such as your referring broker, co-borrowers, accountants, and attorneys",
         "Lenders and third-party report providers working on your loan",
         "Public sources such as property records and license lookups",
