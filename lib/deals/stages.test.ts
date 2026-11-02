@@ -17,9 +17,9 @@ const closingOk = { gates: { borrowerCommitment: ok, borrowerLoanDocuments: ok, 
 const closingBlocked = { gates: { borrowerCommitment: ok, borrowerLoanDocuments: ok, closing: { allowed: false, reasons: ["No deal moves to closing without a signed MLDS (RE 882) on file."] } } } as unknown as DealCompliance;
 
 /** Real gate A/H evaluation of a real-property-secured brokered loan with the MLDS in `status`. */
-const complianceWithMlds = (status: DisclosureStatus | null, over: { namesKuberaAsBeneficiary?: boolean } = {}): DealCompliance =>
+const complianceWithMlds = (status: DisclosureStatus | null, over: { namesCorinAsBeneficiary?: boolean } = {}): DealCompliance =>
   evaluateDealCompliance({
-    mlds: { facts: { kuberaRole: "broker", program: "HUD_232", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false }, ...over }, status },
+    mlds: { facts: { corinRole: "broker", program: "HUD_232", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false }, ...over }, status },
     now: new Date("2026-11-03T17:00:00.000Z"),
   });
 const acceptedTerms = { lenderName: "Cambridge", noteRatePct: 6.1, termMonths: 420 };
@@ -119,7 +119,7 @@ describe("applyStageEvent", () => {
   it("refuses commitment events while the deal is held for counsel even with a signed MLDS, and allows them once signed and clear", async () => {
     const { store, now } = setup();
     const deal = at(await newDeal(store, now, { program: "AGENCY" }), "underwriting");
-    const held = complianceWithMlds("signed", { namesKuberaAsBeneficiary: true });
+    const held = complianceWithMlds("signed", { namesCorinAsBeneficiary: true });
     expect(applyStageEvent({ deal, event: "commitment_issued", context: { compliance: held }, now: now() })).toMatchObject({ ok: false, reasons: [expect.stringMatching(/held for counsel/)] });
     expect(applyStageEvent({ deal, event: "commitment_issued", context: { compliance: complianceWithMlds("signed") }, now: now() })).toMatchObject({ ok: true, to: "commitment" });
     expect(applyStageEvent({ deal: at(deal, "term_sheet"), event: "term_sheet_accepted", context: { termSheetRef: "ts", compliance: complianceWithMlds("signed") }, terms: acceptedTerms, now: now() })).toMatchObject({ ok: true, to: "application" });
@@ -258,7 +258,7 @@ describe("advanceDeal (end to end with the records)", () => {
         status: "incomplete",
         parentBrokerOfRecordId: "11111111-1111-4111-8111-111111111111",
         brokerOfRecordId: null,
-        facts: { kind: "extension", effectiveDate: "2026-10-01", arrangedBy: "kubera", noteRatePct: 12.5 },
+        facts: { kind: "extension", effectiveDate: "2026-10-01", arrangedBy: "corin", noteRatePct: 12.5 },
         evaluation: { status: "incomplete", brokerArrangementDocumented: false, lenderNoticeRequired: false, missing: [], blocking: true, flags: [] },
         flags: [],
         lenderNoticeApprovalKey: null,
@@ -280,7 +280,7 @@ describe("advanceDeal (end to end with the records)", () => {
     expect(ctx.complianceMissing.join(" ")).toMatch(/broker-of-record file/);
   });
 
-  it("an SBA deal with Kubera compensation needs a signed Form 159 to close", async () => {
+  it("an SBA deal with Corin compensation needs a signed Form 159 to close", async () => {
     const { store, now } = setup();
     const disclosures = new MemoryDisclosureStore();
     const deal = await newDeal(store, now, { program: "SBA_7A", collateralRealProperty: false });
@@ -321,7 +321,7 @@ describe("sanctions holds and the closing gate on the deal desk", () => {
 
     // Confirmed match: held for counsel, still blocked.
     const hit = screened.records.find((r) => r.result === "potential_match")!;
-    await dispositionScreening({ ...sdeps, sink }, { screeningId: hit.id, to: "confirmed_match", reviewer: { id: "u1", email: "broker@kuberacommercial.com", name: "B", role: "broker", dreLicense: null }, note: "Same date of birth and nationality as SDN-9." });
+    await dispositionScreening({ ...sdeps, sink }, { screeningId: hit.id, to: "confirmed_match", reviewer: { id: "u1", email: "broker@corincommercial.com", name: "B", role: "broker", dreLicense: null }, note: "Same date of birth and nationality as SDN-9." });
     expect((await store.getDeal(deal.id))!.status).toBe("held_for_counsel");
     expect((await advanceDeal(deps, { dealId: deal.id, event: "closing_scheduled", actor: "a" })).ok).toBe(false);
 
@@ -336,7 +336,7 @@ describe("sanctions holds and the closing gate on the deal desk", () => {
     const sink = dealStatusHoldSink({ store, holds: desk.holds, now });
     for (const h of await desk.holds.active(deal.id)) await sink.held(h);
     const hit = screened.records.find((r) => r.result === "potential_match")!;
-    await dispositionScreening({ ...sdeps, sink }, { screeningId: hit.id, to: "false_positive", reviewer: { id: "u1", email: "broker@kuberacommercial.com", name: "B", role: "broker", dreLicense: null }, note: "Different date of birth and nationality from SDN-9." });
+    await dispositionScreening({ ...sdeps, sink }, { screeningId: hit.id, to: "false_positive", reviewer: { id: "u1", email: "broker@corincommercial.com", name: "B", role: "broker", dreLicense: null }, note: "Different date of birth and nationality from SDN-9." });
     expect((await store.getDeal(deal.id))!.status).toBe("active");
     const r = await advanceDeal({ store, disclosures, now, checklist }, { dealId: deal.id, event: "closing_scheduled", actor: "a" });
     expect(r).toMatchObject({ ok: true, to: "closing" });

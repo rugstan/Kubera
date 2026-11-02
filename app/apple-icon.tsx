@@ -9,7 +9,7 @@ export default function AppleIcon() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#1d1d1f" }}>
         <svg width="120" height="120" viewBox="0 0 24 24" fill="none">
-          <path d="M8 6v12M8 12l7-6M10.5 10l5 8" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M16.24 7.76A6 6 0 1 0 16.24 16.24" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
     ),

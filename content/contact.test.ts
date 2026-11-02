@@ -5,7 +5,7 @@ import { MAILBOXES, callLink, calcomHandle, calcomUrls, contactDetails, mailboxA
 describe("mailbox routing table", () => {
   it("lists the five public mailboxes", () => {
     expect(MAILBOXES.map((m) => m.local)).toEqual(["deals", "lenders", "partners", "vendors", "compliance"]);
-    expect(mailboxAddress("deals")).toBe("deals@kuberacommercial.com");
+    expect(mailboxAddress("deals")).toBe("deals@corincommercial.com");
   });
 
   it("does not publish internal or no-sync mailboxes", () => {
@@ -28,26 +28,26 @@ describe("mailbox routing table", () => {
 
 describe("calcomHandle", () => {
   it.each([
-    [{ NEXT_PUBLIC_CALCOM_LINK: "kubera/intro" }, "kubera/intro"],
-    [{ NEXT_PUBLIC_CALCOM_LINK: " /kubera/intro/ " }, "kubera/intro"],
-    [{ NEXT_PUBLIC_CALCOM_LINK: "kubera" }, "kubera"],
-    [{ NEXT_PUBLIC_CALCOM_LINK: "team/kubera/intro" }, "team/kubera/intro"],
+    [{ NEXT_PUBLIC_CALCOM_LINK: "corin/intro" }, "corin/intro"],
+    [{ NEXT_PUBLIC_CALCOM_LINK: " /corin/intro/ " }, "corin/intro"],
+    [{ NEXT_PUBLIC_CALCOM_LINK: "corin" }, "corin"],
+    [{ NEXT_PUBLIC_CALCOM_LINK: "team/corin/intro" }, "team/corin/intro"],
   ])("%j -> %s", (env, expected) => expect(calcomHandle(env)).toBe(expected));
 
   it.each([
     {},
     { NEXT_PUBLIC_CALCOM_LINK: "" },
-    { NEXT_PUBLIC_CALCOM_LINK: "https://cal.com/kubera" },
-    { NEXT_PUBLIC_CALCOM_LINK: "kubera/../admin" },
+    { NEXT_PUBLIC_CALCOM_LINK: "https://cal.com/corin" },
+    { NEXT_PUBLIC_CALCOM_LINK: "corin/../admin" },
     { NEXT_PUBLIC_CALCOM_LINK: "a/b/c/d" },
-    { NEXT_PUBLIC_CALCOM_LINK: "kubera intro" },
-    { NEXT_PUBLIC_CALCOM_LINK: "kubera?x=1" },
+    { NEXT_PUBLIC_CALCOM_LINK: "corin intro" },
+    { NEXT_PUBLIC_CALCOM_LINK: "corin?x=1" },
   ])("%j -> null", (env) => expect(calcomHandle(env)).toBeNull());
 
   it("builds page and embed urls on cal.com", () => {
-    expect(calcomUrls("kubera/intro")).toEqual({
-      page: "https://cal.com/kubera/intro",
-      embed: "https://cal.com/kubera/intro?embed=true&layout=month_view",
+    expect(calcomUrls("corin/intro")).toEqual({
+      page: "https://cal.com/corin/intro",
+      embed: "https://cal.com/corin/intro?embed=true&layout=month_view",
     });
   });
 });
@@ -69,18 +69,18 @@ describe("contactDetails", () => {
   });
 
   it("enables scheduling only for a valid handle", () => {
-    expect(contactDetails({ NEXT_PUBLIC_CALCOM_LINK: "kubera/intro" }).scheduling?.page).toBe("https://cal.com/kubera/intro");
+    expect(contactDetails({ NEXT_PUBLIC_CALCOM_LINK: "corin/intro" }).scheduling?.page).toBe("https://cal.com/corin/intro");
     expect(contactDetails({ NEXT_PUBLIC_CALCOM_LINK: "javascript:alert(1)" }).scheduling).toBeNull();
   });
 });
 
 describe("callLink", () => {
   it("offers Book a call only once a valid scheduling handle is set", () => {
-    expect(callLink({ NEXT_PUBLIC_CALCOM_LINK: "kubera/intro" })).toEqual({ ...CALL_LINK, kind: "book" });
+    expect(callLink({ NEXT_PUBLIC_CALCOM_LINK: "corin/intro" })).toEqual({ ...CALL_LINK, kind: "book" });
     expect(CALL_LINK).toEqual({ href: "/contact#schedule", label: "Book a call" });
   });
 
-  it.each([{}, { NEXT_PUBLIC_CALCOM_LINK: "" }, { NEXT_PUBLIC_CALCOM_LINK: "https://cal.com/kubera" }])(
+  it.each([{}, { NEXT_PUBLIC_CALCOM_LINK: "" }, { NEXT_PUBLIC_CALCOM_LINK: "https://cal.com/corin" }])(
     "falls back to Email an advisor without one (%j), never a page that cannot book",
     (env) => {
       const link = callLink(env);

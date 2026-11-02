@@ -76,7 +76,7 @@ export function loanBrokerOfRecordFromRow(r: Row): LoanBrokerOfRecord {
     elements,
     tableFunded: Boolean(r.table_funded),
     ...(r.true_funding_source ? { trueFundingSource: String(r.true_funding_source) } : {}),
-    tableFundedInKuberaName: Boolean(r.table_funded_in_kubera_name),
+    tableFundedInCorinName: Boolean(r.table_funded_in_corin_name),
     ...(r.deed_beneficiary_name ? { deedBeneficiaryName: String(r.deed_beneficiary_name) } : {}),
     ...(r.originator_name ? { originatorName: String(r.originator_name) } : {}),
     transactionDate: r.transaction_date instanceof Date ? r.transaction_date.toISOString().slice(0, 10) : String(r.transaction_date).slice(0, 10),

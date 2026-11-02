@@ -417,9 +417,9 @@ const NEXT_STATUS: Record<string, { to: "earned" | "void"; label: string }[]> = 
 async function LedgerPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime; write: boolean }) {
   const [entries, invoices] = await Promise.all([rt.store.listFeeEntries(deal.id), rt.store.listInvoices(deal.id)]);
   const summary = summarizeLedger(entries);
-  const earned = entries.filter((e) => e.status === "earned" && e.payee === "kubera");
+  const earned = entries.filter((e) => e.status === "earned" && e.payee === "corin");
   return (
-    <Section description="Kubera's own compensation as it will appear on the lender's closing statement. Record keeping only." title="Fee ledger">
+    <Section description="Corin's own compensation as it will appear on the lender's closing statement. Record keeping only." title="Fee ledger">
       <dl className="grid gap-3 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-xs text-titanium">Gross compensation</dt>
@@ -486,13 +486,13 @@ async function LedgerPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntim
               { value: "hard_money_points", label: "Hard money points" },
               { value: "sba_packaging", label: "SBA packaging fee (Form 159)" },
               { value: "sba_referral", label: "SBA lender referral fee (Form 159)" },
-              { value: "co_broker_split", label: "Co-broker split owed by Kubera" },
+              { value: "co_broker_split", label: "Co-broker split owed by Corin" },
             ]}
           />
-          <Field hint="Broker %, Kubera share %, or broker points." label="Percent / points" name="pct" step="0.0001" type="number" />
+          <Field hint="Broker %, Corin share %, or broker points." label="Percent / points" name="pct" step="0.0001" type="number" />
           <Field hint="Flat amount instead of a percent." label="Amount (USD)" name="amount" />
           <Field hint="Agency: lender origination %. Hard money: lender points." label="Lender fee % / points" name="lenderPct" step="0.0001" type="number" />
-          <Field hint="Hard money: Kubera's share of lender points." label="Share of lender points (%)" name="sharePct" step="0.01" type="number" />
+          <Field hint="Hard money: Corin's share of lender points." label="Share of lender points (%)" name="sharePct" step="0.01" type="number" />
           <Field label="Counterparty" name="counterparty" placeholder="Lender or partner name" />
           <div className="sm:col-span-3">
             <Submit>Record (projected)</Submit>
@@ -720,7 +720,7 @@ function MldsGenerateForm({ deal, mlds, ids }: { deal: Deal; mlds: DisclosureRec
         <Field defaultValue={deal.propertyAddress} label="Property address" name="propertyAddress" required />
         <Field label="APN" name="apn" />
         <Field label="County" name="county" />
-        <Field hint="Lender of record; Kubera is never the lender." label="Lender" name="lenderName" />
+        <Field hint="Lender of record; Corin is never the lender." label="Lender" name="lenderName" />
         <Field defaultValue={deal.loanAmountCents !== null ? (deal.loanAmountCents / 100).toFixed(2) : ""} label="Principal (USD)" name="principal" required />
         <Field label="Interest rate (%)" name="ratePct" required step="0.001" type="number" />
         <Select
@@ -772,7 +772,7 @@ function MldsGenerateForm({ deal, mlds, ids }: { deal: Deal; mlds: DisclosureRec
         <Area hint="One per line: label | amount." label="Payoffs from proceeds" name="payoffs" rows={2} />
         <Area hint="One per line: lienholder | nature | priority | amount." label="Existing liens" name="existingLiens" rows={2} />
         <Area hint="One per line: lienholder | nature | priority | amount." label="Liens expected after this loan" name="expectedLiens" rows={2} />
-        <p className="text-xs text-titanium sm:col-span-3">Kubera&apos;s name, license and address come from configuration; you sign as the licensee, so your DRE license must be on your profile.</p>
+        <p className="text-xs text-titanium sm:col-span-3">Corin&apos;s name, license and address come from configuration; you sign as the licensee, so your DRE license must be on your profile.</p>
         <div className="sm:col-span-3">
           <Submit>{mlds.status === "required" ? "Generate MLDS" : "Regenerate MLDS"}</Submit>
         </div>
@@ -784,7 +784,7 @@ function MldsGenerateForm({ deal, mlds, ids }: { deal: Deal; mlds: DisclosureRec
 async function Form159Panel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime; write: boolean }) {
   const forms = await rt.store.listForm159(deal.id);
   return (
-    <Section description="Built from the fee ledger; sent for signature by Kubera, the applicant and the lender after broker approval." title="SBA Form 159">
+    <Section description="Built from the fee ledger; sent for signature by Corin, the applicant and the lender after broker approval." title="SBA Form 159">
       <Table
         empty="Not generated yet."
         head={["Version", "Total", "Status", "Flags", ""]}
@@ -933,7 +933,7 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
             label="Arranged by"
             name="arrangedBy"
             options={[
-              { value: "kubera", label: "Kubera (licensed broker)" },
+              { value: "corin", label: "Corin (licensed broker)" },
               { value: "other_licensed_broker", label: "Another licensed broker" },
               { value: "lender_or_servicer_only", label: "Lender or servicer only" },
             ]}
@@ -941,7 +941,7 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
           <Field label="Other broker name" name="otherBrokerName" />
           <Field label="Other broker DRE #" name="otherBrokerDre" />
           <Select
-            label="Kubera acts for"
+            label="Corin acts for"
             name="actsFor"
             options={[
               { value: "", label: "—" },
@@ -952,7 +952,7 @@ async function ModificationsPanel({ deal, rt, staff }: { deal: Deal; rt: DealDes
           />
           <Field label="Engagement agreement ref" name="engagementRef" />
           <Field label="Term sheet / negotiation ref" name="termSheetRef" />
-          <Field label="Kubera compensation (USD)" name="compensation" step="0.01" type="number" />
+          <Field label="Corin compensation (USD)" name="compensation" step="0.01" type="number" />
           <Select
             label="Paid by"
             name="payer"
@@ -1003,7 +1003,7 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
         ...(loan.lenderCharges ? { lenderCharges: loan.lenderCharges } : {}),
         collateral: loan.collateral,
         elements: loan.elements,
-        tableFundedInKuberaName: loan.tableFundedInKuberaName,
+        tableFundedInCorinName: loan.tableFundedInCorinName,
         transactionDate: loan.transactionDate,
       })
     : null;
@@ -1077,7 +1077,7 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
           <summary className="cursor-pointer text-sm font-medium text-ink">{loan ? "Update the file" : "Record the file"}</summary>
           <form action={recordLoanBrokerOfRecordAction} className="mt-4 grid gap-3 sm:grid-cols-3">
             <input name="dealId" type="hidden" value={deal.id} />
-            <Field defaultValue={loan?.lender.name ?? lockedLender} hint="Lender of record; Kubera is never the lender." label="Lender" name="bor_lenderName" required />
+            <Field defaultValue={loan?.lender.name ?? lockedLender} hint="Lender of record; Corin is never the lender." label="Lender" name="bor_lenderName" required />
             <Select
               defaultValue={loan?.lender.category ?? "UNKNOWN"}
               label="Lender category"
@@ -1116,7 +1116,7 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
             <Field defaultValue={loan?.collateral.lienPosition} label="Lien position" name="bor_lienPosition" type="number" />
             <Select
               defaultValue={e?.actsFor ?? ""}
-              label="Kubera acts for"
+              label="Corin acts for"
               name="bor_actsFor"
               options={[
                 { value: "", label: "—" },
@@ -1126,7 +1126,7 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
               ]}
             />
             <Field defaultValue={e?.engagementAgreementRef ?? deal.engagementAgreementRef} label="Engagement / fee agreement ref" name="bor_engagementRef" />
-            <Field defaultValue={e?.compensation?.amountUsd} label="Kubera compensation (USD)" name="bor_compensation" step="0.01" type="number" />
+            <Field defaultValue={e?.compensation?.amountUsd} label="Corin compensation (USD)" name="bor_compensation" step="0.01" type="number" />
             <Select
               defaultValue={e?.compensation?.payer ?? "borrower"}
               label="Compensation paid by"
@@ -1153,7 +1153,7 @@ async function BrokerOfRecordPanel({ deal, rt, staff }: { deal: Deal; rt: DealDe
             <Field defaultValue={loan?.trueFundingSource} label="True funding source (if table funded)" name="bor_trueFundingSource" />
             <div className="flex flex-col gap-2 sm:col-span-3">
               <Check defaultChecked={loan?.tableFunded} label="Table funded" name="bor_tableFunded" />
-              <Check defaultChecked={loan?.tableFundedInKuberaName} label="Table funded in Kubera's name" name="bor_tableFundedInKuberaName" />
+              <Check defaultChecked={loan?.tableFundedInCorinName} label="Table funded in Corin's name" name="bor_tableFundedInCorinName" />
               <Check defaultChecked={e?.businessPurposeCertified} label="Business-purpose certification on file" name="bor_businessPurpose" />
               <Check defaultChecked={e?.arrangingLicensee?.activeAtTransaction ?? true} label="My DRE license is active on the loan date" name="bor_licenseActive" />
             </div>

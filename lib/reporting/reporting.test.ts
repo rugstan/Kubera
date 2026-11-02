@@ -249,11 +249,11 @@ describe("reconciliation", () => {
   });
 
   it("catches an invoice that does not bill the ledger", () => {
-    const bad = data.invoices.map((i) => (i.number === "KC-2026-0002" ? { ...i, totalCents: 1_400_000, lines: [{ ...i.lines[0]!, amountCents: 1_400_000 }] } : i));
+    const bad = data.invoices.map((i) => (i.number === "CC-2026-0002" ? { ...i, totalCents: 1_400_000, lines: [{ ...i.lines[0]!, amountCents: 1_400_000 }] } : i));
     const r = reconcileFees(f, { ...input, invoices: bad });
     const check = r.checks.find((c) => c.name.startsWith("Issued invoices"))!;
     expect(check.ok).toBe(false);
-    expect(check.detail).toMatch(/KC-2026-0002/);
+    expect(check.detail).toMatch(/CC-2026-0002/);
   });
 
   it("catches a ledger entry on a deal that is not in the report", () => {
@@ -275,9 +275,9 @@ describe("fee report against the deal desk's own ledger", () => {
     };
     await put(brokerFee({ dealId: a.id, loanAmountCents: 1_000_000_000, pct: 1 }), "settled", "2026-10-20");
     await put(brokerFee({ dealId: a.id, loanAmountCents: 1_000_000_000, flatCents: 500_000, payer: "lender" }), "earned", "2026-10-25");
-    await put(agencySplit({ dealId: b.id, loanAmountCents: 500_000_000, lenderOriginationPct: 1, kuberaSharePct: 50, lenderName: "L" }), "projected");
+    await put(agencySplit({ dealId: b.id, loanAmountCents: 500_000_000, lenderOriginationPct: 1, corinSharePct: 50, lenderName: "L" }), "projected");
     await put(partnerSplit({ dealId: b.id, payee: "co_broker", ofCents: 2_500_000, pct: 20, partnerName: "P" }), "projected");
-    for (const e of hardMoneyPoints({ dealId: c.id, loanAmountCents: 80_000_000, brokerPoints: 2, lenderPoints: 2, kuberaShareOfLenderPointsPct: 25, lenderName: "F" })) await put(e, "settled", "2026-11-02");
+    for (const e of hardMoneyPoints({ dealId: c.id, loanAmountCents: 80_000_000, brokerPoints: 2, lenderPoints: 2, corinShareOfLenderPointsPct: 25, lenderName: "F" })) await put(e, "settled", "2026-11-02");
     await put(brokerFee({ dealId: c.id, loanAmountCents: 80_000_000, pct: 0.5 }), "void");
 
     const loaded = await storeReportingSource(store).load();

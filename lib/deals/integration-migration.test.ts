@@ -54,9 +54,9 @@ describe("Phase 2 integration fixes migration", () => {
     await q(`insert into public.deal_holds (deal_id, reason, source_kind, source_id, detail, created_by) values ($1, 'sanctions_confirmed_match', 'screening', $2, 'Confirmed sanctions match for Pat Owner.', 'b')`, [id, screening]);
     expect((await status(id)).status).toBe("held_for_counsel");
     // Counsel releases the confirmed hold; the possible-match hold is released as a false positive.
-    await q(`select set_config('kubera.counsel_release', 'on', false)`);
+    await q(`select set_config('corin.counsel_release', 'on', false)`);
     await q(`update public.deal_holds set released_at = now(), released_by = 'counsel', release_note = 'Cleared by counsel.' where deal_id = $1`, [id]);
-    await q(`select set_config('kubera.counsel_release', '', false)`);
+    await q(`select set_config('corin.counsel_release', '', false)`);
     expect((await status(id)).status).toBe("active");
   });
 

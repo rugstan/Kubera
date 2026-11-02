@@ -6,7 +6,7 @@ import { gotoHydrated } from "./helpers";
 // The assistant is a staff tool: nothing a visitor can read, press or fetch may
 // mention AI or offer a way to ask it a question. Staff screens (app/(staff))
 // are behind sign-in and are not scanned here.
-const AI_WORDING = /\bAI\b|Kubera AI|AI-assisted|\bJev\b|routing engine|rules engine/;
+const AI_WORDING = /\bAI\b|Corin AI|AI-assisted|\bJev\b|routing engine|rules engine/;
 
 const PAGES = ["/", "/financing", "/financing/construction", "/financing/hard-money", "/express", "/rates", "/about", "/contact", "/privacy", "/terms", "/accessibility"];
 
@@ -116,7 +116,7 @@ test.describe("/api/ask for signed-in staff", () => {
 
     await page.goto("/pipeline");
     await expect(page).toHaveURL(/\/login\?next=/);
-    await page.getByLabel("Work email").fill("broker@kubera.test");
+    await page.getByLabel("Work email").fill("broker@corin.test");
     await page.getByRole("button", { name: "Email me a code" }).click();
     await expect(page).toHaveURL(/\/login\/verify$/);
     const code = (await page.getByTestId("fake-code").textContent())?.trim() ?? "";

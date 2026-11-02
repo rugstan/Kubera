@@ -37,7 +37,7 @@ describe("shared Zoho access tokens", () => {
 
   it("waits for the instance holding the refresh lock rather than minting a second token", async () => {
     const cache = new MemoryZohoTokenCache();
-    await cache.setIfAbsent(`kubera:zoho:at:${refreshTokenKey("rt-shared", "cid")}:lock`, "other", 10_000);
+    await cache.setIfAbsent(`corin:zoho:at:${refreshTokenKey("rt-shared", "cid")}:lock`, "other", 10_000);
     const zoho = counter((n) => tokenResponse(`at-${n}`));
     let polls = 0;
     const waiting = new ZohoAccessTokens({
@@ -48,7 +48,7 @@ describe("shared Zoho access tokens", () => {
         if (++polls === 2) {
           // The other instance finishes its refresh.
           const minted = new ZohoAccessTokens({ ...base, fetch: async () => tokenResponse("at-other"), cache: new MemoryZohoTokenCache() });
-          await cache.set(`kubera:zoho:at:${refreshTokenKey("rt-shared", "cid")}`, JSON.stringify({ token: await minted.get(), expiresAt: Date.now() + 3_600_000 }), 3_600_000);
+          await cache.set(`corin:zoho:at:${refreshTokenKey("rt-shared", "cid")}`, JSON.stringify({ token: await minted.get(), expiresAt: Date.now() + 3_600_000 }), 3_600_000);
         }
       },
     });
@@ -91,7 +91,7 @@ describe("shared Zoho access tokens", () => {
       dc: "com",
       refreshTokens: { deals: "rt" },
       accountIds: { deals: "1" },
-      addresses: { deals: "deals@kuberacommercial.com", docs: "docs@kuberacommercial.com", lenders: "lenders@kuberacommercial.com", vendors: "vendors@kuberacommercial.com", closing: "closing@kuberacommercial.com" },
+      addresses: { deals: "deals@corincommercial.com", docs: "docs@corincommercial.com", lenders: "lenders@corincommercial.com", vendors: "vendors@corincommercial.com", closing: "closing@corincommercial.com" },
       fetch: (async () => Response.json({ error: "Access Denied" }, { status: 400 })) as unknown as typeof fetch,
       tokenCache: new MemoryZohoTokenCache(),
     });

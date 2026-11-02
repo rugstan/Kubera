@@ -7,7 +7,7 @@
 //   correction          right to correct (§1798.106)
 //   human_review        advisor-only handling: no automated scoring and no AI
 //                       processing of the person's data (applies immediately)
-//   opt_out_sale_share  §1798.120 (Kubera does not sell or share; recorded anyway)
+//   opt_out_sale_share  §1798.120 (Corin does not sell or share; recorded anyway)
 //
 // Verification (11 CCR §7060–7062): access, deletion and correction need a
 // verified requester before anything is disclosed or deleted. A borrower who
@@ -32,7 +32,7 @@ export type PrivacyRequestStatus = (typeof PRIVACY_REQUEST_STATUSES)[number];
 
 export const OPEN_STATUSES: readonly PrivacyRequestStatus[] = ["pending_verification", "verified", "in_progress"];
 
-export const COMPLIANCE_MAILBOX = "compliance@kuberacommercial.com";
+export const COMPLIANCE_MAILBOX = "compliance@corincommercial.com";
 
 /** Request types that only restrict processing: applied at once, no verification. */
 export const SELF_EXECUTING_TYPES: readonly PrivacyRequestType[] = ["human_review", "opt_out_sale_share"];

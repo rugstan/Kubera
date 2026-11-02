@@ -39,7 +39,7 @@ function setup(opts: { model?: boolean; keyring?: typeof keyring | null; subject
       { id: OTHER_DEAL_ID, leadId: null, name: "Seaside Inn PIP bridge" },
     ],
     [{ id: LEAD_ID, email: "pat.lee@example.com" }],
-    [{ messageId: "kc-outbound-77@kuberacommercial.com", dealId: DEAL_ID, leadId: LEAD_ID }],
+    [{ messageId: "cc-outbound-77@corincommercial.com", dealId: DEAL_ID, leadId: LEAD_ID }],
   );
   const anthropic = new FakeModelProvider("anthropic", (req) => {
     const subject = /<subject>([\s\S]*?)<\/subject>/.exec(req.messages[0]!.content)?.[1]?.replace(/&amp;/g, "&") ?? "";
@@ -91,7 +91,7 @@ describe("inbound mail routing on sample emails", () => {
     ]);
     // Lender correspondence that is not a term sheet keeps its attachments with the message.
     const before = sink.documents.length;
-    const other = await process({ ...SAMPLE_EMAILS.termSheet, subject: "KC-1A2B3C4D – Checking in", bodyText: "Following up on our call; nothing new from credit yet." });
+    const other = await process({ ...SAMPLE_EMAILS.termSheet, subject: "CC-1A2B3C4D – Checking in", bodyText: "Following up on our call; nothing new from credit yet." });
     expect(other.classification.category).not.toBe("term_sheet");
     expect(other.attachments.every((a) => a.status === "stored")).toBe(true);
     expect(sink.documents).toHaveLength(before);
@@ -165,7 +165,7 @@ describe("inbound mail routing on sample emails", () => {
     const sent = anthropic.requests.at(-1)!.messages[0]!.content;
     expect(sent).not.toMatch(/ignore all previous instructions|send_email|archive@evil\.test/i);
     expect(sent).toContain("90-bed assisted living facility in Fresno");
-    expect(sent).toContain("[removed by Kubera: instruction-like text]");
+    expect(sent).toContain("[removed by Corin: instruction-like text]");
 
     // Flagged: suspicious, held for review, codes on the stored row for later agents.
     expect(row.classification).toMatchObject({ suspicious: true, needsBroker: true, urgency: "high" });

@@ -5,7 +5,7 @@ import { fact, pct, pts, SRC } from "./format";
 import type { ProgramEntry } from "./types";
 
 const LENDER_OF_RECORD =
-  "Private lenders fund at closing as lender of record and make their own credit decisions. Kubera arranges the loan as a licensed broker; it never funds loans, holds borrower money or services loans.";
+  "Private lenders fund at closing as lender of record and make their own credit decisions. Corin arranges the loan as a licensed broker; it never funds loans, holds borrower money or services loans.";
 
 export const hardMoneyPrograms: ProgramEntry[] = [
   {
@@ -71,10 +71,10 @@ export const hardMoneyPrograms: ProgramEntry[] = [
       },
       {
         question: "Are hard money loans exempt from California interest-rate limits?",
-        answer: "Whether any particular loan falls within an exemption depends on the lender, the collateral and how the loan is arranged. Kubera does not advise on that; ask your own counsel.",
+        answer: "Whether any particular loan falls within an exemption depends on the lender, the collateral and how the loan is arranged. Corin does not advise on that; ask your own counsel.",
       },
       {
-        question: "Who funds a hard money loan Kubera arranges?",
+        question: "Who funds a hard money loan Corin arranges?",
         answer: LENDER_OF_RECORD,
       },
     ],
@@ -105,7 +105,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
         heading: "How the loan is sized",
         paragraphs: [
           "Lenders start with the purchase price and the rehab budget, then cap the loan at a share of the property's after-repair value. The lower result controls. A rehab holdback is set aside inside the loan and released by the lender as work is completed under the lender's own process.",
-          "That holdback is the lender's, not Kubera's. Private lenders fund at closing as lender of record. Kubera does not inspect work, release funds or hold any money.",
+          "That holdback is the lender's, not Corin's. Private lenders fund at closing as lender of record. Corin does not inspect work, release funds or hold any money.",
         ],
         bullets: [
           "As-is value plus rehab budget versus ARV: the lender uses the lower",
@@ -148,12 +148,12 @@ export const hardMoneyPrograms: ProgramEntry[] = [
       "A private bridge loan is a short-term loan from a debt fund, family office or other private lender that finances an acquisition, refinance or repositioning of commercial real estate until a planned event, such as stabilization, a sale or a permanent refinance, repays it.",
     loanType: "Private bridge loan (brokered)",
     facts: [
-      fact("Max LTV (Kubera sizing assumption)", pct(BRIDGE.cre.maxLtv), SRC.kubera),
-      fact("Minimum debt yield (Kubera sizing assumption)", pct(BRIDGE.cre.minDebtYield), SRC.kubera),
-      fact("Typical term", `${BRIDGE.cre.termMonths} months`, SRC.kubera),
-      fact("Indicative spread", `SOFR + ${pts(BRIDGE.cre.spread)} points`, SRC.kubera),
-      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
-      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.kubera),
+      fact("Max LTV (Corin sizing assumption)", pct(BRIDGE.cre.maxLtv), SRC.corin),
+      fact("Minimum debt yield (Corin sizing assumption)", pct(BRIDGE.cre.minDebtYield), SRC.corin),
+      fact("Typical term", `${BRIDGE.cre.termMonths} months`, SRC.corin),
+      fact("Indicative spread", `SOFR + ${pts(BRIDGE.cre.spread)} points`, SRC.corin),
+      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.corin),
+      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.corin),
       fact("Private-lender range (rate)", HARD_MONEY.rate, SRC.market),
     ],
     sections: [

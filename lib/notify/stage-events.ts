@@ -9,7 +9,7 @@ import type { SendOutcome } from "./types";
 // and SMS), idempotent per event, and held for broker approval unless the
 // milestone templates are pre-approved (NOTIFY_PREAPPROVED_TEMPLATES).
 //
-// Copy rules: no "approved", no promised dates. Kubera does not fund loans, so
+// Copy rules: no "approved", no promised dates. Corin does not fund loans, so
 // the closing milestone talks about the lender and closing coordination.
 
 export type Milestone = { key: string; label: string; message: string };
@@ -29,7 +29,7 @@ const MILESTONE_LIST: readonly Milestone[] = [
     label: "Closing coordination",
     message: "Your file is in closing coordination with the lender, title and escrow. Timing depends on the lender and third-party deliverables and is not guaranteed.",
   },
-  { key: "closed", label: "Loan closed", message: "Your loan has closed with the lender. Thank you for working with Kubera Commercial." },
+  { key: "closed", label: "Loan closed", message: "Your loan has closed with the lender. Thank you for working with Corin Commercial." },
 ];
 
 const MILESTONES = new Map(MILESTONE_LIST.map((m) => [m.key, m]));

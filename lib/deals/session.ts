@@ -16,7 +16,7 @@ export type StaffSession = {
   dreLicense: string | null;
   /** The corporation's designated officer (approves gate-H items). */
   designatedOfficer: boolean;
-  /** Audit actor string, e.g. "staff:ana@kuberacommercial.com". */
+  /** Audit actor string, e.g. "staff:ana@corincommercial.com". */
   actor: string;
 };
 

@@ -7,7 +7,7 @@ export const MAX_DESCRIPTION_LENGTH = 160;
 
 // A page-level `openGraph` replaces the root `opengraph-image` file convention, so
 // the image is attached explicitly. It resolves against `metadataBase`.
-const SHARE_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Kubera Commercial: commercial real estate loan brokerage" };
+const SHARE_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Corin Commercial: commercial real estate loan brokerage" };
 
 interface PageMetadataInput {
   /** Short page title; the root layout template appends the brand. */
@@ -19,7 +19,7 @@ interface PageMetadataInput {
   path: string;
 }
 
-/** The title as it renders, given the root layout's `%s · Kubera Commercial` template. */
+/** The title as it renders, given the root layout's `%s · Corin Commercial` template. */
 export function renderedTitle({ title, absoluteTitle }: Pick<PageMetadataInput, "title" | "absoluteTitle">): string {
   return absoluteTitle ?? `${title} · ${site.name}`;
 }

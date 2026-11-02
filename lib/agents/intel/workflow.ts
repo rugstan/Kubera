@@ -14,11 +14,11 @@ import { scanProspects, type ScanDeps } from "./prospects";
 
 export const INTEL_EVENTS = {
   /** Weekly cron (Monday morning, Pacific) or a manual request. */
-  weeklyRequested: "kubera/intel.weekly.requested",
+  weeklyRequested: "corin/intel.weekly.requested",
   /** Refinance-maturity scan request. */
-  scanRequested: "kubera/prospects.scan.requested",
+  scanRequested: "corin/prospects.scan.requested",
   /** Check waiting outreach drafts for broker decisions (cron every few minutes). */
-  settleRequested: "kubera/prospects.settle.requested",
+  settleRequested: "corin/prospects.settle.requested",
 } as const;
 
 export const weeklyIntelSchema = z.object({ weekStart: z.iso.date().optional(), focus: z.string().max(200).optional() });

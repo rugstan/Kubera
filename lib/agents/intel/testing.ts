@@ -20,13 +20,13 @@ export const NOW = new Date("2026-11-05T17:00:00.000Z");
 export const broker: Approver = { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" };
 
 export const identity: SenderIdentity = {
-  legalName: "Kubera Commercial, Inc.",
-  signOff: "Neeli Khanna, Kubera Commercial",
-  licenseLine: "Kubera Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01000000",
+  legalName: "Corin Commercial, Inc.",
+  signOff: "Neeli Khanna, Corin Commercial",
+  licenseLine: "Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01000000",
   address: "1 Licensed Way, Los Angeles, CA 90001",
   phone: "(310) 555-0100",
-  replyEmail: "deals@kuberacommercial.com",
-  optOutEmail: "privacy@kuberacommercial.com",
+  replyEmail: "deals@corincommercial.com",
+  optOutEmail: "privacy@corincommercial.com",
 };
 
 export function plusMonths(months: number, from: Date = NOW): string {

@@ -30,11 +30,11 @@ describe("supabaseCrmLinks", () => {
   const db = fakeDb({
     deals: [{ id: DEAL, lead_id: LEAD, twenty_opportunity_id: null, stage: "term_sheet", owner_id: "u1" }],
     leads: [{ id: LEAD, twenty_person_id: "person-1", twenty_opportunity_id: "opp-9" }],
-    profiles: [{ id: "u1", email: "pat@kuberacommercial.com" }],
+    profiles: [{ id: "u1", email: "pat@corincommercial.com" }],
   });
   const links = supabaseCrmLinks(db, async () => [
-    { id: "m-other", email: "lee@kuberacommercial.com" },
-    { id: "m-pat", email: "Pat@KuberaCommercial.com" },
+    { id: "m-other", email: "lee@corincommercial.com" },
+    { id: "m-pat", email: "Pat@CorinCommercial.com" },
   ]);
 
   it("takes the opportunity from the lead when the deal row has none", async () => {

@@ -50,5 +50,5 @@ MilestoneUpdate.PreviewProps = {
   label: "Lender outreach",
   message: "Your loan package is being shared with lenders whose programs fit your request.",
   bookingUrl: null,
-  contactEmail: "deals@kuberacommercial.com",
+  contactEmail: "deals@corincommercial.com",
 } satisfies MilestoneUpdateProps;

@@ -1,4 +1,4 @@
-# Commercial and Multifamily Construction Lending as a Broker Business Line (Kubera Commercial)
+# Commercial and Multifamily Construction Lending as a Broker Business Line (Corin Commercial)
 
 Research date: 2026-10-31. Method note: direct page fetches failed from this environment (rabbet.com and getbuilt.com would not resolve), so almost every vendor and market fact below comes from **web search result snippets** (search-engine summaries of the pages linked). Treat vendor numbers as vendor claims. Statute text was **not** pulled from leginfo.legislature.ca.gov; mirrors (Justia, public.law, FindLaw) were used and some are older versions. Items marked (older) predate 2025.
 
@@ -7,7 +7,7 @@ Research date: 2026-10-31. Method note: direct page fetches failed from this env
 ## 1. Construction loan product menu and typical sizing
 
 ### Takeaway
-A California commercial broker can arrange six construction capital types, each sized differently. Bank construction loans run about 60–65% LTC (2026). HUD 221(d)(4) goes to 87% LTC market-rate and 90% affordable after the January 2025 change. Private/hard-money ground-up loans run 85–90% LTC, capped at 70–75% of ARV. SBA 504 is a 50/40/10 split with an interim construction lender. Agency forward commitments are unfunded take-outs that need a separate construction loan. C-PACE is a long-term, tax-assessment-repaid slice whose percentage cap for new construction is set by each program. One code-level finding: Kubera's sizer still carries the pre-2025 HUD 221(d)(4) constants.
+A California commercial broker can arrange six construction capital types, each sized differently. Bank construction loans run about 60–65% LTC (2026). HUD 221(d)(4) goes to 87% LTC market-rate and 90% affordable after the January 2025 change. Private/hard-money ground-up loans run 85–90% LTC, capped at 70–75% of ARV. SBA 504 is a 50/40/10 split with an interim construction lender. Agency forward commitments are unfunded take-outs that need a separate construction loan. C-PACE is a long-term, tax-assessment-repaid slice whose percentage cap for new construction is set by each program. One code-level finding: Corin's sizer still carries the pre-2025 HUD 221(d)(4) constants.
 
 ### Cited Findings
 
@@ -25,14 +25,14 @@ A California commercial broker can arrange six construction capital types, each 
 - Older term sheets (e.g., Greystone 2020) show different figures and are superseded. — [Greystone term sheet (older, 2020)](https://www.greystone.com/wp-content/uploads/2020/06/Greystone-FHA-HUD-Section-221d4-Loan-Term-Sheet.pdf)
 
 **HUD 232 new construction (healthcare)**
-- No 2026 primary source was retrieved in this pass. Kubera's own assumptions file encodes 232 NC as 40-year term, 75% LTC (for-profit), 1.45x DSCR, MIP 0.77% annual / 1% upfront. **Unverified here.** — [Kubera repo: lib/sizing/assumptions.ts lines 46–50](file:///home/user/Kubera/lib/sizing/assumptions.ts)
+- No 2026 primary source was retrieved in this pass. Corin's own assumptions file encodes 232 NC as 40-year term, 75% LTC (for-profit), 1.45x DSCR, MIP 0.77% annual / 1% upfront. **Unverified here.** — [Corin repo: lib/sizing/assumptions.ts lines 46–50](file:///home/user/Corin/lib/sizing/assumptions.ts)
 
 **SBA 504 / 7(a) construction (owner-occupied)**
 - 504 structure: typically 50% third-party (bank) loan, 40% 504/CDC debenture and 10% borrower equity. — [GPO 13 CFR 120 (older, 2014)](https://www.gpo.gov/fdsys/pkg/CFR-2014-title13-vol1/pdf/CFR-2014-title13-vol1-sec120-891.pdf); [SBA SOP 50 10 7 copy (2023)](https://colemanreport.com/wp-content/uploads/2023/05/SOP-50-10-7.pdf)
 - Every 504 loan needs interim financing until the debenture funds. The interim lender funds construction draws and must sign SBA Form 2288 (Interim Lender Certification) no more than 60 days before debenture funding. — [SBA Form 2288](https://www.sba.gov/document/sba-form-2288-interim-lender-certification); [SBA Policy Notice on interim advances (2021)](https://www.sba.gov/sites/default/files/2021-09/Policy%20Notice%205000-814473_Interim%20Advance%20-508.pdf)
 - SOP 50 10 8 was announced April 22, 2025 and took effect June 1, 2025. A search result references an SOP 50 10 8.1 effective 10/1/2026 (file name; date not independently confirmed). — [Coleman Report SOP 50 10 8](https://colemanreport.com/sba-sop-50-10-8-lender-and-development-company-loan-programs/); [SOP 50 10 8.1 docx link](https://colemanreport.com/wp-content/uploads/2026/08/SOP-50-10-8.1-effective-10.1.2026_0.docx)
 - SBA construction draw administration topics in a Coleman training: aligning draw schedules, budgets and borrower equity injection; lien releases; performance bonds; certificate of occupancy; substantial completion; retention. — [Coleman Report training listing](https://colemanreport.com/construction-loan-closing-documentation-and-draw-administration-meeting-the-sop-requirements-with-perfection-12-11)
-- Kubera's sizer applies a 504 equity injection of 10% base, +5% for special-purpose property and +5% for start-up/new construction (code comment). — [Kubera repo: lib/sizing/assumptions.ts line 74](file:///home/user/Kubera/lib/sizing/assumptions.ts)
+- Corin's sizer applies a 504 equity injection of 10% base, +5% for special-purpose property and +5% for start-up/new construction (code comment). — [Corin repo: lib/sizing/assumptions.ts line 74](file:///home/user/Corin/lib/sizing/assumptions.ts)
 
 **Fannie Mae / Freddie Mac forward commitments**
 - Fannie Mae's Unfunded Forward Commitment allows 30 months for construction plus lease-up combined, extendable under Part III Ch. 19. New construction and substantial rehab qualify. The guide is current as of August 2026. — [Fannie Mae MF Guide PDF](https://mfguide.fanniemae.com/fnmf-pdf/download/15546); [Fannie Mae UFC for 9% LIHTC](https://multifamily.fanniemae.com/financing-options/products/unfunded-forward-commitment-9-lihtc-properties)
@@ -50,9 +50,9 @@ A California commercial broker can arrange six construction capital types, each 
 - California: legislation has "opened the door" for C-PACE on new construction, including hotels and multifamily. No percentage cap was found. — [Bisnow LA (search snippet, date unclear)](https://bisnow.com/los-angeles/news/sustainability/green-initiatives-are-more-affordable-than-developers-think-97440)
 - Benchmarks from other states: term equals the weighted-average useful life of improvements, typically 15–30 years. Connecticut allows up to 35% of total eligible construction cost for top-performing buildings. Colorado (2018, older) allowed about 20% of eligible construction cost. — [Vermont legislature C-PACE 101 (Apr 2026)](https://legislature.vermont.gov/Documents/2026/Workgroups/House%20Energy%20and%20Digital/Bills/S.138/Witness%20Documents/S.138~Michael%20%20Yaki~C-PACE%20101%20-%20Orientation~4-1-2026.pdf); [CT Green Bank eligible costs](https://www.ctgreenbank.com/building-solutions/c-pace/new-construction-financing/eligible-costs/); [SRM Network (older, 2018)](https://www.srmnetwork.com/wp-content/uploads/2018/01/C-PACE_New_Construction_Scotsman_Feb18.pdf)
 
-**Kubera's sizer as of today (code inspection)**
-- `HUD.multifamily.s221d4 = { maxLtc: 0.85, maxLtcAffordable: 0.87, minDscr: 1.176, minDscrAffordable: 1.15 }`. These are the **pre-Jan-2025** HUD numbers. Current figures are 87%/1.15x market-rate and 90%/1.11x affordable. `s223f` carries the same stale values. — [Kubera repo: lib/sizing/assumptions.ts lines 58–61](file:///home/user/Kubera/lib/sizing/assumptions.ts); compare [Dwight Capital](https://dwightcapital.com/news/hud-announces-beneficial-changes-in-dscr-and-ltc-ltv-requirements-for-fha/)
-- White-label construction: `BRIDGE.construction = { maxLtc: 0.8, minDebtYieldOnCost: 0.065, termMonths: 30, spread: 4.5 }`. No interest reserve, contingency, retainage or ARV cap appears in the sizing constants. A grep for "interest reserve", "retainage" and "contingency" across lib/app/components returned nothing. — [Kubera repo: lib/sizing/assumptions.ts line 116](file:///home/user/Kubera/lib/sizing/assumptions.ts)
+**Corin's sizer as of today (code inspection)**
+- `HUD.multifamily.s221d4 = { maxLtc: 0.85, maxLtcAffordable: 0.87, minDscr: 1.176, minDscrAffordable: 1.15 }`. These are the **pre-Jan-2025** HUD numbers. Current figures are 87%/1.15x market-rate and 90%/1.11x affordable. `s223f` carries the same stale values. — [Corin repo: lib/sizing/assumptions.ts lines 58–61](file:///home/user/Corin/lib/sizing/assumptions.ts); compare [Dwight Capital](https://dwightcapital.com/news/hud-announces-beneficial-changes-in-dscr-and-ltc-ltv-requirements-for-fha/)
+- White-label construction: `BRIDGE.construction = { maxLtc: 0.8, minDebtYieldOnCost: 0.065, termMonths: 30, spread: 4.5 }`. No interest reserve, contingency, retainage or ARV cap appears in the sizing constants. A grep for "interest reserve", "retainage" and "contingency" across lib/app/components returned nothing. — [Corin repo: lib/sizing/assumptions.ts line 116](file:///home/user/Corin/lib/sizing/assumptions.ts)
 
 ### Inferences
 - Mezzanine and preferred equity are not sourced here (see Gaps). In practice they fill the gap between a 60–65% LTC bank senior and 85–90% total capitalization. That gap is where a broker earns the most for structuring.
@@ -71,7 +71,7 @@ A California commercial broker can arrange six construction capital types, each 
 ## 2. Underwriting package for a construction loan
 
 ### Takeaway
-The package is fairly standard across lenders. The sources here document the HUD side best: a CPA cost certification, inspector reports on HUD forms, and, for the GC, prevailing-wage and identity-of-interest certifications. Most items in the package can be collected and checked by a broker before submission, so this is where Kubera's document-vault and checklist agents add the most value.
+The package is fairly standard across lenders. The sources here document the HUD side best: a CPA cost certification, inspector reports on HUD forms, and, for the GC, prevailing-wage and identity-of-interest certifications. Most items in the package can be collected and checked by a broker before submission, so this is where Corin's document-vault and checklist agents add the most value.
 
 ### Cited Findings
 - HUD requires a borrower cost certification by an independent CPA on completion. The GC must also cost-certify if the contract is cost-plus or there is an identity of interest. — [HUD MAP Guide 4430.G §3.2.5 / §13.4 via gocodebook (2020 rev. 2021)](https://gocodebook.com/library/us/federal/us-hud-map-guide-4430-g-2020-rev2021-03-19/3.2.5-cost-certification); [§13.4](https://gocodebook.com/library/us/federal/us-hud-map-guide-4430-g-2020-rev2021-03-19/13.4-entities-that-must-cost-certify)
@@ -86,7 +86,7 @@ The package is fairly standard across lenders. The sources here document the HUD
   - **Cost and contract:** hard/soft cost budget with contingency, GMP or stipulated-sum GC contract, plans and specs, permits/entitlements, GC résumé/licensing/bonding/financials, construction schedule.
   - **Third-party reports:** appraisal (as-is land, as-complete, as-stabilized), market/feasibility study, plan-and-cost review by a third-party construction consultant, Phase I ESA (and geotech).
   - **Insurance and title:** builder's risk and GL insurance; title with mechanics'-lien coverage and date-down endorsements.
-- Kubera's planned "program checklists" and "AI document extraction + ratios" map directly onto this list. Budget parsing (hard/soft split, contingency percentage, interest reserve adequacy) is the highest-value extraction target.
+- Corin's planned "program checklists" and "AI document extraction + ratios" map directly onto this list. Budget parsing (hard/soft split, contingency percentage, interest reserve adequacy) is the highest-value extraction target.
 
 ### Gaps
 - No retrieved source for the scope or price of third-party plan-and-cost review.
@@ -185,8 +185,8 @@ Lender-grade draw platforms rarely publish prices. Built and Land Gorilla are qu
 - V7 markets an AI agent for construction loan administrators with "90% faster draw processing" (vendor claim). Build.inc publishes on AI pay-app/draw review. A "draw package review" skill exists in the A.CRE intelligence library. — [V7](https://www.v7labs.com/agents/ai-agent-for-construction-loan-administrators); [Build.inc](https://build.inc/insights/ai-construction-draw-review-payment-applications); [A.CRE](https://intelligence.adventuresincre.com/skills/draw-package-review)
 
 ### Inferences
-- Off-the-shelf lender platforms (Built, Land Gorilla, Rabbet Lender) assume the user holds the loan and funds draws. Kubera as a pure broker is not their buyer. If Kubera's white-label table-funding partner or its own future hard-money book funds draws, Baseline ($995–$1,995/mo) or Liquid Logics is the realistic lender-of-record stack, with Trinity/NWCC inspections plugged in.
-- Kubera's AI stack (Claude extraction plus Inngest workflows) can replicate the **"audit mode" read-only draw-package review** that Built positions as step one. Examples: G702/G703 math checks, waiver-to-payee matching, budget-line overdraw and in-balance checks. Kubera would offer this as a borrower-side pre-check before the package goes to the lender.
+- Off-the-shelf lender platforms (Built, Land Gorilla, Rabbet Lender) assume the user holds the loan and funds draws. Corin as a pure broker is not their buyer. If Corin's white-label table-funding partner or its own future hard-money book funds draws, Baseline ($995–$1,995/mo) or Liquid Logics is the realistic lender-of-record stack, with Trinity/NWCC inspections plugged in.
+- Corin's AI stack (Claude extraction plus Inngest workflows) can replicate the **"audit mode" read-only draw-package review** that Built positions as step one. Examples: G702/G703 math checks, waiver-to-payee matching, budget-line overdraw and in-balance checks. Corin would offer this as a borrower-side pre-check before the package goes to the lender.
 - Developer-side tools (Northspyre) and GC-side tools (Procore) are the data sources borrowers already use. Import/parse of their exported pay apps is more valuable than a native integration.
 
 ### Gaps
@@ -225,8 +225,8 @@ California mandates four statutory lien waiver forms (Civ. Code §§8132–8138)
 
 ### Inferences
 - A broker that **only coordinates** (collects documents, pre-reviews and forwards to the lender, with the lender or a licensed fund-control company disbursing) does not appear to "receive money for disbursal." It is therefore likely outside §17005.1. **This needs counsel confirmation.**
-- If Kubera itself becomes a lender (hard-money/table-funded), the §17005.1 lending exclusion may cover disbursing its own loan proceeds. Holding borrower equity or third-party funds, however, would not be covered.
-- If Kubera arranges loans funded by private investors under DRE (B&P Code §10237 / multi-lender rules), the trust-fund rules on construction holdbacks are a separate DRE compliance issue (not researched here).
+- If Corin itself becomes a lender (hard-money/table-funded), the §17005.1 lending exclusion may cover disbursing its own loan proceeds. Holding borrower equity or third-party funds, however, would not be covered.
+- If Corin arranges loans funded by private investors under DRE (B&P Code §10237 / multi-lender rules), the trust-fund rules on construction holdbacks are a separate DRE compliance issue (not researched here).
 - The waiver module must generate and verify all four statutory forms, and enforce the "conditional before payment, unconditional after funds clear" sequence, per payee per draw.
 
 ### Gaps
@@ -237,13 +237,13 @@ California mandates four statutory lien waiver forms (Civ. Code §§8132–8138)
 
 ---
 
-## 6. Capabilities Kubera Commercial is missing (build / integrate / skip)
+## 6. Capabilities Corin Commercial is missing (build / integrate / skip)
 
 ### Takeaway
-Kubera already sizes construction (221(d)(4), white-label LTC/debt-yield-on-cost) and has the AI/workflow plumbing. The gaps fall into three groups. First, construction-specific **sizing** (interest reserve, contingency, ARV cap, stacks, current HUD constants). Second, a **construction underwriting checklist/extraction** layer (budget, GMP, schedule, third-party reports). Third, a borrower-side **draw coordination** layer (G702/G703 parsing, California statutory waivers, in-balance tracking). Funds custody and lender-grade servicing should stay with partners.
+Corin already sizes construction (221(d)(4), white-label LTC/debt-yield-on-cost) and has the AI/workflow plumbing. The gaps fall into three groups. First, construction-specific **sizing** (interest reserve, contingency, ARV cap, stacks, current HUD constants). Second, a **construction underwriting checklist/extraction** layer (budget, GMP, schedule, third-party reports). Third, a borrower-side **draw coordination** layer (G702/G703 parsing, California statutory waivers, in-balance tracking). Funds custody and lender-grade servicing should stay with partners.
 
 ### Cited Findings
-- Stale HUD constants and no reserve/contingency/retainage logic were found in Kubera's sizer. — [Kubera repo: lib/sizing/assumptions.ts](file:///home/user/Kubera/lib/sizing/assumptions.ts); [Dwight Capital 2025 HUD changes](https://dwightcapital.com/news/hud-announces-beneficial-changes-in-dscr-and-ltc-ltv-requirements-for-fha/)
+- Stale HUD constants and no reserve/contingency/retainage logic were found in Corin's sizer. — [Corin repo: lib/sizing/assumptions.ts](file:///home/user/Corin/lib/sizing/assumptions.ts); [Dwight Capital 2025 HUD changes](https://dwightcapital.com/news/hud-announces-beneficial-changes-in-dscr-and-ltc-ltv-requirements-for-fha/)
 - Private lenders fund interest reserves inside LTC/ARV caps and size on the lesser of LTC and ARV. — [PPF Term Sheet Builder](https://ppf-pricing.pages.dev/); [Park Place](https://parkplacefinance.com/?p=6164)
 - Lender draw platforms are quote-only. Private-lender LOS with draw modules starts at $995/mo (Baseline). — [Software Advice Baseline](https://www.softwareadvice.com/loan-servicing/baseline-profile); [G2 Built](https://www.g2.com/products/built/pricing)
 - Joint control agent licensing applies to anyone in the business of receiving construction funds for disbursal. — [Fin. Code §17005.1](https://california.public.law/codes/financial_code_section_17005.1)
@@ -276,7 +276,7 @@ Kubera already sizes construction (221(d)(4), white-label LTC/debt-yield-on-cost
 19. **Developer-side and GC-side data import** (Northspyre and Procore exports). — **integrate** via file import/parsing; skip native API until volume justifies it
 20. **Prevailing wage flag**: screen for public subsidy (forgiven/contingent public loans, HUD Davis-Bacon) and warn in the term sheet. — **build** (Jev rule)
 
-**Funding, servicing and compliance (if Kubera funds hard-money or table-funded loans)**
+**Funding, servicing and compliance (if Corin funds hard-money or table-funded loans)**
 21. **Lender-of-record draw servicing and disbursement** (funds control, wire release, title date-down ordering). — **integrate** (Baseline $995–1,995/mo or Liquid Logics; or the white-label funding partner's servicer). Do not build.
 22. **Holding or disbursing construction funds as joint control agent**. — **skip** unless DFPI-licensed. Get a counsel opinion on §17005.1/§17006(a)(4) and DRE trust-fund rules first. Partner with a licensed fund-control company.
 23. **Lender-grade construction loan administration platform** (Built, Land Gorilla, Rabbet Lender). — **skip** while a pure broker. Reconsider only if the table-funding book exceeds the point where per-draw pricing beats manual work.

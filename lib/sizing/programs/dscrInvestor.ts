@@ -41,7 +41,7 @@ function closing(loan: number, fixedCosts: number) {
   return [
     { label: "Lender origination", amount: loan * DSCR_INVESTOR.originationPct },
     { label: "Appraisal (with rent schedule), title & lender fees", amount: fixedCosts },
-    { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE.dscr },
+    { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE.dscr },
   ];
 }
 

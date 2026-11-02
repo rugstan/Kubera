@@ -36,13 +36,13 @@ export const multifamilyPrograms: ProgramEntry[] = [
       ),
       mipFact(),
       fact("Upfront premium (modeled)", pct(mf.mip.upfront, 2), "Secondary source; confirm with a HUD lender"),
-      fact("Annual CPA audit", `About ${usd(HUD.annualAuditCost)} per year`, SRC.kubera),
+      fact("Annual CPA audit", `About ${usd(HUD.annualAuditCost)} per year`, SRC.corin),
     ],
     sections: [
       {
         heading: "How 221(d)(4) works",
         paragraphs: [
-          "Instead of a construction loan followed by a separate permanent loan, HUD insures one loan that covers both phases. The borrower avoids refinancing risk at completion and locks a long fixed term from the start. Draw administration during construction is handled by the HUD lender and HUD; Kubera has no role in construction draws.",
+          "Instead of a construction loan followed by a separate permanent loan, HUD insures one loan that covers both phases. The borrower avoids refinancing risk at completion and locks a long fixed term from the start. Draw administration during construction is handled by the HUD lender and HUD; Corin has no role in construction draws.",
           "The trade-off is process. HUD underwriting, Davis-Bacon wage requirements, a longer pre-construction timeline and the borrower's sponsor, contractor and architect qualifications all shape feasibility.",
         ],
       },
@@ -87,8 +87,8 @@ export const multifamilyPrograms: ProgramEntry[] = [
       fact("Affordable or rental assistance: max LTV / min DSCR", `${pct(mf.s223f.maxLtvAffordable)} / ${x(mf.s223f.minDscrAffordable)}`, SRC.hudMfML),
       fact("Cash-out refinance: max LTV", pct(mf.s223f.cashOutMaxLtv), SRC.hudMfML),
       mipFact(),
-      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.hudMultifamily.lo)}–${pts(SPREADS.hudMultifamily.hi)} points`, SRC.kubera, { verify: false }),
-      fact("Typical processing", HUD_TIMING.processing, "HUD LEAN processing; Kubera market research notes"),
+      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.hudMultifamily.lo)}–${pts(SPREADS.hudMultifamily.hi)} points`, SRC.corin, { verify: false }),
+      fact("Typical processing", HUD_TIMING.processing, "HUD LEAN processing; Corin market research notes"),
     ],
     sections: [
       {
@@ -143,7 +143,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       fact("Typical purpose", "Lower rate or payment; limited cash-out", "HUD 223(a)(7) program rules"),
       fact("Processing", "Streamlined compared with a full 223(f)", "HUD 223(a)(7) program rules"),
       mipFact(),
-      fact("Sizer availability", "Behind a flag in the Kubera sizer while terms are verified", SRC.kubera, { verify: false }),
+      fact("Sizer availability", "Behind a flag in the Corin sizer while terms are verified", SRC.corin, { verify: false }),
     ],
     sections: [
       {
@@ -191,12 +191,12 @@ export const multifamilyPrograms: ProgramEntry[] = [
     loanType: "Fannie Mae multifamily mortgage (brokered)",
     loanTermYears: AGENCY.amortYears,
     facts: [
-      fact("Max LTV", pct(AGENCY.maxLtv), SRC.kubera),
-      fact("Minimum DSCR", x(AGENCY.minDscr), SRC.kubera),
-      fact("Typical term / amortization", `${years(AGENCY.termYears)} fixed / ${years(AGENCY.amortYears)} schedule`, SRC.kubera),
+      fact("Max LTV", pct(AGENCY.maxLtv), SRC.corin),
+      fact("Minimum DSCR", x(AGENCY.minDscr), SRC.corin),
+      fact("Typical term / amortization", `${years(AGENCY.termYears)} fixed / ${years(AGENCY.amortYears)} schedule`, SRC.corin),
       fact("Fannie Mae Small Loans", AGENCY_MARKET.fannieSmall, SRC.market),
-      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.agency.lo)}–${pts(SPREADS.agency.hi)} points`, SRC.kubera, { verify: false }),
-      fact("Origination fee / fixed costs", `${pct(AGENCY.originationPct, 1)} / about ${usd(AGENCY.fixedCosts)}`, SRC.kubera),
+      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.agency.lo)}–${pts(SPREADS.agency.hi)} points`, SRC.corin, { verify: false }),
+      fact("Origination fee / fixed costs", `${pct(AGENCY.originationPct, 1)} / about ${usd(AGENCY.fixedCosts)}`, SRC.corin),
       fact("Real-world sizing", AGENCY_MARKET.realDeals, SRC.market),
     ],
     sections: [
@@ -209,7 +209,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       {
         heading: "Agency or HUD",
         paragraphs: [
-          "Agency debt closes faster, has fewer process requirements and allows shorter terms, which suits owners planning to sell or refinance within a decade. HUD offers longer fixed terms and higher leverage but a longer timeline. Kubera compares both in the sizer.",
+          "Agency debt closes faster, has fewer process requirements and allows shorter terms, which suits owners planning to sell or refinance within a decade. HUD offers longer fixed terms and higher leverage but a longer timeline. Corin compares both in the sizer.",
         ],
         bullets: [
           "Choose the term to match your hold period and prepayment tolerance",
@@ -247,12 +247,12 @@ export const multifamilyPrograms: ProgramEntry[] = [
     loanType: "Freddie Mac multifamily mortgage (brokered)",
     loanTermYears: AGENCY.amortYears,
     facts: [
-      fact("Max LTV", pct(AGENCY.maxLtv), SRC.kubera),
-      fact("Minimum DSCR", x(AGENCY.minDscr), SRC.kubera),
-      fact("Typical term / amortization", `${years(AGENCY.termYears)} fixed / ${years(AGENCY.amortYears)} schedule`, SRC.kubera),
+      fact("Max LTV", pct(AGENCY.maxLtv), SRC.corin),
+      fact("Minimum DSCR", x(AGENCY.minDscr), SRC.corin),
+      fact("Typical term / amortization", `${years(AGENCY.termYears)} fixed / ${years(AGENCY.amortYears)} schedule`, SRC.corin),
       fact("Freddie Mac Conventional Small Balance", AGENCY_MARKET.freddieSmall, SRC.market),
       fact("Program status", AGENCY_MARKET.freddieSblRetired, SRC.market),
-      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.agency.lo)}–${pts(SPREADS.agency.hi)} points`, SRC.kubera, { verify: false }),
+      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.agency.lo)}–${pts(SPREADS.agency.hi)} points`, SRC.corin, { verify: false }),
     ],
     sections: [
       {
@@ -279,8 +279,8 @@ export const multifamilyPrograms: ProgramEntry[] = [
         answer: "Freddie has transitional and value-add structures, but most agency loans require stabilized income. A bridge loan commonly covers renovation first.",
       },
       {
-        question: "Is Kubera the lender on a Freddie Mac loan?",
-        answer: "No. Kubera is a broker and arranges the loan with a Freddie Mac lender, which makes the credit decision and funds the loan.",
+        question: "Is Corin the lender on a Freddie Mac loan?",
+        answer: "No. Corin is a broker and arranges the loan with a Freddie Mac lender, which makes the credit decision and funds the loan.",
       },
     ],
     related: ["fannie-mae-multifamily", "hud-223f-multifamily", "multifamily-bridge", "dscr-investor", "multifamily"],
@@ -297,13 +297,13 @@ export const multifamilyPrograms: ProgramEntry[] = [
       "A multifamily bridge loan is a short-term, floating-rate, interest-only loan from a debt fund, bank or private lender that finances the acquisition, renovation or lease-up of an apartment property until it can refinance into permanent agency or HUD debt.",
     loanType: "Multifamily bridge loan (brokered)",
     facts: [
-      fact("Max LTV", pct(BRIDGE.cre.maxLtv), SRC.kubera),
-      fact("Minimum debt yield", pct(BRIDGE.cre.minDebtYield), SRC.kubera),
-      fact("Typical term", `${BRIDGE.cre.termMonths} months`, SRC.kubera),
-      fact("Indicative spread", `SOFR + ${pts(BRIDGE.cre.spread)} points`, SRC.kubera),
-      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
+      fact("Max LTV", pct(BRIDGE.cre.maxLtv), SRC.corin),
+      fact("Minimum debt yield", pct(BRIDGE.cre.minDebtYield), SRC.corin),
+      fact("Typical term", `${BRIDGE.cre.termMonths} months`, SRC.corin),
+      fact("Indicative spread", `SOFR + ${pts(BRIDGE.cre.spread)} points`, SRC.corin),
+      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.corin),
       fact("Exit test (stabilized)", `Debt yield ${BRIDGE_EXIT_TEST.debtYield} and ${BRIDGE_EXIT_TEST.dscr} DSCR`, SRC.market),
-      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.kubera),
+      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.corin),
     ],
     sections: [
       {
@@ -348,9 +348,9 @@ export const multifamilyPrograms: ProgramEntry[] = [
     loanType: "Investor rental property mortgage (brokered)",
     facts: [
       fact("DSCR formula", "Net operating income divided by annual debt service", "Standard underwriting definition", { verify: false }),
-      fact("Agency multifamily minimum DSCR (reference)", x(AGENCY.minDscr), SRC.kubera),
+      fact("Agency multifamily minimum DSCR (reference)", x(AGENCY.minDscr), SRC.corin),
       fact("Bridge exit test (stabilized)", `Debt yield ${BRIDGE_EXIT_TEST.debtYield} and ${BRIDGE_EXIT_TEST.dscr} DSCR`, SRC.market),
-      fact("Product boxes", "2-4 unit and 5+ unit, lender specific", SRC.kubera, { verify: false }),
+      fact("Product boxes", "2-4 unit and 5+ unit, lender specific", SRC.corin, { verify: false }),
     ],
     sections: [
       {
@@ -371,7 +371,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       {
         heading: "What an advisor adds",
         paragraphs: [
-          "DSCR lenders price on many variables. Kubera collects the property financials, matches the loan to a lender whose box fits, and explains the costs before you commit. The lender makes the credit decision.",
+          "DSCR lenders price on many variables. Corin collects the property financials, matches the loan to a lender whose box fits, and explains the costs before you commit. The lender makes the credit decision.",
         ],
       },
     ],

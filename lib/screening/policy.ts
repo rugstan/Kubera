@@ -9,7 +9,7 @@ import type { ScreeningDisposition, ScreeningRecord, ScreeningResponse, Screenin
 export const SCREENING_POLICY = {
   /** Provider score at or above which a result is a possible match needing review. */
   reviewThreshold: 0.7,
-  // VERIFY: lender and counsel rescreen window. Kubera default: every subject screened within 7 days before closing.
+  // VERIFY: lender and counsel rescreen window. Corin default: every subject screened within 7 days before closing.
   preClosingWindowDays: 7,
   /** Reviewer notes must say why a possible match is or is not the subject. */
   minReviewNoteLength: 10,

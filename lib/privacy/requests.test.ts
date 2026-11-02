@@ -51,7 +51,7 @@ describe("submitPrivacyRequest", () => {
     const row = await db.get(r.id);
     expect(row).toMatchObject({
       queue: "compliance",
-      mailbox: "compliance@kuberacommercial.com",
+      mailbox: "compliance@corincommercial.com",
       subject_email: "pat@example.com",
       verification_method: null,
       verified_at: null,

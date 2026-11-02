@@ -49,7 +49,7 @@ function hooksFor(service: () => ApprovalService): ApprovalHooks {
   };
 }
 
-const REAUTH_MEMORY_KEY = Symbol.for("kubera.approvals.reauth.memory");
+const REAUTH_MEMORY_KEY = Symbol.for("corin.approvals.reauth.memory");
 
 /**
  * Step-up proofs (approval_reauthentications): Supabase when configured, an
@@ -69,7 +69,7 @@ function withHooks(store: ApprovalStore): ApprovalService {
   return service;
 }
 
-const DEMO_KEY = Symbol.for("kubera.approvals.demo");
+const DEMO_KEY = Symbol.for("corin.approvals.demo");
 type DemoBundle = { service: ApprovalService; ready: Promise<void> };
 
 function demoService(): ApprovalService {

@@ -1,4 +1,4 @@
-# E-Signature Providers, Legal Suitability, and Notarization/RON for Kubera Commercial (as of Oct 2026)
+# E-Signature Providers, Legal Suitability, and Notarization/RON for Corin Commercial (as of Oct 2026)
 
 Research note, not legal advice. Method: none of the vendor pages could be fetched from this environment (zoho.com, boldsign.com, signwell.com and help.dropbox.com all failed DNS resolution in the sandbox). **Every figure below comes from a web-search result snippet or a search-engine summary of the linked page** unless marked otherwise. Many of the pricing sources are competitor or affiliate blogs, and they often disagree. Confirm each price on the vendor's live pricing page before committing. Monthly cost figures at 50/200/1,000 envelopes are my own arithmetic on the cited unit prices and are labeled "computed".
 
@@ -59,10 +59,10 @@ On published API prices, the cheapest credible options are DocuSeal (about $0.20
 | OpenSign | Unverified | Unverified | Unverified | Unverified | Yes, out of the box [ossalt](https://ossalt.com/guides/documenso-vs-opensign-2026) | Unverified | Unverified | Unverified | Not found |
 
 ### Inferences
-- **Recommendation: BoldSign** as the primary API provider. It has the clearest official per-envelope pricing ($37.50/month at 50 envelopes, $150 at 200), a developer-oriented API with free sandbox, template sends at the same price, and free reminders and downloads. Combined with Kubera's Inngest workflows, it should support webhook write-back to Supabase deal records and the audit log. Its ID verification, webhook and SOC 2 Type II claims came from prior knowledge and must be confirmed on boldsign.com before signing.
-- **Runner-up: Zoho Sign (API-only credits).** It is cheaper ($25 at 50, $100 at 200) with no subscription, and the vendor is already in Kubera's stack. However, Kubera uses Zoho Mail/Workplace, not Zoho One Enterprise, so the complimentary credit pool likely does not apply, and the help text says API sends need purchased credits anyway. Bundling therefore gives little practical saving on the API path. The credit model (extra credits for SMS OTP and authentication) makes costs less predictable.
+- **Recommendation: BoldSign** as the primary API provider. It has the clearest official per-envelope pricing ($37.50/month at 50 envelopes, $150 at 200), a developer-oriented API with free sandbox, template sends at the same price, and free reminders and downloads. Combined with Corin's Inngest workflows, it should support webhook write-back to Supabase deal records and the audit log. Its ID verification, webhook and SOC 2 Type II claims came from prior knowledge and must be confirmed on boldsign.com before signing.
+- **Runner-up: Zoho Sign (API-only credits).** It is cheaper ($25 at 50, $100 at 200) with no subscription, and the vendor is already in Corin's stack. However, Corin uses Zoho Mail/Workplace, not Zoho One Enterprise, so the complimentary credit pool likely does not apply, and the help text says API sends need purchased credits anyway. Bundling therefore gives little practical saving on the API path. The credit model (extra credits for SMS OTP and authentication) makes costs less predictable.
 - **Budget option: DocuSeal cloud or Pro.** At about $60 for 200 documents/month it is the lowest sourced cost, but it is a smaller vendor. Get its SOC 2 report and check audit-trail quality before using it for loan documents.
-- DocuSign at 200 or more envelopes/month needs an Enterprise quote. Every alternative above costs well under the $300 to $480/month DocuSign tiers at Kubera's expected volume.
+- DocuSign at 200 or more envelopes/month needs an Enterprise quote. Every alternative above costs well under the $300 to $480/month DocuSign tiers at Corin's expected volume.
 - Dropbox Sign's $250 to $300/month gate for embedded signing and PandaDoc's $4 to $5 overage make both poor value at 200 envelopes/month.
 - None of the providers looks legally unsuitable for broker engagement, fee, NDA or referral documents. The deciding factors are API ergonomics, cost and identity-assurance options (needed for SBA, see Q2).
 
@@ -74,7 +74,7 @@ On published API prices, the cheapest credible options are DocuSeal (about $0.20
 ## Q2. Legal validity (ESIGN / California UETA) and where wet ink or notarization is still needed
 
 ### Takeaway
-Under California UETA (Civ. Code §1633.1 et seq.) and federal ESIGN, e-signatures are generally valid for Kubera's broker agreements, NDAs, fee-splits and authorizations. SBA accepts e-signatures across 7(a) and 504 documents subject to identity-assurance standards, now set out in SOP 50 10 8 Appendix 10 (reported effective June 1, 2025). Recordable instruments (deeds of trust, assignments, reconveyances) still require notarization for recording. Recorders can accept electronic recording, but in-state California RON is not yet operative.
+Under California UETA (Civ. Code §1633.1 et seq.) and federal ESIGN, e-signatures are generally valid for Corin's broker agreements, NDAs, fee-splits and authorizations. SBA accepts e-signatures across 7(a) and 504 documents subject to identity-assurance standards, now set out in SOP 50 10 8 Appendix 10 (reported effective June 1, 2025). Recordable instruments (deeds of trust, assignments, reconveyances) still require notarization for recording. Recorders can accept electronic recording, but in-state California RON is not yet operative.
 
 ### Cited Findings
 - California UETA statute text (Civ. Code Title 2.5, §1633.1 et seq.). — [leginfo UETA](https://leginfo.legislature.ca.gov/faces/codes_displayText.xhtml?lawCode=CIV&division=3.&title=2.5.&part=2.&chapter=&article=)
@@ -94,7 +94,7 @@ Under California UETA (Civ. Code §1633.1 et seq.) and federal ESIGN, e-signatur
 ### Inferences
 - **E-sign is fine for:** borrower engagement and fee agreements, referral fee-split and non-circumvention agreements, NDAs, vendor engagements and credit/background authorizations. These are ordinary commercial contracts not excluded by §1633.3. Background and credit authorizations may carry FCRA disclosure formatting requirements; counsel should confirm.
 - **SBA forms (159, 1919, 413, 4506-C):** e-sign is acceptable in principle, but the platform must deliver IAL2-level identity proofing. In practice that means ID-document verification or KBA, not just an email link. The SBA lender's own policy controls, and some lenders still want wet ink. Choose a vendor with an ID verification add-on and confirm the Appendix 10 text.
-- **Hard money loan documents, if Kubera funds loans:** the promissory note, loan agreement and guaranties can be e-signed. The deed of trust, assignment of deed of trust, reconveyance and any recorded affidavit or memorandum need a notarial acknowledgment. Today that means an in-person California notary, a California notary performing an in-person electronic notarization, or out-of-state RON relied on under §1189(b). Recording then goes via the title company's e-recording (ERDA) or paper. Note-transfer and endorsement mechanics for a negotiable note may favor wet ink unless an eNote registry is used; counsel should confirm.
+- **Hard money loan documents, if Corin funds loans:** the promissory note, loan agreement and guaranties can be e-signed. The deed of trust, assignment of deed of trust, reconveyance and any recorded affidavit or memorandum need a notarial acknowledgment. Today that means an in-person California notary, a California notary performing an in-person electronic notarization, or out-of-state RON relied on under §1189(b). Recording then goes via the title company's e-recording (ERDA) or paper. Note-transfer and endorsement mechanics for a negotiable note may favor wet ink unless an eNote registry is used; counsel should confirm.
 - HUD forms are not relevant to commercial CRE lending except HUD/FHA multifamily (e.g., 223(f)), which follows its own closing-document e-sign rules. Not researched; see Gaps.
 
 ### Gaps
@@ -120,16 +120,16 @@ SB 696 (the Online Notarization Act) took effect January 1, 2024, but its RON pr
 
 ### Inferences
 - For any recordable instrument, coordinate with the title company (most CA title insurers operate e-recording and maintain lists of approved RON platforms). Proof is the most title-integrated option. Budget about $25 to $35 per signer session.
-- RON is not needed for Kubera's core broker workflow (engagement, fee, NDA, referral, SBA authorizations). It only matters if Kubera originates or funds hard money loans with recorded security instruments.
+- RON is not needed for Corin's core broker workflow (engagement, fee, NDA, referral, SBA authorizations). It only matters if Corin originates or funds hard money loans with recorded security instruments.
 
 ### Gaps
 - Official SOS RON FAQ and the current registration timeline were not fetched directly.
 - No county-by-county acceptance list for out-of-state RON was found. Proof's enterprise or title pricing is not public.
 
-## Q4. Self-hosting Documenso / DocuSeal / OpenSign on Kubera's stack (Next.js on Vercel, Supabase)
+## Q4. Self-hosting Documenso / DocuSeal / OpenSign on Corin's stack (Next.js on Vercel, Supabase)
 
 ### Takeaway
-Self-hosting saves at most about $50 to $150/month at Kubera's volume. In exchange, Kubera would own uptime, signing-certificate management, email deliverability, backups and the evidentiary defensibility of the audit trail. Only Documenso (Postgres) is a natural fit for Supabase. DocuSeal (Rails) and OpenSign (MongoDB) need separate hosting. For loan documents, a vendor-hosted, SOC 2-audited service is the more defensible choice.
+Self-hosting saves at most about $50 to $150/month at Corin's volume. In exchange, Corin would own uptime, signing-certificate management, email deliverability, backups and the evidentiary defensibility of the audit trail. Only Documenso (Postgres) is a natural fit for Supabase. DocuSeal (Rails) and OpenSign (MongoDB) need separate hosting. For loan documents, a vendor-hosted, SOC 2-audited service is the more defensible choice.
 
 ### Cited Findings
 - Documenso requires PostgreSQL and its self-host setup is more involved. OpenSign uses MongoDB. DocuSeal supports SQLite, PostgreSQL and MySQL, with roughly 1 to 2 hours to the first document via Docker (vs 2 to 4 hours for OpenSign). — [sliplane](https://sliplane.io/blog/5-open-source-docusign-alternatives); [signb.ee DocuSeal vs OpenSign](https://signb.ee/blog/opensign-vs-docuseal-vs-signbee)
@@ -140,8 +140,8 @@ Self-hosting saves at most about $50 to $150/month at Kubera's volume. In exchan
 
 ### Inferences
 - **Operational burden:** whoever self-hosts must manage a document-signing (PKCS#12) certificate, ideally from an AATL-trusted CA so PDFs show as validly signed in Acrobat. They must also run background job workers and SMTP (Resend would work), keep Supabase storage backups and retention immutable, and patch promptly. My understanding is that Documenso is a Next.js/Prisma monorepo, but long-running signing and seal jobs fit Vercel serverless poorly; a container host (Fly, Render, Railway) is the usual choice. This architecture point is unverified.
-- **Compliance:** a self-hosted instance inherits none of the vendor's SOC 2 coverage. Kubera's own controls would be what a court, SBA lender or investor examines. Audit-trail quality (IP address, timestamps, email/OTP evidence, tamper-evident hash) depends on the open-source version and configuration. A lightly maintained self-host makes authentication-of-signature disputes harder to win.
-- **AGPL:** modifying and exposing an AGPL app over a network creates source-disclosure obligations. Counsel should review this if Kubera customizes the code.
+- **Compliance:** a self-hosted instance inherits none of the vendor's SOC 2 coverage. Corin's own controls would be what a court, SBA lender or investor examines. Audit-trail quality (IP address, timestamps, email/OTP evidence, tamper-evident hash) depends on the open-source version and configuration. A lightly maintained self-host makes authentication-of-signature disputes harder to win.
+- **AGPL:** modifying and exposing an AGPL app over a network creates source-disclosure obligations. Counsel should review this if Corin customizes the code.
 - **Conclusion:** at 50 to 200 envelopes/month, DocuSeal or Documenso cloud (vendor-hosted) or BoldSign is a better trade-off than self-hosting. Revisit self-hosting only at several thousand envelopes/month.
 
 ### Gaps

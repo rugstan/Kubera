@@ -41,12 +41,12 @@ function SignedOut({ state, unavailable = false }: { state?: string; unavailable
       ) : null}
       {state === "use_link" ? (
         <p role="status" data-testid="portal-use-link" className="notice mt-6 rounded-2xl px-4 py-3 text-[15px]">
-          The email sign-in is for Kubera staff only, so we did not keep you signed in. Borrowers and partners open the portal with the secure link from their advisor, below.
+          The email sign-in is for Corin staff only, so we did not keep you signed in. Borrowers and partners open the portal with the secure link from their advisor, below.
         </p>
       ) : null}
       {unavailable ? (
         <p role="alert" className="notice-warning mt-6 rounded-2xl px-4 py-3 text-[15px]">
-          The portal is not available right now. Email your documents to your advisor or to docs@kuberacommercial.com.
+          The portal is not available right now. Email your documents to your advisor or to docs@corincommercial.com.
         </p>
       ) : null}
       <div className="bento mt-8 p-7">

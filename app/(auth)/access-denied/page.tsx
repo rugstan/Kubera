@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "No access" };
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const COPY: Record<string, string> = {
-  not_staff: "This area is for Kubera staff. Your account does not have a staff role.",
+  not_staff: "This area is for Corin staff. Your account does not have a staff role.",
   inactive: "Your account is not active, or no role has been assigned to it yet.",
 };
 
@@ -18,7 +18,7 @@ export default function AccessDeniedPage({ searchParams }: { searchParams: Searc
       <Suspense fallback={<p className="mt-2 text-[15px] text-titanium">{COPY.inactive}</p>}>
         <Reason searchParams={searchParams} />
       </Suspense>
-      <p className="mt-3 text-[15px] leading-relaxed text-titanium">If you think this is a mistake, ask a Kubera administrator to check your account.</p>
+      <p className="mt-3 text-[15px] leading-relaxed text-titanium">If you think this is a mistake, ask a Corin administrator to check your account.</p>
       <form action={signOutAction} className="mt-5">
         <button type="submit" className="pill pill-glass w-full">
           Sign out

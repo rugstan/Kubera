@@ -69,11 +69,11 @@ export function parseKeyword(text: string): SmsKeyword | null {
 /** Wording recorded in the consent ledger for a person who texts START. Never edit a published version; add a new one. */
 export const SMS_START_CONSENT = {
   id: "sms-start-keyword-2026-11-03",
-  text: "I texted START to Kubera Commercial and agree to receive text messages about my financing request. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+  text: "I texted START to Corin Commercial and agree to receive text messages about my financing request. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
 } as const;
 
 /** Wording recorded when a person texts STOP. */
 export const SMS_STOP_NOTICE = {
   id: "sms-stop-keyword-2026-11-03",
-  text: "The person texted a STOP-class keyword to Kubera Commercial and revoked consent to text messages and automated contact.",
+  text: "The person texted a STOP-class keyword to Corin Commercial and revoked consent to text messages and automated contact.",
 } as const;

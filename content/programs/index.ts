@@ -64,7 +64,7 @@ export const programRoutes: SitemapRoute[] = [
   {
     path: FINANCING_BASE,
     title: "Financing programs",
-    description: "Every loan program Kubera Commercial arranges, grouped by senior living, hotels, multifamily, construction and hard money.",
+    description: "Every loan program Corin Commercial arranges, grouped by senior living, hotels, multifamily, construction and hard money.",
     changeFrequency: "monthly",
     priority: 0.8,
     section: "Programs",

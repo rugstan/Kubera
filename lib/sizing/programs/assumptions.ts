@@ -8,7 +8,7 @@
 
 export const PROGRAM_ASSUMPTIONS_REVIEWED = "2026-10-31";
 
-/** Kubera's modeled advisory fee for the new boxes, as a share of the loan arranged. */
+/** Corin's modeled advisory fee for the new boxes, as a share of the loan arranged. */
 export const BROKER_FEE = {
   hardMoney: 0.01,
   construction: 0.01,
@@ -17,7 +17,7 @@ export const BROKER_FEE = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Hard money (private lender of record; Kubera arranges, never funds)
+// Hard money (private lender of record; Corin arranges, never funds)
 
 export type ExperienceTier = "NEW" | "EMERGING" | "EXPERIENCED";
 
@@ -41,8 +41,8 @@ export type HardMoneyGridRow = {
 // VERIFY: hard money 9.5–12.5% rates, 1–4 points, 65–75% LTV/LTARV for fix-and-flip,
 //   up to 80–85% on a stabilized bridge, 6–36 month interest-only terms, extensions 0.5–2%,
 //   minimum interest 3–6 months, exit fee 0.5–1%, default rate up to 24%.
-//   Source: Kubera program research (lender summaries); as of 2026-10-31. The tier split by
-//   completed projects in the last 36 months is Kubera's grid, not a single lender's.
+//   Source: Corin program research (lender summaries); as of 2026-10-31. The tier split by
+//   completed projects in the last 36 months is Corin's grid, not a single lender's.
 export const HARD_MONEY = {
   /** Completed projects in the last 36 months at or above which a sponsor is in the tier. */
   tierThresholds: { EMERGING: 1, EXPERIENCED: 5 },
@@ -72,11 +72,11 @@ export const HARD_MONEY = {
   thirdPartyCosts: 7_500,
   // VERIFY: commissions, transfer tax and escrow on resale, share of ARV. Source: market estimate; as of 2026-10-31.
   sellingCostPct: 0.06,
-  // VERIFY: net profit margin on ARV a fix-and-flip lender wants to see (10%+ passes the sale exit). Kubera default.
+  // VERIFY: net profit margin on ARV a fix-and-flip lender wants to see (10%+ passes the sale exit). Corin default.
   minFlipMarginPct: 0.1,
   /**
    * B&P §10232.3 loan-to-value limits apply only when a broker arranges a loan
-   * funded by private investors. Kubera has no investor desk and does not
+   * funded by private investors. Corin has no investor desk and does not
    * place investor funds, so the sizer never applies them; kept for reference.
    */
   // VERIFY: §10232.3(a) limits — owner-occupied single-family 80%, non-owner-occupied
@@ -116,8 +116,8 @@ export type ConstructionBox = {
 
 // VERIFY: bank 60–65% LTC (SOFR + 275–350), debt fund 65–75% LTC (SOFR + 425–525),
 //   private 85–90% LTC capped at 70–75% of as-completed value, interest reserve inside the loan.
-//   Source: Kubera program research; as of 2026-10-31. Debt-yield, DSCR, points and private
-//   fixed-rate (within the 9.5–12.5% private range) are Kubera defaults pending lender-panel review.
+//   Source: Corin program research; as of 2026-10-31. Debt-yield, DSCR, points and private
+//   fixed-rate (within the 9.5–12.5% private range) are Corin defaults pending lender-panel review.
 export const CONSTRUCTION = {
   boxes: {
     BANK: { maxLtc: 0.65, maxAsCompletedLtv: 0.65, minDebtYield: 0.09, minDscrAtStabilization: 1.25, spread: 3.125, fixedRatePct: null, points: 0.75, fixedFees: 35_000, maxLoan: 60_000_000 },
@@ -138,7 +138,7 @@ export const CONSTRUCTION = {
   defaultDeveloperFeePct: 0.03,
   maxDeveloperFeePct: 0.05,
   // VERIFY: average outstanding share of the commitment during construction (S-curve funding)
-  //   used to size the interest reserve; fully outstanding during lease-up. Kubera estimate.
+  //   used to size the interest reserve; fully outstanding during lease-up. Corin estimate.
   avgOutstandingDuringConstruction: 0.55,
   /** Months added to construction + lease-up when setting the initial term. */
   termCushionMonths: 6,
@@ -158,7 +158,7 @@ export const CONSTRUCTION = {
 
 // VERIFY: permanent take-out boxes for the construction take-out test. Agency and HUD come
 //   from lib/sizing/assumptions.ts; the bank mini-perm (70% LTV, 1.25x, 25-yr amortization,
-//   5-yr Treasury + 2.25) is a Kubera default; as of 2026-10-31.
+//   5-yr Treasury + 2.25) is a Corin default; as of 2026-10-31.
 export const BANK_PERM = { maxLtv: 0.7, minDscr: 1.25, amortYears: 25, spread: 2.25 } as const;
 
 // ---------------------------------------------------------------------------
@@ -170,7 +170,7 @@ export type AgencyTier = "TIER_2" | "TIER_3" | "TIER_4";
 //   Freddie Mac Conventional Small $2–10M 80% / 1.25x (Freddie SBL reportedly retired
 //   2026-04-15). Real deals average ~63% LTV / 1.43x, so DSCR usually binds. Tier 3 (65% / 1.35x)
 //   and Tier 4 (55% / 1.55x) pricing grids and the spread steps are lender summaries.
-//   Source: Kubera program research; Fannie Mae DUS tier structure; as of 2026-10-31.
+//   Source: Corin program research; Fannie Mae DUS tier structure; as of 2026-10-31.
 export const AGENCY_GRID = {
   tiers: {
     TIER_2: { maxLtv: 0.8, minDscr: 1.25, spreadAdj: 0 },
@@ -204,7 +204,7 @@ export const AGENCY_GRID = {
 // Bridge exit test
 
 // VERIFY: bridge exit test — stabilized debt yield 9.5–10.5% and 1.25x DSCR on the take-out
-//   constant. Source: Kubera program research; as of 2026-10-31.
+//   constant. Source: Corin program research; as of 2026-10-31.
 export const BRIDGE_EXIT = { minDebtYield: 0.095, strongDebtYield: 0.105, minDscr: 1.25, amortYears: 30 } as const;
 
 // ---------------------------------------------------------------------------
@@ -216,7 +216,7 @@ export type DscrPurpose = "PURCHASE" | "RATE_TERM" | "CASH_OUT";
 // VERIFY: DSCR investor boxes. 2–4 units: DSCR = gross rent / PITIA ≥ 1.00; LTV 80/75/70%
 //   (purchase), 75/75/70% (rate-term), 75/70/65% (cash-out) for FICO ≥740 / 700–739 / 660–699.
 //   5+ units: DSCR = NOI / debt service ≥ 1.20; LTV 75/75/70, 75/70/65, 70/65/60. 30-year
-//   amortization, 5-4-3-2-1 prepayment step-down. Spreads over the 10-year Treasury are Kubera
+//   amortization, 5-4-3-2-1 prepayment step-down. Spreads over the 10-year Treasury are Corin
 //   estimates. Source: non-QM investor lender matrices; as of 2026-10-31.
 export const DSCR_INVESTOR = {
   creditTiers: { A: 740, B: 700, C: 660 } as Record<CreditTier, number>,

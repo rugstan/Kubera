@@ -1,6 +1,6 @@
 // Zoho Mail REST connector (read-only): OAuth refresh-token flow, list new
 // messages in a mailbox's Inbox, fetch body + headers, list and download
-// attachments. Kubera never sends mail from here; outbound mail goes through
+// attachments. Corin never sends mail from here; outbound mail goes through
 // the approval gate and Resend (WS-J).
 //
 // Each inbound mailbox (deals@, docs@, …) is its own Zoho account. A mailbox

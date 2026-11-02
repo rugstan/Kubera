@@ -7,29 +7,29 @@ import { INBOUND_MAILBOXES } from "@/lib/mail/mailboxes";
 
 export const EVENTS = {
   /** An approval in the broker queue was decided (approved / rejected / cancelled / expired). */
-  approvalDecided: "kubera/approval.decided",
+  approvalDecided: "corin/approval.decided",
   /** Request an outbound action that must pass the approval gate before it runs. */
-  outboundRequested: "kubera/outbound.requested",
+  outboundRequested: "corin/outbound.requested",
   /** Poll one or all inbound mailboxes now (the cron also polls every few minutes). */
-  mailPollRequested: "kubera/mail.poll.requested",
+  mailPollRequested: "corin/mail.poll.requested",
   /** A new message was listed in an inbound mailbox; process it. */
-  mailReceived: "kubera/mail.received",
+  mailReceived: "corin/mail.received",
   /** A processed message was routed (for downstream agents: CRM notes, lender quotes, chasers). */
-  mailRouted: "kubera/mail.routed",
+  mailRouted: "corin/mail.routed",
   /** A vault document passed the malware scan (lib/agents/documents DOCUMENT_EVENTS.documentClean). */
-  documentClean: "kubera/document.clean",
+  documentClean: "corin/document.clean",
   /** A document extraction finished (spreads, Jev re-sizing, lender matching). */
-  documentExtracted: "kubera/document.extracted",
+  documentExtracted: "corin/document.extracted",
   /** A lead was stored and scored; send the speed-to-lead reply (lib/agents/outreach OUTREACH_EVENTS.leadScored). */
-  leadScored: "kubera/lead.scored",
+  leadScored: "corin/lead.scored",
   /** Run every outreach chaser once now (the /api/outreach/sweep cron also does). */
-  outreachSweepRequested: "kubera/outreach.sweep.requested",
+  outreachSweepRequested: "corin/outreach.sweep.requested",
   /** Write the weekly market-intel note now (a Monday-morning cron also does; lib/agents/intel INTEL_EVENTS.weeklyRequested). */
-  intelWeeklyRequested: "kubera/intel.weekly.requested",
+  intelWeeklyRequested: "corin/intel.weekly.requested",
   /** Run a refinance-maturity prospect scan (lib/agents/intel INTEL_EVENTS.scanRequested). */
-  prospectScanRequested: "kubera/prospects.scan.requested",
+  prospectScanRequested: "corin/prospects.scan.requested",
   /** Settle prospect outreach drafts against broker decisions now (a cron also does; INTEL_EVENTS.settleRequested). */
-  prospectSettleRequested: "kubera/prospects.settle.requested",
+  prospectSettleRequested: "corin/prospects.settle.requested",
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

@@ -50,7 +50,7 @@ describe("spread bundle from a deal's extractions", () => {
   it("saves one versioned row per spread and bumps the version on recalculation", async () => {
     const store = new MemorySpreadStore();
     const b = buildSpreadBundle([t12, rr, goldenRecord("budget-lines-csv")], { asset: "multifamily", asOf: "2026-10-31", profiles: ["AGENCY", "HUD"] });
-    const first = await saveSpreadBundle(store, { dealId: DEAL, leadId: null }, b, { inputs: { asOf: "2026-10-31" }, createdBy: "analyst@kubera" });
+    const first = await saveSpreadBundle(store, { dealId: DEAL, leadId: null }, b, { inputs: { asOf: "2026-10-31" }, createdBy: "analyst@corin" });
     expect(first.map((r) => `${r.kind}:${r.lenderProfile ?? ""}`).sort()).toEqual([
       "construction_budget:",
       "deal_summary:",
@@ -59,7 +59,7 @@ describe("spread bundle from a deal's extractions", () => {
       "rent_roll:",
     ]);
     expect(first.every((r) => r.version === 1)).toBe(true);
-    await saveSpreadBundle(store, { dealId: DEAL, leadId: null }, b, { inputs: {}, createdBy: "analyst@kubera" });
+    await saveSpreadBundle(store, { dealId: DEAL, leadId: null }, b, { inputs: {}, createdBy: "analyst@corin" });
     expect((await store.latest({ dealId: DEAL, leadId: null }, "operating_statement", "AGENCY"))?.version).toBe(2);
     await expect(saveSpreadBundle(store, { dealId: null, leadId: null }, b, { inputs: {}, createdBy: "x" })).rejects.toThrow(/deal or a lead/);
   });
@@ -121,7 +121,7 @@ describe("recalculateSpreads service", () => {
       { extractions, spreads },
       { dealId: DEAL, leadId: null },
       { asset: "multifamily", asOf: "2026-10-31", profiles: ["AGENCY"] },
-      "analyst@kubera",
+      "analyst@corin",
     );
     expect(bundle.operating.AGENCY?.underwrittenNoi).toBe(535_792);
     expect(bundle.globalCashFlow).toBeNull();

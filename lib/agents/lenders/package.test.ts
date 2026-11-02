@@ -11,7 +11,7 @@ const input: ExecutiveSummaryInput = {
   risks: ["Medicaid concentration; mitigated by a private-pay waitlist."],
   purpose: "Refinance bridge debt into HUD 232/223(f)",
   asOf: "2026-11-04",
-  advisor: { name: "Ana Ruiz", email: "ana@kuberacommercial.com", dreLicense: "01234567" },
+  advisor: { name: "Ana Ruiz", email: "ana@corincommercial.com", dreLicense: "01234567" },
 };
 
 /** Text drawn in the PDF (Flate streams decompressed, TJ strings concatenated). */

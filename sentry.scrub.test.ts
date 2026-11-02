@@ -31,7 +31,7 @@ describe("scrubString", () => {
 
 describe("scrubUrl", () => {
   it("drops query strings and fragments", () => {
-    expect(scrubUrl("https://kuberacommercial.com/express?email=a@b.co&token=abc#frag")).toBe("https://kuberacommercial.com/express");
+    expect(scrubUrl("https://corincommercial.com/express?email=a@b.co&token=abc#frag")).toBe("https://corincommercial.com/express");
     expect(scrubUrl("/partners")).toBe("/partners");
   });
 });
@@ -76,7 +76,7 @@ describe("scrubEvent", () => {
     user: { id: "u1", email: "pat@example.com", ip_address: "203.0.113.9" },
     transaction: "POST /api/qualify?utm=1",
     request: {
-      url: "https://kuberacommercial.com/api/qualify?email=pat@example.com",
+      url: "https://corincommercial.com/api/qualify?email=pat@example.com",
       method: "POST",
       data: { contact: { email: "pat@example.com" }, intake: { loanAmount: 3_000_000 } },
       cookies: { session: "abc" },
@@ -95,7 +95,7 @@ describe("scrubEvent", () => {
     expect(out.request.data).toBeUndefined();
     expect(out.request.cookies).toBeUndefined();
     expect(out.request.query_string).toBeUndefined();
-    expect(out.request.url).toBe("https://kuberacommercial.com/api/qualify");
+    expect(out.request.url).toBe("https://corincommercial.com/api/qualify");
     expect(out.request.headers).toEqual({ "user-agent": "Mozilla/5.0", "content-type": "application/json" });
     expect(out.transaction).toBe("POST /api/qualify");
   });
@@ -134,7 +134,7 @@ describe("scrubSpan", () => {
       span_id: "1234567890123456",
       name: "GET /api/rates?email=pat@example.com",
       attributes: {
-        "url.full": { value: "https://kuberacommercial.com/express?phone=415-555-0132", type: "string" },
+        "url.full": { value: "https://corincommercial.com/express?phone=415-555-0132", type: "string" },
         "http.request.body.size": 120,
         "http.request.header.cookie": "session=abc",
         "http.response.status_code": 200,
@@ -144,7 +144,7 @@ describe("scrubSpan", () => {
     const out = scrubSpan(span) as any;
     expect(out.name).toBe("GET /api/rates");
     expect(out.trace_id).toBe(span.trace_id);
-    expect(out.attributes["url.full"].value).toBe("https://kuberacommercial.com/express");
+    expect(out.attributes["url.full"].value).toBe("https://corincommercial.com/express");
     expect(out.attributes["http.response.status_code"]).toBe(200);
     expect(out.attributes["user.email"]).toBe(REDACTED);
     expect(out.attributes).not.toHaveProperty("http.request.header.cookie");

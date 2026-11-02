@@ -110,7 +110,7 @@ describe("licenseLine", () => {
   it("carries the 10 CCR §2847.3 advertising statement and the legal name", async () => {
     const { licenseLine } = await import("./site");
     const line = licenseLine();
-    expect(line).toContain("Kubera Commercial, Inc.");
+    expect(line).toContain("Corin Commercial, Inc.");
     expect(line).toContain("Real estate broker, California Department of Real Estate");
   });
 });

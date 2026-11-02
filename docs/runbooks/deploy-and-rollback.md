@@ -29,8 +29,8 @@ Production is a Vercel project built from the `main` branch. Every pull request 
 
 ## Post-deploy verification (5 minutes)
 
-- [ ] `https://kuberacommercial.com/` loads; the rate ticker and loan sizer render.
-- [ ] `https://kuberacommercial.com/express` loads and the qualifier reaches the contact step.
+- [ ] `https://corincommercial.com/` loads; the rate ticker and loan sizer render.
+- [ ] `https://corincommercial.com/express` loads and the qualifier reaches the contact step.
 - [ ] `https://kubera.loans/` serves the qualifier and `https://kubera.loans/anything-else` redirects to the main site.
 - [ ] A synthetic qualifier submission from staging (never production) creates a lead and a Twenty record.
 - [ ] Vercel runtime logs and Sentry show no new error class in the first 15 minutes.

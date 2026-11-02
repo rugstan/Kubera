@@ -4,7 +4,7 @@ export const NEWSLETTER_PATH = "/newsletter";
 
 export const NEWSLETTER_PAGE = {
   title: "Newsletter",
-  description: "A monthly email from Kubera Commercial with market notes, HUD, SBA and CMBS program updates and new tools. Double opt-in; unsubscribe any time.",
+  description: "A monthly email from Corin Commercial with market notes, HUD, SBA and CMBS program updates and new tools. Double opt-in; unsubscribe any time.",
   lead: "A short monthly email from a licensed California loan broker: what moved in HUD, SBA, CMBS and bridge financing, the numbers behind it, and new tools on the site.",
   promises: [
     "About one email a month, sent from our news address.",

@@ -11,7 +11,7 @@ test.describe("express qualifier", () => {
     await fillQualifierThroughContact(page, { phone: "415-555-0132" });
 
     const submit = page.getByRole("button", { name: /see my indicative structure/i });
-    await page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i }).check();
+    await page.getByRole("checkbox", { name: /i agree that corin commercial may contact me/i }).check();
     await expect(submit).toBeEnabled();
     await submit.click();
 
@@ -47,7 +47,7 @@ test.describe("express qualifier", () => {
     const calls = await mockJsonApi(page, "/api/qualify", { body: RESULT });
     await gotoHydrated(page, "/express");
     await fillQualifierThroughContact(page);
-    const consent = page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i });
+    const consent = page.getByRole("checkbox", { name: /i agree that corin commercial may contact me/i });
     await expect(consent).not.toBeChecked();
     const submit = page.getByRole("button", { name: /see my indicative structure/i });
     await expect(submit).toBeEnabled();

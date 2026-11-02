@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { containsExemptionClaim } from "@/lib/compliance/gates";
 import { renderDisclosureHtml } from "./html";
-import { DRAFT_NOTICE, MLDS_TITLE, buildMlds, kuberaBrokerBlock, mldsDocument, mldsInputSchema, mldsPrefillFields, mldsTemplateApproved, type MldsInput } from "./mlds";
+import { DRAFT_NOTICE, MLDS_TITLE, buildMlds, corinBrokerBlock, mldsDocument, mldsInputSchema, mldsPrefillFields, mldsTemplateApproved, type MldsInput } from "./mlds";
 import { sampleMldsInput } from "./test-fixtures";
 
 const withLoan = (loan: Partial<MldsInput["loan"]>): MldsInput => ({ ...sampleMldsInput, loan: { ...sampleMldsInput.loan, ...loan } });
@@ -44,7 +44,7 @@ describe("MLDS data model", () => {
     expect(() => mldsInputSchema.parse({ ...sampleMldsInput, costs })).toThrow();
   });
 
-  it("requires Kubera's 8-digit license, the signer's license and the licensed address", () => {
+  it("requires Corin's 8-digit license, the signer's license and the licensed address", () => {
     expect(() => mldsInputSchema.parse({ ...sampleMldsInput, broker: { ...sampleMldsInput.broker, dreLicense: "" } })).toThrow(/8-digit DRE/);
     expect(() => mldsInputSchema.parse({ ...sampleMldsInput, broker: { ...sampleMldsInput.broker, representativeLicense: "12" } })).toThrow();
     expect(() => mldsInputSchema.parse({ ...sampleMldsInput, broker: { ...sampleMldsInput.broker, licensedAddress: "" } })).toThrow();
@@ -56,10 +56,10 @@ describe("MLDS data model", () => {
     expect(() => buildMlds(withLoan({ prepayment: { present: true } }))).toThrow(/prepayment/i);
   });
 
-  it("never lets Kubera appear as lender or lienholder", () => {
-    expect(() => buildMlds(withLoan({ lenderName: "Kubera Commercial Lending" }))).toThrow(/never the lender/);
+  it("never lets Corin appear as lender or lienholder", () => {
+    expect(() => buildMlds(withLoan({ lenderName: "Corin Commercial Lending" }))).toThrow(/never the lender/);
     expect(() =>
-      buildMlds({ ...sampleMldsInput, expectedLiens: [{ lienholder: "Kubera Commercial, Inc.", nature: "Deed of trust", priority: 1, amountUsd: 1 }] }),
+      buildMlds({ ...sampleMldsInput, expectedLiens: [{ lienholder: "Corin Commercial, Inc.", nature: "Deed of trust", priority: 1, amountUsd: 1 }] }),
     ).toThrow(/beneficiary/);
   });
 
@@ -132,9 +132,9 @@ describe("MLDS document", () => {
   });
 });
 
-describe("Kubera broker block", () => {
+describe("Corin broker block", () => {
   it("refuses to build without the licensed address", () => {
     vi.stubEnv("DRE_LICENSED_ADDRESS", "");
-    expect(() => kuberaBrokerBlock({ name: "Neeli Khanna", dreLicense: "02123456" })).toThrow();
+    expect(() => corinBrokerBlock({ name: "Neeli Khanna", dreLicense: "02123456" })).toThrow();
   });
 });

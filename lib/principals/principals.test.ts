@@ -159,7 +159,7 @@ describe("Form 1919 prefill", () => {
 describe("credit authorization", () => {
   it("pins the text hash so edits need a new version", () => {
     expect(sha256(CREDIT_AUTH_TEXTS["credit-auth-2026-11-01"]!.text)).toBe(buildCreditAuthorization({ signatureName: "A B", capturedVia: "portal", now: NOW }).textSha256);
-    expect(sha256(CREDIT_AUTH_TEXTS["credit-auth-2026-11-01"]!.text)).toMatchInlineSnapshot(`"4cf55db47213b67f588a84a8412cccd6beab01ca2db3bd70b34820a435f4a483"`);
+    expect(sha256(CREDIT_AUTH_TEXTS["credit-auth-2026-11-01"]!.text)).toMatchInlineSnapshot(`"cc80aadb9f10e64f44567c2c527fd3914ffbf5a81b14d2b4135dd3477f533ca1"`);
   });
 
   it("matches typed signatures on first and last name", () => {

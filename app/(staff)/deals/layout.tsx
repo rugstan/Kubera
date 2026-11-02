@@ -20,7 +20,7 @@ export default function DealDeskLayout({ children }: { children: React.ReactNode
       <header className="glass rounded-2xl border border-black/5">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link className="font-semibold tracking-tight text-ink" href="/deals">
-            Kubera deal desk
+            Corin deal desk
           </Link>
           <nav aria-label="Deal desk">
             <ul className="flex flex-wrap gap-4 text-sm">
@@ -33,7 +33,7 @@ export default function DealDeskLayout({ children }: { children: React.ReactNode
               ))}
             </ul>
           </nav>
-          <p className="ml-auto text-xs text-titanium">Broker records only. Kubera never holds or moves loan funds.</p>
+          <p className="ml-auto text-xs text-titanium">Broker records only. Corin never holds or moves loan funds.</p>
         </div>
       </header>
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">{children}</div>

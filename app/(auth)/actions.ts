@@ -120,7 +120,7 @@ export async function startEnrollmentAction(): Promise<EnrollState> {
   const existing = await auth.services.provider.listTotpFactors(auth.stored);
   if (existing.some((f) => f.status === "verified")) return { status: "error", message: "An authenticator is already set up. Enter its code instead." };
   try {
-    const e = await auth.services.provider.enrollTotp(auth.stored, "Kubera Commercial");
+    const e = await auth.services.provider.enrollTotp(auth.stored, "Corin Commercial");
     return { status: "enrolling", factorId: e.factorId, secret: e.secret, uri: e.uri, qrCode: e.qrCode };
   } catch {
     return { status: "error", message: "We could not start authenticator setup. Try again in a minute." };

@@ -188,7 +188,7 @@ describe("term sheets → quotes", () => {
 
     // The instruction never reached the model, and the rules fallback read the stripped body too.
     expect(sent).not.toMatch(/ignore your previous instructions|0\.25%/i);
-    expect(sent).toContain("[removed by Kubera: instruction-like text]");
+    expect(sent).toContain("[removed by Corin: instruction-like text]");
     const q = r.quotes[0]!;
     expect(q.status).toBe("needs_review");
     expect(q.lowConfidenceFields).toContain(INJECTION_REVIEW_FIELD);

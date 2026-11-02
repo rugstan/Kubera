@@ -36,7 +36,7 @@ export class FakeMailProvider implements MailProvider {
       providerMessageId: id,
       folderId: mail.folderId ?? "inbox",
       fromName: null,
-      toAddresses: [`${mail.mailbox}@kuberacommercial.com`],
+      toAddresses: [`${mail.mailbox}@corincommercial.com`],
       ccAddresses: [],
       receivedAt: new Date(Date.UTC(2026, 10, 3, 16, 0, seq)).toISOString(),
       hasAttachments: attachments.length > 0,

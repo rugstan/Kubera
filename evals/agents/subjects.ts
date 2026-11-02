@@ -69,7 +69,7 @@ export function toMailMessage(raw: unknown, id = "eval-1"): MailMessage {
     subject: m.subject,
     fromAddress: m.fromAddress,
     fromName: m.fromName ?? null,
-    toAddresses: [`${m.mailbox}@kuberacommercial.com`],
+    toAddresses: [`${m.mailbox}@corincommercial.com`],
     ccAddresses: [],
     receivedAt: "2026-11-04T17:00:00.000Z",
     hasAttachments: m.attachments.length > 0,
@@ -223,7 +223,7 @@ const staticRouting: EvalSubject = {
 
 // --- Documents (reference extractor) -------------------------------------------------------------------
 
-export const REFERENCE_EXTRACTOR_SYSTEM = `You extract structured data from commercial real estate loan documents for Kubera Commercial, a California-licensed loan broker. The user turn holds one document. Return only the JSON the schema asks for. Use numbers without currency symbols or thousands separators, percentages as numbers (91.5 for 91.5%), and dates as YYYY-MM-DD. Read totals from the document; when a total is not stated, compute it from the lines shown. Use null for anything the document does not state. Never invent values.
+export const REFERENCE_EXTRACTOR_SYSTEM = `You extract structured data from commercial real estate loan documents for Corin Commercial, a California-licensed loan broker. The user turn holds one document. Return only the JSON the schema asks for. Use numbers without currency symbols or thousands separators, percentages as numbers (91.5 for 91.5%), and dates as YYYY-MM-DD. Read totals from the document; when a total is not stated, compute it from the lines shown. Use null for anything the document does not state. Never invent values.
 
 ${UNTRUSTED_CONTENT_POLICY}`;
 

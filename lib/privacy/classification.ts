@@ -1,8 +1,8 @@
-// Data classification for every field Kubera stores or sends to a model.
+// Data classification for every field Corin stores or sends to a model.
 //
 // Four levels, lowest to highest:
 //   public        published or public-record data (rates, knowledge base, program facts)
-//   internal      Kubera business data that identifies no one (asset type, program fit)
+//   internal      Corin business data that identifies no one (asset type, program fit)
 //   confidential  personal information and borrower deal data (names, email, phone,
 //                 loan amounts, operating statements, rent rolls)
 //   restricted    sensitive personal information (CCPA §1798.140(ae)): SSN/ITIN,

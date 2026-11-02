@@ -4,7 +4,7 @@
 // gate A): estimated maximum borrower-paid costs (appraisal, escrow, title,
 // notary, recording), ALL broker compensation including lender-paid,
 // loan terms and payments, credit insurance not required, broker-controlled
-// funds will not be used, Kubera's name / license number / licensed address,
+// funds will not be used, Corin's name / license number / licensed address,
 // and a notice that the figures are estimates.
 //
 // The rendered template stays marked "DRAFT — pending counsel review" until
@@ -13,7 +13,7 @@
 import { z } from "zod";
 import { site } from "@/lib/site";
 
-export const MLDS_TEMPLATE_VERSION = "kubera-re882-2026.11";
+export const MLDS_TEMPLATE_VERSION = "corin-re882-2026.11";
 export const MLDS_TITLE = "Mortgage Loan Disclosure Statement (Traditional) — RE 882";
 /** Signed MLDS copies are kept at least 3 years (B&P §10148, §10240). */
 export const MLDS_RETENTION_YEARS = 3;
@@ -24,7 +24,8 @@ export function mldsTemplateApproved(): boolean {
 
 const usd = z.number().finite().min(0).max(1_000_000_000);
 const isoDate = z.iso.date();
-const KUBERA_NAME = /\bkubera\b/i;
+// Same pattern as CORIN_NAME in lib/compliance/schemas.ts: the current and former firm names.
+const CORIN_NAME = /\b(?:corin|kubera)\b/i;
 
 export const costLineSchema = z.object({
   /** Estimated maximum amount. */
@@ -53,14 +54,14 @@ export const mldsInputSchema = z
     }),
     broker: z.object({
       legalName: z.string().trim().min(1).max(160),
-      dreLicense: z.string().trim().regex(/^\d{8}$/, "Kubera's 8-digit DRE license number is required"),
+      dreLicense: z.string().trim().regex(/^\d{8}$/, "Corin's 8-digit DRE license number is required"),
       licensedAddress: z.string().trim().min(5).max(300),
       representativeName: z.string().trim().min(1).max(120),
       representativeLicense: z.string().trim().regex(/^\d{8}$/, "The signing licensee's 8-digit DRE license number is required"),
       nmls: z.string().trim().max(20).optional(),
     }),
     loan: z.object({
-      /** Lender of record if known. Kubera is never the lender. */
+      /** Lender of record if known. Corin is never the lender. */
       lenderName: z.string().trim().max(160).optional(),
       principalUsd: usd.refine((v) => v > 0, "Principal must be positive"),
       termMonths: z.number().int().min(1).max(600),
@@ -90,7 +91,7 @@ export const mldsInputSchema = z
       creditInvestigation: costLineSchema.optional(),
       other: z.array(costLineSchema.extend({ label: z.string().trim().min(1).max(120) })).max(20).default([]),
     }),
-    /** All compensation to Kubera, including lender-paid (B&P §10241(b)). */
+    /** All compensation to Corin, including lender-paid (B&P §10241(b)). */
     compensation: z.object({
       brokerFromBorrower: z.object({
         commissionUsd: usd,
@@ -124,12 +125,12 @@ export const mldsInputSchema = z
     if (m.loan.prepayment.present && !m.loan.prepayment.description) {
       ctx.addIssue({ code: "custom", path: ["loan", "prepayment", "description"], message: "Describe the prepayment penalty" });
     }
-    if (m.loan.lenderName && KUBERA_NAME.test(m.loan.lenderName)) {
-      ctx.addIssue({ code: "custom", path: ["loan", "lenderName"], message: "Kubera is a broker and is never the lender of record" });
+    if (m.loan.lenderName && CORIN_NAME.test(m.loan.lenderName)) {
+      ctx.addIssue({ code: "custom", path: ["loan", "lenderName"], message: "Corin is a broker and is never the lender of record" });
     }
     for (const [i, lien] of [...m.existingLiens, ...m.expectedLiens].entries()) {
-      if (KUBERA_NAME.test(lien.lienholder)) {
-        ctx.addIssue({ code: "custom", path: ["existingLiens", i, "lienholder"], message: "Kubera is never a lienholder or trust-deed beneficiary" });
+      if (CORIN_NAME.test(lien.lienholder)) {
+        ctx.addIssue({ code: "custom", path: ["existingLiens", i, "lienholder"], message: "Corin is never a lienholder or trust-deed beneficiary" });
       }
     }
   });
@@ -142,7 +143,7 @@ export type MldsTotals = {
   costsPaidToBrokerUsd: number;
   brokerFromBorrowerUsd: number;
   brokerFromLenderUsd: number;
-  /** All compensation to Kubera, borrower-paid and lender-paid. */
+  /** All compensation to Corin, borrower-paid and lender-paid. */
   totalBrokerCompensationUsd: number;
   lenderFeesUsd: number;
   payoffsUsd: number;
@@ -197,8 +198,8 @@ export function buildMlds(input: MldsInput, opts: { approved?: boolean } = {}): 
   return { data, totals: computeTotals(data), templateVersion: MLDS_TEMPLATE_VERSION, draft: !(opts.approved ?? mldsTemplateApproved()) };
 }
 
-/** Kubera's broker block from configuration. Throws when the license data the MLDS must show is missing. */
-export function kuberaBrokerBlock(signer: { name: string; dreLicense: string }): MldsInput["broker"] {
+/** Corin's broker block from configuration. Throws when the license data the MLDS must show is missing. */
+export function corinBrokerBlock(signer: { name: string; dreLicense: string }): MldsInput["broker"] {
   // Same address the public /licensing page shows (site.licensedAddress), so the
   // MLDS header and the website never disagree. DRE_LICENSED_ADDRESS overrides it.
   const licensedAddress = (process.env.DRE_LICENSED_ADDRESS ?? "").trim() || site.licensedAddress;
@@ -250,7 +251,7 @@ export function mldsDocument(mlds: Mlds): DocumentSpec {
         { label: "Borrower(s)", value: data.borrowers.map((b) => b.name).join("; ") },
         { label: "Broker", value: `${data.broker.legalName}, DRE License #${data.broker.dreLicense}` },
         { label: "Broker's licensed address", value: data.broker.licensedAddress },
-        { label: "Lender of record", value: l.lenderName || "To be determined (Kubera is not the lender)" },
+        { label: "Lender of record", value: l.lenderName || "To be determined (Corin is not the lender)" },
         { label: "Real property collateral", value: data.property.address },
         ...(data.property.apn ? [{ label: "APN", value: data.property.apn }] : []),
         { label: "Prepared on", value: data.preparedOn },
@@ -335,7 +336,7 @@ export function mldsDocument(mlds: Mlds): DocumentSpec {
       title: "Notices",
       paragraphs: [
         "The costs, fees and compensation in this statement are estimates. Actual amounts may differ and will appear on the final closing statement.",
-        "This is not a loan commitment. Loan terms are subject to the lender's underwriting, appraisal, title and final approval. Kubera Commercial, Inc. arranges this loan as a licensed real estate broker and is not the lender.",
+        "This is not a loan commitment. Loan terms are subject to the lender's underwriting, appraisal, title and final approval. Corin Commercial, Inc. arranges this loan as a licensed real estate broker and is not the lender.",
         "Do not sign this statement until you have read and understood all of the information in it. All parts of this form must be completed before you sign. You will receive an exact copy of this statement after it is signed.",
       ],
     },

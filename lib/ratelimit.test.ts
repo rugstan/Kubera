@@ -53,9 +53,9 @@ describe("UpstashRateLimiter", () => {
     expect(url).toBe("https://redis.example.com/pipeline");
     expect((init.headers as Record<string, string>).authorization).toBe("Bearer tok");
     const commands = JSON.parse(String(init.body)) as string[][];
-    expect(commands[0]).toEqual(["INCR", "kubera:rl:qualify:1.2.3.4:60000:10"]);
+    expect(commands[0]).toEqual(["INCR", "corin:rl:qualify:1.2.3.4:60000:10"]);
     expect(commands[1]?.[0]).toBe("PEXPIRE");
-    expect(commands[2]).toEqual(["GET", "kubera:rl:qualify:1.2.3.4:60000:9"]);
+    expect(commands[2]).toEqual(["GET", "corin:rl:qualify:1.2.3.4:60000:9"]);
   });
 
   it("blocks above the limit", async () => {

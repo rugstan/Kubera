@@ -11,9 +11,9 @@ import { DOC_TYPES } from "./types";
 
 export const DOCUMENT_EVENTS = {
   /** A vault document passed the malware scan (or staff asked for a re-run). */
-  documentClean: "kubera/document.clean",
+  documentClean: "corin/document.clean",
   /** An extraction finished (for spreads, Jev re-sizing and lender matching). */
-  documentExtracted: "kubera/document.extracted",
+  documentExtracted: "corin/document.extracted",
 } as const;
 
 export const documentCleanSchema = z.object({

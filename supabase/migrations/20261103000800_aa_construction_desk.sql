@@ -1,6 +1,6 @@
 -- WS-AA · Construction desk (Phase 2, slot 08).
 --
--- Pre-closing and post-construction tracking only. Kubera brokers the loan and
+-- Pre-closing and post-construction tracking only. Corin brokers the loan and
 -- has no role in construction draws, so there are no money, draw, inspection or
 -- servicing columns anywhere in this file (the no-custody guard from the WS-W
 -- migration checks that).
@@ -207,4 +207,4 @@ alter table public.construction_leaseup_snapshots enable row level security;
 alter table public.construction_takeouts enable row level security;
 alter table public.construction_events enable row level security;
 
-comment on table public.construction_projects is 'Construction desk (WS-AA): pre-closing and post-construction tracking. Kubera has no draw role.';
+comment on table public.construction_projects is 'Construction desk (WS-AA): pre-closing and post-construction tracking. Corin has no draw role.';

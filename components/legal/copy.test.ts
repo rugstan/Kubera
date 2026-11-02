@@ -103,7 +103,7 @@ const NO_AI_FILES = [
 ];
 const NO_AI: [RegExp, string][] = [
   [/\bAI\b/, "no 'AI' on public surfaces"],
-  [/Kubera AI|AI-assisted|artificial intelligence|machine learning|chatbot|⌘K/i, "no assistant, chatbot or shortcut wording"],
+  [/Corin AI|AI-assisted|artificial intelligence|machine learning|chatbot|⌘K/i, "no assistant, chatbot or shortcut wording"],
   [/\bJev\b/, "no internal system names"],
   [/routing engine|rules engine|scoring (?:engine|model)|lead scor/i, "no internal automation wording"],
 ];
@@ -136,7 +136,7 @@ describe("copy guard", () => {
     // The guard itself catches the wording that slipped through before.
     const hit = (text: string) => NO_AI.some(([re]) => re.test(text));
     expect(hit("feeds Jev, our routing engine")).toBe(true);
-    expect(hit("Kubera rent-control rules engine")).toBe(true);
+    expect(hit("Corin rent-control rules engine")).toBe(true);
     expect(hit("const AI_NOTICE_HREF = x; <AiUseNotice />")).toBe(false);
   });
 
@@ -146,7 +146,7 @@ describe("copy guard", () => {
     for (const cta of ctas) {
       const words = cta.split(/\s+/).slice(1).filter((w) => /^[A-Za-z]/.test(w));
       // Proper nouns and acronyms are allowed; capitalized common words are not.
-      const offenders = words.filter((w) => /^[A-Z][a-z]+$/.test(w) && !["Kubera", "HUD", "SBA"].includes(w));
+      const offenders = words.filter((w) => /^[A-Z][a-z]+$/.test(w) && !["Corin", "HUD", "SBA"].includes(w));
       expect(offenders, `CTA "${cta}"`).toEqual([]);
     }
   });

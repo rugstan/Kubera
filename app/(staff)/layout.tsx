@@ -12,7 +12,7 @@ import { HeaderScrollOffset } from "./_components/HeaderScrollOffset";
 import { STAFF_NAV } from "@/lib/auth/staff-routes";
 
 export const metadata: Metadata = {
-  title: { default: "Staff", template: "%s · Kubera staff" },
+  title: { default: "Staff", template: "%s · Corin staff" },
   robots: { index: false, follow: false },
 };
 

@@ -22,7 +22,7 @@ vi.mock("@/lib/supabase/server", () => ({
 const { POST } = await import("./route");
 
 const SECRET = "twenty-secret";
-const URL = "https://kuberacommercial.com/api/webhooks/twenty";
+const URL = "https://corincommercial.com/api/webhooks/twenty";
 const event = () => JSON.stringify({ eventName: "person.updated", record: { id: "7f1c6d52-3a64-4d0e-9b6d-0d6a5a0c2b11" } });
 const sign = (ts: string, body: string, secret = SECRET) => createHmac("sha256", secret).update(`${ts}:${body}`).digest("hex");
 function post(body: string, opts: { timestamp?: string; secret?: string; signature?: string } = {}) {

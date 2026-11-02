@@ -1,11 +1,11 @@
-# Multifamily Financing as a Business Line for Kubera Commercial (products, underwriting artifacts, data/software stack, agent opportunities, CA specifics, gap list)
+# Multifamily Financing as a Business Line for Corin Commercial (products, underwriting artifacts, data/software stack, agent opportunities, CA specifics, gap list)
 
-Research notes compiled 2026-10-31. Method note: direct page fetches mostly failed from this environment (newpoint.com and dwightcapital.com did not resolve). Almost every fact below comes from **web search result snippets/summaries**, not from reading the full page; these are marked "(snippet)". Items drawn from general domain knowledge rather than a source found in this session are labelled "[domain knowledge, unverified this session]" and are kept out of Cited Findings. Kubera code references: `/home/user/Kubera/lib/sizing/assumptions.ts` (lines 59-61 hold the HUD multifamily constants; line 115 the bridge `cre` box), `/home/user/Kubera/lib/ai/knowledge.ts` (lines 13, 32-34 hold the advisor's HUD/agency facts).
+Research notes compiled 2026-10-31. Method note: direct page fetches mostly failed from this environment (newpoint.com and dwightcapital.com did not resolve). Almost every fact below comes from **web search result snippets/summaries**, not from reading the full page; these are marked "(snippet)". Items drawn from general domain knowledge rather than a source found in this session are labelled "[domain knowledge, unverified this session]" and are kept out of Cited Findings. Corin code references: `/home/user/Corin/lib/sizing/assumptions.ts` (lines 59-61 hold the HUD multifamily constants; line 115 the bridge `cre` box), `/home/user/Corin/lib/ai/knowledge.ts` (lines 13, 32-34 hold the advisor's HUD/agency facts).
 
-## 1. Multifamily debt product menu and sizing rules (2026), and verification of Kubera's sizer
+## 1. Multifamily debt product menu and sizing rules (2026), and verification of Corin's sizer
 
 ### Takeaway
-Several of Kubera's HUD constants are **out of date**. HUD Mortgagee Letter 2025-03 (January 2025) raised market-rate 223(f)/221(d)(4) leverage to 87% at a 1.15x DSCR, and affordable or rental-assisted deals to 90% at 1.11x. A Federal Register notice (Sept 23, 2025) set the MIP at a flat 0.25% for all FHA multifamily programs, for applications submitted or amended on or after Oct 1, 2025, and removed the separate green and affordable MIP tiers. The agency 80% / 1.25x box matches Fannie Mae's small-loan term sheet (up to $9M). Freddie Mac reportedly retired its SBL program on April 15, 2026 in favour of a "Conventional Small" product ($2M-$10M, 50 units or fewer). That claim comes from lender sites only, so confirm it.
+Several of Corin's HUD constants are **out of date**. HUD Mortgagee Letter 2025-03 (January 2025) raised market-rate 223(f)/221(d)(4) leverage to 87% at a 1.15x DSCR, and affordable or rental-assisted deals to 90% at 1.11x. A Federal Register notice (Sept 23, 2025) set the MIP at a flat 0.25% for all FHA multifamily programs, for applications submitted or amended on or after Oct 1, 2025, and removed the separate green and affordable MIP tiers. The agency 80% / 1.25x box matches Fannie Mae's small-loan term sheet (up to $9M). Freddie Mac reportedly retired its SBL program on April 15, 2026 in favour of a "Conventional Small" product ($2M-$10M, 50 units or fewer). That claim comes from lender sites only, so confirm it.
 
 ### Cited Findings
 
@@ -49,15 +49,15 @@ Several of Kubera's HUD constants are **out of date**. HUD Mortgagee Letter 2025
 - Example DUS lender cost: $5,000 processing fee (Regions flyer). — [Regions](https://www.regions.com/-/media/pdfs/real-estate-banking/FannieDUSFlyer.pdf)
 
 ### Inferences
-- **Corrections to Kubera's sizer** (`lib/sizing/assumptions.ts` L59-61, `lib/ai/knowledge.ts` L13, L32-33):
+- **Corrections to Corin's sizer** (`lib/sizing/assumptions.ts` L59-61, `lib/ai/knowledge.ts` L13, L32-33):
   - `s223f`: maxLtv 0.85 → **0.87**; minDscr 1.176 → **1.15**; maxLtvAffordable 0.87 → **0.90**; minDscrAffordable 1.15 → **1.11**. Add a rental-assistance flag; it uses the same 90% / 1.11x box.
   - `s221d4`: maxLtc 0.85 → **0.87**; minDscr 1.176 → **1.15**; affordable → **0.90 / 1.11**.
   - `mip`: replace all tiers with **0.25% annual** for applications on or after Oct 1, 2025. The upfront (first-year) premium should also be 0.25%; that figure comes from a secondary source, so confirm with a HUD lender. Remove the "green" MIP benefit as a differentiator; green status is no longer a MIP lever.
   - `knowledge.ts` L13 ("upfront MIP ~1%, annual ~0.65%") and L33 are stale, so the AI advisor will mis-quote costs.
-  - The ML 2025-03 changes exclude Section 232, so Kubera's 232 constants (L48-50) are unaffected by the DSCR/LTV change. Whether the Sept 2025 MIP notice covers 232 is a separate question; see Gaps.
+  - The ML 2025-03 changes exclude Section 232, so Corin's 232 constants (L48-50) are unaffected by the DSCR/LTV change. Whether the Sept 2025 MIP notice covers 232 is a separate question; see Gaps.
 - **Agency box:** 80% / 1.25x / up to 30-yr amortization is correct as a *maximum* for Fannie small loans. Real deals in 2026 are mostly DSCR-constrained; the CBRE average LTV is about 63%. The sizer should run tiered DSCR/LTV grids (Fannie conventional tiers; Freddie market tiers), not one box. The "10-yr term" should become selectable 5/7/10/12. [Fannie conventional tier grids: domain knowledge, unverified this session]
 - **Bridge box:** 75% LTV fits the as-is ceiling. A 7% going-in debt-yield floor is not contradicted, but no source confirmed it. Lenders more often gate bridge loans on an *exit* test (stabilized DY 9.5-10.5% and 1.25x at a takeout rate). Add an exit/takeout test that sizes against a Fannie/Freddie/HUD refinance.
-- **Freddie product list:** If the SBL retirement is real, Kubera's agency copy should say "Freddie Conventional Small ($2M-$10M)". Sub-$2M deals then go to Fannie Small (≥$750K-$1M), bank/CU portfolio lenders or DSCR lenders.
+- **Freddie product list:** If the SBL retirement is real, Corin's agency copy should say "Freddie Conventional Small ($2M-$10M)". Sub-$2M deals then go to Fannie Small (≥$750K-$1M), bank/CU portfolio lenders or DSCR lenders.
 - **Prepayment, recourse and timelines** by product [domain knowledge, unverified this session]:
   - Agency fixed: yield maintenance or defeasance; ARMs carry a 1% step-down.
   - SBL/small loans: step-down schedules (e.g. 5-4-3-2-1).
@@ -70,7 +70,7 @@ Several of Kubera's HUD constants are **out of date**. HUD Mortgagee Letter 2025
 ### Gaps
 - No primary-source 2026 data found for: Fannie conventional DUS tier grids, MAH/affordable terms, or supplemental-loan sizing rules; the Freddie Targeted Affordable (TAH) term sheet; HUD **223(a)(7)** terms (no search results); LIHTC 4% bond and Fannie/Freddie forward-commitment terms; bank and credit-union portfolio terms; life-company multifamily terms; CMBS multifamily terms (two searches returned none). These remain unverified and should not be hard-coded without lender term sheets.
 - Fannie/Freddie **correspondent-lender origination splits** (how a DUS origination fee is shared with a correspondent or broker): no source found.
-- Whether FR 2025-18379's 0.25% MIP applies to Section 232 healthcare loans is not confirmed. SAHMA and Lument say "all FHA multifamily insurance programs". Kubera's 232 MIP (0.65% / 0.77%) should be re-checked.
+- Whether FR 2025-18379's 0.25% MIP applies to Section 232 healthcare loans is not confirmed. SAHMA and Lument say "all FHA multifamily insurance programs". Corin's 232 MIP (0.65% / 0.77%) should be re-checked.
 - No Freddie Mac primary confirmation of the SBL retirement or the Conventional Small terms.
 - HUD timeline (LEAN 120-180 days in `knowledge.ts`) is unverified this session.
 
@@ -136,20 +136,20 @@ Most CRE data vendors do not publish prices; every figure below comes from third
 - Borrowers reach Fannie only through DUS lenders, who underwrite and deliver under delegated authority. The DUS Gateway is referenced in the April 2026 Guide release as a lender-side system. — [J.P. Morgan](https://www.jpmorgan.com/insights/real-estate/agency-lending/what-is-a-dus-lender); [Fannie Guide release](https://mfguide.fanniemae.com/system/files/03-26-26-04-00-58-PM/DUS%20Gateway%20Release%20for%20Credit%20Facility%20Refinances%20and%20Conversions%20(Redline).pdf)
 
 ### Inferences
-- A broker cannot access DUS Gateway, Freddie's lender systems or HUD's lender portals; those are seller/servicer-only [domain knowledge]. Kubera's value is producing a lender-ready package that DUS/Optigo/MAP lenders ingest, not portal integration. The public Fannie/Freddie term sheets, Guide and MBS disclosure data (Fannie DUS Disclose, Freddie Multifamily securities data) are usable for comps and maturity data [domain knowledge, unverified this session].
-- Kubera already plans Claude plus NeMo Retriever extraction. Building rent-roll and T-12 extraction in-house is feasible and avoids Clik.ai's opaque, institution-priced contracts. Clik.ai or Docsumo would be a fallback for scanned or ugly files.
+- A broker cannot access DUS Gateway, Freddie's lender systems or HUD's lender portals; those are seller/servicer-only [domain knowledge]. Corin's value is producing a lender-ready package that DUS/Optigo/MAP lenders ingest, not portal integration. The public Fannie/Freddie term sheets, Guide and MBS disclosure data (Fannie DUS Disclose, Freddie Multifamily securities data) are usable for comps and maturity data [domain knowledge, unverified this session].
+- Corin already plans Claude plus NeMo Retriever extraction. Building rent-roll and T-12 extraction in-house is feasible and avoids Clik.ai's opaque, institution-priced contracts. Clik.ai or Docsumo would be a fallback for scanned or ugly files.
 - Lowest-cost credible comps stack: HelloData API (rent + expense benchmarks) plus Rentometer (credits, small 2-4 / 5-20 unit assets). Defer CoStar, Yardi Matrix and CompStak unless deal volume justifies $15K-$40K+/yr.
 - Ownership, maturity and prospecting: Regrid (parcel, owner, year built, units, cheap API) plus ATTOM or Reonomy (deed, mortgage recordings, lender, origination date; loan maturity is inferred from origination plus a typical term) is enough to build a refinance-maturity prospecting list.
-- Bowery (appraisal software for appraisers) and Cherre (enterprise data-integration platform) are not broker-relevant at Kubera's scale [domain knowledge; no pricing found].
+- Bowery (appraisal software for appraisers) and Cherre (enterprise data-integration platform) are not broker-relevant at Corin's scale [domain knowledge; no pricing found].
 
 ### Gaps
 - No vendor-published prices found for HelloData, CoStar, Yardi Matrix, RealPage/Axiometrics, CompStak, Cherre, Bowery, Blooma, RealQuant, Ocrolus-for-CRE, Apto or Buildout. Blooma, RealQuant, Ocrolus-CRE, Docsumo pricing and API features, and Zillow / Apartment List API availability were **not researched** (call budget).
 - No source found on loan-maturity datasets (Trepp, MBA, ATTOM mortgage) or their pricing.
 
-## 4. Agentic opportunities: multifamily tasks Kubera's agents could automate, and the data each needs
+## 4. Agentic opportunities: multifamily tasks Corin's agents could automate, and the data each needs
 
 ### Takeaway
-The highest-value automations are rent-roll/T-12 normalization into an underwritten NOI, a multi-program quote matrix that sizes each program at the binding constraint, a CA tax re-assessment and rent-control engine, and refinance prospecting from recorded-mortgage data. All of them can run behind Kubera's planned broker approval gate.
+The highest-value automations are rent-roll/T-12 normalization into an underwritten NOI, a multi-program quote matrix that sizes each program at the binding constraint, a CA tax re-assessment and rent-control engine, and refinance prospecting from recorded-mortgage data. All of them can run behind Corin's planned broker approval gate.
 
 ### Cited Findings
 - Comp and expense data APIs exist for direct model integration: HelloData Rent Comp and Expense Benchmarks APIs; Rentometer API. — [HelloData](https://www.hellodata.ai/help-articles/what-apartment-data-does-hellodata-provide); [Rentometer API](https://www.rentometer.com/rentometer-api)
@@ -198,14 +198,14 @@ California underwriting must model (a) the AB 1482 cap: 5% + regional CPI, max 1
 - HCD statewide rent-control pages not reached; no CA DOJ AB 1482 publication fetched.
 - Prop 13 mechanics unsourced this session.
 
-## 6. Capabilities Kubera Commercial is missing for multifamily (build / integrate / skip)
+## 6. Capabilities Corin Commercial is missing for multifamily (build / integrate / skip)
 
 ### Takeaway
-The most urgent gap is that Kubera's HUD multifamily constants and MIP are wrong for 2026 (pre-2025 values), which mis-sizes every HUD quote and overstates costs. After that, the biggest gaps are: no rent-roll/T-12 normalization into underwritten NOI, no comps or tax/rent-control data, single-box agency and bridge sizing with no exit test, and no maturity-based prospecting.
+The most urgent gap is that Corin's HUD multifamily constants and MIP are wrong for 2026 (pre-2025 values), which mis-sizes every HUD quote and overstates costs. After that, the biggest gaps are: no rent-roll/T-12 normalization into underwritten NOI, no comps or tax/rent-control data, single-box agency and bridge sizing with no exit test, and no maturity-based prospecting.
 
 ### Cited Findings
 - HUD market-rate is now 87% / 1.15x, affordable 90% / 1.11x; MIP is a flat 0.25% (apps on or after Oct 1, 2025). — [hud.loans](https://www.hud.loans/fha-223f/); [Federal Register 2025-18379](https://www.federalregister.gov/documents/2025/09/23/2025-18379/changes-in-mortgage-insurance-premiums-applicable-to-fha-multifamily-insurance-programs)
-- Kubera's current values: `s223f` 0.85 / 1.176 (0.87 / 1.15 affordable); `mip` 0.006 / 0.0065 / 0.0035 / 0.0025 — `/home/user/Kubera/lib/sizing/assumptions.ts` L59-61 (read this session).
+- Corin's current values: `s223f` 0.85 / 1.176 (0.87 / 1.15 affordable); `mip` 0.006 / 0.0065 / 0.0035 / 0.0025 — `/home/user/Corin/lib/sizing/assumptions.ts` L59-61 (read this session).
 - Freddie SBL reportedly replaced by Conventional Small ($2M-$10M). — [multifamily.loans](https://www.multifamily.loans/freddie-mac-small-balance-apartment-loans/)
 
 ### Inferences

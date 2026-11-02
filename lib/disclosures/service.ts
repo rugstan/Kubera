@@ -84,7 +84,7 @@ export type OpenMldsInput = {
   dealId?: string;
   twentyOpportunityId?: string;
   facts: MldsFacts;
-  /** When Kubera received the completed written loan application. */
+  /** When Corin received the completed written loan application. */
   applicationCompletedAt: Date;
   borrowerObligatedAt?: Date;
   actor: string;
@@ -211,7 +211,7 @@ export type SendDeps = {
   effects: IdempotencyStore;
   now: Clock;
   templateId: string;
-  /** Kubera's signer (the broker or a licensee acting for the broker). */
+  /** Corin's signer (the broker or a licensee acting for the broker). */
   brokerSigner: { name: string; email: string };
   approvedTemplate?: boolean;
   embedded?: boolean;

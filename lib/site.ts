@@ -9,7 +9,7 @@ import { deploymentEnv } from "./deploy-env";
 
 type Env = Record<string, string | undefined>;
 
-/** Kubera Commercial's California DRE license of record (public by law). */
+/** Corin Commercial's California DRE license of record (public by law). */
 export const DRE_LICENSE_OF_RECORD = "01522444";
 
 function corporateLicense(env: Env): string {
@@ -17,20 +17,20 @@ function corporateLicense(env: Env): string {
 }
 
 export const site = {
-  name: "Kubera Commercial",
-  legalName: "Kubera Commercial, Inc.",
-  primaryDomain: "kuberacommercial.com",
+  name: "Corin Commercial",
+  legalName: "Corin Commercial, Inc.",
+  primaryDomain: "corincommercial.com",
   expressDomain: "kubera.loans",
   designatedOfficer: "Neeli Khanna",
   dreCorporateLicense: corporateLicense({ NEXT_PUBLIC_DRE_CORPORATE_LICENSE: process.env.NEXT_PUBLIC_DRE_CORPORATE_LICENSE }),
   dreOfficerLicense: (process.env.NEXT_PUBLIC_DRE_OFFICER_LICENSE ?? "").trim(),
   nmls: (process.env.NEXT_PUBLIC_NMLS_ID ?? "").trim(),
   phone: (process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "").trim(),
-  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "deals@kuberacommercial.com",
-  privacyEmail: "privacy@kuberacommercial.com",
+  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "deals@corincommercial.com",
+  privacyEmail: "privacy@corincommercial.com",
   /** Main office address on file with the DRE; shown on the licensing page and the MLDS. */
   licensedAddress: (process.env.NEXT_PUBLIC_DRE_LICENSED_ADDRESS ?? "").trim(),
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://kuberacommercial.com",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "https://corincommercial.com",
 } as const;
 
 /** DRE license IDs are eight digits (leading zeros are significant). */
@@ -94,13 +94,13 @@ export function licenseLine(): string {
 
 export const disclosures = {
   indicative:
-    "All rates, terms, and sizing are indicative estimates for discussion only, are not a commitment to lend, and are subject to lender underwriting, appraisal, credit approval, and program guidelines in effect at application. Kubera Commercial arranges loans as a licensed California real estate broker and is not the lender.",
+    "All rates, terms, and sizing are indicative estimates for discussion only, are not a commitment to lend, and are subject to lender underwriting, appraisal, credit approval, and program guidelines in effect at application. Corin Commercial arranges loans as a licensed California real estate broker and is not the lender.",
   illustrative:
     "Structures shown are illustrative examples of how these programs are typically arranged. They are not client testimonials or guarantees of results; actual terms vary by borrower, asset, and market.",
   timeline:
     "Timelines are typical ranges after a complete file and are subject to lender approval, appraisal, title, and diligence. They are not guaranteed.",
   brokerNotLender:
-    "Kubera Commercial is a real estate broker, not a lender. Lenders make all credit decisions and fund loans as lender of record. Kubera never holds, transfers, or disburses loan funds and does not service loans.",
+    "Corin Commercial is a real estate broker, not a lender. Lenders make all credit decisions and fund loans as lender of record. Corin never holds, transfers, or disburses loan funds and does not service loans.",
   mlds:
-    "On every loan Kubera arranges that is secured by real property, you receive a Mortgage Loan Disclosure Statement (DRE form RE 882) no later than three business days after we receive your completed written loan application, and in every case before you become obligated on the loan.",
+    "On every loan Corin arranges that is secured by real property, you receive a Mortgage Loan Disclosure Statement (DRE form RE 882) no later than three business days after we receive your completed written loan application, and in every case before you become obligated on the loan.",
 } as const;

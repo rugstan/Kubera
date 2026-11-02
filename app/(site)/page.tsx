@@ -7,7 +7,7 @@ import { HomeFaq } from "@/components/home/HomeFaq";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { ProgramFamilies } from "@/components/home/ProgramFamilies";
 import { Reveal } from "@/components/home/Reveal";
-import { WhyKubera } from "@/components/home/WhyKubera";
+import { WhyCorin } from "@/components/home/WhyCorin";
 import { LoanSizer } from "@/components/sizer/LoanSizer";
 import { callLink } from "@/content/contact";
 import { getMarketSnapshot } from "@/lib/rates";
@@ -15,7 +15,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
   title: "Commercial real estate loan broker",
-  absoluteTitle: "Kubera Commercial | Commercial Real Estate Loan Broker",
+  absoluteTitle: "Corin Commercial | Commercial Real Estate Loan Broker",
   description:
     "Licensed California broker arranging HUD, SBA, CMBS, agency, construction, bridge and hard money loans for senior living, hotels and multifamily. Not a lender.",
   path: "/",
@@ -26,7 +26,7 @@ async function SizerWithRates() {
   return <LoanSizer benchmarks={snap.benchmarks} live={snap.live} call={callLink()} />;
 }
 
-// Section backgrounds alternate white and canvas, with WhyKubera as the page's
+// Section backgrounds alternate white and canvas, with WhyCorin as the page's
 // only black (bg-pro) band, so no two neighbours share a background.
 export default function HomePage() {
   return (
@@ -53,7 +53,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      <WhyKubera />
+      <WhyCorin />
       <DealStructures />
       <HomeFaq />
       <FinalCta />

@@ -260,11 +260,11 @@ async function decideOutreach(
   if (deps.mailer && lender.contactEmail) {
     const { messageId } = await deps.mailer.send({
       to: lender.contactEmail,
-      subject: `Kubera Commercial · ${deal.title} · package v${pkg.version}`,
+      subject: `Corin Commercial · ${deal.title} · package v${pkg.version}`,
       text: [
         `${lender.contactName ? `${lender.contactName},` : "Hello,"}`,
         "",
-        `Kubera Commercial, Inc. (broker, not the lender) is submitting "${deal.title}" for your review.`,
+        `Corin Commercial, Inc. (broker, not the lender) is submitting "${deal.title}" for your review.`,
         `Package version ${pkg.version} (${pkg.manifest.length} documents) is available until ${new Date(link.expiresAt).toUTCString()}:`,
         url,
         "",

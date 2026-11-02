@@ -16,7 +16,7 @@ export function HardMoneySection({ dealId, file }: { dealId: string; file: HmUnd
   const m = file?.metrics;
   return (
     <Card id="hard-money" title="Hard money file">
-      <p className="mb-4 text-[13px] text-ink/80">The private lender funds as lender of record and administers any rehab holdback; this file supports the package Kubera presents.</p>
+      <p className="mb-4 text-[13px] text-ink/80">The private lender funds as lender of record and administers any rehab holdback; this file supports the package Corin presents.</p>
       {m ? (
         <div className="mb-5 grid gap-3 text-[14px] sm:grid-cols-4">
           <p>Rehab budget <strong className="block text-[17px]">{usd(m.rehabBudget)}</strong></p>

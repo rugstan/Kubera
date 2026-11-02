@@ -6,7 +6,7 @@ import { bodyText, EmailLayout, linkStyle, mutedText } from "@/emails/layout";
 // whenever the wording changes, because pre-approval is tied to the version.
 
 export const NEWSLETTER_CONFIRMATION_TEMPLATE = { id: "newsletter_confirmation", version: 1 } as const;
-export const newsletterConfirmationSubject = "Confirm your Kubera Commercial newsletter subscription";
+export const newsletterConfirmationSubject = "Confirm your Corin Commercial newsletter subscription";
 
 export type NewsletterConfirmationProps = { confirmUrl: string; contactEmail: string };
 
@@ -14,9 +14,9 @@ export default function NewsletterConfirmation({ confirmUrl, contactEmail }: New
   return (
     <EmailLayout
       preview="One click to confirm your subscription."
-      footerNote="You are receiving this because someone entered this address on kuberacommercial.com to subscribe to our newsletter. If that was not you, ignore this email and you will not be subscribed."
+      footerNote="You are receiving this because someone entered this address on corincommercial.com to subscribe to our newsletter. If that was not you, ignore this email and you will not be subscribed."
     >
-      <Text style={bodyText}>Thanks for signing up for the Kubera Commercial newsletter.</Text>
+      <Text style={bodyText}>Thanks for signing up for the Corin Commercial newsletter.</Text>
       <Text style={bodyText}>
         Please confirm your address so we know it is yours:{" "}
         <Link href={confirmUrl} style={linkStyle}>
@@ -36,7 +36,7 @@ export default function NewsletterConfirmation({ confirmUrl, contactEmail }: New
   );
 }
 
-NewsletterConfirmation.PreviewProps = { confirmUrl: "https://kuberacommercial.com/newsletter/confirm?token=example", contactEmail: "deals@kuberacommercial.com" } satisfies NewsletterConfirmationProps;
+NewsletterConfirmation.PreviewProps = { confirmUrl: "https://corincommercial.com/newsletter/confirm?token=example", contactEmail: "deals@corincommercial.com" } satisfies NewsletterConfirmationProps;
 
 export async function renderNewsletterConfirmation(props: NewsletterConfirmationProps): Promise<{ subject: string; html: string; text: string }> {
   const element = <NewsletterConfirmation {...props} />;

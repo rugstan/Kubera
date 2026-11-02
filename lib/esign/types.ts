@@ -10,7 +10,7 @@ export type Recipient = {
   role: string;
   name: string;
   email: string;
-  /** Embedded signing (inside Kubera's portal) instead of an emailed link. */
+  /** Embedded signing (inside Corin's portal) instead of an emailed link. */
   embedded?: boolean;
   /** Ask the provider to verify the signer by email OTP before signing. */
   verifyByEmail?: boolean;

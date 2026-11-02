@@ -23,7 +23,7 @@ export default function ApprovalsPage({ searchParams }: { searchParams: SearchPa
         <p className="eyebrow">Broker approval gate</p>
         <h1 className="font-display text-[32px] font-semibold text-ink">Approvals</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">
-          Nothing leaves Kubera (email, text, lender submission, e-sign or CRM change) until a licensed broker approves it here. Requests that time out
+          Nothing leaves Corin (email, text, lender submission, e-sign or CRM change) until a licensed broker approves it here. Requests that time out
           expire and are never sent.
         </p>
       </div>

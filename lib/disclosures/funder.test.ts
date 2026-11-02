@@ -8,11 +8,11 @@ describe("funder disclosure", () => {
   });
 
   it.each([
-    [{ lenderOfRecord: { name: "Kubera Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" as const } }, /lender of record/],
-    [{ beneficiaryName: "Kubera Commercial, Inc." }, /beneficiary/],
-    [{ escrowAgent: "Kubera Escrow" }, /independent escrow agent/],
-    [{ tableFunded: true, beneficiaryName: "Kubera Commercial, Inc." }, /Table funding/],
-  ])("holds for counsel when Kubera is named (%o)", (over, reason) => {
+    [{ lenderOfRecord: { name: "Corin Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" as const } }, /lender of record/],
+    [{ beneficiaryName: "Corin Commercial, Inc." }, /beneficiary/],
+    [{ escrowAgent: "Corin Escrow" }, /independent escrow agent/],
+    [{ tableFunded: true, beneficiaryName: "Corin Commercial, Inc." }, /Table funding/],
+  ])("holds for counsel when Corin is named (%o)", (over, reason) => {
     const r = reviewFunderDisclosure({ ...sampleFunderInput, ...over });
     expect(r.ok).toBe(false);
     expect(r.heldForCounsel).toBe(true);
@@ -20,7 +20,7 @@ describe("funder disclosure", () => {
   });
 
   it("refuses to render a disclosure that must be held", () => {
-    expect(() => funderDocument({ ...sampleFunderInput, beneficiaryName: "Kubera Commercial" })).toThrow(/held for counsel/);
+    expect(() => funderDocument({ ...sampleFunderInput, beneficiaryName: "Corin Commercial" })).toThrow(/held for counsel/);
   });
 
   it("states the broker-only role and funds flow", () => {

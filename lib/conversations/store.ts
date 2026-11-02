@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { FIELD_CLASSIFICATION, redactPayload, redactText, type Classification } from "@/lib/privacy/classification";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
-// Server-side transcript store for Ask Kubera AI (public.ai_conversations).
+// Server-side transcript store for Ask Corin AI (public.ai_conversations).
 // The browser only ever sends a conversation id and its newest message; the
 // server rebuilds history from here, so a client cannot forge assistant turns
 // or rewrite what it said earlier.
@@ -205,7 +205,7 @@ export function conversationStore(): ConversationStore {
   if (db) {
     instance = new SupabaseConversationStore(db);
   } else {
-    console.warn("conversations: Supabase not configured; Ask Kubera AI history is kept in memory per instance");
+    console.warn("conversations: Supabase not configured; Ask Corin AI history is kept in memory per instance");
     instance = new MemoryConversationStore();
   }
   return instance;

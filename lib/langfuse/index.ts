@@ -220,7 +220,7 @@ export class LangfuseTracer implements Tracer {
         const res = await this.fetchImpl(`${this.config.baseUrl}/api/public/ingestion`, {
           method: "POST",
           headers: { authorization: `Basic ${auth}`, "content-type": "application/json" },
-          body: JSON.stringify({ batch, metadata: { sdk_name: "kubera-langfuse", sdk_version: "1" } }),
+          body: JSON.stringify({ batch, metadata: { sdk_name: "corin-langfuse", sdk_version: "1" } }),
           signal: AbortSignal.timeout(5_000),
         });
         // 207 = partial success; individual errors are reported per event.

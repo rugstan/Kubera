@@ -9,7 +9,7 @@ vi.mock("server-only", () => ({}));
 const { GET } = await import("./route");
 
 const SECRET = "cron-secret-for-tests-0123456789";
-const call = (auth?: string) => GET(new Request("https://kuberacommercial.com/api/cron/construction-takeouts", { headers: auth ? { authorization: auth } : {} }));
+const call = (auth?: string) => GET(new Request("https://corincommercial.com/api/cron/construction-takeouts", { headers: auth ? { authorization: auth } : {} }));
 
 describe("construction take-out sweep cron", () => {
   beforeEach(() => vi.stubEnv("CRON_SECRET", SECRET));
@@ -26,7 +26,7 @@ describe("construction take-out sweep cron", () => {
   it("records take-out triggers for projects that reached stabilization", async () => {
     const deps = makeDeps();
     const store = deps.store as MemoryConstructionStore;
-    const project = await createProject(deps, "broker@kubera.test", projectInput({ name: "Harbor View" }));
+    const project = await createProject(deps, "broker@corin.test", projectInput({ name: "Harbor View" }));
     await store.updateProject(project.id, { phase: "under_construction" }, deps.now());
     await updateConversion(deps, "a", project.id, { unitsTotal: "120", coDate: "2026-05-01", loanMaturityDate: "", extensionDeadline: "", payoffTargetDate: "" });
     await addLeaseUpSnapshot(deps, "a", project.id, { asOf: "2026-07-01", unitsLeased: "115", unitsOccupied: "110" });

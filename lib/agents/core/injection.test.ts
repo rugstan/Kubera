@@ -189,18 +189,18 @@ describe("checkAgentOutput", () => {
   it("catches canary leaks, exfil images, foreign links and unknown recipients", () => {
     const canary = createCanary();
     expect(withCanary("sys", canary)).toContain(canary);
-    const r = checkAgentOutput(`Sure. ${canary} ![a](https://evil.test/x.png) see https://evil.test/p and https://docs.kuberacommercial.com/x; cc bad@evil.test`, {
+    const r = checkAgentOutput(`Sure. ${canary} ![a](https://evil.test/x.png) see https://evil.test/p and https://docs.corincommercial.com/x; cc bad@evil.test`, {
       canary,
-      allowedDomains: ["kuberacommercial.com"],
+      allowedDomains: ["corincommercial.com"],
       trustedEmails: ["pat@example.com"],
     });
     expect(r.codes).toEqual(expect.arrayContaining(["injection.canary_leak", "injection.exfiltration", "injection.url_not_allowlisted", "injection.email_not_in_context"]));
-    expect(checkAgentOutput("Thanks Pat, see https://kuberacommercial.com/upload", { allowedDomains: ["kuberacommercial.com"], trustedEmails: [] }).flagged).toBe(false);
+    expect(checkAgentOutput("Thanks Pat, see https://corincommercial.com/upload", { allowedDomains: ["corincommercial.com"], trustedEmails: [] }).flagged).toBe(false);
   });
 
   it("matches allowlisted subdomains only", () => {
-    expect(domainAllowed("docs.kuberacommercial.com", ["kuberacommercial.com"])).toBe(true);
-    expect(domainAllowed("kuberacommercial.com.evil.test", ["kuberacommercial.com"])).toBe(false);
-    expect(domainAllowed("evilkuberacommercial.com", ["kuberacommercial.com"])).toBe(false);
+    expect(domainAllowed("docs.corincommercial.com", ["corincommercial.com"])).toBe(true);
+    expect(domainAllowed("corincommercial.com.evil.test", ["corincommercial.com"])).toBe(false);
+    expect(domainAllowed("evilcorincommercial.com", ["corincommercial.com"])).toBe(false);
   });
 });

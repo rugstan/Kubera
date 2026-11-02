@@ -5,10 +5,10 @@ import { stageLabelOf } from "./pipeline";
 import type { ReportDeal, ReportFee, ReportWindow } from "./types";
 
 // Fee forecast from the fee ledger (lib/deals/ledger.ts). All amounts are
-// Kubera's own compensation in integer cents.
+// Corin's own compensation in integer cents.
 //
-//   Kubera income   entries with payee = kubera (paid by the borrower or the lender)
-//   Partner shares  entries Kubera owes a co-broker or referral partner (payer = kubera)
+//   Corin income   entries with payee = corin (paid by the borrower or the lender)
+//   Partner shares  entries Corin owes a co-broker or referral partner (payer = corin)
 //   Net             income minus partner shares
 //
 // Two views:
@@ -56,7 +56,7 @@ export const weigh = (amountCents: number, bp: number): number => Math.floor((am
 
 export const BOOKED_STATUSES = ["earned", "invoiced", "settled"] as const;
 const isBooked = (f: ReportFee) => (BOOKED_STATUSES as readonly string[]).includes(f.status);
-const isIncome = (f: ReportFee) => f.payee === "kubera";
+const isIncome = (f: ReportFee) => f.payee === "corin";
 
 /** The day a booked entry counts for: the earned date, else the day it was created. */
 export const bookingDate = (f: ReportFee): string => f.earnedOn ?? laDate(f.createdAt);
@@ -88,7 +88,7 @@ export type StageOutlookRow = { stage: string; label: string; deals: number; pro
 export type OutlookFees = {
   /** Earned or invoiced income not yet settled (any date). */
   receivableCents: number;
-  /** Partner shares Kubera owes on earned or invoiced entries not yet settled. */
+  /** Partner shares Corin owes on earned or invoiced entries not yet settled. */
   receivablePartnerSharesCents: number;
   /** Projected income, unweighted. */
   projectedCents: number;

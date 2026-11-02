@@ -106,11 +106,11 @@ const DEMO_LENDERS: LenderPanelEntry[] = [
     contactName: "Demo Lender Contact",
     contactEmail: "lending@bank.example",
     verifiedAt: "2026-10-01T00:00:00.000Z",
-    verifiedBy: "staff:broker@kubera.test",
+    verifiedBy: "staff:broker@corin.test",
     active: true,
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",
-    updatedBy: "staff:broker@kubera.test",
+    updatedBy: "staff:broker@corin.test",
   },
   {
     id: DEMO_LENDER_IDS.privateFund,
@@ -131,11 +131,11 @@ const DEMO_LENDERS: LenderPanelEntry[] = [
     contactName: "Demo Fund Contact",
     contactEmail: "deals@fund.example",
     verifiedAt: "2026-10-01T00:00:00.000Z",
-    verifiedBy: "staff:broker@kubera.test",
+    verifiedBy: "staff:broker@corin.test",
     active: true,
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",
-    updatedBy: "staff:broker@kubera.test",
+    updatedBy: "staff:broker@corin.test",
   },
 ];
 
@@ -174,7 +174,7 @@ export function seedDemoDealDesk(store: MemoryDealDeskStore = new MemoryDealDesk
       recordVersion: 1,
       createdAt: d.updatedAt,
       updatedAt: d.updatedAt,
-      updatedBy: "staff:broker@kubera.test",
+      updatedBy: "staff:broker@corin.test",
     };
     store.deals.set(deal.id, deal);
   }
@@ -217,7 +217,7 @@ function buildDemoDesks(): DemoDesks {
   };
 }
 
-const DEMO_KEY = Symbol.for("kubera.desks.demo");
+const DEMO_KEY = Symbol.for("corin.desks.demo");
 
 /**
  * The shared demo desks in fake-auth mode, or null in every other mode. One

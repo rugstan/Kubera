@@ -42,7 +42,7 @@ beforeAll(async () => {
   await applyMigrations(db, listMigrations());
 
   for (const [name, id] of Object.entries(IDS)) {
-    await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${name.toUpperCase()}@Kubera.test`]);
+    await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${name.toUpperCase()}@Corin.test`]);
   }
   await db.exec(`
     insert into public.user_roles (user_id, role) values
@@ -83,7 +83,7 @@ async function newApproval(over: Record<string, string> = {}) {
 describe("profiles", () => {
   it("creates a lower-cased profile for each new auth user", async () => {
     const r = await rows<{ email: string }>(`select email from public.profiles where id = $1`, [IDS.broker]);
-    expect(r[0]?.email).toBe("broker@kubera.test");
+    expect(r[0]?.email).toBe("broker@corin.test");
   });
 
   it("requires complete, well-formed DRE license fields", async () => {
@@ -196,8 +196,8 @@ describe("deals and documents", () => {
     expect(await as("broker", "aal2", () => rows(`select id from public.deals`))).toHaveLength(2);
   });
 
-  it("models Kubera as broker only and links disclosures to deals", async () => {
-    await expect(db.query(`insert into public.deals (name, kubera_role) values ('x', 'lender')`)).rejects.toThrow(/deals_kubera_is_broker/);
+  it("models Corin as broker only and links disclosures to deals", async () => {
+    await expect(db.query(`insert into public.deals (name, corin_role) values ('x', 'lender')`)).rejects.toThrow(/deals_corin_is_broker/);
     // Stage keys come from the WS-T stage templates; the integration migration only checks their shape.
     await expect(db.query(`insert into public.deals (name, stage) values ('x', 'Not a stage')`)).rejects.toThrow(/deals_stage_key/);
     const fk = await rows<{ conname: string; convalidated: boolean }>(
@@ -301,7 +301,7 @@ describe("staff audit trail", () => {
   });
 
   it("keeps audit rows when a profile is deleted (actor is nulled)", async () => {
-    await db.query(`insert into auth.users (id, email) values ('00000000-0000-4000-8000-0000000000ee', 'temp@kubera.test')`);
+    await db.query(`insert into auth.users (id, email) values ('00000000-0000-4000-8000-0000000000ee', 'temp@corin.test')`);
     await db.query(`insert into public.staff_audit_events (actor_id, actor_label, action) values ('00000000-0000-4000-8000-0000000000ee', 'Temp', 'auth.sign_in')`);
     await db.query(`delete from auth.users where id = '00000000-0000-4000-8000-0000000000ee'`);
     const r = await rows<{ actor_id: string | null }>(`select actor_id from public.staff_audit_events where actor_label = 'Temp'`);

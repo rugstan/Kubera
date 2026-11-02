@@ -1,5 +1,5 @@
 // Loads Markdown excerpts from ./knowledge into Supabase kb_chunks for
-// Ask Kubera AI retrieval, with embeddings when a provider is configured.
+// Ask Corin AI retrieval, with embeddings when a provider is configured.
 //
 //   npm run kb:ingest                      write new/changed sections, embed what needs it, prune stale sections
 //   npm run kb:ingest -- --dry-run         show the plan; write nothing, call no model

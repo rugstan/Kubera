@@ -13,7 +13,7 @@ export function SchedulerEmbed({ embedUrl, pageUrl }: { embedUrl: string; pageUr
     <div>
       {shown ? (
         <iframe
-          title="Schedule a call with Kubera Commercial"
+          title="Schedule a call with Corin Commercial"
           src={embedUrl}
           loading="lazy"
           className="h-[640px] w-full rounded-2xl border border-black/[0.08] bg-white"

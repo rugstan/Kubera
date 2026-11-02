@@ -1,7 +1,7 @@
 // Lender matching types (WS-M): credit boxes, the deal profile the matcher
 // scores against, quotes parsed from lender term sheets, and the all-in cost.
 //
-// Broker only (Global rule 1): Kubera matches and submits; lenders underwrite,
+// Broker only (Global rule 1): Corin matches and submits; lenders underwrite,
 // decide and fund as lender of record. Nothing here holds or moves money.
 // Money is integer cents; rates and percentages are plain numbers (6.25 = 6.25%).
 
@@ -134,7 +134,7 @@ export type QuoteTerms = {
   lenderFeesCents: number;
   /** Appraisal, environmental, PCA and other third-party reports. */
   thirdPartyCostsCents: number;
-  /** Kubera's borrower-paid broker fee for this structure, if any (lender-paid compensation is not a borrower cost). */
+  /** Corin's borrower-paid broker fee for this structure, if any (lender-paid compensation is not a borrower cost). */
   brokerFeeCents: number;
   /** Reserves the lender requires the borrower to fund at closing (released at payoff). */
   upfrontReservesCents: number;

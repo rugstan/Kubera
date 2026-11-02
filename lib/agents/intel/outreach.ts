@@ -109,7 +109,7 @@ export function buildMessage(
   const paragraphs = [
     first ? `Hello ${first},` : "Hello,",
     intro.trim(),
-    `Kubera Commercial arranges commercial real estate loans as a licensed California real estate broker. We compare programs and lenders for owners, and an advisor works through the options with you.${program ? ` For a property like this, a starting point to discuss would be ${program}, though the right fit depends on the property, its financials and the lender.` : ""}`,
+    `Corin Commercial arranges commercial real estate loans as a licensed California real estate broker. We compare programs and lenders for owners, and an advisor works through the options with you.${program ? ` For a property like this, a starting point to discuss would be ${program}, though the right fit depends on the property, its financials and the lender.` : ""}`,
     "Anything we share is indicative only and subject to lender underwriting and program guidelines. We are the broker, not the lender, and nothing here is a commitment to lend.",
     `If a conversation would be useful, reply to this ${channel === "email" ? "message" : "letter by email"} at ${id.replyEmail}${id.phone ? ` or call ${id.phone}` : ""}.`,
     `${id.signOff}`,

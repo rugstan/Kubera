@@ -22,7 +22,7 @@ export default function GlossaryPage() {
       <JsonLd
         data={[
           definedTermSetSchema({
-            name: "Kubera Commercial glossary of commercial real estate finance",
+            name: "Corin Commercial glossary of commercial real estate finance",
             description: GLOSSARY_META.description,
             path: GLOSSARY_PATH,
             terms: terms.map((t) => ({ name: t.alias ? `${t.term} (${t.alias})` : t.term, description: t.definition, anchor: t.slug })),

@@ -9,7 +9,7 @@ export type StaffAlertProps = {
   link?: { href: string; label: string } | null;
 };
 
-export const staffAlertSubject = (title: string) => `[Kubera] ${title}`;
+export const staffAlertSubject = (title: string) => `[Corin] ${title}`;
 
 export default function StaffAlert({ title, lines, link }: StaffAlertProps) {
   return (
@@ -27,7 +27,7 @@ export default function StaffAlert({ title, lines, link }: StaffAlertProps) {
           </Link>
         </Text>
       ) : null}
-      <Text style={bodyText}>Internal alert for Kubera staff. Do not forward outside the company.</Text>
+      <Text style={bodyText}>Internal alert for Corin staff. Do not forward outside the company.</Text>
     </EmailLayout>
   );
 }
@@ -35,5 +35,5 @@ export default function StaffAlert({ title, lines, link }: StaffAlertProps) {
 StaffAlert.PreviewProps = {
   title: "Tier-1 lead: $12.0M hotel refinance",
   lines: ["Reference 3F9A12BC", "Phone and text consent on file: yes"],
-  link: { href: "https://kuberacommercial.com/pipeline", label: "Open the pipeline" },
+  link: { href: "https://corincommercial.com/pipeline", label: "Open the pipeline" },
 } satisfies StaffAlertProps;

@@ -16,14 +16,14 @@ import { addCondition, completePortalUpload, createDealChecklist, dealClosingGat
 import { DuplicateChecklistError } from "./store";
 
 const NOW = new Date("2026-11-03T12:00:00Z");
-const staff = { kind: "staff" as const, id: "broker@kuberacommercial.com" };
-const broker = { id: "u1", email: "broker@kuberacommercial.com", name: "B", role: "broker" as const, dreLicense: null };
+const staff = { kind: "staff" as const, id: "broker@corincommercial.com" };
+const broker = { id: "u1", email: "broker@corincommercial.com", name: "B", role: "broker" as const, dreLicense: null };
 
 async function dealWithPrincipals(sanctions = [{ entryId: "SDN-1", name: "Ivan Petrov", kind: "individual" as const }]) {
   const desk = memoryDesk({ sanctions, now: () => NOW });
   const deps = checklistDeps(desk);
   const pdeps = { principals: desk.principals, keyring: desk.keyring, now: () => NOW };
-  const created = await createDealChecklist(deps, { dealId: DEAL_ID, program: "BRIDGE", createdBy: "broker@kuberacommercial.com" });
+  const created = await createDealChecklist(deps, { dealId: DEAL_ID, program: "BRIDGE", createdBy: "broker@corincommercial.com" });
   const b = await addPrincipal(pdeps, { dealId: DEAL_ID, kind: "entity", legalName: "Harbor View LLC", roles: ["borrower_entity"], formationState: "CA" });
   const ana = await addPrincipal(pdeps, { dealId: DEAL_ID, parentId: b.principal.id, kind: "individual", legalName: "Ana Ruiz", roles: ["managing_member"], ownershipPct: 70, email: "ana@example.com" });
   const ivan = await addPrincipal(pdeps, { dealId: DEAL_ID, parentId: b.principal.id, kind: "individual", legalName: "Ivan Petrov", roles: ["member"], ownershipPct: 30 });
@@ -142,7 +142,7 @@ describe("deal checklist desk", () => {
     const { desk, deps } = await dealWithPrincipals();
     desk.vaultParts.leads.set(DEAL_ID, null);
     const t12 = (await deps.checklists.itemsForDeal(DEAL_ID)).find((i) => i.itemKey === "t12")!;
-    await expect(startPortalUpload(deps, { dealId: DEAL_ID, principalId: null, email: "a@x.com" }, { itemId: t12.id, fileName: "t12.pdf", contentType: "application/pdf", sizeBytes: 10 })).rejects.toThrow(/docs@kuberacommercial.com/);
+    await expect(startPortalUpload(deps, { dealId: DEAL_ID, principalId: null, email: "a@x.com" }, { itemId: t12.id, fileName: "t12.pdf", contentType: "application/pdf", sizeBytes: 10 })).rejects.toThrow(/docs@corincommercial.com/);
   });
 
   it("an OFAC hit holds the deal; clearing it and finishing the file makes it ready to close", async () => {
@@ -217,9 +217,9 @@ describe("borrower portal links", () => {
 
   it("issues a single-use, expiring link that starts a session tied to the invite", async () => {
     const desk = memoryDesk();
-    const issued = await issuePortalInvite(desk.invites, { dealId: DEAL_ID, principalId: null, email: "Ana@Example.com", issuedBy: broker.email, origin: "https://kuberacommercial.com/", now: NOW }, { gate: desk.gate });
+    const issued = await issuePortalInvite(desk.invites, { dealId: DEAL_ID, principalId: null, email: "Ana@Example.com", issuedBy: broker.email, origin: "https://corincommercial.com/", now: NOW }, { gate: desk.gate });
     const token = new URL(issued.url).searchParams.get("token")!;
-    expect(issued.url).toMatch(/^https:\/\/kuberacommercial\.com\/portal\/access\?token=/);
+    expect(issued.url).toMatch(/^https:\/\/corincommercial\.com\/portal\/access\?token=/);
     expect(issued.invite.tokenHash).toBe(hashToken(token));
     expect(JSON.stringify(desk.invites.rows.get(issued.invite.id))).not.toContain(token);
     // The invitation email waits for a broker's approval (the gate is pending here).

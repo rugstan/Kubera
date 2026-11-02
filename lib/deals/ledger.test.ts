@@ -25,13 +25,13 @@ describe("money", () => {
 describe("fee calculators", () => {
   const dealId = "d1";
 
-  it("agency split: Kubera's share of the seller/servicer's origination fee", () => {
-    const e = agencySplit({ dealId, loanAmountCents: 1_200_000_000, lenderOriginationPct: 1, kuberaSharePct: 50, lenderName: "Greystone" });
-    expect(e).toMatchObject({ entryKind: "agency_split", payer: "lender", payee: "kubera", basis: "percent_of_lender_fee", baseCents: 12_000_000, amountCents: 6_000_000, counterparty: "Greystone" });
+  it("agency split: Corin's share of the seller/servicer's origination fee", () => {
+    const e = agencySplit({ dealId, loanAmountCents: 1_200_000_000, lenderOriginationPct: 1, corinSharePct: 50, lenderName: "Greystone" });
+    expect(e).toMatchObject({ entryKind: "agency_split", payer: "lender", payee: "corin", basis: "percent_of_lender_fee", baseCents: 12_000_000, amountCents: 6_000_000, counterparty: "Greystone" });
   });
 
   it("hard money: broker points plus a lender-paid share of the lender's points", () => {
-    const [broker, lender] = hardMoneyPoints({ dealId, loanAmountCents: 250_000_000, brokerPoints: 1.5, lenderPoints: 2, kuberaShareOfLenderPointsPct: 25, lenderName: "ROC" });
+    const [broker, lender] = hardMoneyPoints({ dealId, loanAmountCents: 250_000_000, brokerPoints: 1.5, lenderPoints: 2, corinShareOfLenderPointsPct: 25, lenderName: "ROC" });
     expect(broker).toMatchObject({ entryKind: "hard_money_points", payer: "borrower", amountCents: 3_750_000, idempotencyKey: "d1:hard_money_points:broker" });
     expect(lender).toMatchObject({ entryKind: "lender_paid_compensation", payer: "lender", baseCents: 5_000_000, amountCents: 1_250_000 });
     expect(hardMoneyPoints({ dealId, loanAmountCents: 1, brokerPoints: 0 })).toEqual([]);
@@ -46,9 +46,9 @@ describe("fee calculators", () => {
   it("validates party shape and arithmetic", () => {
     const ok = brokerFee({ dealId, loanAmountCents: 100_000_000, pct: 1 });
     expect(() => validateFeeEntry({ ...ok, amountCents: ok.amountCents + 1 })).toThrow(/rate × base/);
-    expect(() => validateFeeEntry({ ...ok, payer: "kubera" })).toThrow(LedgerError);
+    expect(() => validateFeeEntry({ ...ok, payer: "corin" })).toThrow(LedgerError);
     expect(() => validateFeeEntry({ ...ok, payee: "co_broker" })).toThrow(LedgerError);
-    expect(partnerSplit({ dealId, payee: "co_broker", ofCents: 1_000_000, pct: 30, partnerName: "Pacific Brokers" })).toMatchObject({ payer: "kubera", payee: "co_broker", amountCents: 300_000 });
+    expect(partnerSplit({ dealId, payee: "co_broker", ofCents: 1_000_000, pct: 30, partnerName: "Pacific Brokers" })).toMatchObject({ payer: "corin", payee: "co_broker", amountCents: 300_000 });
   });
 
   it("only allows forward status transitions; settled and void are final", () => {
@@ -59,12 +59,12 @@ describe("fee calculators", () => {
   });
 
   it("summarizes gross, partner shares and Form 159 buckets, excluding void", () => {
-    const mk = (over: Partial<FeeEntry>) => ({ dealId, payee: "kubera", payer: "borrower", status: "earned", amountCents: 0, entryKind: "broker_fee", sba159Category: null, ...over }) as FeeEntry;
+    const mk = (over: Partial<FeeEntry>) => ({ dealId, payee: "corin", payer: "borrower", status: "earned", amountCents: 0, entryKind: "broker_fee", sba159Category: null, ...over }) as FeeEntry;
     const s = summarizeLedger([
       mk({ amountCents: 1_000_000 }),
       mk({ amountCents: 500_000, payer: "lender" }),
       mk({ amountCents: 200_000, entryKind: "sba_packaging_fee" }),
-      mk({ amountCents: 300_000, payee: "co_broker", payer: "kubera" }),
+      mk({ amountCents: 300_000, payee: "co_broker", payer: "corin" }),
       mk({ amountCents: 999_999, status: "void" }),
     ]);
     expect(s).toMatchObject({ grossCents: 1_700_000, owedToPartnersCents: 300_000, netCents: 1_400_000, byPayer: { borrower: 1_200_000, lender: 500_000 }, bySba159: { packaging: 200_000, other_services: 1_000_000, referral: 500_000 } });
@@ -100,7 +100,7 @@ describe("invoices", () => {
     await expect(createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [lenderPaid.id], billTo: { kind: "lender", name: "Cambridge" }, actor: "a" })).rejects.toThrow(/only earned/);
     await expect(createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [fee.id], billTo: { kind: "lender", name: "Cambridge" }, actor: "a" })).rejects.toThrow(/paid by the borrower/);
     const inv = await createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [fee.id], billTo: { kind: "borrower", name: "Sunrise Care LLC", email: "cfo@sunrise.example" }, actor: "a" });
-    expect(inv).toMatchObject({ number: "KC-2026-0001", status: "draft", totalCents: 12_500_000 });
+    expect(inv).toMatchObject({ number: "CC-2026-0001", status: "draft", totalCents: 12_500_000 });
     expect((await store.listFeeEntries(deal.id)).find((e) => e.id === fee.id)).toMatchObject({ status: "invoiced", invoiceId: inv.id });
     await expect(store.updateInvoice(inv.id, { status: "issued", issuedAt: now().toISOString() }, "a", now())).resolves.toBeTruthy();
     await expect(store.updateInvoice(inv.id, { totalCents: 1 }, "a", now())).rejects.toThrow(/cannot change/);
@@ -172,7 +172,7 @@ describe("invoices", () => {
     await voidInvoice({ store, now }, inv.id, "Wrong entity", "a");
     expect((await store.listFeeEntries(deal.id)).find((e) => e.id === fee.id)).toMatchObject({ status: "earned", invoiceId: null });
     const again = await createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [fee.id], billTo: { kind: "borrower", name: "Sunrise Care LLC" }, actor: "a" });
-    expect(again.number).toBe("KC-2026-0002");
+    expect(again.number).toBe("CC-2026-0002");
   });
 });
 

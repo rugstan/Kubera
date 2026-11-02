@@ -69,7 +69,7 @@ async function world(gateDefault: "approved" | "pending" | "rejected" | "expired
   await boxes.insertBox(approvedBox(b.id), "broker:ana", now());
   await boxes.insertBox(approvedBox(c.id, { states: ["TX"] }), "broker:ana", now());
   const deal = await newDeal(store, now);
-  const deps: OutreachDeps = { desk: store, boxes, gate, mailer, storage, renderPdf: renderExecutiveSummaryPdf, baseUrl: "https://kuberacommercial.com", now, holds: noHolds };
+  const deps: OutreachDeps = { desk: store, boxes, gate, mailer, storage, renderPdf: renderExecutiveSummaryPdf, baseUrl: "https://corincommercial.com", now, holds: noHolds };
   const profile = dealProfile(deal, { ltvPct: 70, dscr: 1.6 });
   const summary = { asOf: "2026-11-04", spreads: { noiCents: 150_000_000, dscr: 1.6, ltvPct: 70 }, highlights: ["Stabilized at 92% occupancy for three years."] };
   return { store, gate, mailer, storage, deps, deal, profile, summary, lenders: { a, b, c } };

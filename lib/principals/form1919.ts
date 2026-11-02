@@ -1,4 +1,4 @@
-// SBA Form 1919 (Borrower Information Form) prefill data. Kubera assembles
+// SBA Form 1919 (Borrower Information Form) prefill data. Corin assembles
 // what it already knows (the borrower entity, its owners from the ownership
 // chart, each owner's answers from the portal) so the lender of record's form
 // arrives mostly complete. Restricted values (SSN, date of birth) are never

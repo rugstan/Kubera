@@ -20,7 +20,7 @@ describe("sanitizeProps", () => {
 
 describe("scrubUrl", () => {
   it("removes query strings and fragments, which can carry deal numbers", () => {
-    expect(scrubUrl("https://kuberacommercial.com/express?asset=SNF&loan=5000000&noi=300000#x")).toBe("https://kuberacommercial.com/express");
+    expect(scrubUrl("https://corincommercial.com/express?asset=SNF&loan=5000000&noi=300000#x")).toBe("https://corincommercial.com/express");
     expect(scrubUrl("/express?loan=5000000")).toBe("/express");
   });
 });
@@ -98,7 +98,7 @@ describe("Vercel client", () => {
     await Promise.resolve();
     expect(m.inject).toHaveBeenCalledTimes(1);
     const { beforeSend } = m.inject.mock.calls[0]![0];
-    expect(beforeSend({ type: "pageview", url: "https://kuberacommercial.com/express?loan=5000000" })).toEqual({ type: "pageview", url: "https://kuberacommercial.com/express" });
+    expect(beforeSend({ type: "pageview", url: "https://corincommercial.com/express?loan=5000000" })).toEqual({ type: "pageview", url: "https://corincommercial.com/express" });
   });
 
   it("sends sanitized custom events", async () => {

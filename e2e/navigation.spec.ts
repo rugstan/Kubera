@@ -53,7 +53,7 @@ test.describe("footer", () => {
     const footer = page.getByRole("contentinfo");
     for (const [name, href] of [
       ["Glossary", "/glossary"],
-      ["Partner with Kubera", "/partners"],
+      ["Partner with Corin", "/partners"],
       ["Wholesale lenders", "/partners#lender"],
       ["Referral brokers", "/partners#referral"],
       ["Operators", "/partners#operator"],
@@ -119,7 +119,7 @@ test.describe("footer", () => {
   test("no longer carries the old assistant disclosure or tagline", async ({ page }) => {
     await gotoHydrated(page, "/");
     const text = await page.getByRole("contentinfo").innerText();
-    expect(text).not.toMatch(/AI-assisted|Kubera AI/i);
+    expect(text).not.toMatch(/AI-assisted|Corin AI/i);
     expect(text).toMatch(/construction and hard money/i);
     expect(text).toMatch(/not the lender/i);
   });

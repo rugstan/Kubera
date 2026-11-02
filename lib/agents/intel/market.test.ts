@@ -40,11 +40,11 @@ describe("runMarketIntel", () => {
     });
     // The reply function above runs after the request is recorded, so ids are readable.
     const { store, events } = intelSetup();
-    const r = await runMarketIntel({ gateway, sources: sources(), store, events, now: () => NOW, model: "grok-4" }, { actor: "staff:ana@kubera.test" });
+    const r = await runMarketIntel({ gateway, sources: sources(), store, events, now: () => NOW, model: "grok-4" }, { actor: "staff:ana@corin.test" });
     expect(r.status).toBe("drafted");
     if (r.status !== "drafted") return;
     expect(r.usedModel).toBe(true);
-    expect(r.draft).toMatchObject({ status: "pending_review", generatedBy: "model", weekStart: "2026-11-02", version: 1, model: "grok-4", createdBy: "staff:ana@kubera.test" });
+    expect(r.draft).toMatchObject({ status: "pending_review", generatedBy: "model", weekStart: "2026-11-02", version: 1, model: "grok-4", createdBy: "staff:ana@corin.test" });
     expect(r.draft.sections.flatMap((s) => s.bullets).every((b) => b.signalIds.length > 0)).toBe(true);
     expect(r.draft.promptId).toBe("intel.market_draft");
     expect(r.draft.promptSha256).toMatch(/^[0-9a-f]{64}$/);

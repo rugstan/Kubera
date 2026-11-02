@@ -6,7 +6,7 @@ import { staffForMutation, type StaffContext } from "@/lib/auth/dal";
 import { ANNOTATION_LABELS, ANNOTATION_NOTE_MAX, FLAG_REASON_MAX, REVIEW_STATUSES } from "@/lib/ai/review/types";
 import { reviewStoreFor } from "./_lib/runtime";
 
-// Staff supervision of Ask Kubera AI conversations: flag, set review status,
+// Staff supervision of Ask Corin AI conversations: flag, set review status,
 // annotate. Each action re-authenticates (staff role + MFA), so a page left
 // open past sign-out cannot write. Any staff member may review.
 

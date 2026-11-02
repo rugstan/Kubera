@@ -10,7 +10,7 @@ export interface TrackRecordEntry {
   closedYear: number;
   /** Property type, e.g. "Assisted living". */
   assetType: string;
-  /** Program, e.g. "HUD 223(f)". Must be a program Kubera actually arranged. */
+  /** Program, e.g. "HUD 223(f)". Must be a program Corin actually arranged. */
   program: string;
   /** Loan amount in USD as closed. */
   loanAmountUsd: number;

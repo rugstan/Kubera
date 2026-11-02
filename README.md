@@ -1,6 +1,6 @@
-# Kubera Commercial
+# Corin Commercial
 
-AI-first commercial debt advisory platform for **kuberacommercial.com** and the **kubera.loans** express funnel. It covers senior living and healthcare (HUD 232, SBA 504, Bridge-to-HUD), hospitality (SBA 504 + 7(a) stacks, CMBS, PIP bridge), and multifamily/CRE (HUD 223(f)/221(d)(4), Agency, private bridge and hard money).
+AI-first commercial debt advisory platform for **corincommercial.com** and the **kubera.loans** express funnel. It covers senior living and healthcare (HUD 232, SBA 504, Bridge-to-HUD), hospitality (SBA 504 + 7(a) stacks, CMBS, PIP bridge), and multifamily/CRE (HUD 223(f)/221(d)(4), Agency, private bridge and hard money).
 
 ## Stack
 
@@ -54,7 +54,7 @@ Create an API key, then set `TWENTY_API_URL` and `TWENTY_API_KEY`. Leads create 
 
 ### Domains (Vercel)
 
-Add both `kuberacommercial.com` and `kubera.loans` to the same project. `proxy.ts` rewrites `kubera.loans/` to `/express`, passes `/api/*` through, and 308-redirects every other path to the main site.
+Add both `corincommercial.com` and `kubera.loans` to the same project. `proxy.ts` rewrites `kubera.loans/` to `/express`, passes `/api/*` through, and 308-redirects every other path to the main site.
 
 ## Jev decision engine
 

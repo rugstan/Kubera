@@ -18,7 +18,7 @@ export const metadata: Metadata = pageMetadata({
 const HOW_IT_WORKS = [
   { title: "Tell us the basics", body: "Property type, loan purpose, rough size and timing. It takes about a minute." },
   { title: "Program match", body: "We compare your answers with HUD, SBA, CMBS, agency, bridge, construction and hard money program criteria." },
-  { title: "Advisor review", body: "A licensed Kubera advisor reviews the result and follows up with next steps. Nothing is a commitment to lend." },
+  { title: "Advisor review", body: "A licensed Corin advisor reviews the result and follows up with next steps. Nothing is a commitment to lend." },
 ] as const;
 
 // The notice at collection already sits on the form itself; the footer links the full pages.

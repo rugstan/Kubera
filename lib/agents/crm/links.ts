@@ -1,4 +1,4 @@
-// Where a Kubera deal or lead lives in Twenty, and who the advisor is there.
+// Where a Corin deal or lead lives in Twenty, and who the advisor is there.
 // The deal desk stores `twenty_opportunity_id` on the deal; the qualifier
 // stores `twenty_person_id` / `twenty_opportunity_id` on the lead.
 

@@ -47,21 +47,21 @@ describe("demo desks", () => {
 
     const deal = (await d.deals.getDeal(dealId))!;
     expect(availableEvents(stageTemplate(deal.program), deal.stage).map((e) => e.key)).toContain("packaging_started");
-    const moved = await advanceDeal(deps, { dealId, event: "packaging_started", actor: "staff:broker@kubera.test" });
+    const moved = await advanceDeal(deps, { dealId, event: "packaging_started", actor: "staff:broker@corin.test" });
     expect(moved.ok).toBe(true);
     expect(moved.deal.stage).toBe("packaging");
 
-    await createDealChecklist(checklist, { dealId, program: "CONSTRUCTION", createdBy: "broker@kubera.test" });
+    await createDealChecklist(checklist, { dealId, program: "CONSTRUCTION", createdBy: "broker@corin.test" });
     const pdeps = { principals: d.principals, keyring: d.keyring, now };
     const entity = await addPrincipal(pdeps, { dealId, kind: "entity", legalName: "Coastal Example Builders LLC", roles: ["borrower_entity"] });
     await addPrincipal(pdeps, { dealId, parentId: entity.principal.id, kind: "individual", legalName: DEMO_SANCTIONED_NAME, roles: ["managing_member"], ownershipPct: 100 });
     await syncDealPrincipalItems(checklist, dealId);
     const sink = dealStatusHoldSink({ store: d.deals, holds: d.holds, now });
-    await screenDeal({ client: d.sanctions, screenings: d.screenings, holds: d.holds, principals: d.principals, keyring: d.keyring, sink, now }, { dealId, purpose: "initial", requestedBy: "broker@kubera.test" });
+    await screenDeal({ client: d.sanctions, screenings: d.screenings, holds: d.holds, principals: d.principals, keyring: d.keyring, sink, now }, { dealId, purpose: "initial", requestedBy: "broker@corin.test" });
 
     expect((await d.holds.active(dealId)).length).toBeGreaterThan(0);
     expect((await d.deals.getDeal(dealId))!.status).toBe("on_hold");
-    const blocked = await advanceDeal(deps, { dealId, event: "package_sent", actor: "staff:broker@kubera.test" });
+    const blocked = await advanceDeal(deps, { dealId, event: "package_sent", actor: "staff:broker@corin.test" });
     expect(blocked.ok).toBe(false);
   });
 });

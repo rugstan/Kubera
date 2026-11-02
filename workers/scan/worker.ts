@@ -126,7 +126,7 @@ async function scanOne(deps: VaultDeps, scanner: MalwareScanner, row: DocumentRo
 
 /**
  * Announces a newly clean document to the workflows (the document agent's
- * `kubera/document.clean` trigger). The event id makes a re-announcement a no-op.
+ * `corin/document.clean` trigger). The event id makes a re-announcement a no-op.
  */
 export const announceDocumentClean: ScanSettledHook = async (documentId) => {
   await sendWorkflowEvent({ name: EVENTS.documentClean, id: `document-clean:${documentId}`, data: { documentId } });

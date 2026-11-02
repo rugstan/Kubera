@@ -9,7 +9,7 @@
 //   review    low-confidence or missing required fields go to the staff review queue;
 //             everything else is accepted for the spreads layer (lib/spreads)
 //
-// Extraction is analysis. It never sends anything outside Kubera except the model
+// Extraction is analysis. It never sends anything outside Corin except the model
 // call itself, which passes the routing guard (lib/ai/routing.ts).
 
 export const DOC_TYPES = ["T12", "RENT_ROLL", "CENSUS", "STR", "PFS", "CONSTRUCTION_BUDGET", "TERM_SHEET"] as const;

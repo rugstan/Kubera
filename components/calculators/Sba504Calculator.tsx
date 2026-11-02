@@ -96,7 +96,7 @@ export function Sba504Calculator({ benchmarks, asOf, live }: { benchmarks: Bench
               </p>
             )}
             <p className="text-[13px] leading-relaxed text-titanium">
-              Percentages, caps and fees follow Kubera&apos;s SBA assumptions as of {outcome.result.asOf} (SBA SOP 50 10; confirm the revision in effect at application). The operating company must occupy at least 51% of the property.
+              Percentages, caps and fees follow Corin&apos;s SBA assumptions as of {outcome.result.asOf} (SBA SOP 50 10; confirm the revision in effect at application). The operating company must occupy at least 51% of the property.
             </p>
           </div>
         ) : (

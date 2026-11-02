@@ -5,7 +5,7 @@
 //   OPENSANCTIONS_DATASET   collection to match against (default "sanctions")
 //   OPENSANCTIONS_API_URL   base URL override (default https://api.opensanctions.org)
 //
-// Only the name, birth date and countries leave Kubera. The list version
+// Only the name, birth date and countries leave Corin. The list version
 // comes from the catalog so every screening records exactly what it was
 // checked against.
 

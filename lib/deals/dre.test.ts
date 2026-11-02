@@ -18,7 +18,7 @@ const loans = (n: number, closedOn: string, amountCents: number) => Array.from({
 const pipelineDeal = (i: number, stage: string, amountCents: number, realProperty = true) =>
   ({ id: `open-${i}`, stage, loanAmountCents: amountCents, collateralRealProperty: realProperty, program: "PRIVATE_BRIDGE" }) as Deal;
 
-const broker = { legalName: "Kubera Commercial, Inc.", dreLicense: "02234567", address: "100 Market St", designatedOfficer: "Neeli Khanna", officerLicense: "01234567" };
+const broker = { legalName: "Corin Commercial, Inc.", dreLicense: "02234567", address: "100 Market St", designatedOfficer: "Neeli Khanna", officerLicense: "01234567" };
 
 describe("§10232 threshold counter", () => {
   it("uses a 12-month window ending on the as-of date", () => {
@@ -87,9 +87,9 @@ describe("§10232 threshold counter", () => {
 });
 
 describe("annual RE 860 / RE 881 data", () => {
-  it("lists the year's closed loans with Kubera's compensation from the ledger", () => {
+  it("lists the year's closed loans with Corin's compensation from the ledger", () => {
     const closed = [loan(1, "2026-02-01", 300_000_000), loan(2, "2026-05-01", 150_000_000, false), loan(3, "2025-12-31", 1)];
-    const fee = (dealId: string, payer: "borrower" | "lender", amountCents: number, status: FeeEntry["status"] = "settled") => ({ dealId, payer, payee: "kubera", amountCents, status }) as FeeEntry;
+    const fee = (dealId: string, payer: "borrower" | "lender", amountCents: number, status: FeeEntry["status"] = "settled") => ({ dealId, payer, payee: "corin", amountCents, status }) as FeeEntry;
     const ledgers = new Map([
       ["deal-1", [fee("deal-1", "borrower", 3_000_000), fee("deal-1", "lender", 1_000_000), fee("deal-1", "borrower", 999, "void")]],
       ["deal-2", [fee("deal-2", "lender", 750_000)]],

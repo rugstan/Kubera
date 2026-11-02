@@ -62,7 +62,7 @@ test.describe("public header", () => {
         if (width < 768) expect(m.cta.height, `${path}: CTA tap target`).toBeGreaterThanOrEqual(36);
 
         // The logo stays on one line.
-        const logo = page.getByRole("link", { name: "Kubera Commercial home" });
+        const logo = page.getByRole("link", { name: "Corin Commercial home" });
         expect((await logo.boundingBox())?.height ?? 0).toBeLessThanOrEqual(40);
       }
     });
@@ -76,14 +76,14 @@ test.describe("public header", () => {
       await page.goto("/");
       const header = page.locator("header").first();
       await expect(header.locator("[data-ask-entry]")).toHaveCount(0);
-      await expect(header.getByText(/Ask Kubera|⌘K/)).toHaveCount(0);
+      await expect(header.getByText(/Ask Corin|⌘K/)).toHaveCount(0);
       await expect(header.getByRole("button", { name: /\bask\b/i })).toHaveCount(0);
 
       // Open whichever menu this width has and check its entries too.
       const nav = page.getByRole("navigation", { name: "Primary" });
       await (width >= 1024 ? nav.getByRole("button", { name: "Financing" }) : nav.getByRole("button", { name: /open menu/i })).click();
       await expect(header.locator("[data-ask-entry]")).toHaveCount(0);
-      await expect(header.getByText(/Ask Kubera|⌘K/)).toHaveCount(0);
+      await expect(header.getByText(/Ask Corin|⌘K/)).toHaveCount(0);
     });
   }
 });

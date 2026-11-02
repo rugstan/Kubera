@@ -45,7 +45,7 @@ async function safe<T>(label: string, run: () => Promise<SourceOutcome<T>>): Pro
 }
 
 /**
- * Everything Kubera knows about a property, merged from Regrid (parcel, owner,
+ * Everything Corin knows about a property, merged from Regrid (parcel, owner,
  * year built), ATTOM (deed, mortgage, sales comps), OpenCorporates (owner
  * entity), FEMA NFHL (flood zone), HelloData (rent comps, expense benchmarks)
  * and Rentometer (rent by bedroom count).

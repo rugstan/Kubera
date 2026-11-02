@@ -1,12 +1,12 @@
 // Conditions tracker: the lender of record's approval conditions (and
-// Kubera's or counsel's own) between term sheet and closing. Open conditions
+// Corin's or counsel's own) between term sheet and closing. Open conditions
 // due before documents or closing block closing readiness. Only the party that
 // imposed a condition can waive it, so a lender condition is waived only with
 // the lender's written waiver on record.
 
 import { z } from "zod";
 
-export const CONDITION_SOURCES = ["lender", "kubera", "counsel", "title", "hud", "sba", "cdc"] as const;
+export const CONDITION_SOURCES = ["lender", "corin", "counsel", "title", "hud", "sba", "cdc"] as const;
 export type ConditionSource = (typeof CONDITION_SOURCES)[number];
 
 export const CONDITION_TIMING = ["prior_to_approval", "prior_to_docs", "prior_to_closing", "at_closing", "post_closing"] as const;
@@ -32,7 +32,7 @@ export type Condition = {
   timing: ConditionTiming;
   description: string;
   status: ConditionStatus;
-  responsible: "borrower" | "kubera" | "lender" | "vendor" | "title_escrow";
+  responsible: "borrower" | "corin" | "lender" | "vendor" | "title_escrow";
   dueDate: string | null;
   checklistItemId: string | null;
   notes: string | null;
@@ -54,7 +54,7 @@ export const newConditionSchema = z
     lenderName: z.string().trim().min(2).max(200).nullable().optional(),
     timing: z.enum(CONDITION_TIMING),
     description: z.string().trim().min(5).max(2000),
-    responsible: z.enum(["borrower", "kubera", "lender", "vendor", "title_escrow"]),
+    responsible: z.enum(["borrower", "corin", "lender", "vendor", "title_escrow"]),
     dueDate: z.iso.date().nullable().optional(),
     checklistItemId: z.uuid().nullable().optional(),
     notes: z.string().trim().max(2000).nullable().optional(),
@@ -90,8 +90,8 @@ export function transitionCondition(c: Condition, input: { to: ConditionStatus; 
     case "waived": {
       if (!note || note.length < 5) throw new ConditionTransitionError("Give the reason for the waiver.");
       const evidence = input.waiverEvidence?.trim() || null;
-      // Kubera cannot waive a condition someone else imposed; it needs that party's written waiver.
-      if (c.source !== "kubera" && !evidence) throw new ConditionTransitionError(`A ${c.source} condition needs the ${c.source === "lender" ? "lender of record's" : c.source} written waiver (reference the email or letter).`);
+      // Corin cannot waive a condition someone else imposed; it needs that party's written waiver.
+      if (c.source !== "corin" && !evidence) throw new ConditionTransitionError(`A ${c.source} condition needs the ${c.source === "lender" ? "lender of record's" : c.source} written waiver (reference the email or letter).`);
       return { status: "waived", clearedBy: input.staffId, clearedAt: at, waiverReason: note, waiverEvidence: evidence };
     }
     case "rejected":

@@ -90,8 +90,8 @@ test.describe("homepage", () => {
 
   test("never mentions AI in the page content or metadata", async ({ page }) => {
     await page.goto("/");
-    expect(await page.locator("main").innerText()).not.toMatch(/\bAI\b|AI-assisted|Kubera AI/);
-    await expect(page).toHaveTitle("Kubera Commercial | Commercial Real Estate Loan Broker");
+    expect(await page.locator("main").innerText()).not.toMatch(/\bAI\b|AI-assisted|Corin AI/);
+    await expect(page).toHaveTitle("Corin Commercial | Commercial Real Estate Loan Broker");
     const description = await page.locator('meta[name="description"]').getAttribute("content");
     expect(description).toMatch(/construction, bridge and hard money/);
     expect(description).not.toMatch(/\bAI\b/);

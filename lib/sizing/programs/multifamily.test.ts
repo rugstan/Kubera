@@ -105,9 +105,9 @@ describe("copy guard across every new box", () => {
     }
   });
 
-  it("never models Kubera as lender", () => {
+  it("never models Corin as lender", () => {
     for (const q of quotes) {
-      for (const line of quoteCopy(q)) expect(line, line).not.toMatch(/Kubera (lends|funds|is the lender)|lender: Kubera/i);
+      for (const line of quoteCopy(q)) expect(line, line).not.toMatch(/Corin (lends|funds|is the lender)|lender: Corin/i);
     }
   });
 });

@@ -19,7 +19,7 @@ export function ConditionsSection({ dealId, conditions, items }: { dealId: strin
                   {c.source === "lender" ? c.lenderName : c.source.toUpperCase()} · {TIMING_LABEL[c.timing]} · {c.responsible.replace("_", " ")}
                   {c.dueDate ? ` · due ${c.dueDate}` : ""}
                 </p>
-                {c.waiverReason ? <p className="mt-1 text-[13px]">Waived: {c.waiverReason} ({c.waiverEvidence ?? "Kubera condition"})</p> : null}
+                {c.waiverReason ? <p className="mt-1 text-[13px]">Waived: {c.waiverReason} ({c.waiverEvidence ?? "Corin condition"})</p> : null}
                 {c.notes ? <p className="mt-1 text-[13px]">Notes: {c.notes}</p> : null}
               </div>
               <Badge tone={TONE[c.status]}>{c.status}</Badge>
@@ -88,7 +88,7 @@ export function ConditionsSection({ dealId, conditions, items }: { dealId: strin
             <label className="field-label" htmlFor="cond-resp">Responsible</label>
             <select id="cond-resp" name="responsible" className="field">
               <option value="borrower">Borrower</option>
-              <option value="kubera">Kubera</option>
+              <option value="corin">Corin</option>
               <option value="lender">Lender of record</option>
               <option value="vendor">Vendor</option>
               <option value="title_escrow">Title / escrow</option>

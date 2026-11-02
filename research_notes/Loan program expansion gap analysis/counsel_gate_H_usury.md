@@ -1,11 +1,11 @@
-# Counsel Gate H: Civ. Code §1916.1 broker usury exemption (Kubera Commercial, Inc.)
+# Counsel Gate H: Civ. Code §1916.1 broker usury exemption (Corin Commercial, Inc.)
 
 *Legal research, not legal advice; a California attorney must confirm before reliance.*
 
 **Source caveat:** every primary page (leginfo, dre.ca.gov, Justia, LegiScan, public.law, CourtListener, Casetext) was blocked. **All [S#] citations are search-result snippets/summaries; no page was opened and no statute text is quoted.**
 
 ## 1. Bottom line
-Art. XV caps non-consumer loans at the greater of 10% or 5% + FRBSF rate, but exempts loans "made or arranged" by a licensed broker and secured by real property [S5][S6]; Civ. Code §1916.1 (amended Stats. 2024, ch. 601, SB 1146, eff. 1/1/2025) defines "arranged" [S1][S16]. Kubera never lends, so it relies on **"arranged"**: Kubera must actually solicit/negotiate, for another, for actual or expected compensation, on a real-property-secured loan [S3][S4][S7] — a fact question [S12]; document prep or a nominal role fails [S10][S31]. Since 1/1/2025 a forbearance/extension/modification is exempt only if a licensed broker (not necessarily the original one) arranges it [S16][S18]; reportedly not retroactive [S18]; servicer-only mods stay exposed [S17]. The website's flat claim is overbroad.
+Art. XV caps non-consumer loans at the greater of 10% or 5% + FRBSF rate, but exempts loans "made or arranged" by a licensed broker and secured by real property [S5][S6]; Civ. Code §1916.1 (amended Stats. 2024, ch. 601, SB 1146, eff. 1/1/2025) defines "arranged" [S1][S16]. Corin never lends, so it relies on **"arranged"**: Corin must actually solicit/negotiate, for another, for actual or expected compensation, on a real-property-secured loan [S3][S4][S7] — a fact question [S12]; document prep or a nominal role fails [S10][S31]. Since 1/1/2025 a forbearance/extension/modification is exempt only if a licensed broker (not necessarily the original one) arranges it [S16][S18]; reportedly not retroactive [S18]; servicer-only mods stay exposed [S17]. The website's flat claim is overbroad.
 
 ## 2. Elements checklist (all required)
 - [ ] DRE license at the time of the transaction [S12]
@@ -21,22 +21,22 @@ Art. XV caps non-consumer loans at the greater of 10% or 5% + FRBSF rate, but ex
 **CFL:** the broker exemption is **Fin. Code §22057, not §22050** (§22050(e) is the five-commercial-loan exemption) [S21][S24]; SPE funders may not qualify [S22]. **AB 2116** chaptered (ch. 823, Stats. 2026, 9/30/2026): licenses commercial financing, exempts real-property-secured transactions, extends §22002 usury exemption to licensees; operative 1/1/2028 or 7/1/2028 (sources conflict) [S23].
 
 ## 3. Platform requirements
-**Per loan — required fields:** lender + exempt-lender category with evidence; collateral (real-property lien, APN, position — equity-pledge/UCC-only ⇒ "§1916.1 unavailable"); business-purpose certification; party Kubera acts for; signed engagement/fee agreement(s); compensation amount/payer/closing-statement line; arranging DRE licensee (name, license #) + designated-officer approval; negotiation log (term-sheet versions, communications); table-funding flag + true funding source; note and all-in rate; §10240 statement date; retention clock (≥3 years, §10148/§10240) [S26][S27].
+**Per loan — required fields:** lender + exempt-lender category with evidence; collateral (real-property lien, APN, position — equity-pledge/UCC-only ⇒ "§1916.1 unavailable"); business-purpose certification; party Corin acts for; signed engagement/fee agreement(s); compensation amount/payer/closing-statement line; arranging DRE licensee (name, license #) + designated-officer approval; negotiation log (term-sheet versions, communications); table-funding flag + true funding source; note and all-in rate; §10240 statement date; retention clock (≥3 years, §10148/§10240) [S26][S27].
 
-**Per forbearance/extension/mod:** the same, plus its own engagement and compensation, arranging Kubera licensee, agreement reciting broker arrangement, effective date.
+**Per forbearance/extension/mod:** the same, plus its own engagement and compensation, arranging Corin licensee, agreement reciting broker arrangement, effective date.
 
-**Gates/blocks:** (1) non-exempt lender + rate above Art. XV cap ⇒ no funding until all §2 elements are recorded and officer signs off; (2) private-loan mod cannot be marked exempt unless Kubera (or a documented licensed broker) arranged it — lender/servicer-only mods flagged "no exemption representation," lender notified in writing; (3) pre-2025 mods and (4) table-funded deals naming Kubera as lender route to counsel; (5) AI advisor/documents never state a specific loan is exempt.
+**Gates/blocks:** (1) non-exempt lender + rate above Art. XV cap ⇒ no funding until all §2 elements are recorded and officer signs off; (2) private-loan mod cannot be marked exempt unless Corin (or a documented licensed broker) arranged it — lender/servicer-only mods flagged "no exemption representation," lender notified in writing; (3) pre-2025 mods and (4) table-funded deals naming Corin as lender route to counsel; (5) AI advisor/documents never state a specific loan is exempt.
 
 **§10236.7** exists but is **not** a usury declaration: it requires noting the **Article 6/Corporate Securities Law** exemption or qualification in the file and giving investors a copy (reportedly within 10 days) [S25]. Use only for multi-lender/securities deals.
 
 ## 4. Replacement wording
-- **Line 1:** "Many loans close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is not guaranteed. Kubera Commercial, Inc. is a California real estate broker (DRE Corp. Lic. #[__]; NMLS #[__, if any]) that arranges business-purpose commercial real estate loans; it is not a lender."
-- **Line 2 (AI advisor):** "California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code §1916.1). Whether one applies depends on the lender, collateral, and how the loan and any later changes are arranged. Kubera does not give legal advice; ask your attorney."
+- **Line 1:** "Many loans close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is not guaranteed. Corin Commercial, Inc. is a California real estate broker (DRE Corp. Lic. #[__]; NMLS #[__, if any]) that arranges business-purpose commercial real estate loans; it is not a lender."
+- **Line 2 (AI advisor):** "California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code §1916.1). Whether one applies depends on the lender, collateral, and how the loan and any later changes are arranged. Corin does not give legal advice; ask your attorney."
 
 Basis: §10235/Reg. 2848 bar false or misleading loan ads; §10235.5 requires license ID [S28][S29]; DRE cited unconditioned "7–10 days" funding ads [S28]; §17500 [S30]. No rule found barring an accurate, qualified reference.
 
 ## 5. Open questions (highest risk first)
-1. Table-funded loans naming Kubera originator — "arranged" or nominal "made"? (no source)
+1. Table-funded loans naming Corin originator — "arranged" or nominal "made"? (no source)
 2. Mezz/equity-pledge/cross-collateral deals without a real-property lien.
 3. Pre-2025 mods; servicer/lender-negotiated mods.
 4. Lender-paid-only compensation; affiliated funds.

@@ -1,4 +1,4 @@
-// Golden-set evals for Ask Kubera AI.
+// Golden-set evals for Ask Corin AI.
 //
 //   npm run evals                 validate eval files; run them live when ANTHROPIC_API_KEY is set
 //   npm run evals -- --validate   validate only (what CI runs without a key)

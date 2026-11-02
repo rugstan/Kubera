@@ -5,7 +5,7 @@
 
 import { dealClosingGate, type ChecklistDeps } from "@/lib/checklists/service";
 import { BROKER_OF_RECORD_FILE_MISSING, evaluateDealCompliance, type DealCompliance } from "@/lib/compliance/gates";
-import { namesKubera } from "@/lib/disclosures/broker-of-record";
+import { namesCorin } from "@/lib/disclosures/broker-of-record";
 import type { DisclosureRecord, DisclosureStore } from "@/lib/disclosures/store";
 import { governingNoteRate } from "./broker-of-record";
 import { form159Satisfied } from "./form159";
@@ -47,11 +47,11 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
   const compliance = evaluateDealCompliance({
     mlds: {
       facts: {
-        kuberaRole: "broker",
+        corinRole: "broker",
         program: deal.program,
         collateral: loan?.collateral ?? { realPropertyLien: realProperty, equityPledgeOrUccOnly: false },
-        tableFundedInKuberaName: loan?.tableFundedInKuberaName ?? false,
-        ...namesKubera(loan ?? {}),
+        tableFundedInCorinName: loan?.tableFundedInCorinName ?? false,
+        ...namesCorin(loan ?? {}),
       },
       status: mlds?.status ?? null,
     },
@@ -64,7 +64,7 @@ export async function loadDealCompliance(deps: { store: DealDeskStore; disclosur
           ...(loan.lenderCharges ? { lenderCharges: loan.lenderCharges } : {}),
           collateral: loan.collateral,
           elements: loan.elements,
-          tableFundedInKuberaName: loan.tableFundedInKuberaName,
+          tableFundedInCorinName: loan.tableFundedInCorinName,
           transactionDate: loan.transactionDate,
         }
       : undefined,

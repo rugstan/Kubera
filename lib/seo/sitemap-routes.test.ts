@@ -53,7 +53,7 @@ describe("sitemap", () => {
 describe("manifest", () => {
   it("has name, start_url and icons", () => {
     const m = manifest();
-    expect(m.name).toBe("Kubera Commercial");
+    expect(m.name).toBe("Corin Commercial");
     expect(m.start_url).toBe("/");
     expect(m.icons?.length).toBeGreaterThan(0);
     for (const icon of m.icons ?? []) expect(icon.src.startsWith("/")).toBe(true);

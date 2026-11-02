@@ -3,7 +3,7 @@ import Link from "next/link";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: { default: "Sign in", template: "%s · Kubera Commercial" },
+  title: { default: "Sign in", template: "%s · Corin Commercial" },
   robots: { index: false, follow: false },
 };
 

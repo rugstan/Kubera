@@ -18,10 +18,10 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
   return (
     <html lang="en">
       <body className="min-h-dvh">
-        <title>Something went wrong · Kubera Commercial</title>
+        <title>Something went wrong · Corin Commercial</title>
         <main id="main-content" className="mx-auto max-w-[1280px] px-5 py-20 md:px-8 md:py-32">
           <div className="max-w-2xl">
-            <p className="eyebrow">Kubera Commercial</p>
+            <p className="eyebrow">Corin Commercial</p>
             <h1 className="mt-4 text-4xl font-semibold leading-[1.08] md:text-6xl">Something went wrong.</h1>
             <p className="mt-5 text-lg leading-relaxed text-titanium md:text-xl">
               An unexpected error stopped the site from loading. Try again, or contact a licensed advisor and we will pick up

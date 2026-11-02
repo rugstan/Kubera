@@ -32,7 +32,7 @@ export default function LendersLayout({ children }: { children: React.ReactNode 
               ))}
             </ul>
           </nav>
-          <p className="ml-auto text-xs text-titanium">Kubera brokers; lenders underwrite, decide and fund. Nothing is sent without broker approval.</p>
+          <p className="ml-auto text-xs text-titanium">Corin brokers; lenders underwrite, decide and fund. Nothing is sent without broker approval.</p>
         </div>
       </header>
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">{children}</div>

@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 const post = (auth?: string) =>
-  new Request("https://kuberacommercial.com/api/notify/x", {
+  new Request("https://corincommercial.com/api/notify/x", {
     method: "POST",
     headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) },
     body: JSON.stringify({ leadId: "3f9a12bc-0000-4000-8000-000000000001" }),
@@ -41,14 +41,14 @@ describe("notify routes without configuration", () => {
   });
 
   it("the sweep answers 503 without CRON_SECRET and checks nothing with it", async () => {
-    expect((await sweep.GET(new Request("https://kuberacommercial.com/api/notify/sweep"))).status).toBe(503);
+    expect((await sweep.GET(new Request("https://corincommercial.com/api/notify/sweep"))).status).toBe(503);
     process.env.CRON_SECRET = "c".repeat(40);
-    const res = await sweep.GET(new Request("https://kuberacommercial.com/api/notify/sweep", { headers: { authorization: `Bearer ${"c".repeat(40)}` } }));
+    const res = await sweep.GET(new Request("https://corincommercial.com/api/notify/sweep", { headers: { authorization: `Bearer ${"c".repeat(40)}` } }));
     expect(await res.json()).toMatchObject({ ok: true, checked: 0 });
   });
 
   it("the Telnyx webhook answers 503 without TELNYX_PUBLIC_KEY and 401 with an unsigned request", async () => {
-    const req = () => new Request("https://kuberacommercial.com/api/webhooks/telnyx", { method: "POST", body: "{}" });
+    const req = () => new Request("https://corincommercial.com/api/webhooks/telnyx", { method: "POST", body: "{}" });
     expect((await telnyx.POST(req())).status).toBe(503);
     process.env.TELNYX_PUBLIC_KEY = Buffer.alloc(32, 7).toString("base64");
     expect((await telnyx.POST(req())).status).toBe(401);

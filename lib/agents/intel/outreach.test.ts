@@ -10,7 +10,7 @@ import type { Prospect } from "./types";
 async function drafted(opts: Parameters<typeof outreachSetup>[0] = {}, staff: Parameters<typeof seedProspect>[2] = { contactEmail: "pat@owner.example", contactName: "Pat Owner" }, channel: "email" | "letter" = "email") {
   const s = outreachSetup(opts);
   const prospect = await seedProspect(s.store, {}, staff);
-  const res = await draftOutreach(s.deps, { prospectId: prospect.id, channel, actor: "staff:ana@kubera.test" });
+  const res = await draftOutreach(s.deps, { prospectId: prospect.id, channel, actor: "staff:ana@corin.test" });
   if (res.status !== "drafted") throw new Error("expected a draft");
   return { ...s, prospect, outreach: res.outreach };
 }

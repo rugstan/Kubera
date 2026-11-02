@@ -44,7 +44,7 @@ describe("agency term sheet 1 — Fannie Mae DUS, 10-yr, no tier covers the requ
     expect(q.dscr).toBeGreaterThanOrEqual(1.25);
     expect(q.dscr).toBeLessThan(1.2501);
     expect(q.termLabel).toMatch(/^10 yrs fixed/);
-    // DUS fixed costs (45,000) + 1% origination + 0.75% Kubera.
+    // DUS fixed costs (45,000) + 1% origination + 0.75% Corin.
     expect(q.closingCosts).toBeCloseTo(45_000 + 19_669_000 * 0.0175, 6);
   });
 });
@@ -60,7 +60,7 @@ describe("agency term sheet 2 — Fannie Mae Small Loan, 7-yr, cheapest tier cov
     expect(q.binding).toBe("REQUESTED");
     expect(q.ratePct).toBeCloseTo(5.35, 10);
     expect(q.notes[0]).toMatch(/^Tier 4 pricing: up to 55% LTV at 1.55x/);
-    // Small-loan third-party costs (25,000) + 1% origination + 0.75% Kubera.
+    // Small-loan third-party costs (25,000) + 1% origination + 0.75% Corin.
     expect(q.closingCosts).toBeCloseTo(25_000 + 5_000_000 * 0.0175, 6);
   });
 });

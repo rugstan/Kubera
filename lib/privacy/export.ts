@@ -1,5 +1,5 @@
 // Access-request export (CCPA right to know, Civ. Code §1798.110 / .115 / .130):
-// everything Kubera holds about one person, keyed by email (and the phone
+// everything Corin holds about one person, keyed by email (and the phone
 // numbers tied to it), in a portable JSON document, plus the categories,
 // sources, purposes and recipients the statute requires us to describe.
 //
@@ -71,7 +71,7 @@ const TRANSFORMS: Partial<Record<ExportTable, Record<string, (v: unknown) => unk
 };
 
 export type SubjectExport = {
-  format: "kubera-privacy-export/v1";
+  format: "corin-privacy-export/v1";
   generatedAt: string;
   requestId: string | null;
   subject: { email: string; phones: string[] };
@@ -186,7 +186,7 @@ export async function buildSubjectExport(
   const byTime = (col: string) => (a: ExportRecord, b: ExportRecord) => String(a[col] ?? "").localeCompare(String(b[col] ?? ""));
 
   return {
-    format: "kubera-privacy-export/v1",
+    format: "corin-privacy-export/v1",
     generatedAt: (opts.now ?? new Date()).toISOString(),
     requestId: opts.requestId ?? null,
     subject: { email, phones },

@@ -16,7 +16,7 @@ export async function Desk({ render }: { render: (ctx: { deps: ConstructionDeps;
   if (!staff) {
     return (
       <Notice tone="warn" title="Staff sign-in required">
-        The construction desk is for signed-in Kubera staff. Sign in and try again.
+        The construction desk is for signed-in Corin staff. Sign in and try again.
       </Notice>
     );
   }

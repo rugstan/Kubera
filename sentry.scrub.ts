@@ -1,4 +1,4 @@
-// PII scrubbing for everything that leaves the app for Sentry. Kubera handles
+// PII scrubbing for everything that leaves the app for Sentry. Corin handles
 // borrower contact details, financials and identity data, so events are
 // treated as hostile by default: unknown request bodies, cookies, auth headers
 // and user records are dropped, sensitive keys are redacted wherever they

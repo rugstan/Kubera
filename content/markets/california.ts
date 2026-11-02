@@ -88,7 +88,7 @@ function ab1482Fact(county: string): MarketFact {
   return {
     label: `AB 1482 cap, ${county} County (${REGION_NAME[region]} CPI)`,
     value: `${cap.toFixed(1)}% for ${row.effectiveFrom} to ${row.effectiveTo}`,
-    source: `Civil Code section 1947.12: ${AB1482.basePct}% plus regional CPI (${row.cpiPct}%), capped at ${AB1482.maxPct}%; Kubera rent-control table`,
+    source: `Civil Code section 1947.12: ${AB1482.basePct}% plus regional CPI (${row.cpiPct}%), capped at ${AB1482.maxPct}%; Corin rent-control table`,
     asOf: AS_OF,
     verify: !row.verified,
   };
@@ -99,7 +99,7 @@ function reassessmentFact(price: number, currentAssessed: number): MarketFact {
   return {
     label: `Illustrative Prop 13 reset: ${usd(price)} sale, prior assessed value ${usd(currentAssessed)}`,
     value: `Annual property tax rises from about ${usd(r.annualTaxBefore)} to about ${usd(r.annualTaxAfter)} at a ${r.totalLevyRatePct.toFixed(2)}% levy`,
-    source: "Kubera Prop 13 estimator (1% base plus a default voter-approved levy); use the tax rate area's actual rate",
+    source: "Corin Prop 13 estimator (1% base plus a default voter-approved levy); use the tax rate area's actual rate",
     asOf: AS_OF,
     verify: true,
   };
@@ -113,7 +113,7 @@ const laCounty = LOCAL_ORDINANCES.find((o) => o.id === "la_county_rstpo");
 if (!laRso || !laCounty) throw new Error("rent-control data is missing the Los Angeles ordinances");
 const laRsoRow = laRso.capRows[0]!;
 
-const FINANCING_DISCLAIMER = "Programs and figures are indicative, not a commitment to lend. Kubera Commercial arranges loans as a licensed California real estate broker and is not the lender.";
+const FINANCING_DISCLAIMER = "Programs and figures are indicative, not a commitment to lend. Corin Commercial arranges loans as a licensed California real estate broker and is not the lender.";
 
 export const MARKETS: readonly MarketPage[] = [
   {
@@ -123,7 +123,7 @@ export const MARKETS: readonly MarketPage[] = [
     description: "How Los Angeles rent rules, licensing, seismic retrofit and transfer taxes shape senior living, hotel, multifamily, construction and hard money loans.",
     summary: "Rent stabilization, care-facility licensing and seismic diligence in the City and County of Los Angeles.",
     definition:
-      "Los Angeles commercial real estate financing is the arrangement of loans on apartments, care facilities and hotels in the City and County of Los Angeles, where local rent ordinances, state licensing of care facilities and seismic retrofit rules shape how much a lender will lend. Kubera Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
+      "Los Angeles commercial real estate financing is the arrangement of loans on apartments, care facilities and hotels in the City and County of Los Angeles, where local rent ordinances, state licensing of care facilities and seismic retrofit rules shape how much a lender will lend. Corin Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
     areaServed: ["City of Los Angeles", "Los Angeles County"],
     counties: ["Los Angeles"],
     facts: [
@@ -155,7 +155,7 @@ export const MARKETS: readonly MarketPage[] = [
       {
         heading: "Multifamily: underwrite the rent rules, not the market rent",
         paragraphs: [
-          `Most older apartment buildings in the City of Los Angeles are covered by the Rent Stabilization Ordinance, which applies to buildings with a certificate of occupancy on or before ${laRso.coveredIfCertificateOfOccupancyOnOrBefore}. The allowable annual increase in Kubera's rent-control table is ${laRsoRow.capPct}% for ${laRsoRow.effectiveFrom} to ${laRsoRow.effectiveTo}. Unincorporated areas of the county have their own ordinance, and several incorporated cities, including ${joinList(localCities("beverly hills", "culver city", "inglewood", "long beach", "pasadena", "santa monica", "west hollywood"))}, have rules of their own.`,
+          `Most older apartment buildings in the City of Los Angeles are covered by the Rent Stabilization Ordinance, which applies to buildings with a certificate of occupancy on or before ${laRso.coveredIfCertificateOfOccupancyOnOrBefore}. The allowable annual increase in Corin's rent-control table is ${laRsoRow.capPct}% for ${laRsoRow.effectiveFrom} to ${laRsoRow.effectiveTo}. Unincorporated areas of the county have their own ordinance, and several incorporated cities, including ${joinList(localCities("beverly hills", "culver city", "inglewood", "long beach", "pasadena", "santa monica", "west hollywood"))}, have rules of their own.`,
           `Newer or exempt buildings fall under the statewide cap in AB 1482, which is ${AB1482.basePct}% plus the regional change in the Consumer Price Index, capped at ${AB1482.maxPct}%. A lender will model growth under whichever rule applies to the specific building, so the address, the year of the certificate of occupancy and the unit mix all matter.`,
           `For HUD 223(f) and agency loans, in-place rents under stabilization often leave coverage, not loan-to-value, as the limit. The HUD market-rate box is ${pct(HUD.multifamily.s223f.maxLtv)} loan-to-value and ${x(HUD.multifamily.s223f.minDscr)} coverage; the loan is whichever test gives less.`,
         ],
@@ -164,13 +164,13 @@ export const MARKETS: readonly MarketPage[] = [
         heading: "Senior living: licensing comes first",
         paragraphs: [
           "Assisted living and memory care communities in California are generally licensed as residential care facilities for the elderly by the Department of Social Services, and skilled nursing facilities are licensed by the Department of Public Health. A lender, and HUD for a Section 232 loan, will confirm that the license is in good standing and that the operator has the experience to run the building before they look at proceeds.",
-          `A stabilized facility can often refinance into HUD 232 (${pct(HUD.section232.refi.maxLtv)} loan-to-value and ${x(HUD.section232.refi.minDscr)} coverage in Kubera's assumptions). A facility that is newly built, newly acquired or still filling usually starts with a bridge loan and refinances once it reaches the occupancy and income HUD wants.`,
+          `A stabilized facility can often refinance into HUD 232 (${pct(HUD.section232.refi.maxLtv)} loan-to-value and ${x(HUD.section232.refi.minDscr)} coverage in Corin's assumptions). A facility that is newly built, newly acquired or still filling usually starts with a bridge loan and refinances once it reaches the occupancy and income HUD wants.`,
         ],
       },
       {
         heading: "Hotels: flag and ownership decide the structure",
         paragraphs: [
-          `Los Angeles hotels range from brand-flagged airport and downtown properties to independent and boutique hotels on the Westside and in the Valley. Conduit lenders set different debt yield floors by hotel type (${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} for a premium flag, ${pct(CMBS.minDebtYield.ECONOMY_FLAG, 1)} for economy and ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} for boutique or independent in Kubera's assumptions), so the same income can support different loans.`,
+          `Los Angeles hotels range from brand-flagged airport and downtown properties to independent and boutique hotels on the Westside and in the Valley. Conduit lenders set different debt yield floors by hotel type (${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} for a premium flag, ${pct(CMBS.minDebtYield.ECONOMY_FLAG, 1)} for economy and ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} for boutique or independent in Corin's assumptions), so the same income can support different loans.`,
           "Owner-operators buying or refinancing their own hotel often compare SBA 504 against conduit debt, and a hotel facing a franchisor renovation requirement can use a PIP bridge. The hotel debt yield calculator shows where a loan stands against the floors.",
         ],
       },
@@ -185,9 +185,9 @@ export const MARKETS: readonly MarketPage[] = [
     ],
     faq: [
       { question: "Does Los Angeles rent control limit how much I can borrow?", answer: "Indirectly. Lenders underwrite rent growth under the rule that covers the building, so stabilized rents usually mean lower income and a smaller loan than market rents would suggest. Coverage tends to be the limit on those buildings." },
-      { question: "What is the rent increase limit under AB 1482 in Los Angeles County?", answer: `The statute is ${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%. Kubera's table shows ${latestAb1482("Los Angeles").cap.toFixed(1)}% for the period ending ${latestAb1482("Los Angeles").row.effectiveTo}; the figure is a planning default that is refreshed each August and should be verified against the published CPI.` },
+      { question: "What is the rent increase limit under AB 1482 in Los Angeles County?", answer: `The statute is ${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%. Corin's table shows ${latestAb1482("Los Angeles").cap.toFixed(1)}% for the period ending ${latestAb1482("Los Angeles").row.effectiveTo}; the figure is a planning default that is refreshed each August and should be verified against the published CPI.` },
       { question: "Can a Los Angeles assisted living facility get a HUD 232 loan?", answer: "Often, if it is licensed and in good standing, operated by an experienced operator, and stabilized. Newly built or recently acquired facilities usually need a bridge first. An advisor can review the facility against HUD's tests." },
-      { question: "Does Kubera lend money in Los Angeles?", answer: "No. Kubera Commercial is a licensed California real estate broker. Lenders make the credit decision and fund the loan. Kubera never holds or disburses loan funds." },
+      { question: "Does Corin lend money in Los Angeles?", answer: "No. Corin Commercial is a licensed California real estate broker. Lenders make the credit decision and fund the loan. Corin never holds or disburses loan funds." },
     ],
     relatedPrograms: ["hud-223f-multifamily", "hud-232", "bridge-to-hud", "hotel-cmbs", "sba-504-hotel", "fannie-mae-multifamily", "construction-loans", "hard-money"],
     relatedMarkets: ["orange-county", "bay-area"],
@@ -199,15 +199,15 @@ export const MARKETS: readonly MarketPage[] = [
     description: "Orange County hotels, senior living and apartments: how resort demand, few local rent ordinances and Mello-Roos assessments shape the loan programs we arrange.",
     summary: "Resort and coastal hotels, owner-operated senior living and mostly statewide rent rules in Orange County.",
     definition:
-      "Orange County commercial real estate financing is the arrangement of loans on hotels, senior living communities and apartment buildings in Orange County, California, where resort-driven hospitality, owner-operators and the statewide rent cap shape which loan program fits. Kubera Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
+      "Orange County commercial real estate financing is the arrangement of loans on hotels, senior living communities and apartment buildings in Orange County, California, where resort-driven hospitality, owner-operators and the statewide rent cap shape which loan program fits. Corin Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
     areaServed: ["Orange County, California"],
     counties: ["Orange"],
     facts: [
       ab1482Fact("Orange"),
       {
-        label: "Orange County cities with their own rent ordinance on Kubera's review list",
+        label: "Orange County cities with their own rent ordinance on Corin's review list",
         value: joinList(localCities("santa ana")) || "None listed",
-        source: "Kubera review of local rent-control ordinances; the list is not exhaustive and is reviewed by hand for each property",
+        source: "Corin review of local rent-control ordinances; the list is not exhaustive and is reviewed by hand for each property",
         asOf: AS_OF,
         verify: true,
       },
@@ -215,7 +215,7 @@ export const MARKETS: readonly MarketPage[] = [
       {
         label: "Hotel CMBS debt yield floors (premium / economy / boutique)",
         value: `${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} / ${pct(CMBS.minDebtYield.ECONOMY_FLAG, 1)} / ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)}`,
-        source: "Kubera hotel CMBS assumptions",
+        source: "Corin hotel CMBS assumptions",
         asOf: AS_OF,
         verify: true,
       },
@@ -225,20 +225,20 @@ export const MARKETS: readonly MarketPage[] = [
         heading: "Hotels: resort demand and owner-operators",
         paragraphs: [
           "Orange County's hotel market is anchored by the resort district around Anaheim, the coastal communities, and the business travel around the airport. That produces a mix of brand-flagged hotels, independent and boutique hotels, and owner-operated select-service properties.",
-          `For owner-operators, SBA 504 is a frequent comparison with conduit debt because the debenture is fixed-rate over a long term and requires ${pct(SBA.equity.base + SBA.equity.specialPurpose)} equity for an existing hotel in Kubera's assumptions. A hotel that must renovate to keep or change its flag can use a PIP bridge and refinance once the work is done. Conduit lenders apply different debt yield floors by hotel type, so a boutique hotel needs more income per dollar of loan than a premium-flag one.`,
+          `For owner-operators, SBA 504 is a frequent comparison with conduit debt because the debenture is fixed-rate over a long term and requires ${pct(SBA.equity.base + SBA.equity.specialPurpose)} equity for an existing hotel in Corin's assumptions. A hotel that must renovate to keep or change its flag can use a PIP bridge and refinance once the work is done. Conduit lenders apply different debt yield floors by hotel type, so a boutique hotel needs more income per dollar of loan than a premium-flag one.`,
         ],
       },
       {
         heading: "Senior living: coverage usually sets the loan",
         paragraphs: [
-          `Where purchase prices are high relative to income, loan-to-value is rarely the tightest test. In Kubera's HUD 232 assumptions, coverage of ${x(HUD.section232.refi.minDscr)} on a ${HUD.section232.refi.termYears}-year amortization is usually what limits proceeds on a stabilized community, so income quality (census, payor mix and expense ratios) matters more than the appraisal.`,
+          `Where purchase prices are high relative to income, loan-to-value is rarely the tightest test. In Corin's HUD 232 assumptions, coverage of ${x(HUD.section232.refi.minDscr)} on a ${HUD.section232.refi.termYears}-year amortization is usually what limits proceeds on a stabilized community, so income quality (census, payor mix and expense ratios) matters more than the appraisal.`,
           "Assisted living and memory care communities are licensed in California as residential care facilities for the elderly, and the license has to be in good standing before any lender proceeds. Facilities that are filling up or changing operators generally start with a bridge loan.",
         ],
       },
       {
         heading: "Multifamily: mostly the statewide rule",
         paragraphs: [
-          `Few Orange County cities have their own rent ordinance; ${joinList(localCities("santa ana"))} is the one on Kubera's review list, and each property is checked by hand. Elsewhere the statewide cap in AB 1482 applies to buildings older than ${AB1482.newConstructionYears} years: ${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%. Orange County uses the Los Angeles area CPI in Kubera's table.`,
+          `Few Orange County cities have their own rent ordinance; ${joinList(localCities("santa ana"))} is the one on Corin's review list, and each property is checked by hand. Elsewhere the statewide cap in AB 1482 applies to buildings older than ${AB1482.newConstructionYears} years: ${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%. Orange County uses the Los Angeles area CPI in Corin's table.`,
           `That makes rent growth easier to underwrite than in jurisdictions with local caps, and agency and HUD loans on stabilized buildings are sized on income and coverage in the usual way: ${pct(HUD.multifamily.s223f.maxLtv)} loan-to-value and ${x(HUD.multifamily.s223f.minDscr)} coverage in the HUD market-rate box, with the smaller result setting the loan.`,
         ],
       },
@@ -258,10 +258,10 @@ export const MARKETS: readonly MarketPage[] = [
       },
     ],
     faq: [
-      { question: "Is there rent control in Orange County?", answer: `Few cities have their own ordinance. The statewide cap in AB 1482 (${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%) applies to covered buildings, and Kubera reviews any property in a city with local rules by hand.` },
+      { question: "Is there rent control in Orange County?", answer: `Few cities have their own ordinance. The statewide cap in AB 1482 (${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%) applies to covered buildings, and Corin reviews any property in a city with local rules by hand.` },
       { question: "Which loan fits an owner-operated hotel in Orange County?", answer: "Often SBA 504 for an owner-occupied purchase or refinance, a conduit loan if income clears the debt yield floor and the owner prefers non-recourse, or a PIP bridge for a renovation. An advisor can compare them side by side." },
       { question: "How does Prop 13 affect a purchase in Orange County?", answer: "A sale resets the assessed value to the purchase price, so annual property tax is roughly 1% of the price plus local charges, which can be much higher than the seller's bill. Lenders underwrite the post-sale tax." },
-      { question: "Does Kubera lend money in Orange County?", answer: "No. Kubera Commercial is a licensed California real estate broker, and lenders make the credit decisions and fund the loans." },
+      { question: "Does Corin lend money in Orange County?", answer: "No. Corin Commercial is a licensed California real estate broker, and lenders make the credit decisions and fund the loans." },
     ],
     relatedPrograms: ["sba-504-hotel", "hotel-cmbs", "pip-bridge", "hud-232", "hud-223f-multifamily", "fannie-mae-multifamily"],
     relatedMarkets: ["los-angeles", "bay-area"],
@@ -273,16 +273,16 @@ export const MARKETS: readonly MarketPage[] = [
     description: "San Francisco Bay Area multifamily, hotel and senior living loans: city-by-city rent rules, soft-story retrofit, seismic diligence and construction costs.",
     summary: "City-by-city rent rules, seismic diligence and high construction costs across the San Francisco Bay Area.",
     definition:
-      "Bay Area commercial real estate financing is the arrangement of loans on apartments, hotels and care facilities across the San Francisco Bay Area, where many cities have their own rent ordinances, seismic risk drives diligence, and high construction costs shape new-build financing. Kubera Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
+      "Bay Area commercial real estate financing is the arrangement of loans on apartments, hotels and care facilities across the San Francisco Bay Area, where many cities have their own rent ordinances, seismic risk drives diligence, and high construction costs shape new-build financing. Corin Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
     areaServed: ["San Francisco Bay Area", "San Francisco", "Alameda County", "Santa Clara County", "San Mateo County", "Contra Costa County", "Marin County"],
     counties: ["San Francisco", "Alameda", "Santa Clara"],
     facts: [
       ab1482Fact("San Francisco"),
       ab1482Fact("Santa Clara"),
       {
-        label: "Bay Area cities with their own rent ordinance on Kubera's review list",
+        label: "Bay Area cities with their own rent ordinance on Corin's review list",
         value: joinList(localCities("alameda", "berkeley", "east palo alto", "hayward", "los gatos", "mountain view", "oakland", "richmond", "san francisco", "san jose")),
-        source: "Kubera review of local rent-control ordinances; the list is not exhaustive and is reviewed by hand for each property",
+        source: "Corin review of local rent-control ordinances; the list is not exhaustive and is reviewed by hand for each property",
         asOf: AS_OF,
         verify: true,
       },
@@ -299,8 +299,8 @@ export const MARKETS: readonly MarketPage[] = [
       {
         heading: "Multifamily: the city decides the rent rule",
         paragraphs: [
-          `The Bay Area has more local rent ordinances than any other part of the state Kubera covers. Cities on Kubera's review list include ${joinList(localCities("alameda", "berkeley", "east palo alto", "hayward", "los gatos", "mountain view", "oakland", "richmond", "san francisco", "san jose"))}, and the list is not exhaustive. Each property is checked by hand, because the local cap, the exemptions and the covered building age differ from city to city, and from the statewide AB 1482 rule.`,
-          `Under AB 1482 (${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%), the Bay Area is not one CPI region in Kubera's table: San Francisco, Alameda, Contra Costa, Marin and San Mateo counties use the San Francisco area figure, while Santa Clara County falls back to the statewide figure. The facts above show both.`,
+          `The Bay Area has more local rent ordinances than any other part of the state Corin covers. Cities on Corin's review list include ${joinList(localCities("alameda", "berkeley", "east palo alto", "hayward", "los gatos", "mountain view", "oakland", "richmond", "san francisco", "san jose"))}, and the list is not exhaustive. Each property is checked by hand, because the local cap, the exemptions and the covered building age differ from city to city, and from the statewide AB 1482 rule.`,
+          `Under AB 1482 (${AB1482.basePct}% plus regional CPI, capped at ${AB1482.maxPct}%), the Bay Area is not one CPI region in Corin's table: San Francisco, Alameda, Contra Costa, Marin and San Mateo counties use the San Francisco area figure, while Santa Clara County falls back to the statewide figure. The facts above show both.`,
         ],
       },
       {
@@ -327,16 +327,16 @@ export const MARKETS: readonly MarketPage[] = [
       {
         heading: "Hotels and senior living",
         paragraphs: [
-          `Hotel demand across San Francisco, the Peninsula and Silicon Valley leans on business and convention travel. Lenders weigh the trailing-12 trend heavily, and a hotel whose income has not yet recovered to a level that clears the debt yield floor (${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} to ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} by hotel type in Kubera's assumptions) may be a bridge candidate rather than a conduit one.`,
+          `Hotel demand across San Francisco, the Peninsula and Silicon Valley leans on business and convention travel. Lenders weigh the trailing-12 trend heavily, and a hotel whose income has not yet recovered to a level that clears the debt yield floor (${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} to ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} by hotel type in Corin's assumptions) may be a bridge candidate rather than a conduit one.`,
           "Care facilities need a license in good standing from the state before any lender proceeds, and high labor costs flow straight into net operating income. Lenders underwrite expenses as they find them, so a stabilized facility with documented cost control is the most natural candidate for HUD 232.",
         ],
       },
     ],
     faq: [
-      { question: "Which Bay Area cities have rent control?", answer: "Several, including San Francisco, Oakland, Berkeley, San Jose, Hayward and others on Kubera's review list. The list is not exhaustive, so each property is checked by hand against its city's ordinance." },
+      { question: "Which Bay Area cities have rent control?", answer: "Several, including San Francisco, Oakland, Berkeley, San Jose, Hayward and others on Corin's review list. The list is not exhaustive, so each property is checked by hand against its city's ordinance." },
       { question: "How does seismic risk affect a Bay Area loan?", answer: "Lenders may order a probable maximum loss report and ask about soft-story retrofit status. A high PML can require earthquake insurance or reduce the loan. Diligence runs in parallel with underwriting." },
       { question: "Is HUD 221(d)(4) practical for Bay Area construction?", answer: "It can be, for projects that can carry prevailing wage requirements and the HUD process. Its long fixed-rate term and non-recourse structure are attractive; whether the costs and timeline work depends on the project. An advisor can size it against alternatives." },
-      { question: "Does Kubera lend money in the Bay Area?", answer: "No. Kubera Commercial is a licensed California real estate broker, and lenders make the credit decisions and fund the loans." },
+      { question: "Does Corin lend money in the Bay Area?", answer: "No. Corin Commercial is a licensed California real estate broker, and lenders make the credit decisions and fund the loans." },
     ],
     relatedPrograms: ["hud-221d4", "hud-223f-multifamily", "multifamily-bridge", "hotel-cmbs", "hud-232", "construction-loans"],
     relatedMarkets: ["los-angeles", "orange-county"],

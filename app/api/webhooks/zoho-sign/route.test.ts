@@ -18,7 +18,7 @@ const completed = JSON.stringify({
 });
 const ping = JSON.stringify({ ping: true });
 const post = (body: string, secret: string) =>
-  POST(new Request("https://kuberacommercial.com/api/webhooks/zoho-sign", { method: "POST", body, headers: { [ZOHO_SIGNATURE_HEADER]: signZohoPayload(body, secret), "content-type": "application/json" } }));
+  POST(new Request("https://corincommercial.com/api/webhooks/zoho-sign", { method: "POST", body, headers: { [ZOHO_SIGNATURE_HEADER]: signZohoPayload(body, secret), "content-type": "application/json" } }));
 
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});

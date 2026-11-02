@@ -100,10 +100,10 @@ export function reportingFixture(now: Date = FIXTURE_NOW): ReportingData {
   const harborFee = addFee(sbaPackagingFee({ dealId: DEAL.harbor, flatCents: 1_500_000 }), "invoiced", "2026-10-28", { invoiceId: inv(2) });
   addFee(brokerFee({ dealId: DEAL.harbor, loanAmountCents: 920_000_000, pct: 1 }), "projected", null);
   // Oak Terrace: agency split projected (50% of a 1% origination fee) with a co-broker share.
-  addFee(agencySplit({ dealId: DEAL.oak, loanAmountCents: 640_000_000, lenderOriginationPct: 1, kuberaSharePct: 50, lenderName: "Cambridge Realty Capital" }), "projected", null);
+  addFee(agencySplit({ dealId: DEAL.oak, loanAmountCents: 640_000_000, lenderOriginationPct: 1, corinSharePct: 50, lenderName: "Cambridge Realty Capital" }), "projected", null);
   addFee(partnerSplit({ dealId: DEAL.oak, payee: "co_broker", ofCents: 3_200_000, pct: 25, partnerName: "Pacific Capital Advisors" }), "projected", null);
   // Maple Street: 2 broker points and a 25% share of the lender's 2 points, both settled.
-  for (const e of hardMoneyPoints({ dealId: DEAL.maple, loanAmountCents: 78_000_000, brokerPoints: 2, lenderPoints: 2, kuberaShareOfLenderPointsPct: 25, lenderName: "Fidelis Private Fund" })) addFee(e, "settled", "2026-09-12");
+  for (const e of hardMoneyPoints({ dealId: DEAL.maple, loanAmountCents: 78_000_000, brokerPoints: 2, lenderPoints: 2, corinShareOfLenderPointsPct: 25, lenderName: "Fidelis Private Fund" })) addFee(e, "settled", "2026-09-12");
   // Bayview: 1.5% broker fee projected.
   addFee(brokerFee({ dealId: DEAL.bayview, loanAmountCents: 300_000_000, pct: 1.5 }), "projected", null);
   // Cedar: the deal was lost, so its projected fee was voided.
@@ -113,8 +113,8 @@ export function reportingFixture(now: Date = FIXTURE_NOW): ReportingData {
   addFee(brokerFee({ dealId: DEAL.delta, loanAmountCents: 800_000_000, flatCents: 1_000_000, payer: "lender" }), "projected", null);
 
   const invoices: ReportInvoice[] = [
-    { id: inv(1), dealId: DEAL.sunrise, number: "KC-2026-0001", status: "settled", totalCents: 12_500_000, lines: [{ feeEntryId: sunriseFee, amountCents: 12_500_000 }] },
-    { id: inv(2), dealId: DEAL.harbor, number: "KC-2026-0002", status: "issued", totalCents: 1_500_000, lines: [{ feeEntryId: harborFee, amountCents: 1_500_000 }] },
+    { id: inv(1), dealId: DEAL.sunrise, number: "CC-2026-0001", status: "settled", totalCents: 12_500_000, lines: [{ feeEntryId: sunriseFee, amountCents: 12_500_000 }] },
+    { id: inv(2), dealId: DEAL.harbor, number: "CC-2026-0002", status: "issued", totalCents: 1_500_000, lines: [{ feeEntryId: harborFee, amountCents: 1_500_000 }] },
   ];
 
   // --- Lenders and outreach -------------------------------------------------------------------------

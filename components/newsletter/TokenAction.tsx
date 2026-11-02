@@ -14,7 +14,7 @@ type Mode = "confirm" | "unsubscribe";
 
 const COPY: Record<Mode, { lead: string; button: string; done: Record<string, string> }> = {
   confirm: {
-    lead: "Press the button to finish subscribing to the Kubera Commercial newsletter.",
+    lead: "Press the button to finish subscribing to the Corin Commercial newsletter.",
     button: "Confirm subscription",
     done: {
       confirmed: "You are subscribed. Look for the next issue in your inbox. Every email has an unsubscribe link.",
@@ -22,7 +22,7 @@ const COPY: Record<Mode, { lead: string; button: string; done: Record<string, st
     },
   },
   unsubscribe: {
-    lead: "Press the button to stop receiving the Kubera Commercial newsletter at this address.",
+    lead: "Press the button to stop receiving the Corin Commercial newsletter at this address.",
     button: "Unsubscribe",
     done: {
       unsubscribed: "You are unsubscribed. We will not send you the newsletter again unless you sign up again.",

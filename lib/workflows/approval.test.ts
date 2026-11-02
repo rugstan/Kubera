@@ -63,7 +63,7 @@ describe("approval wait with expiry", () => {
   it("runs the action once after approval, also across replays and new runs", async () => {
     const { step, gate, effects, execute, run } = harness("pending");
     step.beforeWait((id) => {
-      if (id.endsWith("wait-1")) gate.decide(action().idempotencyKey, { status: "approved", approvalId: "appr_1", decidedBy: "broker@kubera", decidedAt: new Date(step.now()) });
+      if (id.endsWith("wait-1")) gate.decide(action().idempotencyKey, { status: "approved", approvalId: "appr_1", decidedBy: "broker@corin", decidedAt: new Date(step.now()) });
     });
     const res = await run();
     expect(res).toMatchObject({ sent: true, approvalId: "appr_1", result: { messageId: "msg_1" }, replayed: false });

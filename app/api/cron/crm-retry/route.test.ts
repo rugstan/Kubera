@@ -12,7 +12,7 @@ vi.mock("@/lib/rates", async () => {
 
 import { GET } from "./route";
 
-const call = (authorization?: string) => GET(new Request("https://kuberacommercial.com/api/cron/crm-retry", { headers: authorization ? { authorization } : {} }));
+const call = (authorization?: string) => GET(new Request("https://corincommercial.com/api/cron/crm-retry", { headers: authorization ? { authorization } : {} }));
 
 /** Chainable stand-in for the supabase-js query builder; every query resolves to `result`. */
 function fakeDb(result: { data: unknown[]; error: null }) {

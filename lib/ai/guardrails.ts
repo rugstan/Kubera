@@ -1,4 +1,4 @@
-// Output guardrails for Ask Kubera AI: a post-generation filter that checks what
+// Output guardrails for Ask Corin AI: a post-generation filter that checks what
 // the model wrote before the borrower sees it.
 //
 // The system prompt already forbids these things; this is the independent check
@@ -8,7 +8,7 @@
 //   legal_advice        legal conclusions, tax advice, "no need for an attorney"
 //   usury_exemption     any statement that a specific loan is usury-exempt
 //   guaranteed_timeline closing or funding dates stated as certain
-//   broker_role         Kubera as lender, holder of funds, servicer or draw manager
+//   broker_role         Corin as lender, holder of funds, servicer or draw manager
 //   disclosure_waiver   telling a borrower the MLDS (RE 882) is not needed
 //   prohibited_copy     "fees protected", "will call you today", "autonomous"
 //
@@ -92,8 +92,8 @@ const USURY_SUBJECT = String.raw`\b(?:your|this|that|the|such an?)\s+(?:[^\s,;:�
 /** Adverbs that do not change a usury claim ("is clearly not usurious", "won't actually violate"). */
 const USURY_ADVERB = String.raw`(?:fully|likely|probably|generally|automatically|clearly|also|even|actually|definitely|certainly|really|technically|legally)`;
 
-/** Kubera, or "our team / staff / desk ..." speaking for it. */
-const KUBERA_SUBJECT = String.raw`(?:we|kubera(?: commercial)?|our (?:team|staff|desk|advisors?|brokers?|office|firm|people))(?:'ll|’ll)?`;
+/** Corin, or "our team / staff / desk ..." speaking for it. */
+const CORIN_SUBJECT = String.raw`(?:we|corin(?: commercial)?|our (?:team|staff|desk|advisors?|brokers?|office|firm|people))(?:'ll|’ll)?`;
 /** Up to two modifier tokens before a noun ("the construction draws", "your monthly payments"). */
 const MODIFIERS = String.raw`(?:[\w'’$%.-]+\s+){0,2}`;
 /** A count of days, weeks or hours ("14 days", "two weeks", "10–21 days"). */
@@ -104,8 +104,8 @@ const LOAN_OR_HERE_REF = new RegExp(String.raw`${LOAN_REF.source}|\bhere\b(?!['�
 const NEG_VERB = String.raw`(?:doesn't|doesn’t|does not|don't|don’t|do not|won't|won’t|will not|wouldn't|wouldn’t|would not|isn't|isn’t|is not|aren't|aren’t|are not|shouldn't|shouldn’t|should not)`;
 /** What the negated verb says usury does not do. */
 const NOT_APPLY_PREDICATE = String.raw`(?:apply|be\s+an?\s+(?:\w+\s+)?(?:issue|concern|problem|factor|obstacle|risk)|an?\s+(?:issue|concern|problem|factor)|limit|restrict|reach|cover|govern|matter)\b`;
-/** A broker or "Kubera arranged it" reason: the §1916.1 claim applied to a loan. */
-const BROKER_WORD = String.raw`\b(?:brokers?|brokered|kubera|arrang(?:e|es|ed|ing))\b`;
+/** A broker or "Corin arranged it" reason: the §1916.1 claim applied to a loan. */
+const BROKER_WORD = String.raw`\b(?:brokers?|brokered|corin|arrang(?:e|es|ed|ing))\b`;
 const BROKER_REF = new RegExp(BROKER_WORD, "i");
 /** A causal lead-in ("because", "since", "as", "with a licensed broker ..."). */
 const CAUSE = String.raw`\b(?:since|because|as|given that|now that|thanks to)\b`;
@@ -125,11 +125,11 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   R("commitment.loan-approved", "commitment", "Says the loan or application is approved or funded", /\b(?:your|the|this|that) (?:loan|application|file|deal|request|financing)\s+(?:is|has been|was|will be|has now been)\s+(?:now |already |officially |fully |pre-?)?(?:approved|funded|committed|cleared)\b/i),
   R("commitment.will-be-approved", "commitment", "Predicts approval as certain", new RegExp(`\\b${YOU}\\s+(?:will|are going to|is going to|are certain to|is certain to|definitely will|will definitely|will certainly)\\s+(?:definitely |certainly |surely )?(?:be |get |receive )?(?:approved|funded|financed)\\b`, "i")),
   R("commitment.you-qualify", "commitment", "Tells the borrower they qualify", /\byou(?:'re|’re| are)\s+(?:definitely |already |certainly |clearly )?(?:pre-?)?qualified\s+(?:for|to)\b|\byou(?:'ve|’ve| have| has)\s+(?:now\s+|already\s+|officially\s+|definitely\s+)?(?:been\s+)?(?:now\s+|already\s+|officially\s+|definitely\s+)?(?:pre-?)?qualified\s+(?:for|to)\b|\byou\s+(?:(?:will|definitely|certainly|clearly)\s+)+qualify\b|\byou\s+(?:now\s+|already\s+|also\s+|easily\s+)?qualify\s+for\b/i),
-  R("commitment.we-guarantee", "commitment", "Guarantees an outcome", /\b(?:we|kubera|i)\s+(?:can |will |do |hereby )?(?:guarantee|promise|assure|ensure|commit to)\b/i),
+  R("commitment.we-guarantee", "commitment", "Guarantees an outcome", /\b(?:we|corin|i)\s+(?:can |will |do |hereby )?(?:guarantee|promise|assure|ensure|commit to)\b/i),
   R("commitment.guaranteed-outcome", "commitment", "Guaranteed approval, funding or financing", /\b(?:guaranteed|assured|100%|certain) (?:approval|funding|financing|closing|loan|rate|terms)\b|\b(?:approval|funding|financing|closing)\s+(?:is|are|will be)\s+(?:guaranteed|assured|certain)\b/i),
-  R("commitment.rate-lock", "commitment", "Says a rate is locked or guaranteed", /\byour (?:rate|pricing|terms)\s+(?:is|are|has been|have been|will be)\s+(?:locked|guaranteed|fixed|set)\b|\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:lock|secure)\s+(?:in\s+)?(?:a |your |the )?(?:rate|pricing|terms)\b/i),
+  R("commitment.rate-lock", "commitment", "Says a rate is locked or guaranteed", /\byour (?:rate|pricing|terms)\s+(?:is|are|has been|have been|will be)\s+(?:locked|guaranteed|fixed|set)\b|\b(?:we|corin)(?:'ll|’ll| will| can)\s+(?:lock|secure)\s+(?:in\s+)?(?:a |your |the )?(?:rate|pricing|terms)\b/i),
   R("commitment.will-fund", "commitment", "Says a lender will definitely fund or approve", /\b(?:will|would)\s+(?:definitely|certainly|absolutely|surely)\s+(?:fund|lend|approve|close|offer|issue)\b|\b(?:lender|bank|fund)\s+(?:has|have)\s+(?:agreed|committed)\s+to\s+(?:fund|lend|finance)\b/i),
-  R("commitment.we-will-get-you", "commitment", "Promises to get the borrower a loan", /\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:definitely |certainly |absolutely )?get you\s+(?:approved|funded|financed|a loan|the loan|the financing)\b/i),
+  R("commitment.we-will-get-you", "commitment", "Promises to get the borrower a loan", /\b(?:we|corin)(?:'ll|’ll| will| can)\s+(?:definitely |certainly |absolutely )?get you\s+(?:approved|funded|financed|a loan|the loan|the financing)\b/i),
 
   // --- legal / tax advice -----------------------------------------------------------
   R("legal.legally-must", "legal_advice", "States what the borrower must or may do under the law", /\b(?:legally|by law|under (?:the )?(?:law|statute))\s*,?\s*you\s+(?:must|do not have to|don't have to|don’t have to|are not required|aren't required|are required|can|cannot|can't|need to|may|are allowed|are not allowed)\b/i, { negatable: false }),
@@ -174,17 +174,17 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   R(
     "usury.broker-reason",
     "usury_exemption",
-    "Says usury does not apply because a broker or Kubera arranged the loan",
+    "Says usury does not apply because a broker or Corin arranged the loan",
     new RegExp(String.raw`\busury\b[^.]{0,60}?\b${NEG_VERB}\s+(?:${USURY_ADVERB}\s+)?${NOT_APPLY_PREDICATE}[^.]{0,60}?${CAUSE}[^.]{0,60}?${BROKER_WORD}`, "i"),
     { negateInside: false },
   ),
-  // The same claim with the reason first: "Because Kubera arranged it, usury doesn't apply." The
+  // The same claim with the reason first: "Because Corin arranged it, usury doesn't apply." The
   // reason sits in a lookbehind so a disclaimer in the main clause ("..., I can't say usury
   // doesn't apply") still clears it.
   R(
     "usury.broker-reason-first",
     "usury_exemption",
-    "Says usury does not apply, after giving a broker or Kubera reason",
+    "Says usury does not apply, after giving a broker or Corin reason",
     new RegExp(String.raw`(?<=\b(?:since|because|given that|now that|with)\b[^.]{0,60}?${BROKER_WORD}[^.]{0,60}?)\busury\b[^.]{0,60}?\b${NEG_VERB}\s+(?:${USURY_ADVERB}\s+)?${NOT_APPLY_PREDICATE}`, "i"),
     { negateInside: false },
   ),
@@ -199,7 +199,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     ),
     { negateInside: false },
   ),
-  // "Your lender can charge more than 10% because we're brokers." / "Because Kubera arranged it,
+  // "Your lender can charge more than 10% because we're brokers." / "Because Corin arranged it,
   // the lender can charge 14% legally."
   R(
     "usury.lender-can-charge",
@@ -216,11 +216,11 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     /\b(?:there(?:'s|’s| is| are| will be)\s+)?no\s+(?:usury\s+|interest[- ]rate\s+|rate\s+|legal\s+)?(?:caps?|limits?|ceilings?)\s+on\s+(?:what|how much|the rate|your rate|the interest|your interest)\b/i,
     { negateInside: false, requires: BROKER_REF },
   ),
-  // "Your rate of 13% is permissible because Kubera arranged the loan."
+  // "Your rate of 13% is permissible because Corin arranged the loan."
   R(
     "usury.permitted-because-broker",
     "usury_exemption",
-    "Says a rate is permitted because a broker or Kubera arranged the loan",
+    "Says a rate is permitted because a broker or Corin arranged the loan",
     new RegExp(
       String.raw`\b(?:is|are|would be|will be|becomes?)\s+(?:${USURY_ADVERB}\s+)?(?:permissible|permitted|allowed|legal|lawful|fine|ok|okay|acceptable)\s+(?:here\s+)?${CAUSE}[^.]{0,60}?${BROKER_WORD}`,
       "i",
@@ -272,7 +272,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     ),
     { negateInside: false, requires: LOAN_REF },
   ),
-  // "Your bridge loan can exceed the usury cap because Kubera is a licensed broker."
+  // "Your bridge loan can exceed the usury cap because Corin is a licensed broker."
   R(
     "usury.can-exceed-cap",
     "usury_exemption",
@@ -333,7 +333,7 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     "guaranteed_timeline",
     "States a closing or funding time as a fact",
     new RegExp(
-      String.raw`\b(?:(?:your|the|this) (?:loan|deal|financing|bridge|refinance)|we|kubera|funding|closing|you(?:'ll|’ll|\s+(?:can|should|will|could|may))?)\s+(?:(?:closes?|funds?)(?:\s+(?:(?:your|the|most|all|these|our|such)\s+)?(?:[\w-]+\s+)?(?:loans?|deals?|financing|bridges?|it|them))?|takes|(?:will |can )?expects?\s+(?:to close|to fund|to be funded|funding|closing|to have (?:funding|the funds))|(?:is|are) (?:done|complete|completed|finished))\s+(?:(?:in|within)\s+)?${DURATION}`,
+      String.raw`\b(?:(?:your|the|this) (?:loan|deal|financing|bridge|refinance)|we|corin|funding|closing|you(?:'ll|’ll|\s+(?:can|should|will|could|may))?)\s+(?:(?:closes?|funds?)(?:\s+(?:(?:your|the|most|all|these|our|such)\s+)?(?:[\w-]+\s+)?(?:loans?|deals?|financing|bridges?|it|them))?|takes|(?:will |can )?expects?\s+(?:to close|to fund|to be funded|funding|closing|to have (?:funding|the funds))|(?:is|are) (?:done|complete|completed|finished))\s+(?:(?:in|within)\s+)?${DURATION}`,
       "i",
     ),
     { unlessUnit: TIMELINE_HEDGE },
@@ -381,28 +381,28 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
     { unlessUnit: TIMELINE_HEDGE },
   ),
   R("timeline.closing-certain", "guaranteed_timeline", "Says closing is certain or fixed", /\b(?:closing|close|funding)(?: date| timeline)?\s+(?:is|will be)\s+(?:guaranteed|assured|certain|locked in|fixed|firm)\b/i),
-  R("timeline.get-you-closed", "guaranteed_timeline", "Promises a closing date", /\b(?:we|kubera)(?:'ll|’ll| will| can)\s+(?:definitely |certainly )?(?:get|have)\s+(?:you|your (?:loan|deal|financing))\s+(?:closed|funded)\s+(?:in|within|by|before)\b/i),
+  R("timeline.get-you-closed", "guaranteed_timeline", "Promises a closing date", /\b(?:we|corin)(?:'ll|’ll| will| can)\s+(?:definitely |certainly )?(?:get|have)\s+(?:you|your (?:loan|deal|financing))\s+(?:closed|funded)\s+(?:in|within|by|before)\b/i),
 
   // --- broker-only role (Global rule 1) --------------------------------------------------
-  R("role.kubera-lends", "broker_role", "Presents Kubera as the lender, originator or servicer", /\b(?:we|kubera(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|kubera(?: commercial)?)(?:'ll|’ll|['’]d|['’]re)?\s+(?:(?:can|could|will|would|may|might|shall|should|also|directly|ourselves|itself|happily|sometimes|then)\s+)*(?:are|is|be|acts? as|serves? as|step in as|stand in as|be acting as|be serving as)\s+(?:the |your |a |an |its own |our own )?(?:direct |actual |private )?(?:lender|originator|servicer|beneficiary)\b|\bwe(?:'re|’re)\s+(?:also\s+)?(?:the |your |a )(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
+  R("role.corin-lends", "broker_role", "Presents Corin as the lender, originator or servicer", /\b(?:we|corin(?: commercial)?)(?:'ll|’ll)?\s+(?:will |can |would |also |directly |ourselves )?(?:fund|lend|originate|service|underwrite and fund)s?\b|\b(?:we|corin(?: commercial)?)(?:'ll|’ll|['’]d|['’]re)?\s+(?:(?:can|could|will|would|may|might|shall|should|also|directly|ourselves|itself|happily|sometimes|then)\s+)*(?:are|is|be|acts? as|serves? as|step in as|stand in as|be acting as|be serving as)\s+(?:the |your |a |an |its own |our own )?(?:direct |actual |private )?(?:lender|originator|servicer|beneficiary)\b|\bwe(?:'re|’re)\s+(?:also\s+)?(?:the |your |a )(?:direct )?(?:lender|originator|servicer|beneficiary)\b|\bour (?:own )?(?:balance sheet|lending (?:arm|program)|loan fund)\b/i),
   R(
     "role.holds-funds",
     "broker_role",
-    "Says Kubera holds, receives or disburses money",
+    "Says Corin holds, receives or disburses money",
     new RegExp(
       // "proof of funds" is a document, and "payment history / terms" are information, not money.
-      String.raw`\b${KUBERA_SUBJECT}\s+(?:will |can |would |also )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+${MODIFIERS}(?<!\bof\s)(?:deposits?|funds|money|earnest|payments?|escrow|proceeds|draws?|retainers?)\b(?!\s+(?:history|terms?|schedules?|information|info|details|records?|options|structure|calculations?|estimates?|amounts?|letters?|statements?))|` +
-        String.raw`\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|kubera(?: commercial)?)\b|\bto (?:our|kubera's|kubera’s) (?:trust|escrow|client|bank) account\b`,
+      String.raw`\b${CORIN_SUBJECT}\s+(?:will |can |would |also )?(?:hold|collect|accept|receive|disburse|release|escrow|wire)s?\s+${MODIFIERS}(?<!\bof\s)(?:deposits?|funds|money|earnest|payments?|escrow|proceeds|draws?|retainers?)\b(?!\s+(?:history|terms?|schedules?|information|info|details|records?|options|structure|calculations?|estimates?|amounts?|letters?|statements?))|` +
+        String.raw`\b(?:send|wire|deposit|transfer)\b[^.]{0,40}\bto (?:us|corin(?: commercial)?)\b|\bto (?:our|corin's|corin’s) (?:trust|escrow|client|bank) account\b`,
       "i",
     ),
   ),
   R(
     "role.draws",
     "broker_role",
-    "Says Kubera manages or processes construction draws",
+    "Says Corin manages or processes construction draws",
     new RegExp(
-      String.raw`\b${KUBERA_SUBJECT}\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee|disburse|release|order|run|schedule|coordinate)(?:s|es)?\s+${MODIFIERS}(?:draws?|draw (?:process|inspections?|requests?|schedules?|funding|disbursements?))\b|` +
-        String.raw`\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|kubera)\b`,
+      String.raw`\b${CORIN_SUBJECT}\s+(?:will |can |also )?(?:process|manage|handle|inspect|review|approve|fund|service|administer|oversee|disburse|release|order|run|schedule|coordinate)(?:s|es)?\s+${MODIFIERS}(?:draws?|draw (?:process|inspections?|requests?|schedules?|funding|disbursements?))\b|` +
+        String.raw`\bdraw (?:inspections?|servicing|pre-?checks?)\s+(?:are|is) (?:included|handled|provided) (?:by|with) (?:us|corin)\b`,
       "i",
     ),
   ),
@@ -413,19 +413,19 @@ export const GUARDRAIL_RULES: readonly GuardrailRule[] = [
   // --- prohibited copy (Global rule 4) ----------------------------------------------------------
   R("copy.fees-protected", "prohibited_copy", "Claims fees are protected", /\bfees?\s+(?:are |is |will be |remain |stay )?protected\b|\bprotected fees?\b/i),
   R("copy.call-today", "prohibited_copy", "Promises a call today", /\b(?:will|'ll|’ll)\s+call you (?:today|within the hour|right away|this afternoon)\b/i),
-  R("copy.autonomous", "prohibited_copy", "Describes Kubera as autonomous", /\b(?:kubera|our (?:ai|advisor|platform|system)|the (?:ai|system|platform))\b[^.]{0,40}\bautonomous(?:ly)?\b|\bfully autonomous\b|\bautonomous (?:ai |lending |underwriting |advisor)/i),
+  R("copy.autonomous", "prohibited_copy", "Describes Corin as autonomous", /\b(?:corin|our (?:ai|advisor|platform|system)|the (?:ai|system|platform))\b[^.]{0,40}\bautonomous(?:ly)?\b|\bfully autonomous\b|\bautonomous (?:ai |lending |underwriting |advisor)/i),
 ];
 
 /** What replaces a unit that tripped a rule. Fixed text, written to comply with Global rules 1 and 4. */
 export const SAFE_REPLACEMENTS: Record<GuardrailCategory, string> = {
-  commitment: "Kubera can't promise approval, pricing, a rate lock or a particular lender; everything here is indicative and subject to lender underwriting.",
+  commitment: "Corin can't promise approval, pricing, a rate lock or a particular lender; everything here is indicative and subject to lender underwriting.",
   legal_advice: "That is a legal or tax question, so please confirm it with your own attorney or CPA.",
   usury_exemption:
-    "Whether any California usury exemption applies depends on the lender, the collateral and how the loan is arranged, so please confirm it with your attorney; Kubera can't say that a specific loan is exempt.",
+    "Whether any California usury exemption applies depends on the lender, the collateral and how the loan is arranged, so please confirm it with your attorney; Corin can't say that a specific loan is exempt.",
   guaranteed_timeline: "Timing depends on the program, lender approval, appraisal, title and diligence after a complete file, and it is not guaranteed.",
-  broker_role: "Kubera is a licensed California real estate broker, not a lender: it arranges financing, and it doesn't fund loans, hold money, service loans or handle construction draws.",
-  disclosure_waiver: "California requires a Mortgage Loan Disclosure Statement (RE 882) on loans Kubera arranges that are secured by real property; your advisor will confirm what applies to your loan.",
-  prohibited_copy: "A Kubera advisor reviews every engagement and can walk you through fees and next steps; Kubera's service is advisor-led and AI-assisted.",
+  broker_role: "Corin is a licensed California real estate broker, not a lender: it arranges financing, and it doesn't fund loans, hold money, service loans or handle construction draws.",
+  disclosure_waiver: "California requires a Mortgage Loan Disclosure Statement (RE 882) on loans Corin arranges that are secured by real property; your advisor will confirm what applies to your loan.",
+  prohibited_copy: "A Corin advisor reviews every engagement and can walk you through fees and next steps; Corin's service is advisor-led and AI-assisted.",
 };
 
 export type GuardrailViolation = {

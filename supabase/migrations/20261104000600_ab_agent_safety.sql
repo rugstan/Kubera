@@ -12,7 +12,7 @@
 --                            for MLDS, Form 159, lender submissions and fee
 --                            quotes, bound to the approval and its payload hash.
 --
--- Nothing here models funds: Kubera brokers loans and never holds or moves money.
+-- Nothing here models funds: Corin brokers loans and never holds or moves money.
 -- RLS is enabled with no policies: only the service role reads or writes.
 
 -- Agent events -------------------------------------------------------------------------------

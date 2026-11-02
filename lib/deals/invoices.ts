@@ -1,5 +1,5 @@
-// Invoices for Kubera's own broker compensation, built from earned ledger
-// entries. Kubera does not collect payment through the site: an invoice is
+// Invoices for Corin's own broker compensation, built from earned ledger
+// entries. Corin does not collect payment through the site: an invoice is
 // settled when the lender's closing statement shows the compensation paid
 // through escrow / title (recorded with the closing statement reference).
 // Issuing (emailing) an invoice is an outbound action and goes through the
@@ -13,7 +13,7 @@ import type { DealDeskStore } from "./store";
 import type { Clock, Invoice } from "./types";
 
 export const INVOICE_TEMPLATE_ID = "broker_compensation_invoice_v1";
-export const INVOICE_TERMS = "Payable at closing through the escrow or title company as shown on the lender's closing statement. Kubera Commercial, Inc. does not accept payment of loan funds and never holds borrower or lender funds.";
+export const INVOICE_TERMS = "Payable at closing through the escrow or title company as shown on the lender's closing statement. Corin Commercial, Inc. does not accept payment of loan funds and never holds borrower or lender funds.";
 
 export class InvoiceError extends Error {
   constructor(message: string) {
@@ -30,7 +30,7 @@ export async function createInvoice(
   const entries = (await deps.store.listFeeEntries(input.dealId)).filter((e) => input.feeEntryIds.includes(e.id));
   if (entries.length !== new Set(input.feeEntryIds).size) throw new InvoiceError("Every entry must belong to this deal");
   for (const e of entries) {
-    if (e.payee !== "kubera") throw new InvoiceError(`${e.description}: Kubera invoices only compensation it receives`);
+    if (e.payee !== "corin") throw new InvoiceError(`${e.description}: Corin invoices only compensation it receives`);
     if (e.status !== "earned") throw new InvoiceError(`${e.description} is ${e.status}; only earned entries can be invoiced`);
     if (e.payer !== input.billTo.kind) throw new InvoiceError(`${e.description} is paid by the ${e.payer}, not the ${input.billTo.kind}`);
   }
@@ -123,7 +123,7 @@ export async function issueInvoice(
     const invoice = await deps.store.updateInvoice(inv.id, { status, approvalKey: key, approvalId }, actor, now);
     return { issued: false, invoice, decision };
   }
-  await deps.mailer.send({ to: inv.billToEmail, subject: `Kubera Commercial invoice ${inv.number}`, text, idempotencyKey: key });
+  await deps.mailer.send({ to: inv.billToEmail, subject: `Corin Commercial invoice ${inv.number}`, text, idempotencyKey: key });
   const invoice = await deps.store.updateInvoice(inv.id, { status: "issued", issuedAt: now.toISOString(), approvalKey: key, approvalId: decision.approvalId }, actor, now);
   return { issued: true, invoice, decision };
 }

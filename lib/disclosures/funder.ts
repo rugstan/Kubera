@@ -1,7 +1,7 @@
 // Funder disclosure: tells the borrower who the lender of record is, that
-// Kubera is the broker and not the lender, how loan funds flow (lender to
-// escrow — Kubera never receives, holds or disburses them) and what the lender
-// pays Kubera. Deals that name Kubera as lender, originator or beneficiary are
+// Corin is the broker and not the lender, how loan funds flow (lender to
+// escrow — Corin never receives, holds or disburses them) and what the lender
+// pays Corin. Deals that name Corin as lender, originator or beneficiary are
 // held for counsel instead of disclosed.
 
 import { z } from "zod";
@@ -9,8 +9,9 @@ import { lenderCategories } from "@/lib/compliance/schemas";
 import { site } from "@/lib/site";
 import { DRAFT_NOTICE, formatUsd, mldsTemplateApproved, type DocumentSpec } from "./mlds";
 
-export const FUNDER_TEMPLATE_VERSION = "kubera-funder-2026.11";
-const KUBERA_NAME = /\bkubera\b/i;
+export const FUNDER_TEMPLATE_VERSION = "corin-funder-2026.11";
+// Same pattern as CORIN_NAME in lib/compliance/schemas.ts: the current and former firm names.
+const CORIN_NAME = /\b(?:corin|kubera)\b/i;
 
 export const funderDisclosureSchema = z.object({
   preparedOn: z.iso.date(),
@@ -24,7 +25,7 @@ export const funderDisclosureSchema = z.object({
   /** Who is named as beneficiary on the deed of trust (normally the lender of record). */
   beneficiaryName: z.string().trim().min(1).max(160),
   tableFunded: z.boolean().default(false),
-  /** Compensation the lender pays Kubera (also shown on the MLDS). */
+  /** Compensation the lender pays Corin (also shown on the MLDS). */
   lenderPaidCompensationUsd: z.number().finite().min(0),
   /** Escrow or title company that receives and disburses loan funds. */
   escrowAgent: z.string().trim().min(1).max(160),
@@ -38,10 +39,10 @@ export type FunderReview = { ok: boolean; heldForCounsel: boolean; reasons: stri
 export function reviewFunderDisclosure(input: FunderDisclosureInput): FunderReview {
   const d = funderDisclosureSchema.parse(input);
   const reasons: string[] = [];
-  if (KUBERA_NAME.test(d.lenderOfRecord.name)) reasons.push("Kubera cannot be the lender of record.");
-  if (KUBERA_NAME.test(d.beneficiaryName)) reasons.push("Kubera cannot be the trust-deed beneficiary.");
-  if (d.tableFunded && (KUBERA_NAME.test(d.lenderOfRecord.name) || KUBERA_NAME.test(d.beneficiaryName))) reasons.push("Table funding in Kubera's name requires counsel review (B&P §10234).");
-  if (KUBERA_NAME.test(d.escrowAgent)) reasons.push("Kubera never receives or disburses loan funds; an independent escrow agent is required.");
+  if (CORIN_NAME.test(d.lenderOfRecord.name)) reasons.push("Corin cannot be the lender of record.");
+  if (CORIN_NAME.test(d.beneficiaryName)) reasons.push("Corin cannot be the trust-deed beneficiary.");
+  if (d.tableFunded && (CORIN_NAME.test(d.lenderOfRecord.name) || CORIN_NAME.test(d.beneficiaryName))) reasons.push("Table funding in Corin's name requires counsel review (B&P §10234).");
+  if (CORIN_NAME.test(d.escrowAgent)) reasons.push("Corin never receives or disburses loan funds; an independent escrow agent is required.");
   return { ok: reasons.length === 0, heldForCounsel: reasons.length > 0, reasons };
 }
 
@@ -66,14 +67,14 @@ export function funderDocument(input: FunderDisclosureInput, opts: { approved?: 
           { label: "Deed of trust beneficiary", value: d.beneficiaryName },
           { label: "Table funded", value: d.tableFunded ? "Yes" : "No" },
           { label: "Escrow / title agent handling funds", value: d.escrowAgent },
-          { label: "Compensation the lender pays Kubera", value: formatUsd(d.lenderPaidCompensationUsd) },
+          { label: "Compensation the lender pays Corin", value: formatUsd(d.lenderPaidCompensationUsd) },
         ],
       },
       {
-        title: "Kubera's role",
+        title: "Corin's role",
         paragraphs: [
           `${site.legalName} is a licensed California real estate broker that arranges this loan. It is not the lender, does not fund the loan, and is not the beneficiary of the deed of trust.`,
-          "Loan funds move from the lender to the escrow or title agent named above. Kubera does not receive, hold, transfer or disburse loan funds, and has no role in construction draws or loan servicing.",
+          "Loan funds move from the lender to the escrow or title agent named above. Corin does not receive, hold, transfer or disburse loan funds, and has no role in construction draws or loan servicing.",
           "This is not a loan commitment. Terms are subject to the lender's underwriting and final approval.",
         ],
       },

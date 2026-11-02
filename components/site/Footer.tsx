@@ -42,7 +42,7 @@ const COLUMNS: { title: string; links: readonly NavLink[] }[] = [
   {
     title: "Company",
     links: [
-      { href: "/about", label: "About Kubera" },
+      { href: "/about", label: "About Corin" },
       { href: "/team", label: "Our advisors" },
       { href: "/track-record", label: "Track record" },
       { href: "/structures", label: "Representative structures" },
@@ -52,7 +52,7 @@ const COLUMNS: { title: string; links: readonly NavLink[] }[] = [
   {
     title: "Partners",
     links: [
-      { href: "/partners", label: "Partner with Kubera" },
+      { href: "/partners", label: "Partner with Corin" },
       { href: "/partners#lender", label: "Wholesale lenders" },
       { href: "/partners#referral", label: "Referral brokers" },
       { href: "/partners#operator", label: "Operators" },
@@ -150,7 +150,7 @@ export function Footer() {
           <p className="font-medium text-graphite">{licenseLine()}</p>
           <p>{disclosures.indicative}</p>
           <p>
-            © <Year /> {site.legalName} HUD, FHA, and SBA program names are used descriptively; Kubera Commercial is not affiliated with or endorsed by any government agency. Equal Housing Opportunity.
+            © <Year /> {site.legalName} HUD, FHA, and SBA program names are used descriptively; Corin Commercial is not affiliated with or endorsed by any government agency. Equal Housing Opportunity.
           </p>
         </div>
         {/*

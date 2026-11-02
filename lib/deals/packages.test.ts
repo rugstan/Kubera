@@ -12,7 +12,7 @@ import { syncDealHoldStatus } from "./holds";
 import { advanceDeal } from "./service";
 import { docs, lenderInput, newDeal, noHolds, setup } from "./test-fixtures";
 
-const base = "https://kuberacommercial.com";
+const base = "https://corincommercial.com";
 
 function mailer(): LenderMailer & { sent: { to: string; text: string; idempotencyKey: string }[] } {
   const sent: { to: string; text: string; idempotencyKey: string }[] = [];
@@ -110,7 +110,7 @@ describe("package lock and version on send", () => {
     const { store, gate, now, deal, lender } = await world();
     const r = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
     expect(r.outreach.status).toBe("approved");
-    expect(r.shareUrl).toMatch(/^https:\/\/kuberacommercial\.com\/api\/deals\/share\/[A-Za-z0-9_-]{43}$/);
+    expect(r.shareUrl).toMatch(/^https:\/\/corincommercial\.com\/api\/deals\/share\/[A-Za-z0-9_-]{43}$/);
     const token = r.shareUrl!.split("/").pop()!;
     const link = [...store.links.values()][0]!;
     expect(link.tokenHash).toBe(hashShareToken(token));

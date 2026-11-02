@@ -233,7 +233,7 @@ export class CslbPublicLookup implements ContractorLicenseLookup {
     let res: Response;
     try {
       res = await this.fetchImpl(url, {
-        headers: { Accept: "text/html", "User-Agent": "KuberaCommercial-LicenseCheck/1.0 (+https://kuberacommercial.com)" },
+        headers: { Accept: "text/html", "User-Agent": "CorinCommercial-LicenseCheck/1.0 (+https://corincommercial.com)" },
         signal: AbortSignal.timeout(this.timeoutMs),
         cache: "no-store",
       });

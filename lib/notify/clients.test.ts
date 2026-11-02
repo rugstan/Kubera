@@ -14,7 +14,7 @@ const res = (body: unknown, status = 200) => new Response(typeof body === "strin
 describe("Resend client", () => {
   it("posts the email with bearer auth, an idempotency key and the default reply-to", async () => {
     const fetchMock = vi.fn(async (..._args: Parameters<typeof fetch>) => res({ id: "re_123" }));
-    const client = new ResendEmailClient({ apiKey: "re_key", from: "Kubera Commercial <notifications@notify.kuberacommercial.com>", replyTo: "deals@kuberacommercial.com", fetch: fetchMock as typeof fetch });
+    const client = new ResendEmailClient({ apiKey: "re_key", from: "Corin Commercial <notifications@notify.corincommercial.com>", replyTo: "deals@corincommercial.com", fetch: fetchMock as typeof fetch });
     const out = await client.send({ to: "pat@example.com", subject: "Hi", html: "<p>Hi</p>", text: "Hi", idempotencyKey: "lead-confirmation:1", tags: { template: "lead_confirmation" } });
     expect(out.providerMessageId).toBe("re_123");
 
@@ -24,9 +24,9 @@ describe("Resend client", () => {
     expect(headers.authorization).toBe("Bearer re_key");
     expect(headers["idempotency-key"]).toBe("lead-confirmation:1");
     expect(JSON.parse(init.body as string)).toMatchObject({
-      from: "Kubera Commercial <notifications@notify.kuberacommercial.com>",
+      from: "Corin Commercial <notifications@notify.corincommercial.com>",
       to: ["pat@example.com"],
-      reply_to: "deals@kuberacommercial.com",
+      reply_to: "deals@corincommercial.com",
       tags: [{ name: "template", value: "lead_confirmation" }],
     });
   });
@@ -63,7 +63,7 @@ describe("Resend client", () => {
 
   it("is configured only when RESEND_API_KEY is set", () => {
     expect(resendConfigFromEnv({})).toBeNull();
-    expect(resendConfigFromEnv({ RESEND_API_KEY: "k" })).toMatchObject({ from: expect.stringContaining("notify.kuberacommercial.com"), replyTo: "deals@kuberacommercial.com" });
+    expect(resendConfigFromEnv({ RESEND_API_KEY: "k" })).toMatchObject({ from: expect.stringContaining("notify.corincommercial.com"), replyTo: "deals@corincommercial.com" });
     expect(resendConfigFromEnv({ RESEND_API_KEY: "k", RESEND_FROM: "X <x@notify.example.com>", NOTIFY_REPLY_TO: "r@example.com" })).toMatchObject({ from: "X <x@notify.example.com>", replyTo: "r@example.com" });
   });
 });
@@ -146,18 +146,18 @@ describe("Twenty opt-out sink", () => {
 
 describe("Cal.com booking link", () => {
   it("builds the link from a handle with prefill and attribution", () => {
-    const url = new URL(bookingLink({ name: "Pat Lee", email: "pat@example.com", campaign: "lead-confirmation" }, "kubera/intro") as string);
-    expect(url.origin + url.pathname).toBe("https://cal.com/kubera/intro");
+    const url = new URL(bookingLink({ name: "Pat Lee", email: "pat@example.com", campaign: "lead-confirmation" }, "corin/intro") as string);
+    expect(url.origin + url.pathname).toBe("https://cal.com/corin/intro");
     expect(url.searchParams.get("name")).toBe("Pat Lee");
     expect(url.searchParams.get("email")).toBe("pat@example.com");
-    expect(url.searchParams.get("utm_source")).toBe("kubera");
+    expect(url.searchParams.get("utm_source")).toBe("corin");
   });
 
   it("accepts a full cal.com URL and rejects other hosts, other schemes and junk", () => {
-    expect(calcomBaseUrl("https://cal.com/kubera/intro/")).toBe("https://cal.com/kubera/intro");
+    expect(calcomBaseUrl("https://cal.com/corin/intro/")).toBe("https://cal.com/corin/intro");
     expect(calcomBaseUrl("https://team.cal.com/intro")).toBe("https://team.cal.com/intro");
-    expect(calcomBaseUrl("https://evil.example.com/kubera")).toBeNull();
-    expect(calcomBaseUrl("http://cal.com/kubera")).toBeNull();
+    expect(calcomBaseUrl("https://evil.example.com/corin")).toBeNull();
+    expect(calcomBaseUrl("http://cal.com/corin")).toBeNull();
     expect(calcomBaseUrl("javascript:alert(1)")).toBeNull();
     expect(calcomBaseUrl("a/../../b")).toBeNull();
   });

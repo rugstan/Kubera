@@ -52,5 +52,5 @@ DocumentRequest.PreviewProps = {
   firstName: "Pat",
   items: ["Trailing 12-month operating statement", "Current rent roll"],
   uploadUrl: null,
-  contactEmail: "deals@kuberacommercial.com",
+  contactEmail: "deals@corincommercial.com",
 } satisfies DocumentRequestProps;

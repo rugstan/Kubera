@@ -45,7 +45,7 @@ describe("broker-of-record file", () => {
     const row = brokerOfRecordRow({ ...loan, elements: { ...elements, officerApproval: undefined } });
     expect(row).toMatchObject({
       record_kind: "loan",
-      arranged_by: "kubera",
+      arranged_by: "corin",
       parent_id: null,
       lender_category: "PRIVATE_NON_EXEMPT",
       collateral_real_property_lien: true,
@@ -58,6 +58,6 @@ describe("broker-of-record file", () => {
   });
 
   it("requires a parent loan for modifications", () => {
-    expect(() => evaluateBrokerOfRecord({ ...loan, recordKind: "modification", effectiveDate: "2026-06-01", arrangedBy: "kubera" } as unknown as BrokerOfRecordInput)).toThrow();
+    expect(() => evaluateBrokerOfRecord({ ...loan, recordKind: "modification", effectiveDate: "2026-06-01", arrangedBy: "corin" } as unknown as BrokerOfRecordInput)).toThrow();
   });
 });

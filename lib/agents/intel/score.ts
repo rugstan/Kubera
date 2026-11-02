@@ -10,8 +10,8 @@
 //                         owner is not thinking about it
 //   Loan size         15  broker-sized deals; very large loans go to an
 //                         institutional channel
-//   Property fit      20  property types Kubera's programs are built for
-//   Geography         10  Kubera is a California DRE broker
+//   Property fit      20  property types Corin's programs are built for
+//   Geography         10  Corin is a California DRE broker
 //   Rate pressure     12  distance between the recorded note rate and today's
 //                         market (payment shock or savings both create motion)
 //   Loan vintage       8  5 to 10 year balloons and bridge terms are the

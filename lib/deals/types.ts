@@ -2,7 +2,7 @@
 // outreach, modifications, Form 159 and DRE reporting. Money is integer cents
 // everywhere (no floating-point sums on compensation).
 //
-// Broker only (Global rule 1): every amount here is Kubera's own compensation
+// Broker only (Global rule 1): every amount here is Corin's own compensation
 // (or a co-broker / referral partner's share of it) as recorded on the lender's
 // closing statement. Nothing models holding, moving or paying out loan funds.
 
@@ -219,8 +219,8 @@ export const FEE_ENTRY_LABELS: Record<FeeEntryKind, string> = {
   co_broker_split: "Co-broker split",
 };
 
-export type FeePayer = "borrower" | "lender" | "kubera";
-export type FeePayee = "kubera" | "co_broker" | "referral_partner";
+export type FeePayer = "borrower" | "lender" | "corin";
+export type FeePayee = "corin" | "co_broker" | "referral_partner";
 export type FeeBasis = "flat" | "percent_of_loan" | "points" | "percent_of_lender_fee";
 export const feeStatuses = ["projected", "earned", "invoiced", "settled", "void"] as const;
 export type FeeStatus = (typeof feeStatuses)[number];
@@ -341,8 +341,8 @@ export type LoanBrokerOfRecord = {
   elements: BrokerOfRecordElements;
   tableFunded?: boolean;
   trueFundingSource?: string;
-  tableFundedInKuberaName: boolean;
-  /** Names as written on the deed of trust and the note; a document naming Kubera holds the deal for counsel. */
+  tableFundedInCorinName: boolean;
+  /** Names as written on the deed of trust and the note; a document naming Corin holds the deal for counsel. */
   deedBeneficiaryName?: string;
   originatorName?: string;
   transactionDate: string;

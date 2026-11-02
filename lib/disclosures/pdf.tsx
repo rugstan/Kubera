@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
 
 function DisclosurePdf({ doc }: { doc: DocumentSpec }) {
   return (
-    <Document title={doc.title} author="Kubera Commercial, Inc." subject={doc.subtitle} creator="Kubera Commercial" producer="Kubera Commercial">
+    <Document title={doc.title} author="Corin Commercial, Inc." subject={doc.subtitle} creator="Corin Commercial" producer="Corin Commercial">
       <Page size="LETTER" style={styles.page}>
         {doc.draft ? (
           <Text style={styles.watermark} fixed>

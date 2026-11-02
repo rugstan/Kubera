@@ -26,7 +26,7 @@ const FORBIDDEN: [string, RegExp][] = [
   ["autonomous", /\bautonomous\b/i],
   ["guarantee", /\bguarantee[sd]?\b(?!\s+(?:fee|share))(?<!not guaranteed)/i],
   ["usury-exempt claim", /usury[- ]exempt|exempt from usury/i],
-  ["Kubera as lender", /\b(we|kubera) (lend|fund|originate|service)s?\b/i],
+  ["Corin as lender", /\b(we|corin) (lend|fund|originate|service)s?\b/i],
   ["instant promises", /\b(instant|same[- ]day) (approval|funding|close)/i],
   ["closing timeline range", /\b\d+\s*[–-]\s*\d+\s+(?:days|business days)\b/i],
 ];
@@ -238,7 +238,7 @@ describe("California metro pages", () => {
       for (const para of [m.definition, ...m.sections.flatMap((s) => [s.heading, ...s.paragraphs]), ...m.faq.flatMap((q) => [q.question, q.answer])]) {
         const prior = seen.get(para);
         // The broker-not-lender answer is the one shared sentence by design.
-        if (prior && !/^Does Kubera lend money/.test(para) && !/^No\. Kubera Commercial is a licensed California real estate broker/.test(para)) {
+        if (prior && !/^Does Corin lend money/.test(para) && !/^No\. Corin Commercial is a licensed California real estate broker/.test(para)) {
           throw new Error(`"${para.slice(0, 80)}" appears on ${prior} and ${m.slug}`);
         }
         seen.set(para, m.slug);
@@ -267,12 +267,12 @@ describe("California metro pages", () => {
     for (const m of MARKETS) for (const f of m.facts) expect(f.asOf, `${m.slug} ${f.label}`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("links to financing pages and other markets that exist, and states Kubera is a broker not a lender", () => {
+  it("links to financing pages and other markets that exist, and states Corin is a broker not a lender", () => {
     for (const m of MARKETS) {
       for (const s of m.relatedPrograms) expect(getFinancingPage(s), `${m.slug} -> ${s}`).toBeDefined();
       for (const s of m.relatedMarkets) expect(getMarket(s), `${m.slug} -> ${s}`).toBeDefined();
-      expect(m.faq.some((q) => /does kubera lend/i.test(q.question) && /\bNo\b/.test(q.answer)), m.slug).toBe(true);
-      expectCleanCopy(m.slug, [m.definition, ...m.sections.flatMap((s) => [...s.paragraphs, ...(s.bullets ?? [])]), ...m.faq.filter((q) => !/does kubera lend/i.test(q.question)).flatMap((q) => [q.question, q.answer])].join("\n"));
+      expect(m.faq.some((q) => /does corin lend/i.test(q.question) && /\bNo\b/.test(q.answer)), m.slug).toBe(true);
+      expectCleanCopy(m.slug, [m.definition, ...m.sections.flatMap((s) => [...s.paragraphs, ...(s.bullets ?? [])]), ...m.faq.filter((q) => !/does corin lend/i.test(q.question)).flatMap((q) => [q.question, q.answer])].join("\n"));
     }
   });
 

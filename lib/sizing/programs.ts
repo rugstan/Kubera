@@ -230,7 +230,7 @@ function sizeSba(a: SbaArgs): ProgramQuote {
       { label: "7(a) upfront guarantee fee", amount: (t[2]?.amount ?? 0) * SBA.sevenAGuaranteedShare * SBA.sevenAUpfrontGuaranteeFee },
       { label: "Bank origination & SBA participation", amount: (t[0]?.amount ?? 0) * (0.005 + SBA.bankParticipationFee) },
       { label: "Appraisal, Phase I, legal", amount: SBA.thirdPartyReports },
-      { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE_PCT.SBA },
+      { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE_PCT.SBA },
     ],
     noi: a.noi,
     value: a.value,
@@ -271,14 +271,14 @@ const hudCommonClosing = (loan: number, upfrontMip: number): FeeLine[] => [
   { label: "HUD application & exam fees", amount: loan * HUD.applicationFeePct },
   { label: "Third-party reports (appraisal, PCNA, ESA)", amount: HUD.thirdPartyReports },
   { label: "Legal, title & organizational", amount: HUD.legalAndTitle },
-  { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE_PCT.HUD },
+  { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE_PCT.HUD },
 ];
 
 const bridgeClosing = (loan: number, feePct: number): FeeLine[] => [
   { label: "Lender origination", amount: loan * BRIDGE.lenderFeePct },
   { label: "Exit fee (at payoff)", amount: loan * BRIDGE.exitFeePct },
   { label: "Appraisal, legal & title", amount: BRIDGE.fixedCosts },
-  { label: "Kubera advisory fee (est.)", amount: loan * feePct },
+  { label: "Corin advisory fee (est.)", amount: loan * feePct },
 ];
 
 const noFee = (label: string) => (): FeeLine => ({ label, amount: 0 });
@@ -445,7 +445,7 @@ export function sizeHospitality(i: HospitalityInputs, rates: Benchmarks): Sizing
         closing: (loan) => [
           { label: "Lender origination", amount: loan * CMBS.originationPct },
           { label: "Reports, legal, rating-agency costs", amount: CMBS.fixedCosts },
-          { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE_PCT.CMBS },
+          { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE_PCT.CMBS },
         ],
         noi: i.noi,
         value,
@@ -666,7 +666,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
         closing: (loan) => [
           { label: "Lender origination", amount: loan * AGENCY.originationPct },
           { label: "Reports, legal & title", amount: AGENCY.fixedCosts },
-          { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE_PCT.AGENCY },
+          { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE_PCT.AGENCY },
         ],
         noi: i.noi,
         value,
@@ -706,7 +706,7 @@ export function sizeMultifamily(i: MultifamilyInputs, rates: Benchmarks, options
         closeTimeline: BRIDGE.closeDays,
         advisoryFeePct: BROKER_FEE_PCT.BRIDGE,
         eligible: true,
-        notes: ["Arranged by Kubera as broker; the private lender funds at closing and is the lender of record."],
+        notes: ["Arranged by Corin as broker; the private lender funds at closing and is the lender of record."],
         warnings: i.loanAmount > 25_000_000 ? ["Above the typical $25M private-bridge range — usually syndicated with a debt fund."] : [],
       }),
     );

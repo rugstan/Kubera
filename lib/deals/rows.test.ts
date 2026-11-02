@@ -25,8 +25,8 @@ describe("row mapping", () => {
     const row = { id: "11111111-1111-4111-8111-111111111111", ...brokerOfRecordRow(input) };
     const loan = loanBrokerOfRecordFromRow(row);
     expect(loan).toMatchObject({ lender: input.lender, noteRatePct: 12.5, collateral: input.collateral, transactionDate: "2026-11-01" });
-    const direct = evaluateUsury({ ...input, tableFundedInKuberaName: false });
-    const roundTrip = evaluateUsury({ lender: loan.lender, noteRatePct: loan.noteRatePct, fedDiscountRatePct: loan.fedDiscountRatePct, collateral: loan.collateral, elements: loan.elements, tableFundedInKuberaName: loan.tableFundedInKuberaName, transactionDate: loan.transactionDate });
+    const direct = evaluateUsury({ ...input, tableFundedInCorinName: false });
+    const roundTrip = evaluateUsury({ lender: loan.lender, noteRatePct: loan.noteRatePct, fedDiscountRatePct: loan.fedDiscountRatePct, collateral: loan.collateral, elements: loan.elements, tableFundedInCorinName: loan.tableFundedInCorinName, transactionDate: loan.transactionDate });
     expect(roundTrip.status).toBe(direct.status);
     expect(roundTrip.status).toBe("cleared");
     expect(roundTrip.missing).toEqual([]);

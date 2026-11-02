@@ -32,7 +32,7 @@ export function costWriter(): SourceCostWriter | null {
 
 // One demo store per server process. globalThis keeps it shared across route
 // bundles (pages, actions and route handlers load separately), like the fake auth store.
-const DEMO_KEY = Symbol.for("kubera.reports.demo-costs");
+const DEMO_KEY = Symbol.for("corin.reports.demo-costs");
 
 function demoCosts(): MemoryCostWriter {
   const g = globalThis as unknown as Record<symbol, MemoryCostWriter | undefined>;

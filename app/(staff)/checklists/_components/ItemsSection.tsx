@@ -24,7 +24,7 @@ const TONE: Record<ItemStatus, "good" | "warn" | "bad" | "muted"> = {
 };
 
 
-const RESPONSIBLE: Record<DealChecklistItem["responsible"], string> = { borrower: "Borrower", kubera: "Kubera", lender: "Lender of record", vendor: "Vendor", title_escrow: "Title / escrow" };
+const RESPONSIBLE: Record<DealChecklistItem["responsible"], string> = { borrower: "Borrower", corin: "Corin", lender: "Lender of record", vendor: "Vendor", title_escrow: "Title / escrow" };
 
 function ItemRow({ item, files, dealId, now }: { item: DealChecklistItem; files: ChecklistItemFile[]; dealId: string; now: Date }) {
   const stale = isStale(item, now);

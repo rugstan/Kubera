@@ -3,7 +3,7 @@
 // Idempotent: the take-out's key is stored on the deal (deals.origin_key,
 // unique), so a retry or a second click returns the same deal.
 //
-// Broker only: the new deal is a refinance Kubera arranges for the borrower
+// Broker only: the new deal is a refinance Corin arranges for the borrower
 // with the take-out lender; no amounts are carried over from the construction
 // loan (the take-out is sized on its own).
 

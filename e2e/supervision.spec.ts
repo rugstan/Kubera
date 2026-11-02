@@ -85,7 +85,7 @@ test("AI review and reports require sign-in", async ({ page, request }) => {
 });
 
 test("a broker reviews a flagged conversation: guardrail hit, annotation, sign-off", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/ai-review");
+  await signIn(page, "broker@corin.test", "/ai-review");
   await expect(page).toHaveURL(`${base}/ai-review`);
   await expect(page.getByRole("heading", { name: "AI review", level: 1 })).toBeVisible();
 
@@ -103,14 +103,14 @@ test("a broker reviews a flagged conversation: guardrail hit, annotation, sign-o
 
   // What the borrower saw is the rewritten sentence; the original is kept for reviewers.
   const transcript = page.getByRole("list", { name: "Conversation" });
-  await expect(transcript.getByText(/Kubera can't promise approval, pricing, a rate lock or a particular lender/)).toBeVisible();
+  await expect(transcript.getByText(/Corin can't promise approval, pricing, a rate lock or a particular lender/)).toBeVisible();
   await expect(transcript.getByText("Output guardrail rewrote 1 sentence in this reply: Commitment language.")).toBeVisible();
   await transcript.getByText("What the model wrote (internal)").click();
   await expect(transcript.getByText("you're approved for a HUD 232 loan")).toBeVisible();
   expect(await seriousViolations(page)).toEqual([]);
 
   // Annotate the assistant message.
-  await page.getByLabel("About", { exact: true }).selectOption({ label: "Message 2, Kubera AI" });
+  await page.getByLabel("About", { exact: true }).selectOption({ label: "Message 2, Corin AI" });
   await page.getByLabel("Label", { exact: true }).selectOption("compliance_issue");
   await page.getByLabel("Note", { exact: true }).fill("Model said approved; the guardrail caught it. Tighten the term-sheet prompt.");
   await page.getByRole("button", { name: "Add note" }).click();
@@ -127,7 +127,7 @@ test("a broker reviews a flagged conversation: guardrail hit, annotation, sign-o
 });
 
 test("a broker flags and unflags a clean conversation", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/ai-review?view=all");
+  await signIn(page, "broker@corin.test", "/ai-review?view=all");
   const list = page.getByRole("list", { name: "All conversations" });
   await list.getByRole("link", { name: /What DSCR does a HUD 232 refinance need/ }).click();
   await page.getByLabel("Why flag this conversation?").fill("Check the 35-year term wording");
@@ -139,7 +139,7 @@ test("a broker flags and unflags a clean conversation", async ({ page }) => {
 });
 
 test("a broker reads the reports and downloads a CSV", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/reports");
+  await signIn(page, "broker@corin.test", "/reports");
   await expect(page).toHaveURL(`${base}/reports`);
   await expect(page.getByRole("heading", { name: "Reports", level: 1 })).toBeVisible();
 
@@ -173,7 +173,7 @@ test("a broker reads the reports and downloads a CSV", async ({ page }) => {
 
 test("report views reflow at 390px: only the tables scroll, never the page", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signIn(page, "broker@kubera.test", "/reports");
+  await signIn(page, "broker@corin.test", "/reports");
   await expect(page).toHaveURL(`${base}/reports`);
   for (const view of ["overview", "fees", "lenders", "sources"]) {
     await page.goto(`${base}/reports${view === "overview" ? "" : `?view=${view}`}`);
@@ -185,7 +185,7 @@ test("report views reflow at 390px: only the tables scroll, never the page", asy
 });
 
 test("recording marketing spend updates the lead-source return", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/reports?view=sources");
+  await signIn(page, "broker@corin.test", "/reports?view=sources");
   const table = page.getByRole("table", { name: "Lead-source return on spend", exact: true });
   await expect(table.getByRole("row", { name: /partner_referral.*Not recorded/ })).toBeVisible();
 

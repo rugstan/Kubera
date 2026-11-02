@@ -416,16 +416,16 @@ describe("legal hold", () => {
   it("requires a reason to place a hold and blocks purge until released", async () => {
     const l = lead(OLD);
     expect(legalHoldSchema.safeParse({ table: "leads", id: l.id, hold: true, actor: "J. Rivera, compliance" }).success).toBe(false);
-    const input = legalHoldSchema.parse({ table: "leads", id: l.id, hold: true, reason: "Litigation hold: Smith v. Kubera", actor: "J. Rivera, compliance" });
+    const input = legalHoldSchema.parse({ table: "leads", id: l.id, hold: true, reason: "Litigation hold: Smith v. Corin", actor: "J. Rivera, compliance" });
     expect((await applyLegalHold(db, input, NOW)).found).toBe(true);
-    expect(db.find("leads", l.id)).toMatchObject({ legal_hold: true, legal_hold_reason: "Litigation hold: Smith v. Kubera", legal_hold_set_by: "J. Rivera, compliance" });
+    expect(db.find("leads", l.id)).toMatchObject({ legal_hold: true, legal_hold_reason: "Litigation hold: Smith v. Corin", legal_hold_set_by: "J. Rivera, compliance" });
 
     // Even a direct purge (erasure path) refuses.
     expect((await purgeRow(LEAD_POLICY, l.id, { db, storage }, { checkParentHold: true })).status).toBe("held");
     expect((await db.deleteRows("leads", [l.id])).failed[0]?.error).toMatch(/legal hold/);
 
     await applyLegalHold(db, legalHoldSchema.parse({ table: "leads", id: l.id, hold: false, actor: "J. Rivera, compliance" }), NOW);
-    expect(db.find("leads", l.id)?.legal_hold_reason).toBe("Litigation hold: Smith v. Kubera");
+    expect(db.find("leads", l.id)?.legal_hold_reason).toBe("Litigation hold: Smith v. Corin");
     const summary = await runRetention({ db, storage, now: () => NOW });
     expect(summary.policies.find((p) => p.policy === "leads")?.deleted).toBe(1);
   });

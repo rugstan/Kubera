@@ -93,9 +93,9 @@ export type ReviewDeps = { store: MailStore; sink: AttachmentSink; targets: Revi
 export type ReviewFailure = { ok: false; code: "not_in_queue" | "unknown_target" | "not_assignable"; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const REFERENCE = /^KC-[0-9a-f]{8}$/i;
+const REFERENCE = /^CC-[0-9a-f]{8}$/i;
 
-/** A deal reference (KC-XXXXXXXX), a deal id or a lead id → the deal and lead to file the message under. */
+/** A deal reference (CC-XXXXXXXX), a deal id or a lead id → the deal and lead to file the message under. */
 export async function resolveTarget(raw: string, targets: ReviewTargets): Promise<{ dealId: string | null; leadId: string | null } | null> {
   const value = raw.trim();
   if (REFERENCE.test(value)) {
@@ -123,7 +123,7 @@ export async function assignReviewedMail(deps: ReviewDeps, id: string, reviewer:
   if (!mail) return { ok: false, code: "not_in_queue", message: "This message is no longer waiting for review." };
   if (mail.status === "failed") return { ok: false, code: "not_assignable", message: "This message was never read successfully. Open it in Zoho Mail, then dismiss it here." };
   const resolved = await resolveTarget(target, deps.targets);
-  if (!resolved) return { ok: false, code: "unknown_target", message: "No single deal or lead matches that reference. Use a KC- deal reference, a deal ID or a lead ID." };
+  if (!resolved) return { ok: false, code: "unknown_target", message: "No single deal or lead matches that reference. Use a CC- deal reference, a deal ID or a lead ID." };
 
   let registered = 0;
   let failed = 0;

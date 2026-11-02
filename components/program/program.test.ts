@@ -91,13 +91,13 @@ describe("JSON-LD", () => {
     }
   });
 
-  it("names Kubera as broker, never provider, and uses absolute URLs", () => {
+  it("names Corin as broker, never provider, and uses absolute URLs", () => {
     for (const p of programs) {
       const node = loanOrCreditSchema(p) as Record<string, unknown>;
       expect(node["@context"]).toBe("https://schema.org");
       expect(node.broker).toBeDefined();
       expect(node.provider).toBeUndefined();
-      expect(node.url).toBe(`https://kuberacommercial.com${financingPath(p.slug)}`);
+      expect(node.url).toBe(`https://corincommercial.com${financingPath(p.slug)}`);
       expect(node.name).toBe(p.name);
       expect(String(node.loanType).length).toBeGreaterThan(0);
       // No empty-string values.
@@ -144,8 +144,8 @@ describe("page metadata", () => {
     for (const slug of financingSlugs) {
       const e = getFinancingPage(slug)!.entry;
       const md = pageMetadata({ title: e.title, description: e.description, path: financingPath(slug) });
-      expect(md.alternates?.canonical).toBe(`https://kuberacommercial.com/financing/${slug}`);
-      expect(md.openGraph?.url).toBe(`https://kuberacommercial.com/financing/${slug}`);
+      expect(md.alternates?.canonical).toBe(`https://corincommercial.com/financing/${slug}`);
+      expect(md.openGraph?.url).toBe(`https://corincommercial.com/financing/${slug}`);
     }
   });
 });

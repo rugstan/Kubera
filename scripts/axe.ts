@@ -85,7 +85,7 @@ const SCAN_ROUTES = [
   "/financing/hud-232",
 ] as const;
 /** The demo broker in lib/auth/demo.ts (fake identity provider only). */
-const DEMO_BROKER_EMAIL = "broker@kubera.test";
+const DEMO_BROKER_EMAIL = "broker@corin.test";
 const DEMO_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 
 function loadPlaywright(): Playwright {

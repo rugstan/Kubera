@@ -40,7 +40,7 @@ describe("hard money term sheet 1 — experienced fix-and-flip, LTC binds", () =
   });
 
   it("prices points, closing costs and interest", () => {
-    // Points 4,500 + lender fees 2,500 + third party 7,500 + Kubera 1% 4,500 = 19,000.
+    // Points 4,500 + lender fees 2,500 + third party 7,500 + Corin 1% 4,500 = 19,000.
     expect(b.points).toBe(4_500);
     expect(b.closingCosts).toBe(19_000);
     // Non-Dutch: average balance 350,000 + 100,000 / 2 = 400,000 × 9.5% × 8/12 = 25,333.33 (> 3-mo minimum 8,312.50).
@@ -95,7 +95,7 @@ describe("hard money term sheet 2 — first flip with an interest reserve, Dutch
   });
 
   it("charges Dutch interest, an extension and the exit fee", () => {
-    // Points 9,120 + 2,500 + 7,500 + Kubera 3,040 = 22,160.
+    // Points 9,120 + 2,500 + 7,500 + Corin 3,040 = 22,160.
     expect(b.closingCosts).toBeCloseTo(22_160, 6);
     // 304,000 × 12.5% × 14/12 = 44,333.33; reserve covers 19,000.
     expect(b.interestCharged).toBeCloseTo(44_333.33, 2);
@@ -148,7 +148,7 @@ describe("hard money term sheet 3 — value-add bridge refinance on 12 units", (
     expect(b.binding).toBe("ADVANCE");
     expect(b.initialAdvance).toBe(1_600_000);
     expect(b.rehabHoldback).toBe(200_000);
-    // Points 36,000 + 2,500 + 7,500 + Kubera 18,000 = 64,000.
+    // Points 36,000 + 2,500 + 7,500 + Corin 18,000 = 64,000.
     expect(b.closingCosts).toBe(64_000);
     // 1,600,000 − 1,200,000 payoff − 64,000 costs − (200,000 rehab − 200,000 holdback) = 336,000.
     expect(b.cashOut).toBe(336_000);
@@ -227,11 +227,11 @@ describe("hard money rules", () => {
     expect(r.quotes.some((x) => x.id === "DSCR_INVESTOR_2_4")).toBe(true);
   });
 
-  it("states the lender of record and the MLDS, and never Kubera funding draws", () => {
+  it("states the lender of record and the MLDS, and never Corin funding draws", () => {
     const q = quoteOf(sizeHardMoney(flipExperienced, rates), "HARD_MONEY");
     expect(q.notes.join(" ")).toMatch(/lender of record/);
     expect(q.notes.join(" ")).toMatch(/RE 882/);
-    expect(q.notes.join(" ")).toMatch(/Kubera has no role in draws/);
+    expect(q.notes.join(" ")).toMatch(/Corin has no role in draws/);
     expect(q.closeTimeline).toMatch(/not guaranteed/);
   });
 });

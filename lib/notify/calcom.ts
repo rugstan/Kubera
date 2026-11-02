@@ -7,7 +7,7 @@ export type BookingPrefill = {
   name?: string | null;
   email?: string | null;
   notes?: string | null;
-  /** Attribution tag, e.g. "lead-confirmation". Becomes utm_source=kubera, utm_campaign=<tag>. */
+  /** Attribution tag, e.g. "lead-confirmation". Becomes utm_source=corin, utm_campaign=<tag>. */
   campaign?: string | null;
 };
 
@@ -44,7 +44,7 @@ export function bookingLink(prefill: BookingPrefill = {}, handle?: string | null
   if (email) url.searchParams.set("email", email.slice(0, 200));
   if (notes) url.searchParams.set("notes", notes.slice(0, 500));
   if (prefill.campaign) {
-    url.searchParams.set("utm_source", "kubera");
+    url.searchParams.set("utm_source", "corin");
     url.searchParams.set("utm_campaign", prefill.campaign.slice(0, 60));
   }
   return url.toString();

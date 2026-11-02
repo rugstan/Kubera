@@ -20,7 +20,7 @@ import { resolveAuthMode } from "@/lib/auth/config";
 import type { ApprovalDecision, ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { PortalInvite, PortalInviteStore } from "./store";
 
-export const PORTAL_COOKIE = "kubera_portal";
+export const PORTAL_COOKIE = "corin_portal";
 const HOUR = 3_600_000;
 
 export type PortalSession = { inviteId: string; dealId: string; principalId: string | null; email: string; expiresAt: string };
@@ -40,7 +40,7 @@ export class PortalLinkError extends Error {
  * e2e), where the portal runs on the in-memory demo desks (lib/deals/demo.ts).
  * It signs sessions for invented data only; fake mode is refused in production.
  */
-export const DEMO_PORTAL_SESSION_SECRET = "kubera-demo-portal-session-secret-not-for-production";
+export const DEMO_PORTAL_SESSION_SECRET = "corin-demo-portal-session-secret-not-for-production";
 
 export function portalSessionSecret(env: Record<string, string | undefined> = process.env): string | null {
   const s = env.PORTAL_SESSION_SECRET?.trim();
@@ -64,7 +64,7 @@ export type IssueInput = {
   principalId: string | null;
   email: string;
   issuedBy: string;
-  /** Site origin for the link, e.g. https://kuberacommercial.com. */
+  /** Site origin for the link, e.g. https://corincommercial.com. */
   origin: string;
   now: Date;
   ttlHours?: number;

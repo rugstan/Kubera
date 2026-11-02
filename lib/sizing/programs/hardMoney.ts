@@ -1,5 +1,5 @@
 // Hard money: short-term, interest-only private loans sized on the asset
-// (as-is value, cost and after-repair value) rather than income. Kubera
+// (as-is value, cost and after-repair value) rather than income. Corin
 // arranges the loan as broker; a private lender funds it as lender of record,
 // holds the rehab holdback and any interest reserve, and services it.
 
@@ -282,10 +282,10 @@ export function sizeHardMoney(i: HardMoneyInputs, rates: Benchmarks): SizerResul
   if (b.rehabHoldback > 0 && b.rehabHoldback < i.rehabBudget) warnings.push(`The lender holds back ${fmt.pct(b.rehabHoldback / i.rehabBudget, 0)} of the rehab budget; you fund the rest.`);
   if (b.loanAmount > 0 && b.loanAmount < HARD_MONEY.minLoan) warnings.push(`Below the ${fmt.money(HARD_MONEY.minLoan)} minimum private lenders on our panel take.`);
 
-  if (b.rehabHoldback > 0) notes.push("The lender of record holds the rehab holdback and releases it as work is completed; Kubera has no role in draws.");
+  if (b.rehabHoldback > 0) notes.push("The lender of record holds the rehab holdback and releases it as work is completed; Corin has no role in draws.");
   if (b.interestReserve > 0) notes.push("The interest reserve is held by the lender of record and pays monthly interest.");
-  notes.push("Arranged by Kubera as broker; the private lender funds at closing and is the lender of record.");
-  notes.push("Secured by real property, so a Mortgage Loan Disclosure Statement (RE 882) is required; Kubera's compensation is disclosed on it.");
+  notes.push("Arranged by Corin as broker; the private lender funds at closing and is the lender of record.");
+  notes.push("Secured by real property, so a Mortgage Loan Disclosure Statement (RE 882) is required; Corin's compensation is disclosed on it.");
 
   const terms = [
     { label: "Sponsor experience", value: EXPERIENCE_LABEL[b.tier] },
@@ -317,7 +317,7 @@ export function sizeHardMoney(i: HardMoneyInputs, rates: Benchmarks): SizerResul
         { label: `Lender points (${g.points.toFixed(2)})`, amount: b.points },
         { label: "Lender underwriting & doc fees", amount: HARD_MONEY.lenderFixedFees },
         { label: "Appraisal, title & escrow", amount: HARD_MONEY.thirdPartyCosts },
-        { label: "Kubera advisory fee (est.)", amount: b.loanAmount * BROKER_FEE.hardMoney },
+        { label: "Corin advisory fee (est.)", amount: b.loanAmount * BROKER_FEE.hardMoney },
       ],
       noi: flip ? 0 : (i.stabilizedNoi ?? (i.monthlyRent ? Math.max(0, i.monthlyRent - (i.monthlyTaxesInsuranceHoa ?? 0)) * 12 : 0)),
       value: costBasis,

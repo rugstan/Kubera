@@ -1,5 +1,5 @@
 // Running an agent tool inside a workflow: ask once, wait for the broker's
-// decision (woken by `kubera/approval.decided`, polling between waits so a
+// decision (woken by `corin/approval.decided`, polling between waits so a
 // missed event cannot strand the run), then invoke again to execute or to
 // learn that the approval expired. The approval's own expiry is the deadline:
 // once it passes the queue marks the request expired and it never sends.

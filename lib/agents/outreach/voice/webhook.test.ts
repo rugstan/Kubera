@@ -12,7 +12,7 @@ function signed(body: unknown, opts: { key?: KeyObject; timestamp?: string; raw?
   const raw = opts.raw ?? JSON.stringify(body);
   const timestamp = opts.timestamp ?? ts();
   const signature = sign(null, Buffer.from(`${timestamp}|${raw}`), opts.key ?? privateKey).toString("base64");
-  return new Request("https://kuberacommercial.com/api/webhooks/telnyx-voice", {
+  return new Request("https://corincommercial.com/api/webhooks/telnyx-voice", {
     method: "POST",
     headers: { "content-type": "application/json", "telnyx-signature-ed25519": signature, "telnyx-timestamp": timestamp },
     body: raw,

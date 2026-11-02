@@ -33,26 +33,26 @@ export type WorkflowDeps = {
  * Production wiring lives in lib/workflows/agents-server.ts; tests pass fakes.
  */
 export type AgentWorkflowHooks = {
-  /** kubera/document.clean: extract the document; returns the follow-up event, or null when skipped or the agent is off. */
+  /** corin/document.clean: extract the document; returns the follow-up event, or null when skipped or the agent is off. */
   documentClean(data: unknown): Promise<{ name: string; data: Record<string, unknown> } | null>;
-  /** kubera/document.extracted: recalculate the deal's spreads and re-size the lead with Jev (internal analysis; sends nothing). */
+  /** corin/document.extracted: recalculate the deal's spreads and re-size the lead with Jev (internal analysis; sends nothing). */
   documentExtracted(data: unknown): Promise<Record<string, unknown>>;
-  /** kubera/mail.routed: the CRM agent's note/task for the message (approval-gated writes). */
+  /** corin/mail.routed: the CRM agent's note/task for the message (approval-gated writes). */
   crmMailRouted(data: unknown): Promise<Record<string, unknown>>;
   /**
-   * kubera/mail.routed for a term sheet tied to a deal: parse lenders@ term sheets into quotes.
+   * corin/mail.routed for a term sheet tied to a deal: parse lenders@ term sheets into quotes.
    * `awaiting` counts messages whose attached term sheet is still being scanned or extracted;
    * `attachmentWaitMs: 0` reads such messages from the body alone.
    */
   termSheets(dealId: string, opts?: { attachmentWaitMs?: number }): Promise<Record<string, unknown> & { awaiting?: number }>;
-  /** kubera/lead.scored: the speed-to-lead reply. */
+  /** corin/lead.scored: the speed-to-lead reply. */
   speedToLead(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
-  /** kubera/outreach.sweep.requested: run every chaser once. */
+  /** corin/outreach.sweep.requested: run every chaser once. */
   outreachSweep(ctx: { step: WorkflowStep }): Promise<Record<string, unknown>>;
-  /** kubera/intel.weekly.requested (and the weekly cron): draft the market-intel note. */
+  /** corin/intel.weekly.requested (and the weekly cron): draft the market-intel note. */
   weeklyIntel(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
-  /** kubera/prospects.scan.requested: scan recorded mortgages for refinance-maturity prospects. */
+  /** corin/prospects.scan.requested: scan recorded mortgages for refinance-maturity prospects. */
   prospectScan(ctx: { data: unknown; step: WorkflowStep }): Promise<Record<string, unknown>>;
-  /** kubera/prospects.settle.requested (and the settle cron): act on broker decisions for outreach drafts. */
+  /** corin/prospects.settle.requested (and the settle cron): act on broker decisions for outreach drafts. */
   prospectSettle(ctx: { step: WorkflowStep }): Promise<Record<string, unknown>>;
 };

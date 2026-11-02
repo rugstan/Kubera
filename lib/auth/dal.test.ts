@@ -58,7 +58,7 @@ function addPerson(email: string, roles: Role[], opts: { totp?: boolean; active?
 }
 
 async function signIn(email: string, aal2 = false) {
-  await provider.sendEmailOtp(email, { redirectTo: "https://kuberacommercial.com/auth/confirm" });
+  await provider.sendEmailOtp(email, { redirectTo: "https://corincommercial.com/auth/confirm" });
   let s = await provider.verifyEmailOtp(email, provider.lastEmailFor(email)!.code);
   if (aal2) {
     const [factor] = await provider.listTotpFactors(s);
@@ -88,11 +88,11 @@ beforeEach(() => {
   services = { mode: "fake", provider, directory, audit, userClient: () => null };
   setAuthServices(services);
   setRateLimiter(new MemoryRateLimiter());
-  addPerson("broker@kubera.test", ["broker"], { totp: true });
-  addPerson("analyst@kubera.test", ["analyst"]);
-  addPerson("borrower@kubera.test", ["borrower"]);
-  addPerson("former@kubera.test", ["broker"], { totp: true, active: false });
-  addPerson("norole@kubera.test", []);
+  addPerson("broker@corin.test", ["broker"], { totp: true });
+  addPerson("analyst@corin.test", ["analyst"]);
+  addPerson("borrower@corin.test", ["borrower"]);
+  addPerson("former@corin.test", ["broker"], { totp: true, active: false });
+  addPerson("norole@corin.test", []);
 });
 
 afterEach(() => {
@@ -108,25 +108,25 @@ describe("requireStaff", () => {
   });
 
   it("sends staff without MFA to the TOTP step", async () => {
-    await signIn("broker@kubera.test");
+    await signIn("broker@corin.test");
     expect(await redirectOf(requireStaff("/pipeline"))).toBe("/mfa?next=%2Fpipeline");
   });
 
   it("admits staff with an MFA session", async () => {
-    await signIn("broker@kubera.test", true);
+    await signIn("broker@corin.test", true);
     const ctx = await requireStaff("/pipeline");
-    expect(ctx.principal).toMatchObject({ email: "broker@kubera.test", staffRoles: ["broker"], aal: "aal2" });
+    expect(ctx.principal).toMatchObject({ email: "broker@corin.test", staffRoles: ["broker"], aal: "aal2" });
   });
 
   it("refuses portal users and deactivated staff", async () => {
-    await signIn("borrower@kubera.test");
+    await signIn("borrower@corin.test");
     expect(await redirectOf(requireStaff("/pipeline"))).toBe("/access-denied?reason=not_staff");
-    await signIn("former@kubera.test", true);
+    await signIn("former@corin.test", true);
     expect(await redirectOf(requireStaff("/pipeline"))).toBe("/access-denied?reason=inactive");
   });
 
   it("rejects forged or revoked tokens without looping through refresh", async () => {
-    const s = await signIn("broker@kubera.test", true);
+    const s = await signIn("broker@corin.test", true);
     jar.set(SESSION_COOKIE, encodeSession({ accessToken: "forged", refreshToken: s.refreshToken, expiresAt: s.expiresAt, issuedAt: Math.floor(now / 1000) }, sessionSigningKey()));
     expect(await redirectOf(requireStaff("/pipeline"))).toBe("/login?next=%2Fpipeline");
     jar.set(SESSION_COOKIE, "garbage");
@@ -137,13 +137,13 @@ describe("requireStaff", () => {
   });
 
   it("routes an expiring session through the refresh endpoint", async () => {
-    await signIn("broker@kubera.test", true);
+    await signIn("broker@corin.test", true);
     vi.setSystemTime(now + 3_590_000);
     expect(await redirectOf(requireStaff("/documents"))).toBe("/auth/refresh?next=%2Fdocuments");
   });
 
   it("signs everyone out after the absolute session lifetime, refreshes or not", async () => {
-    await signIn("broker@kubera.test", true);
+    await signIn("broker@corin.test", true);
     vi.setSystemTime(now + 12 * 3600_000);
     expect(await redirectOf(requireStaff("/pipeline"))).toBe("/login?next=%2Fpipeline");
     expect(await refreshCurrentSession()).toBeNull();
@@ -158,18 +158,18 @@ describe("requireStaff", () => {
 
 describe("requireUser (portal)", () => {
   it("admits portal users at aal1 but still demands MFA from staff", async () => {
-    await signIn("borrower@kubera.test");
+    await signIn("borrower@corin.test");
     expect((await requireUser("/portal")).principal.roles).toEqual(["borrower"]);
-    await signIn("analyst@kubera.test");
+    await signIn("analyst@corin.test");
     expect(await redirectOf(requireUser("/portal"))).toBe("/mfa?next=%2Fportal");
-    await signIn("norole@kubera.test");
+    await signIn("norole@corin.test");
     expect(await redirectOf(requireUser("/portal"))).toBe("/access-denied?reason=inactive");
   });
 });
 
 describe("staffForMutation", () => {
   it("refreshes an expiring session in place and keeps the original sign-in time", async () => {
-    const s = await signIn("broker@kubera.test", true);
+    const s = await signIn("broker@corin.test", true);
     const issuedAt = decodeSession(jar.get(SESSION_COOKIE), sessionSigningKey())!.issuedAt;
     vi.setSystemTime(now + 3_590_000);
     const r = await staffForMutation();
@@ -183,14 +183,14 @@ describe("staffForMutation", () => {
 
   it("answers 401/403 instead of redirecting", async () => {
     expect(await staffForMutation()).toEqual({ ok: false, status: 401, reason: "signed_out" });
-    await signIn("broker@kubera.test");
+    await signIn("broker@corin.test");
     expect(await staffForMutation()).toEqual({ ok: false, status: 403, reason: "mfa_required" });
-    await signIn("borrower@kubera.test");
+    await signIn("borrower@corin.test");
     expect(await staffForMutation()).toEqual({ ok: false, status: 403, reason: "forbidden" });
   });
 
   it("clears the cookie when the refresh token was already used", async () => {
-    const s = await signIn("broker@kubera.test", true);
+    const s = await signIn("broker@corin.test", true);
     await provider.refresh(s.refreshToken);
     vi.setSystemTime(now + 3_590_000);
     expect(await staffForMutation()).toEqual({ ok: false, status: 401, reason: "signed_out" });
@@ -200,26 +200,26 @@ describe("staffForMutation", () => {
 
 describe("completeSignIn", () => {
   async function aal1(email: string) {
-    await provider.sendEmailOtp(email, { redirectTo: "https://kuberacommercial.com/auth/confirm" });
+    await provider.sendEmailOtp(email, { redirectTo: "https://corincommercial.com/auth/confirm" });
     return provider.verifyEmailOtp(email, provider.lastEmailFor(email)!.code);
   }
 
   it("sends staff to MFA with a safe destination and records the sign-in", async () => {
     jar.set(LOGIN_COOKIE, "pending");
-    const dest = await completeSignIn(services, await aal1("broker@kubera.test"), "/approvals");
+    const dest = await completeSignIn(services, await aal1("broker@corin.test"), "/approvals");
     expect(dest).toBe("/mfa?next=%2Fapprovals");
     expect(jar.has(SESSION_COOKIE)).toBe(true);
     expect(jar.has(LOGIN_COOKIE)).toBe(false);
     expect(directory.signIns).toHaveLength(1);
     expect(audit.events.at(-1)).toMatchObject({ action: "auth.sign_in", ipHash: expect.any(String), userAgent: "vitest" });
-    expect(await completeSignIn(services, await aal1("broker@kubera.test"), "https://evil.example")).toBe("/mfa?next=%2Fpipeline");
+    expect(await completeSignIn(services, await aal1("broker@corin.test"), "https://evil.example")).toBe("/mfa?next=%2Fpipeline");
   });
 
   it("signs borrower accounts straight out and points them to their secure link", async () => {
     jar.set(LOGIN_COOKIE, "pending");
-    const s = await aal1("borrower@kubera.test");
+    const s = await aal1("borrower@corin.test");
     expect(await completeSignIn(services, s, "")).toBe("/portal?state=use_link");
-    expect(await completeSignIn(services, await aal1("borrower@kubera.test"), "/portal/profile")).toBe("/portal?state=use_link");
+    expect(await completeSignIn(services, await aal1("borrower@corin.test"), "/portal/profile")).toBe("/portal?state=use_link");
     expect(jar.has(SESSION_COOKIE)).toBe(false);
     expect(jar.has(LOGIN_COOKIE)).toBe(false);
     expect(await provider.getSession(s)).toBeNull();
@@ -228,7 +228,7 @@ describe("completeSignIn", () => {
   });
 
   it("refuses accounts without a role", async () => {
-    const s = await aal1("norole@kubera.test");
+    const s = await aal1("norole@corin.test");
     expect(await completeSignIn(services, s, "/pipeline")).toBe("/access-denied?reason=inactive");
     expect(jar.has(SESSION_COOKIE)).toBe(false);
     expect(await provider.getSession(s)).toBeNull();

@@ -25,8 +25,8 @@ export const hotelPrograms: ProgramEntry[] = [
       fact("Borrower equity (hotel is special-purpose)", `${pct(sbaEquity)} base; +${pct(SBA.equity.newBusiness)} for start-ups or new construction`, SRC.sba),
       fact("CDC debenture cap", `${usd(SBA.cdcCap)} standard; ${usd(SBA.cdcCapGreen)} for qualifying energy-efficiency projects`, SRC.sba),
       fact("Minimum DSCR", x(SBA.minDscr), SRC.sba),
-      fact("Upfront debenture fees (financed)", pct(SBA.upfrontDebentureFees, 2), SRC.kubera),
-      fact("Ongoing debenture fees (bundled in rate)", pct(SBA.annualDebentureFees, 2), SRC.kubera),
+      fact("Upfront debenture fees (financed)", pct(SBA.upfrontDebentureFees, 2), SRC.corin),
+      fact("Ongoing debenture fees (bundled in rate)", pct(SBA.annualDebentureFees, 2), SRC.corin),
       fact("Typical close", `${SBA.closeRange} after a complete file`, SRC.sba),
     ],
     sections: [
@@ -34,7 +34,7 @@ export const hotelPrograms: ProgramEntry[] = [
         heading: "How the 504 stack is built",
         paragraphs: [
           "The project cost, including acquisition, renovation, closing costs and eligible soft costs, is funded by three layers: the bank's first lien, the CDC debenture and the borrower's equity. The debenture rate is set when the debenture is sold, and the fixed rate then runs for the full term.",
-          "Kubera arranges the stack as a licensed broker. We introduce the bank and CDC, size each layer and coordinate the file; the lenders make every credit decision and fund at closing.",
+          "Corin arranges the stack as a licensed broker. We introduce the bank and CDC, size each layer and coordinate the file; the lenders make every credit decision and fund at closing.",
         ],
       },
       {
@@ -87,8 +87,8 @@ export const hotelPrograms: ProgramEntry[] = [
       fact("7(a) loan cap", usd(SBA.sevenACap), SRC.sba),
       fact("CDC debenture cap", `${usd(SBA.cdcCap)} standard; ${usd(SBA.cdcCapGreen)} for qualifying energy-efficiency projects`, SRC.sba),
       fact("7(a) SBA guaranty share", pct(SBA.sevenAGuaranteedShare), SRC.sba),
-      fact("7(a) upfront guaranty fee / annual service fee", `${pct(SBA.sevenAUpfrontGuaranteeFee, 2)} / ${pct(SBA.sevenAAnnualServiceFee, 2)}`, SRC.kubera),
-      fact("7(a) indicative pricing", `Prime + ${pts(SPREADS.sba7a.lo)}–${pts(SPREADS.sba7a.hi)} points`, SRC.kubera, { verify: false }),
+      fact("7(a) upfront guaranty fee / annual service fee", `${pct(SBA.sevenAUpfrontGuaranteeFee, 2)} / ${pct(SBA.sevenAAnnualServiceFee, 2)}`, SRC.corin),
+      fact("7(a) indicative pricing", `Prime + ${pts(SPREADS.sba7a.lo)}–${pts(SPREADS.sba7a.hi)} points`, SRC.corin, { verify: false }),
       fact("Borrower equity (special-purpose)", pct(sbaEquity), SRC.sba),
     ],
     sections: [
@@ -96,7 +96,7 @@ export const hotelPrograms: ProgramEntry[] = [
         heading: "Why stack the programs",
         paragraphs: [
           "A single 504 project is limited by the debenture cap, and a 7(a) loan alone is limited by its own cap and variable-rate structure. Stacking lets a larger hotel or care-facility project use the 504's long-term fixed real estate financing and the 7(a)'s flexibility for working capital and other eligible uses.",
-          "SBA stacking rules and the combined exposure SBA will accept are revised from time to time. The figure on this page is Kubera's modeling assumption and must be confirmed against the SOP in effect when you apply.",
+          "SBA stacking rules and the combined exposure SBA will accept are revised from time to time. The figure on this page is Corin's modeling assumption and must be confirmed against the SOP in effect when you apply.",
         ],
       },
       {
@@ -118,7 +118,7 @@ export const hotelPrograms: ProgramEntry[] = [
     faq: [
       {
         question: "Is the combined 7(a) + 504 limit fixed by SBA?",
-        answer: `Not as a single published number. Kubera models up to ${usd(SBA.combinedExposureCap)} for planning. Confirm with the lenders and the SOP in effect at application.`,
+        answer: `Not as a single published number. Corin models up to ${usd(SBA.combinedExposureCap)} for planning. Confirm with the lenders and the SOP in effect at application.`,
       },
       {
         question: "Can the same lender do both loans?",
@@ -143,17 +143,17 @@ export const hotelPrograms: ProgramEntry[] = [
     loanType: "Hotel CMBS conduit loan (brokered)",
     loanTermYears: CMBS.termYears,
     facts: [
-      fact("Term / amortization", `${years(CMBS.termYears)} fixed / ${years(CMBS.amortYears)} schedule`, SRC.kubera),
-      fact("Max LTV", pct(CMBS.maxLtv), SRC.kubera),
-      fact("Minimum DSCR", x(CMBS.minDscr), SRC.kubera),
+      fact("Term / amortization", `${years(CMBS.termYears)} fixed / ${years(CMBS.amortYears)} schedule`, SRC.corin),
+      fact("Max LTV", pct(CMBS.maxLtv), SRC.corin),
+      fact("Minimum DSCR", x(CMBS.minDscr), SRC.corin),
       fact(
         "Minimum debt yield (premium flag / economy flag / boutique or independent)",
         `${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} / ${pct(CMBS.minDebtYield.ECONOMY_FLAG, 1)} / ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)}`,
-        SRC.kubera,
+        SRC.corin,
       ),
-      fact("Typical minimum loan", usd(CMBS.minLoan), SRC.kubera),
-      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.hotelCmbs.lo)}–${pts(SPREADS.hotelCmbs.hi)} points`, SRC.kubera, { verify: false }),
-      fact("Prepayment", "Defeasance or yield maintenance", SRC.kubera, { verify: false }),
+      fact("Typical minimum loan", usd(CMBS.minLoan), SRC.corin),
+      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.hotelCmbs.lo)}–${pts(SPREADS.hotelCmbs.hi)} points`, SRC.corin, { verify: false }),
+      fact("Prepayment", "Defeasance or yield maintenance", SRC.corin, { verify: false }),
     ],
     sections: [
       {
@@ -203,19 +203,19 @@ export const hotelPrograms: ProgramEntry[] = [
       "A hotel PIP bridge is a short-term, floating-rate, interest-only loan that funds the purchase of a hotel and the franchise-required property improvement plan (PIP), releasing renovation money against completed work, and is repaid by a permanent loan such as CMBS or SBA 504 once the hotel stabilizes.",
     loanType: "Hotel bridge loan (brokered)",
     facts: [
-      fact("Max loan-to-cost", pct(BRIDGE.hotelPip.maxLtc), SRC.kubera),
-      fact("Minimum debt yield", pct(BRIDGE.hotelPip.minDebtYield), SRC.kubera),
-      fact("Typical term", `${BRIDGE.hotelPip.termMonths} months`, SRC.kubera),
-      fact("Indicative spread", `SOFR + ${pts(BRIDGE.hotelPip.spread)} points`, SRC.kubera),
-      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
-      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.kubera),
+      fact("Max loan-to-cost", pct(BRIDGE.hotelPip.maxLtc), SRC.corin),
+      fact("Minimum debt yield", pct(BRIDGE.hotelPip.minDebtYield), SRC.corin),
+      fact("Typical term", `${BRIDGE.hotelPip.termMonths} months`, SRC.corin),
+      fact("Indicative spread", `SOFR + ${pts(BRIDGE.hotelPip.spread)} points`, SRC.corin),
+      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.corin),
+      fact("Typical close", `${BRIDGE.closeRange} after a complete file`, SRC.corin),
     ],
     sections: [
       {
         heading: "Sizing a PIP bridge",
         paragraphs: [
           "Lenders size to cost, not just value, because a hotel under renovation has depressed income. The loan funds the acquisition and a renovation holdback sized to the franchisor's PIP, with the bridge lender releasing holdback funds against completed work under its own process.",
-          "Kubera arranges the loan and has no role in the lender's holdback process: it does not disburse, inspect or hold any funds.",
+          "Corin arranges the loan and has no role in the lender's holdback process: it does not disburse, inspect or hold any funds.",
         ],
       },
       {
@@ -258,9 +258,9 @@ export const hotelPrograms: ProgramEntry[] = [
       "A hotel-to-senior-living conversion loan is a financing that pays for the purchase of a hotel and the renovation needed to operate it as licensed assisted living, memory care or a residential care facility for the elderly, usually through a bridge loan sized to acquisition plus conversion budget and repaid by permanent senior housing debt after licensing and lease-up.",
     loanType: "Conversion bridge loan (brokered)",
     facts: [
-      fact("Bridge: max LTV on stabilized value", pct(BRIDGE.senior.maxLtv), SRC.kubera),
-      fact("Bridge: typical term", `${BRIDGE.senior.termMonths} months`, SRC.kubera),
-      fact("Indicative bridge spread", `SOFR + ${pts(BRIDGE.senior.spread)} points`, SRC.kubera),
+      fact("Bridge: max LTV on stabilized value", pct(BRIDGE.senior.maxLtv), SRC.corin),
+      fact("Bridge: typical term", `${BRIDGE.senior.termMonths} months`, SRC.corin),
+      fact("Indicative bridge spread", `SOFR + ${pts(BRIDGE.senior.spread)} points`, SRC.corin),
       fact("Takeout: HUD 232/223(f)", `${pct(s232.refi.maxLtv)} LTV, ${x(s232.refi.minDscr)} DSCR, ${s232.minYearsSinceCompletion}+ years since completion`, SRC.hud232),
       fact("Takeout: occupancy benchmark", `Around ${pct(s232.stabilizedOccupancy)}`, SRC.hud232),
       fact("California licensing", "RCFE license from Community Care Licensing (Title 22)", "California Code of Regulations, Title 22", { verify: false }),

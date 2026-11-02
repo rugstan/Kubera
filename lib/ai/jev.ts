@@ -1,4 +1,4 @@
-// Jev — Kubera's "System One" decision engine.
+// Jev — Corin's "System One" decision engine.
 //
 // Every intake is classified into a strictly typed JevLoanDecisionSchema in
 // well under 200ms. The deterministic rules engine below runs on every request
@@ -353,7 +353,7 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
   return isConversion && !intake.value ? { ...result, valueEstimated: true } : result;
 }
 
-/** Lenders Kubera sends each new box to, in priority order (the static table covers the original programs). */
+/** Lenders Corin sends each new box to, in priority order (the static table covers the original programs). */
 export const NEW_BOX_ROUTING: Record<NewProgramId, WholesaleLender[]> = {
   HARD_MONEY: ["FIDELIS_PRIVATE_FUND", "ROC_CAPITAL"],
   CONSTRUCTION_BANK: ["READY_CAPITAL"],

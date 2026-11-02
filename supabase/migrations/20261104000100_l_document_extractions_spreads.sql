@@ -10,7 +10,7 @@
 --                                DSCR / debt yield / LTV per quote, SBA global cash flow, STR,
 --                                senior census, rent roll, construction budget)
 --
--- Extraction is analysis only: nothing here sends anything outside Kubera,
+-- Extraction is analysis only: nothing here sends anything outside Corin,
 -- and there are no funds or draw columns (the WS-W no-custody guard checks).
 -- Field values are confidential (restricted for personal financial statements);
 -- RLS is enabled on every table with no policies, so only the service role reads

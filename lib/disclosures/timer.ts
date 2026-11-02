@@ -1,6 +1,6 @@
 // MLDS delivery clock (B&P §10240; counsel gate A).
 //
-// The clock starts when Kubera receives a completed written loan application.
+// The clock starts when Corin receives a completed written loan application.
 // The MLDS is due by the EARLIER of (a) the end of the third business day after
 // receipt or (b) the moment the borrower becomes obligated on the note. Staff
 // are warned from the start of business day 2.
@@ -17,7 +17,7 @@ export const MLDS_WARN_BUSINESS_DAY = 2;
 export const OBLIGATION_WARN_MS = 24 * 60 * 60 * 1000;
 
 export type MldsTimerInput = {
-  /** When Kubera received the completed written loan application. */
+  /** When Corin received the completed written loan application. */
   applicationCompletedAt: Date;
   /** When the borrower is (or is scheduled to be) obligated on the note, if known. */
   borrowerObligatedAt?: Date | null;

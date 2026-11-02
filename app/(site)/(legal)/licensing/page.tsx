@@ -6,7 +6,7 @@ import { disclosures, dreLookupUrl, licenseLine, site } from "@/lib/site";
 export const metadata = legalMetadata(
   "/licensing",
   "Licensing and disclosures",
-  "Kubera Commercial's California DRE broker licenses, how we are paid, and the Mortgage Loan Disclosure Statement you receive on loans secured by real property.",
+  "Corin Commercial's California DRE broker licenses, how we are paid, and the Mortgage Loan Disclosure Statement you receive on loans secured by real property.",
 );
 
 function LicenseId({ id }: { id: string }) {
@@ -100,13 +100,13 @@ export default function LicensingPage() {
       <p>The statement shows, among other things:</p>
       <ul>
         <li>the estimated maximum costs you will pay, such as appraisal, escrow, title, notary, and recording fees;</li>
-        <li>all compensation Kubera will receive on the loan, including anything the lender pays us;</li>
+        <li>all compensation Corin will receive on the loan, including anything the lender pays us;</li>
         <li>the proposed loan amount, terms, and payments;</li>
         <li>that credit life or disability insurance is not required; and</li>
         <li>our name, license number, and licensed address.</li>
       </ul>
       <p>
-        The figures are estimates. Each borrower and a licensed Kubera broker sign it, and you receive an exact copy. You can sign electronically if you agree to do business
+        The figures are estimates. Each borrower and a licensed Corin broker sign it, and you receive an exact copy. You can sign electronically if you agree to do business
         electronically. We keep the signed statement for at least three years, as the DRE requires. We do not send you a loan commitment or loan documents to sign until the
         statement is signed.
       </p>
@@ -129,7 +129,7 @@ export default function LicensingPage() {
 
       <h2 id="programs">Government programs</h2>
       <p>
-        HUD, FHA, SBA, Fannie Mae, and Freddie Mac programs are offered through approved lenders. Kubera is not affiliated with or endorsed by any government agency or program sponsor,
+        HUD, FHA, SBA, Fannie Mae, and Freddie Mac programs are offered through approved lenders. Corin is not affiliated with or endorsed by any government agency or program sponsor,
         and program availability, limits, and fees can change.
       </p>
 

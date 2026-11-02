@@ -9,7 +9,7 @@ import { ZohoSignProvider, zohoSignConfigFromEnv } from "@/lib/esign/zoho-sign";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 // Zoho Sign webhook: Settings → Developer settings → Webhooks, URL
-// https://kuberacommercial.com/api/webhooks/zoho-sign, with a secret key
+// https://corincommercial.com/api/webhooks/zoho-sign, with a secret key
 // (ZOHO_SIGN_WEBHOOK_SECRET). Writes status to `disclosures`, the audit trail
 // in `disclosure_events`, the signed copy to the vault, and asks the approval
 // gate before mirroring the status into the CRM deal record. Requests that are

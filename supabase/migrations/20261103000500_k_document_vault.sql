@@ -109,7 +109,7 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('kubera.purge_document_events', true), '') = 'on' then
+  if tg_op = 'DELETE' and coalesce(current_setting('corin.purge_document_events', true), '') = 'on' then
     return old;
   end if;
   raise exception 'document_events is append-only (% refused)', tg_op using errcode = 'check_violation';
@@ -137,7 +137,7 @@ begin
   if cutoff > now() - interval '3 years' then
     raise exception 'document_events are kept for 3 years; cutoff % is too recent', cutoff using errcode = 'check_violation';
   end if;
-  perform set_config('kubera.purge_document_events', 'on', true);
+  perform set_config('corin.purge_document_events', 'on', true);
   delete from public.document_events where occurred_at < cutoff;
   get diagnostics removed = row_count;
   return removed;

@@ -177,7 +177,7 @@ const TEMPLATES: readonly TemplateDef[] = [
     quietHours: false,
     schema: z.object({ reference: z.string().trim().min(1).max(20), summary: z.string().trim().min(1).max(100), contactOk: z.boolean() }),
     body: (d) =>
-      `Kubera Tier-1 lead ${d.reference}: ${d.summary}. ${d.contactOk ? "Phone and text consent on file." : "Email only: no phone or text consent."} Details in the CRM.`,
+      `Corin Tier-1 lead ${d.reference}: ${d.summary}. ${d.contactOk ? "Phone and text consent on file." : "Email only: no phone or text consent."} Details in the CRM.`,
   }),
   sms({
     id: "staff_alert_sms",
@@ -187,7 +187,7 @@ const TEMPLATES: readonly TemplateDef[] = [
     preApproved: true,
     quietHours: false,
     schema: z.object({ text: z.string().trim().min(1).max(140) }),
-    body: (d) => `Kubera: ${d.text}`,
+    body: (d) => `Corin: ${d.text}`,
   }),
 
   // Protocol replies to an inbound STOP / HELP / START keyword. Always sent,

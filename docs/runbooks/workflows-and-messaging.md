@@ -14,7 +14,7 @@ All outbound messages still go through the broker approval queue (`/approvals`).
 
 1. In the Zoho API console create a server-based OAuth client for the Zoho data centre the mail lives in (`ZOHO_MAIL_DC`). Set `ZOHO_MAIL_CLIENT_ID` and `ZOHO_MAIL_CLIENT_SECRET`.
 2. Generate a refresh token with the read-only scopes `ZohoMail.accounts.READ,ZohoMail.folders.READ,ZohoMail.messages.READ` (**VERIFY** in the Zoho console). `ZOHO_MAIL_REFRESH_TOKEN` serves every mailbox; a per-mailbox `ZOHO_MAIL_REFRESH_TOKEN_<MAILBOX>` (minted while signed in as deals@, docs@, lenders@, vendors@ or closing@) overrides it. `ZOHO_MAIL_ACCOUNT_ID_<MAILBOX>` is optional and looked up by address when empty.
-3. Set `MAIL_DOMAIN` (default `kuberacommercial.com`). Attachments land in the `deal-documents-quarantine` bucket and are scanned before anyone can open them.
+3. Set `MAIL_DOMAIN` (default `corincommercial.com`). Attachments land in the `deal-documents-quarantine` bucket and are scanned before anyone can open them.
 
 ## Langfuse (tracing)
 
@@ -23,7 +23,7 @@ Set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`; `LANGFUSE_BASE_URL` default
 ## Telnyx (SMS) and Resend (email)
 
 1. Set the `RESEND_*` and `TELNYX_*` variables from `.env.example`.
-2. In the Telnyx messaging profile, turn **off** the automatic STOP/HELP replies (Kubera answers them and records the opt-out in the consent ledger), point the webhook URL at `https://<host>/api/webhooks/telnyx`, and set `TELNYX_PUBLIC_KEY` so webhook signatures verify. **VERIFY** all three after every profile change.
+2. In the Telnyx messaging profile, turn **off** the automatic STOP/HELP replies (Corin answers them and records the opt-out in the consent ledger), point the webhook URL at `https://<host>/api/webhooks/telnyx`, and set `TELNYX_PUBLIC_KEY` so webhook signatures verify. **VERIFY** all three after every profile change.
 3. Send a test SMS to a staff phone, reply STOP, and confirm the reply and the consent-ledger row.
 
 ## Construction desk CSLB lookup

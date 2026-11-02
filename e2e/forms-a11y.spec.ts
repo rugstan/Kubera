@@ -21,7 +21,7 @@ test.describe("form accessibility (axe-core, desktop)", () => {
     await fillQualifierThroughContact(page);
     await page.getByLabel(/first name/i).fill("");
     await page.getByLabel(/^email/i).fill("nope");
-    await page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i }).check();
+    await page.getByRole("checkbox", { name: /i agree that corin commercial may contact me/i }).check();
     await page.getByRole("button", { name: /see my indicative structure/i }).click();
     await expect(page.locator("#f-email-error")).toBeVisible();
     expect(await seriousViolations(page)).toEqual([]);

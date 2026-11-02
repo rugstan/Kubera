@@ -108,7 +108,7 @@ export interface SignalSourceClient {
   fetch(opts: { since: string; until: string }): Promise<SignalFetchResult>;
 }
 
-/** Benchmarks as the rates ticker computes them (lib/rates). Derived program rates are Kubera's indicative figures. */
+/** Benchmarks as the rates ticker computes them (lib/rates). Derived program rates are Corin's indicative figures. */
 export type RateSnapshotLike = { items: { key: string; label: string; value: string; changeBps?: number; derived: boolean }[]; asOf: string; live: boolean };
 
 export function ratesSignalDraft(snapshot: RateSnapshotLike): SignalDraft {
@@ -117,7 +117,7 @@ export function ratesSignalDraft(snapshot: RateSnapshotLike): SignalDraft {
   const fmt = (i: RateSnapshotLike["items"][number]) => `${i.label} ${i.value}${i.changeBps !== undefined ? ` (${i.changeBps > 0 ? "+" : ""}${i.changeBps} bps on the day)` : ""}`;
   const parts = [
     `Benchmarks (FRED, as of ${snapshot.asOf}${snapshot.live ? "" : "; some series use indicative fallback values"}): ${bench.map(fmt).join("; ")}.`,
-    derived.length ? `Kubera indicative program ranges derived from them (not quotes): ${derived.map((i) => `${i.label} ${i.value}`).join("; ")}.` : "",
+    derived.length ? `Corin indicative program ranges derived from them (not quotes): ${derived.map((i) => `${i.label} ${i.value}`).join("; ")}.` : "",
   ];
   return { source: "rates", title: `Rate benchmarks as of ${snapshot.asOf}`, summary: parts.filter(Boolean).join(" "), url: "https://fred.stlouisfed.org/", publishedAt: snapshot.asOf, key: `rates:${snapshot.asOf}` };
 }

@@ -75,7 +75,7 @@ export function loanRecord(dealId: string, over: Partial<LoanBrokerOfRecord> = {
     fedDiscountRatePct: 4.5,
     collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false, apn: "041-1234-005", lienPosition: 1 },
     elements: { negotiationLog: [], businessPurposeCertified: false },
-    tableFundedInKuberaName: false,
+    tableFundedInCorinName: false,
     transactionDate: "2026-03-01",
     ...over,
   };
@@ -106,10 +106,10 @@ export async function checklistDesk(dealId: string, now: () => Date, opts: { san
   if (opts.complete !== false) {
     for (const item of await deps.checklists.itemsForDeal(dealId)) {
       if (!item.required) continue;
-      await moveItem(deps, { itemId: item.id, expectedVersion: item.version, to: "accepted", actor: { kind: "staff", id: "broker@kuberacommercial.com" }, documentDate: now().toISOString().slice(0, 10) });
+      await moveItem(deps, { itemId: item.id, expectedVersion: item.version, to: "accepted", actor: { kind: "staff", id: "broker@corincommercial.com" }, documentDate: now().toISOString().slice(0, 10) });
     }
   }
   const sdeps = { client: desk.sanctions, screenings: desk.screenings, holds: desk.holds, principals: desk.principals, keyring: desk.keyring, now };
-  const screened = await screenDeal(sdeps, { dealId, purpose: "initial", requestedBy: "broker@kuberacommercial.com" });
+  const screened = await screenDeal(sdeps, { dealId, purpose: "initial", requestedBy: "broker@corincommercial.com" });
   return { desk, deps, sdeps, screened };
 }

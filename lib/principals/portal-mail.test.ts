@@ -21,7 +21,7 @@ function rig() {
   const h = makeHarness({ now: NOW });
   const invites = new MemoryPortalInviteStore();
   const notifier = (gate: ApprovalGate) => new Notifier({ email: h.email, sms: h.sms, store: h.store, consent: h.consent, gate, preApproved: new Set(), now: () => NOW });
-  const mail = { invites, notifier, origin: "https://kuberacommercial.com", now: () => NOW };
+  const mail = { invites, notifier, origin: "https://corincommercial.com", now: () => NOW };
   const store = new MemoryApprovalStore();
   const service: ApprovalService = new ApprovalService(store, () => NOW, {
     onDecided: async (records) => {
@@ -36,7 +36,7 @@ const tokenOf = (url: string) => new URL(url).searchParams.get("token")!;
 describe("portal invitation email", () => {
   it("keeps the link and its token out of the approval request", async () => {
     const { invites, store, gate } = rig();
-    const issued = await issuePortalInvite(invites, { dealId: DEAL_ID, principalId: null, email: "pat@example.com", issuedBy: "broker@k.com", origin: "https://kuberacommercial.com", now: NOW }, { gate });
+    const issued = await issuePortalInvite(invites, { dealId: DEAL_ID, principalId: null, email: "pat@example.com", issuedBy: "broker@k.com", origin: "https://corincommercial.com", now: NOW }, { gate });
     expect(issued.email).toBe("pending");
     const [approval] = await store.list({ status: "pending" });
     expect(approval).toBeDefined();
@@ -48,7 +48,7 @@ describe("portal invitation email", () => {
 
   it("sends the email with a fresh link when a broker approves, exactly once", async () => {
     const { h, invites, service, gate } = rig();
-    const issued = await issuePortalInvite(invites, { dealId: DEAL_ID, principalId: null, email: "pat@example.com", issuedBy: "broker@k.com", origin: "https://kuberacommercial.com", now: NOW }, { gate });
+    const issued = await issuePortalInvite(invites, { dealId: DEAL_ID, principalId: null, email: "pat@example.com", issuedBy: "broker@k.com", origin: "https://corincommercial.com", now: NOW }, { gate });
     expect(h.email.sent).toHaveLength(0);
     const approvalId = issued.approval && "approvalId" in issued.approval ? issued.approval.approvalId! : "";
 
@@ -57,7 +57,7 @@ describe("portal invitation email", () => {
     expect(h.email.sent).toHaveLength(1);
     const mail = h.email.sent[0]!;
     expect(mail.to).toBe("pat@example.com");
-    const link = mail.text.match(/https:\/\/kuberacommercial\.com\/portal\/access\?token=[A-Za-z0-9_%-]+/)?.[0];
+    const link = mail.text.match(/https:\/\/corincommercial\.com\/portal\/access\?token=[A-Za-z0-9_%-]+/)?.[0];
     expect(link).toBeTruthy();
     const emailed = decodeURIComponent(tokenOf(link!));
     expect(emailed).not.toBe(tokenOf(issued.url));

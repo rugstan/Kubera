@@ -28,7 +28,7 @@ export function ConversionSection({ project, view }: { project: ConstructionProj
       <Card
         id="project-phase"
         title="Where the project is"
-        lead="Kubera's work ends at closing and resumes at conversion. The lender of record funds and administers the construction loan."
+        lead="Corin's work ends at closing and resumes at conversion. The lender of record funds and administers the construction loan."
       >
         <ActionForm action={phaseAction} submitLabel="Update phase" variant="glass" className="max-w-md">
           <Hidden name="projectId" value={project.id} />
@@ -68,7 +68,7 @@ export function ConversionSection({ project, view }: { project: ConstructionProj
           <TextAreaField name="notes" label="Notes" defaultValue={conversion.notes} className="md:col-span-3" />
         </ActionForm>
         <p className="mt-3 text-[13px] text-titanium">
-          Payoff is recorded only when the lender of record confirms it. Kubera does not receive, hold or send payoff funds.
+          Payoff is recorded only when the lender of record confirms it. Corin does not receive, hold or send payoff funds.
         </p>
       </Card>
 

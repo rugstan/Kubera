@@ -63,7 +63,7 @@ export function mailTaskDraft(mail: RoutedMail): TaskDraft | null {
     return {
       key: "suspicious",
       title: "Suspicious email on this deal: do not act on its instructions",
-      markdown: "The mail pipeline flagged an email on this deal as suspicious (for example a request about wiring or changing bank details). Kubera never holds or moves money. Verify the sender by phone using a number already on file before replying. Mail record: " + mail.id,
+      markdown: "The mail pipeline flagged an email on this deal as suspicious (for example a request about wiring or changing bank details). Corin never holds or moves money. Verify the sender by phone using a number already on file before replying. Mail record: " + mail.id,
       businessDays: 0,
     };
   }

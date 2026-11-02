@@ -4,7 +4,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, pageMetadata, renderedTitle }
 
 // Keep in sync with the metadata exports in app/(site)/page.tsx, partners/page.tsx and express/page.tsx.
 const PAGES = [
-  { title: "Commercial real estate loan broker", absoluteTitle: "Kubera Commercial | Commercial Real Estate Loan Broker", path: "/" },
+  { title: "Commercial real estate loan broker", absoluteTitle: "Corin Commercial | Commercial Real Estate Loan Broker", path: "/" },
   { title: "60-second deal qualifier", path: "/express" },
   { title: "Partner portal", path: "/partners" },
 ];
@@ -20,7 +20,7 @@ describe("pageMetadata", () => {
       expect(m.alternates?.canonical).toMatch(/^https?:\/\//);
       expect((m.openGraph as { url: string }).url).toBe(m.alternates?.canonical);
     }
-    expect(pageMetadata({ title: "x", description: "d", path: "/express" }).alternates?.canonical).toBe("https://kuberacommercial.com/express");
+    expect(pageMetadata({ title: "x", description: "d", path: "/express" }).alternates?.canonical).toBe("https://corincommercial.com/express");
   });
 
   it("attaches the share image to openGraph and twitter", () => {
@@ -46,7 +46,7 @@ describe("llms.txt", () => {
 
   it("follows the llms.txt shape: H1 then blockquote", () => {
     const lines = text.split("\n");
-    expect(lines[0]).toBe("# Kubera Commercial");
+    expect(lines[0]).toBe("# Corin Commercial");
     expect(lines[2]).toMatch(/^> /);
   });
 

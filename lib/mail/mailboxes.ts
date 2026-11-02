@@ -40,7 +40,7 @@ export const MAILBOXES: Readonly<Record<InboundMailbox, MailboxConfig>> = {
 export const MAX_MAIL_ATTEMPTS = 6;
 
 export function mailDomain(env: Record<string, string | undefined> = process.env): string {
-  return env.MAIL_DOMAIN?.trim().toLowerCase() || "kuberacommercial.com";
+  return env.MAIL_DOMAIN?.trim().toLowerCase() || "corincommercial.com";
 }
 
 export function mailboxAddress(id: InboundMailbox, env: Record<string, string | undefined> = process.env): string {

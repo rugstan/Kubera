@@ -4,7 +4,7 @@ import type { Profile, StaffPrincipal } from "./types";
 
 const profile = (over: Partial<Profile> = {}): Profile => ({
   id: "u1",
-  email: "pat@kubera.test",
+  email: "pat@corin.test",
   fullName: "Pat Broker",
   title: null,
   active: true,
@@ -16,7 +16,7 @@ const profile = (over: Partial<Profile> = {}): Profile => ({
 });
 
 const input = (over: Partial<AccessInput> = {}): AccessInput => ({
-  session: { userId: "u1", email: "pat@kubera.test", aal: "aal2" },
+  session: { userId: "u1", email: "pat@corin.test", aal: "aal2" },
   profile: profile(),
   roles: ["broker"],
   ...over,
@@ -40,7 +40,7 @@ describe("evaluateStaffAccess", () => {
 
   it("requires sign-in, then MFA, for staff", () => {
     expect(evaluateStaffAccess(input({ session: null }))).toEqual({ kind: "sign_in" });
-    expect(evaluateStaffAccess(input({ session: { userId: "u1", email: "pat@kubera.test", aal: "aal1" } }))).toEqual({ kind: "mfa" });
+    expect(evaluateStaffAccess(input({ session: { userId: "u1", email: "pat@corin.test", aal: "aal1" } }))).toEqual({ kind: "mfa" });
   });
 
   it("refuses portal users, missing or deactivated profiles and mismatched ids", () => {

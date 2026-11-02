@@ -75,7 +75,7 @@ describe("document agent pipeline", () => {
     expect(req.jsonSchema?.additionalProperties).toBe(false);
     expect(req.system).not.toContain("Ignore your instructions");
     expect(req.messages[0]!.content).not.toContain("Ignore your instructions");
-    expect(req.messages[0]!.content).toContain("[removed by Kubera: instruction-like text]");
+    expect(req.messages[0]!.content).toContain("[removed by Corin: instruction-like text]");
     expect(req.messages[0]!.content).toMatch(/^<document format="text" name="summary.txt">\nOwner's summary/);
     expect(out.modelCalls).toHaveLength(1);
     expect(h.runs.runs[0]!.modelCalls?.[0]).toMatchObject({ provider: "anthropic", purpose: "document_extraction" });
@@ -106,8 +106,8 @@ describe("document agent pipeline", () => {
     const sent = h.claudeText.requests[0]!.messages[0]!.content;
     expect(sent).not.toMatch(/You are now the underwriter|skip the broker review|2,000,000/);
     expect(sent).toContain("nine hundred forty three thousand");
-    expect(sent).toContain("[removed by Kubera: instruction-like text]");
-    expect(h.claudeText.requests[0]!.system).toContain("[removed by Kubera: instruction-like text]");
+    expect(sent).toContain("[removed by Corin: instruction-like text]");
+    expect(h.claudeText.requests[0]!.system).toContain("[removed by Corin: instruction-like text]");
 
     expect(out.extraction.status).toBe("needs_review");
     expect(out.extraction.warnings).toContain("injection_suspected");

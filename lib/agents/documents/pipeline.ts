@@ -11,7 +11,7 @@
 //   5. merge, cross-check, assess; low confidence -> needs_review (the queue)
 //   6. supersede the previous live extraction, store, audit, budget row
 //
-// Nothing here writes outside Kubera: no email, CRM or lender action, so the
+// Nothing here writes outside Corin: no email, CRM or lender action, so the
 // approval gate is not involved. A subject who opted out of AI processing gets
 // rules-only extraction (and review).
 

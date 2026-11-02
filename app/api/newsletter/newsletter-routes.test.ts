@@ -23,7 +23,7 @@ const confirm = await import("./confirm/route");
 const unsubscribe = await import("./unsubscribe/route");
 const webhook = await import("./webhook/route");
 
-const ORIGIN = "https://kuberacommercial.com";
+const ORIGIN = "https://corincommercial.com";
 const SECRET = "route-test-secret-0123456789";
 
 let turnstile: InstanceType<typeof FakeTurnstileVerifier>;
@@ -48,7 +48,7 @@ function build(overrides: { email?: InstanceType<typeof FakeEmailClient> | null 
       gate: new FakeApprovalGate("pending"),
       tokenSecret: SECRET,
       baseUrl: ORIGIN,
-      contactEmail: "deals@kuberacommercial.com",
+      contactEmail: "deals@corincommercial.com",
     }),
   );
 }

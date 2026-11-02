@@ -78,7 +78,7 @@ test.describe("qualifier at 390px", () => {
 
   test("the logo link is a 44px tap target", async ({ page }) => {
     await gotoHydrated(page, "/express");
-    const box = await page.getByRole("link", { name: /kubera commercial home/i }).boundingBox();
+    const box = await page.getByRole("link", { name: /corin commercial home/i }).boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
 });

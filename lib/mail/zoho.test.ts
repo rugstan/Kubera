@@ -6,9 +6,9 @@ import { decodeSubject, ZohoMailClient, zohoMailConfigFromEnv, type ZohoMailConf
 
 const RAW_HEADERS = [
   "Message-ID: <ABC-123@mail.lender.test>",
-  "In-Reply-To: <kc-outbound-77@kuberacommercial.com>",
+  "In-Reply-To: <cc-outbound-77@corincommercial.com>",
   "References: <first@x.test>",
-  "  <kc-outbound-77@kuberacommercial.com>",
+  "  <cc-outbound-77@corincommercial.com>",
   "Authentication-Results: mx.zoho.com; spf=pass; dkim=pass; dmarc=pass header.from=lender.test",
   "Subject: Re: terms",
 ].join("\r\n");
@@ -17,7 +17,7 @@ describe("text helpers", () => {
   it("parses folded headers, ids and auth results", () => {
     const h = parseHeaders(RAW_HEADERS);
     expect(messageIds(h.get("message-id")![0]!)).toEqual(["abc-123@mail.lender.test"]);
-    expect(messageIds(h.get("references")![0]!)).toEqual(["first@x.test", "kc-outbound-77@kuberacommercial.com"]);
+    expect(messageIds(h.get("references")![0]!)).toEqual(["first@x.test", "cc-outbound-77@corincommercial.com"]);
     expect(dmarcVerdict(h)).toBe("pass");
     expect(dmarcVerdict(parseHeaders("Authentication-Results: mx; dmarc=fail"))).toBe("fail");
     expect(dmarcVerdict(parseHeaders("X: y"))).toBe("unknown");
@@ -32,7 +32,7 @@ describe("text helpers", () => {
   });
 
   it("strips quoted replies and parses address lists", () => {
-    expect(stripQuotedReply("Thanks, attached.\n\nOn Mon, Nov 2, 2026 at 9:00 AM Kubera wrote:\n> old text")).toBe("Thanks, attached.");
+    expect(stripQuotedReply("Thanks, attached.\n\nOn Mon, Nov 2, 2026 at 9:00 AM Corin wrote:\n> old text")).toBe("Thanks, attached.");
     expect(stripQuotedReply("Line\n> quoted\nmore")).toBe("Line\nmore");
     expect(parseAddressList('"Lee, Pat" <Pat@Example.com>, ops@lender.test; x')).toEqual(["pat@example.com", "ops@lender.test"]);
     expect(decodeSubject("=?UTF-8?B?VGVybSBzaGVldCDigJMgSGFyYm9y?=")).toBe("Term sheet – Harbor");
@@ -46,7 +46,7 @@ describe("Zoho Mail config", () => {
     const c = zohoMailConfigFromEnv({ ZOHO_MAIL_CLIENT_ID: "id", ZOHO_MAIL_CLIENT_SECRET: "s", ZOHO_MAIL_REFRESH_TOKEN: "shared", ZOHO_MAIL_REFRESH_TOKEN_DOCS: "docs-only", ZOHO_MAIL_ACCOUNT_ID_DEALS: "111" })!;
     expect(c.refreshTokens).toMatchObject({ deals: "shared", docs: "docs-only", lenders: "shared" });
     expect(c.accountIds).toEqual({ deals: "111" });
-    expect(c.addresses.closing).toBe("closing@kuberacommercial.com");
+    expect(c.addresses.closing).toBe("closing@corincommercial.com");
   });
 });
 
@@ -66,13 +66,13 @@ function zohoFake(override?: (path: string) => Response | undefined) {
     const path = new URL(url).pathname.replace("/api", "");
     const custom = override?.(path);
     if (custom) return custom;
-    if (path === "/accounts") return json([{ accountId: "222", primaryEmailAddress: "Lenders@kuberacommercial.com" }]);
+    if (path === "/accounts") return json([{ accountId: "222", primaryEmailAddress: "Lenders@corincommercial.com" }]);
     if (path === "/accounts/222/folders") return json([{ folderId: "9", folderName: "Sent", folderType: "Sent" }, { folderId: "10", folderName: "Inbox", folderType: "Inbox" }]);
     if (path === "/accounts/222/messages/view") {
       const start = Number(new URL(url).searchParams.get("start"));
       if (start > 1) return json([]);
       return json([
-        { messageId: "m3", folderId: "10", subject: "Newest", fromAddress: "a@lender.test", receivedTime: String(Date.UTC(2026, 10, 3, 12)), hasAttachment: "1", toAddress: "&lt;lenders@kuberacommercial.com&gt;" },
+        { messageId: "m3", folderId: "10", subject: "Newest", fromAddress: "a@lender.test", receivedTime: String(Date.UTC(2026, 10, 3, 12)), hasAttachment: "1", toAddress: "&lt;lenders@corincommercial.com&gt;" },
         { messageId: "m2", folderId: "10", subject: "Middle", fromAddress: "b@lender.test", receivedTime: String(Date.UTC(2026, 10, 3, 11)), hasAttachment: "0" },
         { messageId: "m1", folderId: "10", subject: "Old", fromAddress: "c@lender.test", receivedTime: String(Date.UTC(2026, 10, 3, 9)), hasAttachment: "0" },
       ]);
@@ -90,7 +90,7 @@ function zohoFake(override?: (path: string) => Response | undefined) {
     dc: "com",
     refreshTokens: { lenders: "refresh-lenders" },
     accountIds: {},
-    addresses: { deals: "deals@kuberacommercial.com", docs: "docs@kuberacommercial.com", lenders: "lenders@kuberacommercial.com", vendors: "vendors@kuberacommercial.com", closing: "closing@kuberacommercial.com" },
+    addresses: { deals: "deals@corincommercial.com", docs: "docs@corincommercial.com", lenders: "lenders@corincommercial.com", vendors: "vendors@corincommercial.com", closing: "closing@corincommercial.com" },
     fetch: fetchImpl,
   };
   return { client: new ZohoMailClient(config), calls };
@@ -103,7 +103,7 @@ describe("Zoho Mail client", () => {
     expect(client.configured("deals")).toBe(false);
     const listed = await client.listNew("lenders", new Date(Date.UTC(2026, 10, 3, 10)), 50);
     expect(listed.map((m) => m.providerMessageId)).toEqual(["m2", "m3"]);
-    expect(listed[1]).toMatchObject({ mailbox: "lenders", folderId: "10", hasAttachments: true, toAddresses: ["lenders@kuberacommercial.com"] });
+    expect(listed[1]).toMatchObject({ mailbox: "lenders", folderId: "10", hasAttachments: true, toAddresses: ["lenders@corincommercial.com"] });
     const tokenCalls = calls.filter((c) => c.url.includes("/oauth/v2/token"));
     expect(tokenCalls).toHaveLength(1);
     expect(tokenCalls[0]!.body).toContain("grant_type=refresh_token");
@@ -120,7 +120,7 @@ describe("Zoho Mail client", () => {
       fromName: "Jordan Chen",
       ccAddresses: ["ops@lender.test"],
       internetMessageId: "abc-123@mail.lender.test",
-      inReplyTo: "kc-outbound-77@kuberacommercial.com",
+      inReplyTo: "cc-outbound-77@corincommercial.com",
       bodyText: "Indicative terms attached.",
       dmarc: "pass",
       automated: false,

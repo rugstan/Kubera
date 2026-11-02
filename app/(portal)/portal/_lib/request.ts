@@ -27,7 +27,7 @@ export type RequestPortal = { ok: true; session: PortalSession; services: DeskSe
 export async function portalFromRequest(req: Request): Promise<RequestPortal> {
   const services = deskServices();
   const secret = portalSessionSecret();
-  if (!services || !secret) return { ok: false, status: 503, error: "The borrower portal is not available right now. Email your advisor or docs@kuberacommercial.com." };
+  if (!services || !secret) return { ok: false, status: 503, error: "The borrower portal is not available right now. Email your advisor or docs@corincommercial.com." };
   const session = await verifySession(services.invites, cookieValue(req, PORTAL_COOKIE), secret, services.now?.() ?? new Date());
   if (!session) return { ok: false, status: 401, error: "Your portal session has ended. Use a new link from your advisor." };
   return { ok: true, session, services };

@@ -8,7 +8,7 @@ vi.mock("server-only", () => ({}));
 const { GET } = await import("./route");
 
 const T0 = new Date("2026-11-03T17:00:00Z");
-const call = (auth?: string) => GET(new Request("https://kuberacommercial.com/api/cron/approvals-expire", { headers: auth ? { authorization: auth } : {} }));
+const call = (auth?: string) => GET(new Request("https://corincommercial.com/api/cron/approvals-expire", { headers: auth ? { authorization: auth } : {} }));
 
 describe("approvals-expire cron", () => {
   beforeEach(() => vi.stubEnv("CRON_SECRET", "cron-secret-for-tests-0123456789"));

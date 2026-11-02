@@ -124,7 +124,7 @@ describe("handlers", () => {
     }
   };
   const req = (path: string, body: unknown, auth?: string, method = "POST") =>
-    new Request(`https://kuberacommercial.com${path}`, { method, headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) }, body: method === "GET" ? undefined : JSON.stringify(body) });
+    new Request(`https://corincommercial.com${path}`, { method, headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) }, body: method === "GET" ? undefined : JSON.stringify(body) });
 
   it("speed-to-lead requires the internal bearer secret", withSecret({ NOTIFY_INTERNAL_SECRET: secret }, async () => {
     const { h, hot } = world();
@@ -148,7 +148,7 @@ describe("handlers", () => {
 
   it("the sweep requires the cron secret", withSecret({ CRON_SECRET: secret }, async () => {
     const { deps } = world();
-    const get = (auth?: string) => new Request("https://kuberacommercial.com/api/outreach/sweep", { headers: auth ? { authorization: auth } : {} });
+    const get = (auth?: string) => new Request("https://corincommercial.com/api/outreach/sweep", { headers: auth ? { authorization: auth } : {} });
     expect((await handleSweep(get(), deps())).status).toBe(401);
     const res = await handleSweep(get(`Bearer ${secret}`), deps());
     expect(res.status).toBe(200);
@@ -199,7 +199,7 @@ describe("workflow bodies", () => {
     const r = await outreachSweepWorkflow({ step: new FakeStep() }, deps());
     expect(r.speedToLead.sent).toBe(1);
     expect(JSON.stringify(r)).not.toContain(LEAD_PHONE);
-    expect(Object.values(OUTREACH_EVENTS).every((n) => n.startsWith("kubera/"))).toBe(true);
+    expect(Object.values(OUTREACH_EVENTS).every((n) => n.startsWith("corin/"))).toBe(true);
   });
 
   it("logs and survives a failing sweep phase", async () => {

@@ -188,7 +188,7 @@ export class ZohoAccessTokens {
     this.isShared = Boolean(opts.cache);
     this.cache = opts.cache ?? new MemoryZohoTokenCache(this.now);
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
-    this.key = `kubera:zoho:at:${refreshTokenKey(opts.refreshToken, opts.clientId)}`;
+    this.key = `corin:zoho:at:${refreshTokenKey(opts.refreshToken, opts.clientId)}`;
   }
 
   private get lockKey() {

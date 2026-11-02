@@ -15,9 +15,9 @@ import { runOutreachSweep, type SweepDeps, type SweepSummary } from "./sweep";
 
 export const OUTREACH_EVENTS = {
   /** A lead was stored and scored; send the speed-to-lead reply. */
-  leadScored: "kubera/lead.scored",
+  leadScored: "corin/lead.scored",
   /** Run every chaser once now (a cron also does, every few minutes). */
-  sweepRequested: "kubera/outreach.sweep.requested",
+  sweepRequested: "corin/outreach.sweep.requested",
 } as const;
 
 export const leadScoredSchema = z.object({ leadId: z.uuid() });

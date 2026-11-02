@@ -3,16 +3,16 @@ import { FakeAuthProvider } from "./fake-provider";
 import { AuthError } from "./provider";
 import { totp } from "./totp";
 
-const REDIRECT = "https://kuberacommercial.com/auth/confirm";
+const REDIRECT = "https://corincommercial.com/auth/confirm";
 
 function setup(start = 1_800_000_000_000) {
   let now = start;
   const provider = new FakeAuthProvider({ now: () => now });
-  const user = provider.addUser({ email: "Pat@Kubera.test" });
+  const user = provider.addUser({ email: "Pat@Corin.test" });
   return { provider, user, advance: (ms: number) => (now += ms), now: () => now };
 }
 
-async function signIn(p: FakeAuthProvider, email = "pat@kubera.test") {
+async function signIn(p: FakeAuthProvider, email = "pat@corin.test") {
   await p.sendEmailOtp(email, { redirectTo: REDIRECT });
   return p.verifyEmailOtp(email, p.lastEmailFor(email)!.code);
 }
@@ -20,40 +20,40 @@ async function signIn(p: FakeAuthProvider, email = "pat@kubera.test") {
 describe("FakeAuthProvider email sign-in", () => {
   it("issues an aal1 session for the emailed code, once", async () => {
     const { provider, user } = setup();
-    await provider.sendEmailOtp("pat@kubera.test", { redirectTo: REDIRECT });
-    const mail = provider.lastEmailFor("PAT@kubera.test")!;
+    await provider.sendEmailOtp("pat@corin.test", { redirectTo: REDIRECT });
+    const mail = provider.lastEmailFor("PAT@corin.test")!;
     expect(mail.code).toMatch(/^\d{6}$/);
-    expect(mail.magicLink).toMatch(/^https:\/\/kuberacommercial\.com\/auth\/confirm\?token_hash=[0-9a-f]+&type=email$/);
-    const s = await provider.verifyEmailOtp("pat@kubera.test", mail.code);
-    expect(s).toMatchObject({ user: { id: user.id, email: "pat@kubera.test" }, aal: "aal1" });
-    await expect(provider.verifyEmailOtp("pat@kubera.test", mail.code)).rejects.toMatchObject({ code: "invalid_code" });
+    expect(mail.magicLink).toMatch(/^https:\/\/corincommercial\.com\/auth\/confirm\?token_hash=[0-9a-f]+&type=email$/);
+    const s = await provider.verifyEmailOtp("pat@corin.test", mail.code);
+    expect(s).toMatchObject({ user: { id: user.id, email: "pat@corin.test" }, aal: "aal1" });
+    await expect(provider.verifyEmailOtp("pat@corin.test", mail.code)).rejects.toMatchObject({ code: "invalid_code" });
   });
 
   it("sends nothing (and says nothing) for unknown addresses", async () => {
     const { provider } = setup();
-    await expect(provider.sendEmailOtp("nobody@kubera.test", { redirectTo: REDIRECT })).resolves.toBeUndefined();
+    await expect(provider.sendEmailOtp("nobody@corin.test", { redirectTo: REDIRECT })).resolves.toBeUndefined();
     expect(provider.outbox).toHaveLength(0);
-    await expect(provider.verifyEmailOtp("nobody@kubera.test", "123456")).rejects.toBeInstanceOf(AuthError);
+    await expect(provider.verifyEmailOtp("nobody@corin.test", "123456")).rejects.toBeInstanceOf(AuthError);
   });
 
   it("expires codes and burns them after too many wrong attempts", async () => {
     const { provider, advance } = setup();
-    await provider.sendEmailOtp("pat@kubera.test", { redirectTo: REDIRECT });
-    const code = provider.lastEmailFor("pat@kubera.test")!.code;
+    await provider.sendEmailOtp("pat@corin.test", { redirectTo: REDIRECT });
+    const code = provider.lastEmailFor("pat@corin.test")!.code;
     advance(11 * 60_000);
-    await expect(provider.verifyEmailOtp("pat@kubera.test", code)).rejects.toMatchObject({ code: "expired" });
+    await expect(provider.verifyEmailOtp("pat@corin.test", code)).rejects.toMatchObject({ code: "expired" });
 
-    await provider.sendEmailOtp("pat@kubera.test", { redirectTo: REDIRECT });
-    const fresh = provider.lastEmailFor("pat@kubera.test")!.code;
+    await provider.sendEmailOtp("pat@corin.test", { redirectTo: REDIRECT });
+    const fresh = provider.lastEmailFor("pat@corin.test")!.code;
     const wrong = fresh === "000000" ? "111111" : "000000";
-    for (let i = 0; i < 5; i++) await expect(provider.verifyEmailOtp("pat@kubera.test", wrong)).rejects.toMatchObject({ code: "invalid_code" });
-    await expect(provider.verifyEmailOtp("pat@kubera.test", fresh)).rejects.toMatchObject({ code: "invalid_code" });
+    for (let i = 0; i < 5; i++) await expect(provider.verifyEmailOtp("pat@corin.test", wrong)).rejects.toMatchObject({ code: "invalid_code" });
+    await expect(provider.verifyEmailOtp("pat@corin.test", fresh)).rejects.toMatchObject({ code: "invalid_code" });
   });
 
   it("accepts the magic link once", async () => {
     const { provider } = setup();
-    await provider.sendEmailOtp("pat@kubera.test", { redirectTo: REDIRECT });
-    const hash = new URL(provider.lastEmailFor("pat@kubera.test")!.magicLink).searchParams.get("token_hash")!;
+    await provider.sendEmailOtp("pat@corin.test", { redirectTo: REDIRECT });
+    const hash = new URL(provider.lastEmailFor("pat@corin.test")!.magicLink).searchParams.get("token_hash")!;
     await expect(provider.verifyMagicLink(hash)).resolves.toMatchObject({ aal: "aal1" });
     await expect(provider.verifyMagicLink(hash)).rejects.toMatchObject({ code: "invalid_code" });
   });

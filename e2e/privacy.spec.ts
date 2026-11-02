@@ -86,7 +86,7 @@ test.describe("Privacy policy page", () => {
     await page.getByLabel(/email you used/i).fill("pat@example.com");
     await page.getByRole("checkbox", { name: /i confirm this request/i }).check();
     await page.getByRole("button", { name: /send request/i }).click();
-    await expect(page.getByText(/privacy@kuberacommercial\.com/).first()).toBeVisible();
+    await expect(page.getByText(/privacy@corincommercial\.com/).first()).toBeVisible();
     await expect(page.getByText(/can.t take requests online/i)).toBeVisible();
   });
 });
@@ -97,7 +97,7 @@ test.describe("Privacy policy request methods", () => {
     const methods = page.locator("[data-privacy-request-methods] > li");
     expect(await methods.count()).toBeGreaterThanOrEqual(2);
     await expect(methods.filter({ has: page.locator('a[href="#request"]') })).toHaveCount(1);
-    await expect(methods.filter({ has: page.locator('a[href="mailto:privacy@kuberacommercial.com"]') })).toHaveCount(1);
+    await expect(methods.filter({ has: page.locator('a[href="mailto:privacy@corincommercial.com"]') })).toHaveCount(1);
   });
 });
 

@@ -245,7 +245,7 @@ function signed(text: string, id: string): Request {
   });
   const timestamp = String(Math.floor(NOW / 1000));
   const signature = sign(null, Buffer.from(`${timestamp}|${raw}`), keys.privateKey).toString("base64");
-  return new Request("https://kuberacommercial.com/api/webhooks/telnyx", {
+  return new Request("https://corincommercial.com/api/webhooks/telnyx", {
     method: "POST",
     headers: { "content-type": "application/json", "telnyx-signature-ed25519": signature, "telnyx-timestamp": timestamp },
     body: raw,

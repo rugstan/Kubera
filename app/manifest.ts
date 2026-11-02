@@ -4,7 +4,7 @@ import { site } from "@/lib/site";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: site.name,
-    short_name: "Kubera",
+    short_name: "Corin",
     description: "Commercial real estate loan brokerage for senior living, hotels, multifamily, construction and hard money loans.",
     start_url: "/",
     scope: "/",

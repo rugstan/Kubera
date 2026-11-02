@@ -1,4 +1,4 @@
-# Arive (arive.com): 2026 feature inventory and relevance to Kubera Commercial
+# Arive (arive.com): 2026 feature inventory and relevance to Corin Commercial
 
 How these notes were sourced: direct page fetches of arive.com and yespress.io failed from this environment (DNS blocked, `ENOTFOUND`). I did not open any Arive page directly, so **every finding below comes from a web-search result summary or snippet** of the cited URL. Treat exact prices, version numbers and dates as "per search snippet". Facts dated before 2026 are marked [pre-2026].
 
@@ -135,7 +135,7 @@ The stitched-together flow, inferred from search snippets, runs like this. Lead 
 - **Funding and compensation:** Compensation date, amount and payer recorded in the Loan Center. "Funding and revenue management" is listed for the Non-Del plan — [MCR article](https://support.arive.com/support/solutions/articles/61000281236-generate-call-reports-mcr-); [Non-Del features](https://support.arive.com/support/solutions/articles/61000285413-non-del-plan-features)
 
 ### Inferences
-- The workflow is linear and lender-integrated for agency, government and non-QM residential products. Each step assumes a 1003-style borrower file and rate-sheet pricing. That differs from Kubera's flow, where the broker packages a deal, shops it to lenders that issue bespoke term sheets, compares quotes, and then manages third-party reports and closing.
+- The workflow is linear and lender-integrated for agency, government and non-QM residential products. Each step assumes a 1003-style borrower file and rate-sheet pricing. That differs from Corin's flow, where the broker packages a deal, shops it to lenders that issue bespoke term sheets, compares quotes, and then manages third-party reports and closing.
 - The steps that carry over conceptually: a single deal record, a doc vault with classification and finalize-lock, task assignment and auto-complete, quote comparison, lender submission with status and conditions sync, e-sign, and compensation capture.
 
 ### Gaps
@@ -163,8 +163,8 @@ Per-seat SaaS pricing roughly $50–$100 per originator per month (exact figures
 - I found no Arive source supporting commercial property types (hotel, senior housing, 11+ unit multifamily), SBA, HUD/FHA multifamily (223(f)/232), CMBS or bridge — search returned nothing Arive-specific — [search: Arive commercial](https://pro.janover.co/guides/broker-guide-to-financing-1-4-unit-residential) (general context only, not about Arive)
 
 ### Inferences
-- Arive's "commercial" reach is residential-investor DSCR on 1–4 units, plus 5–10 unit multifamily for non-QM. That overlaps with none of Kubera's core programs (HUD 232/223(f), SBA 504/7(a), hotel CMBS, PIP bridge, agency multifamily, private bridge), except possibly small-balance multifamily.
-- At about $50–$80 per seat, the price is low. Kubera would still get nothing from the PPE (no CRE rate sheets) and would have to fight a 1003/TRID-centered data model. Adopting Arive is not sensible. Its value to Kubera is as a UX and workflow reference.
+- Arive's "commercial" reach is residential-investor DSCR on 1–4 units, plus 5–10 unit multifamily for non-QM. That overlaps with none of Corin's core programs (HUD 232/223(f), SBA 504/7(a), hotel CMBS, PIP bridge, agency multifamily, private bridge), except possibly small-balance multifamily.
+- At about $50–$80 per seat, the price is low. Corin would still get nothing from the PPE (no CRE rate sheets) and would have to fight a 1003/TRID-centered data model. Adopting Arive is not sensible. Its value to Corin is as a UX and workflow reference.
 
 ### Gaps
 - Exact current pricing and tier composition need confirmation on arive.com/pricing (fetch blocked).
@@ -175,7 +175,7 @@ Per-seat SaaS pricing roughly $50–$100 per originator per month (exact figures
 ## 4. Which Arive features are residential-only and not needed for business-purpose commercial loans?
 
 ### Takeaway
-TRID disclosures (LE, CD, COC via DocMagic), DU/LPA AUS, FHA lender IDs, HMDA, the NMLS MCR, MERS MIN generation, rate-sheet PPE and lock or registration with residential wholesale lenders, and the 1003 consumer POS are all residential consumer-mortgage tooling that Kubera does not need. Kubera's equivalents are California DRE broker disclosures and commercial term sheets.
+TRID disclosures (LE, CD, COC via DocMagic), DU/LPA AUS, FHA lender IDs, HMDA, the NMLS MCR, MERS MIN generation, rate-sheet PPE and lock or registration with residential wholesale lenders, and the 1003 consumer POS are all residential consumer-mortgage tooling that Corin does not need. Corin's equivalents are California DRE broker disclosures and commercial term sheets.
 
 ### Cited Findings
 - DocMagic produces the LE, initial disclosures, COC, CD and closing package. These are TRID documents for consumer mortgages — [Arive DocMagic article](https://support.arive.com/en/support/solutions/articles/61000308107); [DocMagic TRID history](https://blog.docmagic.com/docmagic-releases-new-trid-functionality-to-its-entire-client-base-and-all-los-vendors) [pre-2026]
@@ -185,8 +185,8 @@ TRID disclosures (LE, CD, COC via DocMagic), DU/LPA AUS, FHA lender IDs, HMDA, t
 - The Coast2Coast guide notes the business-purpose flag on DSCR loans, which changes which consumer disclosures apply. It advises checking with compliance — [Coast2Coast DSCR setup](https://coast2coastml-help.freshdesk.com/support/solutions/articles/158000442336-dscr-dscr-loan-setup-in-arive)
 
 ### Inferences
-- TRID and Reg Z do not apply to business-purpose credit, and HMDA reporting does not apply to a broker that is not the lender. Neither applies to Kubera. This is general regulatory knowledge, not from the sources above; verify with counsel.
-- Kubera's analogous compliance layer is California DRE broker obligations: broker disclosures under the Business & Professions Code, trust-fund rules if it handles deposits, and any DRE activity reporting. These are not covered by Arive and are not sourced here. Flag them for counsel review and do not treat them as findings.
+- TRID and Reg Z do not apply to business-purpose credit, and HMDA reporting does not apply to a broker that is not the lender. Neither applies to Corin. This is general regulatory knowledge, not from the sources above; verify with counsel.
+- Corin's analogous compliance layer is California DRE broker obligations: broker disclosures under the Business & Professions Code, trust-fund rules if it handles deposits, and any DRE activity reporting. These are not covered by Arive and are not sourced here. Flag them for counsel review and do not treat them as findings.
 - Non-residential features that do transfer: e-sign with external signers, document classification and finalize-lock (audit trail), consent/eSign tracking, task assignment and auto-complete, partner portal, quote comparison, and the lender submission and conditions pattern.
 
 ### Gaps
@@ -194,18 +194,18 @@ TRID disclosures (LE, CD, COC via DocMagic), DU/LPA AUS, FHA lender IDs, HMDA, t
 
 ---
 
-## 5. Relevance matrix: Arive feature vs. Kubera Commercial (has / plans / build-or-integrate)
+## 5. Relevance matrix: Arive feature vs. Corin Commercial (has / plans / build-or-integrate)
 
 ### Takeaway
-About half of Arive's surface (TRID, AUS, MCR, HMDA, MERS, residential PPE, 1003 POS) is irrelevant to Kubera. The relevant half (pipeline and tasks, doc vault with classification, conditions sync, e-sign, partner portal, quote comparison, lender submission, compensation tracking) is mostly already planned in Kubera's roadmap. The main unplanned gaps are a lender-agnostic conditions tracker, a commission/fee ledger, a doc finalize-lock with audit trail, and a white-label or co-branded partner view with status updates.
+About half of Arive's surface (TRID, AUS, MCR, HMDA, MERS, residential PPE, 1003 POS) is irrelevant to Corin. The relevant half (pipeline and tasks, doc vault with classification, conditions sync, e-sign, partner portal, quote comparison, lender submission, compensation tracking) is mostly already planned in Corin's roadmap. The main unplanned gaps are a lender-agnostic conditions tracker, a commission/fee ledger, a doc finalize-lock with audit trail, and a white-label or co-branded partner view with status updates.
 
 ### Cited Findings
-- Arive feature facts in this matrix are cited in sections 1–4 above. Kubera status comes from the assignment brief (internal context), not from external sources.
+- Arive feature facts in this matrix are cited in sections 1–4 above. Corin status comes from the assignment brief (internal context), not from external sources.
 
 ### Inferences
 "Has" and "Planned" come from the brief. "Build/integrate" is my recommendation.
 
-| Arive module / feature | Relevant to Kubera? | Kubera status | What Kubera would build or integrate |
+| Arive module / feature | Relevant to Corin? | Corin status | What Corin would build or integrate |
 |---|---|---|---|
 | Lead capture + CRM (contacts, notes, loan history) | Yes | **Has**: Twenty CRM sync (person, company, opportunity, notes). **Planned**: Twenty automation agents | Add deal-stage history and loan-amount change tracking on the opportunity (Arive tracks "loan amount history") |
 | Marketing automation (email/SMS from milestones; via HubSpot/Zapier in Arive) | Yes | **Planned**: Zoho, Resend, Telnyx, newsletter, consent ledger | Milestone-triggered borrower and referrer notifications from pipeline stage changes, gated by the consent ledger |
@@ -219,11 +219,11 @@ About half of Arive's surface (TRID, AUS, MCR, HMDA, MERS, residential PPE, 1003
 | Credit pull (30+ vendors) | Low–medium | None | Commercial lenders pull credit themselves. Optional: guarantor soft pull or background vendor later. Not a priority |
 | VOE/VOI, MI | No | n/a | Not needed for business-purpose CRE |
 | Flood, title fees | Partly | **Planned**: vendor order tracking (appraisal, Phase I) | Extend vendor tracking to title, flood, PCA, survey, zoning, PIP and franchise reports, plus HUD- or SBA-required third-party reports |
-| DU/LPA AUS | No | n/a | Not applicable. Kubera's equivalent is the Jev classification/program rules plus lender credit-box matching |
+| DU/LPA AUS | No | n/a | Not applicable. Corin's equivalent is the Jev classification/program rules plus lender credit-box matching |
 | TRID disclosures (LE/CD/COC via DocMagic) | No | n/a | Instead, a CA DRE broker disclosure and fee agreement template set, signed via DocuSign (planned). Verify required forms with counsel |
 | HMDA LAR | No | n/a | Not applicable to a business-purpose broker (verify with counsel) |
 | NMLS MCR / state reports | No (NMLS); maybe DRE reporting | n/a | Check whether any DRE activity report applies. If so, build an export from the pipeline DB |
-| MERS MIN / Non-Del funding | No | n/a | Kubera does not fund loans |
+| MERS MIN / Non-Del funding | No | n/a | Corin does not fund loans |
 | Document management: folders, classification, finalize-lock, external sharing | Yes | **Has**: Supabase vault with signed uploads. **Planned**: AI doc agent extraction | Add doc taxonomy per program (HUD 232 vs SBA vs CMBS checklists), versioning, a finalize/lock state with an immutable audit log, and expiring external share links for lenders |
 | Tasks: assignment, auto-completion; Global Notes with pinning | Yes | **Planned**: staff login, pipeline dashboard, closing-checklist agent | Task model tied to deal stage, with auto-complete when a linked doc or condition clears, and pinned notes |
 | Milestone / pipeline management | Yes | **Planned**: broker pipeline dashboard + approval queue | Program-specific stage templates. HUD and SBA timelines differ sharply from bridge |
@@ -232,9 +232,9 @@ About half of Arive's surface (TRID, AUS, MCR, HMDA, MERS, residential PPE, 1003
 | Compensation / commission (comp fields; Non-Del revenue mgmt) | Yes | Not in brief | Gap. Build a fee ledger per deal (broker fee %, lender-paid vs borrower-paid, referral splits to partner brokers, invoice and paid status) |
 | Seats / roles (Originator vs Support) | Yes | **Planned**: staff login | RBAC roles: principal/broker of record, analyst/processor, partner, borrower. Record DRE license per user, since the DRE broker of record must supervise |
 | Realtor / referral partner portal (co-branded) | Yes | **Has**: partner registration form. **Planned**: partner portal | Referral-broker view showing referred deals' status, required docs and fee split. Lender view of matched deals |
-| AI (Voice-to-Loan, 2025, possibly April Fools') | Kubera ahead | **Has**: Claude advisor and term-sheet drafting. **Planned**: doc agent, CRM agents, conversation logs | No Arive AI to copy. Kubera's AI roadmap already exceeds anything found for Arive |
+| AI (Voice-to-Loan, 2025, possibly April Fools') | Corin ahead | **Has**: Claude advisor and term-sheet drafting. **Planned**: doc agent, CRM agents, conversation logs | No Arive AI to copy. Corin's AI roadmap already exceeds anything found for Arive |
 | API / integrations (Zapier only, no open API) | Lesson | **Has**: direct Twenty and Supabase integrations | Keep first-party APIs and webhooks. Arive's Zapier-only model is a criticized limitation |
 
 ### Gaps
-- Kubera's "has" and "planned" statuses are taken from the brief and were not checked against the repo code.
+- Corin's "has" and "planned" statuses are taken from the brief and were not checked against the repo code.
 - California DRE-specific disclosure and reporting obligations for commercial loan brokerage were not researched here. They need counsel or separate research.

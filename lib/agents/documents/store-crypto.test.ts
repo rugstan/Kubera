@@ -105,7 +105,7 @@ describe("PFS extraction fields at rest", () => {
     expect(queue.map((r) => r.id)).toContain(rec.id);
     expect(queue[0]!.fields).toEqual(pfs.fields);
 
-    const approved = await correctAndApprove({ store, events: new MemoryExtractionEventLog() }, rec.id, { reviewer: "analyst@kubera", corrections: { scalars: { totalAssets: "1,900,000", netWorth: 1_500_000 } } });
+    const approved = await correctAndApprove({ store, events: new MemoryExtractionEventLog() }, rec.id, { reviewer: "analyst@corin", corrections: { scalars: { totalAssets: "1,900,000", netWorth: 1_500_000 } } });
     expect(approved.status).toBe("approved");
     expect(approved.fields.scalars.totalAssets!.value).toBe(1_900_000);
     expect(isSealedFields(rows.get(rec.id)!.fields)).toBe(true);

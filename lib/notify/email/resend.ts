@@ -5,14 +5,14 @@ import { EmailError, type EmailClient, type EmailSendResult, type OutboundEmail 
 
 export type ResendConfig = {
   apiKey: string;
-  /** e.g. "Kubera Commercial <notifications@notify.kuberacommercial.com>" */
+  /** e.g. "Corin Commercial <notifications@notify.corincommercial.com>" */
   from: string;
   replyTo: string;
   baseUrl?: string;
   fetch?: typeof fetch;
 };
 
-export const DEFAULT_RESEND_FROM = "Kubera Commercial <notifications@notify.kuberacommercial.com>";
+export const DEFAULT_RESEND_FROM = "Corin Commercial <notifications@notify.corincommercial.com>";
 
 export function resendConfigFromEnv(env: Record<string, string | undefined> = process.env): ResendConfig | null {
   const apiKey = env.RESEND_API_KEY?.trim();
@@ -20,7 +20,7 @@ export function resendConfigFromEnv(env: Record<string, string | undefined> = pr
   return {
     apiKey,
     from: env.RESEND_FROM?.trim() || DEFAULT_RESEND_FROM,
-    replyTo: env.NOTIFY_REPLY_TO?.trim() || env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "deals@kuberacommercial.com",
+    replyTo: env.NOTIFY_REPLY_TO?.trim() || env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "deals@corincommercial.com",
   };
 }
 

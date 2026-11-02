@@ -1,10 +1,10 @@
 // SBA Form 159 (Fee Disclosure and Compensation Agreement) data built from the
-// fee ledger, rendered as a data sheet, and sent for signature (Kubera as
+// fee ledger, rendered as a data sheet, and sent for signature (Corin as
 // Agent, the applicant, the lender) through lib/esign behind the broker
 // approval gate.
 //
 // SBA requires Form 159 whenever an Agent is compensated in connection with a
-// 7(a) or 504 loan. Kubera's compensation lines come only from the ledger, so
+// 7(a) or 504 loan. Corin's compensation lines come only from the ledger, so
 // the form, the invoice and the closing statement can never disagree.
 //
 // VERIFY (counsel / SBA SOP 50 10): agent-type labels, the itemization
@@ -23,7 +23,7 @@ import { formatCents, sumCents } from "./money";
 import type { DealDeskStore } from "./store";
 import { isSbaProgram, type Clock, type Deal, type FeeEntry, type Form159Record } from "./types";
 
-export const FORM159_TEMPLATE_VERSION = "kubera-sba159-2026.11";
+export const FORM159_TEMPLATE_VERSION = "corin-sba159-2026.11";
 export const FORM159_TITLE = "SBA Form 159 — Fee Disclosure and Compensation Agreement (data sheet)";
 
 /** VERIFY: SOP 50 10 requires an itemized statement of services above this applicant-paid amount. */
@@ -92,11 +92,11 @@ export type Form159Input = {
   preparedOn: string;
 };
 
-/** Form 159 data from the deal's ledger (Kubera-received, non-void entries only). */
+/** Form 159 data from the deal's ledger (Corin-received, non-void entries only). */
 export function form159FromLedger(input: Form159Input): Form159Build {
   const flags: Form159Flag[] = [];
   if (!isSbaProgram(input.deal.program)) flags.push("not_sba_program");
-  const counted = input.entries.filter((e) => e.dealId === input.deal.id && e.payee === "kubera" && e.status !== "void");
+  const counted = input.entries.filter((e) => e.dealId === input.deal.id && e.payee === "corin" && e.status !== "void");
   const lines = counted.map((e) => {
     const category = sba159CategoryOf(e);
     return { feeEntryId: e.id, description: e.description, payer: e.payer === "lender" ? ("lender" as const) : ("applicant" as const), category, amountCents: e.amountCents };
@@ -187,7 +187,7 @@ export function form159Document(data: Form159Data, opts: { draft: boolean }): Do
       ],
     },
     {
-      title: "Itemization (from Kubera's fee ledger)",
+      title: "Itemization (from Corin's fee ledger)",
       rows: data.lines.length
         ? data.lines.map((l) => ({ label: `${l.description} (${l.payer === "lender" ? "lender-paid" : "applicant-paid"})`, value: formatCents(l.amountCents) }))
         : [{ label: "No compensation recorded", value: formatCents(0) }],
@@ -195,7 +195,7 @@ export function form159Document(data: Form159Data, opts: { draft: boolean }): Do
     {
       title: "Statements",
       paragraphs: [
-        `Total agent compensation in connection with this loan: ${formatCents(data.totalCents)}. Kubera Commercial, Inc. is the agent and broker only; it is not the lender and does not receive, hold or pay out loan proceeds.`,
+        `Total agent compensation in connection with this loan: ${formatCents(data.totalCents)}. Corin Commercial, Inc. is the agent and broker only; it is not the lender and does not receive, hold or pay out loan proceeds.`,
         "Compensation is paid through the loan closing as shown on the lender's closing statement. No compensation is contingent on the use of any particular lender beyond what is disclosed above.",
         "The official SBA Form 159 signed by the agent, the applicant and the lender is the record the lender submits to SBA. This data sheet carries the same figures.",
       ],
@@ -403,10 +403,10 @@ export async function applyForm159EsignEvent(deps: { store: DealDeskStore; now: 
   return record;
 }
 
-/** Closing requirement for SBA deals: no Kubera compensation, or the current Form 159 is signed and matches the ledger. */
+/** Closing requirement for SBA deals: no Corin compensation, or the current Form 159 is signed and matches the ledger. */
 export function form159Satisfied(deal: Deal, entries: FeeEntry[], forms: Form159Record[]): boolean {
   if (!isSbaProgram(deal.program)) return true;
-  const comp = entries.filter((e) => e.payee === "kubera" && e.status !== "void");
+  const comp = entries.filter((e) => e.payee === "corin" && e.status !== "void");
   if (!comp.length) return true;
   const signed = forms.filter((f) => f.status === "signed").at(-1);
   if (!signed) return false;

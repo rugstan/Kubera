@@ -9,7 +9,7 @@
 //
 // Nothing here sends anything by itself (Global rule 2) and nothing models
 // funds (Global rule 1): a prospect's loan is the public-record mortgage on
-// the property, not money Kubera handles.
+// the property, not money Corin handles.
 
 // ---------------------------------------------------------------------------
 // Market intel

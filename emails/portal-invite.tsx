@@ -10,7 +10,7 @@ export type PortalInviteProps = {
   contactEmail: string;
 };
 
-export const portalInviteSubject = "Your secure Kubera Commercial document portal link";
+export const portalInviteSubject = "Your secure Corin Commercial document portal link";
 
 export default function PortalInvite({ firstName, portalUrl, expiresLabel, contactEmail }: PortalInviteProps) {
   return (
@@ -36,7 +36,7 @@ export default function PortalInvite({ firstName, portalUrl, expiresLabel, conta
 
 PortalInvite.PreviewProps = {
   firstName: "Pat",
-  portalUrl: "https://kuberacommercial.com/portal/access?token=example",
+  portalUrl: "https://corincommercial.com/portal/access?token=example",
   expiresLabel: "on Thu, 05 Nov 2026 17:00 UTC",
-  contactEmail: "deals@kuberacommercial.com",
+  contactEmail: "deals@corincommercial.com",
 } satisfies PortalInviteProps;

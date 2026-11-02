@@ -51,7 +51,7 @@ export type IntelRuntime = {
   now: () => Date;
 };
 
-const DEMO_KEY = Symbol.for("kubera.intel.demo");
+const DEMO_KEY = Symbol.for("corin.intel.demo");
 type DemoBundle = { intel: MemoryIntelStore; prospects: MemoryProspectStore; ready: Promise<void> };
 
 function demoBundle(now: () => Date): DemoBundle {

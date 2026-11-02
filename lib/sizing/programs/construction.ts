@@ -4,7 +4,7 @@
 // and the cost it is measured against are solved together). Each lender
 // channel gets its own capital stack and a take-out test at stabilization.
 //
-// Kubera's role ends at closing: the lender of record funds and administers
+// Corin's role ends at closing: the lender of record funds and administers
 // the loan. Nothing here models draws, inspections, lien waivers or servicing.
 
 import type { Benchmarks } from "@/lib/rates";
@@ -321,7 +321,7 @@ function constructionQuote(i: ConstructionInputs, lender: ConstructionLender, ra
     closingBreakdown: [
       { label: `Lender points (${box.points.toFixed(2)})`, amount: b.points },
       { label: "Lender legal, plan & cost review, title", amount: b.fixedFees },
-      { label: "Kubera advisory fee (est.)", amount: b.brokerFee },
+      { label: "Corin advisory fee (est.)", amount: b.brokerFee },
     ],
     noi: i.stabilizedNoi,
     coverageDebtService: b.loanAmount * stabilizedConstant,
@@ -335,7 +335,7 @@ function constructionQuote(i: ConstructionInputs, lender: ConstructionLender, ra
     eligible: i.hardCosts > 0 && b.loanAmount > 0,
     notes: [
       ...(lender !== "PRIVATE" ? ["Completion and cost-overrun guaranties are standard."] : []),
-      "The lender of record funds and administers the loan; Kubera's role ends at closing.",
+      "The lender of record funds and administers the loan; Corin's role ends at closing.",
       ...stackNotes,
     ],
     warnings,

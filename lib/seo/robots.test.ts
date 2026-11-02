@@ -7,7 +7,7 @@ const rules = (r: ReturnType<typeof buildRobots>) => (Array.isArray(r.rules) ? r
 
 describe("buildRobots", () => {
   it("main site: blocks /api/, names AI crawlers, lists the sitemap", () => {
-    const r = buildRobots("kuberacommercial.com", {});
+    const r = buildRobots("corincommercial.com", {});
     expect(r.sitemap).toMatch(/\/sitemap\.xml$/);
     const star = rules(r).find((x) => x.userAgent === "*")!;
     expect(star.allow).toBe("/");
@@ -20,11 +20,11 @@ describe("buildRobots", () => {
   });
 
   it("does not publish the staff desks, which are noindexed by header instead", async () => {
-    const text = JSON.stringify(buildRobots("kuberacommercial.com", {}));
+    const text = JSON.stringify(buildRobots("corincommercial.com", {}));
     for (const f of staffRouteFolders()) expect(text, `/${f}`).not.toContain(`"/${f}"`);
     expect(text).not.toMatch(/ai-review/);
     // Sign-in and the portal stay disallowed, so a redirect from a desk lands on a blocked path.
-    const star = rules(buildRobots("kuberacommercial.com", {})).find((x) => x.userAgent === "*")!;
+    const star = rules(buildRobots("corincommercial.com", {})).find((x) => x.userAgent === "*")!;
     for (const p of ["/login", "/mfa", "/auth", "/portal", "/api/"]) expect(star.disallow, p).toContain(p);
     // Every desk sends X-Robots-Tag: noindex from next.config.ts.
     const { default: config } = await import("@/next.config");
@@ -45,7 +45,7 @@ describe("buildRobots", () => {
   });
 
   it("preview deployments disallow everything, on any host", () => {
-    for (const host of ["kuberacommercial.com", "kubera.loans", "x.vercel.app"]) {
+    for (const host of ["corincommercial.com", "kubera.loans", "x.vercel.app"]) {
       const r = buildRobots(host, { VERCEL_ENV: "preview" });
       expect(r.sitemap).toBeUndefined();
       expect(rules(r)).toEqual([{ userAgent: "*", disallow: "/" }]);

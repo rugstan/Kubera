@@ -10,8 +10,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { AuthSession, AuthTokens } from "./types";
 
-export const SESSION_COOKIE = "kc_session";
-export const LOGIN_COOKIE = "kc_login";
+export const SESSION_COOKIE = "cc_session";
+export const LOGIN_COOKIE = "cc_login";
 
 const DEFAULT_MAX_HOURS = 12;
 /** Refresh this many seconds before the access token expires. */
@@ -30,7 +30,7 @@ export function sessionMaxAgeSeconds(env: Record<string, string | undefined> = p
 }
 
 function mac(payload: string, key: string): string {
-  return createHmac("sha256", key).update(`kc_session.v1.${payload}`).digest("base64url");
+  return createHmac("sha256", key).update(`cc_session.v1.${payload}`).digest("base64url");
 }
 
 export function encodeSession(s: StoredSession, key: string): string {

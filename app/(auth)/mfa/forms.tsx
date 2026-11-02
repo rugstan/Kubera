@@ -46,7 +46,7 @@ function CodeForm({ factorId, next, label }: { factorId: string; next: string; l
 export function MfaChallenge({ factorId, next }: { factorId: string; next: string }) {
   return (
     <>
-      <p className="mt-2 text-[15px] leading-relaxed text-titanium">Open your authenticator app and enter the current code for Kubera Commercial.</p>
+      <p className="mt-2 text-[15px] leading-relaxed text-titanium">Open your authenticator app and enter the current code for Corin Commercial.</p>
       <CodeForm factorId={factorId} next={next} label="Authenticator code" />
     </>
   );

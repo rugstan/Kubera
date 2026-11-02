@@ -140,7 +140,7 @@ const leadPrefix = (id: RowId) => `${id}/`;
 export const LEAD_POLICY: RetentionPolicy = {
   id: "leads",
   table: "leads",
-  description: "Qualifier submissions with their documents (rows and files), Kubera AI conversations, emails, texts and notification records",
+  description: "Qualifier submissions with their documents (rows and files), Corin AI conversations, emails, texts and notification records",
   basis: "Privacy policy: three years after last contact (identifiers, loan request, financial documents, communications)",
   dateColumn: "created_at",
   retainDays: 3 * YEAR + 1,
@@ -170,7 +170,7 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
   {
     id: "ai_conversations",
     table: "ai_conversations",
-    description: "Kubera AI conversations not tied to a loan file",
+    description: "Corin AI conversations not tied to a loan file",
     basis: "Privacy policy: up to one year unless part of a loan file",
     dateColumn: "created_at",
     retainDays: YEAR,

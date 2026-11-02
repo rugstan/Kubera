@@ -31,7 +31,7 @@ const FORBIDDEN: [RegExp, string][] = [
   [/\bwill call you today\b/i, "same-day call"],
   [/\bguaranteed? (?:closing|approval|rate|terms?)\b/i, "guarantee"],
   [/\b(?:loan|it) is (?:usury[- ])?exempt\b/i, "usury exemption claim"],
-  [/\b(?:lender|originator) of record is kubera|kubera (?:is|acts as) the lender\b/i, "Kubera as lender"],
+  [/\b(?:lender|originator) of record is corin|corin (?:is|acts as) the lender\b/i, "Corin as lender"],
 ];
 
 describe("trust pages render", () => {
@@ -61,7 +61,7 @@ describe("trust pages render", () => {
 
   it("contact lists the mailbox routing table and an email fallback for scheduling", () => {
     const markup = html(createElement(ContactPage));
-    for (const box of ["deals", "lenders", "partners", "vendors", "compliance"]) expect(markup).toContain(`${box}@kuberacommercial.com`);
+    for (const box of ["deals", "lenders", "partners", "vendors", "compliance"]) expect(markup).toContain(`${box}@corincommercial.com`);
     expect(markup).toContain("<table");
     expect(markup).toMatch(/<caption[^>]*>/);
     // Unconfigured scheduling and phone show an email path, never a "not set up" or "coming soon" placeholder.
@@ -119,7 +119,7 @@ describe("structure detail pages", () => {
     const crumbs = jsonLd(markup).find((n) => n["@type"] === "BreadcrumbList");
     expect(crumbs).toBeTruthy();
     const meta = await generateMetadata({ params: Promise.resolve({ slug }) });
-    expect(meta.alternates?.canonical).toBe(`https://kuberacommercial.com/structures/${slug}`);
+    expect(meta.alternates?.canonical).toBe(`https://corincommercial.com/structures/${slug}`);
   });
 
   it("renders a stack table only for the 504 structures", async () => {
@@ -154,7 +154,7 @@ describe("schemas", () => {
     ]);
     const person = nodes.find((n) => n["@type"] === "Person")!;
     expect(person.identifier).toEqual({ "@type": "PropertyValue", propertyID: "California DRE license", value: "01234567" });
-    expect(person.worksFor).toEqual({ "@id": "https://kuberacommercial.com/#organization" });
+    expect(person.worksFor).toEqual({ "@id": "https://corincommercial.com/#organization" });
   });
 
   it("emit an ItemList only when there are closed records", () => {

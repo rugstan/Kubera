@@ -36,13 +36,13 @@ describe("workflow functions", () => {
     expect(byId.get("spreads-recalculate")).toMatchObject({ triggers: [{ event: EVENTS.documentExtracted }] });
     expect(byId.get("crm-mail-routed")?.triggers?.[0]?.event).toBe(EVENTS.mailRouted);
     expect(byId.get("lender-term-sheets")?.triggers?.[0]).toMatchObject({ event: EVENTS.mailRouted, if: expect.stringContaining("term_sheet") });
-    expect(byId.get("speed-to-lead")?.triggers?.[0]?.event).toBe("kubera/lead.scored");
+    expect(byId.get("speed-to-lead")?.triggers?.[0]?.event).toBe("corin/lead.scored");
     // The sweep runs on the /api/outreach/sweep cron; the function only runs on request.
-    expect(byId.get("outreach-sweep")?.triggers).toEqual([{ event: "kubera/outreach.sweep.requested" }]);
+    expect(byId.get("outreach-sweep")?.triggers).toEqual([{ event: "corin/outreach.sweep.requested" }]);
     // Market intel runs Monday morning Pacific; outreach drafts settle every few minutes; scans run on request.
-    expect(byId.get("intel-weekly")?.triggers).toEqual([{ cron: "TZ=America/Los_Angeles 0 7 * * 1" }, { event: "kubera/intel.weekly.requested" }]);
-    expect(byId.get("prospect-scan")?.triggers).toEqual([{ event: "kubera/prospects.scan.requested" }]);
-    expect(byId.get("prospect-outreach-settle")?.triggers).toEqual([{ cron: "*/5 * * * *" }, { event: "kubera/prospects.settle.requested" }]);
+    expect(byId.get("intel-weekly")?.triggers).toEqual([{ cron: "TZ=America/Los_Angeles 0 7 * * 1" }, { event: "corin/intel.weekly.requested" }]);
+    expect(byId.get("prospect-scan")?.triggers).toEqual([{ event: "corin/prospects.scan.requested" }]);
+    expect(byId.get("prospect-outreach-settle")?.triggers).toEqual([{ cron: "*/5 * * * *" }, { event: "corin/prospects.settle.requested" }]);
   });
 
   it("uses the agents' own event names", () => {

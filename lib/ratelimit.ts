@@ -89,7 +89,7 @@ export class UpstashRateLimiter implements RateLimiter {
     private readonly token: string,
     private readonly fetchImpl: typeof fetch = fetch,
     private readonly now: Clock = Date.now,
-    private readonly prefix = "kubera:rl",
+    private readonly prefix = "corin:rl",
   ) {}
 
   async limit(key: string, rule: RateLimitRule): Promise<RateLimitResult> {

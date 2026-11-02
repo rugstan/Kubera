@@ -1,6 +1,6 @@
-# Hard Money / Private Money Commercial Lending for a California DRE Broker (Kubera Commercial)
+# Hard Money / Private Money Commercial Lending for a California DRE Broker (Corin Commercial)
 
-Research notes. Current as of 2026-10-31. This is research, not legal advice; every regulatory item below needs California counsel to confirm against current statute text before Kubera relies on it.
+Research notes. Current as of 2026-10-31. This is research, not legal advice; every regulatory item below needs California counsel to confirm against current statute text before Corin relies on it.
 
 **How these notes were sourced.** Direct page fetches failed in this environment: leginfo.legislature.ca.gov, dre.ca.gov, dosslaw.com and california.public.law all returned DNS failures, meaning they are outside the session's allowed network domains. **Every finding below therefore comes from web-search result summaries and snippets, not from pages I opened.** The URL cited is the page the snippet came from. Statute numbers and dollar thresholds especially need to be checked against leginfo. To fetch statute text in a later pass, add `leginfo.legislature.ca.gov`, `dre.ca.gov` and `law.cornell.edu` to the session's network allowlist.
 
@@ -36,7 +36,7 @@ Private and hard money loans are short-term, interest-only, balloon loans sized 
 - Feasibility stress tests: does the deal survive rehab overruns and a longer carry? Hold a 10–20% contingency on rehab budgets — [New Funding Resources](https://newfundingresources.com/?p=11891); [Anchor Loans](https://anchorloans.com/blog/understanding-the-role-of-hard-money-lenders-in-complex-real-estate-projects) (snippets)
 
 ### Inferences
-- Product menu for Kubera's sizer. This is a synthesis; the specific numbers are illustrative and not sourced except where cited above.
+- Product menu for Corin's sizer. This is a synthesis; the specific numbers are illustrative and not sourced except where cited above.
   - **Commercial bridge:** as-is LTV about 65–75%; 12–24 months plus extensions.
   - **Fix-and-flip:** LTARV about 65–75%, LTC about 85–90% of purchase plus 100% of rehab held back in draws.
   - **Fix-and-hold:** bridge to a DSCR takeout.
@@ -45,8 +45,8 @@ Private and hard money loans are short-term, interest-only, balloon loans sized 
   - **Cash-out on non-stabilized assets:** priced off as-is value.
   - **Rescue / distressed:** maturity defaults, discounted payoffs, note purchases.
   - **Second liens:** combined LTV, subordinate to the senior lender's consent.
-- Kubera's current marketing claims private bridge loans of $750k–$25M closing in 10–21 days. That is consistent with commercial bridge norms, but the sizer needs hard money parameters that do not exist in an agency or SBA sizer: ARV, LTC, interest reserve, holdback, extension options, default rate and minimum interest.
-- The underwriting inputs that differ from Kubera's current programs (HUD, SBA, agency, CMBS) are ARV appraisal or broker price opinion, budget and scope of work, borrower track-record schedule, exit analysis (takeout DSCR or sale comps), and draw schedule. Global DSCR, tax returns and personal financial statements matter less.
+- Corin's current marketing claims private bridge loans of $750k–$25M closing in 10–21 days. That is consistent with commercial bridge norms, but the sizer needs hard money parameters that do not exist in an agency or SBA sizer: ARV, LTC, interest reserve, holdback, extension options, default rate and minimum interest.
+- The underwriting inputs that differ from Corin's current programs (HUD, SBA, agency, CMBS) are ARV appraisal or broker price opinion, budget and scope of work, borrower track-record schedule, exit analysis (takeout DSCR or sale comps), and draw schedule. Global DSCR, tax returns and personal financial statements matter less.
 
 ### Gaps
 - No sourced 2025–2026 benchmarks for commercial (not 1–4 unit) ground-up construction LTC, land LTV in the private market, interest reserve sizing, or second-lien CLTV. AAPL and Scotsman Guide data pages were not reachable.
@@ -81,7 +81,7 @@ Each model brings a different licensing, securities and servicing burden. Invest
   - Mortgage Automator advertises automated distribution and reinvestment calculations and investor statements — [GetApp Mortgage Automator](https://www.getapp.com/finance-accounting-software/a/mortgage-automator/) (snippet)
 
 ### Inferences
-- For Kubera, which advertises white-label table funding and lists a private fund among its routing targets, the lowest-friction path is: (1) keep table funding with institutional or private-credit partners, and disclose the actual funder per the table-funding guidance; then (2) add whole-loan and fractional placements to individual investors under §10237–10238 once the RE 851A, suitability and servicing workflows exist; then (3) treat a Kubera-sponsored pooled fund as a separate securities project requiring securities counsel.
+- For Corin, which advertises white-label table funding and lists a private fund among its routing targets, the lowest-friction path is: (1) keep table funding with institutional or private-credit partners, and disclose the actual funder per the table-funding guidance; then (2) add whole-loan and fractional placements to individual investors under §10237–10238 once the RE 851A, suitability and servicing workflows exist; then (3) treat a Corin-sponsored pooled fund as a separate securities project requiring securities counsel.
 - Investor onboarding is a regulated workflow, not just a CRM contact type. It needs accreditation and suitability capture, net-worth tests, RE 870 and RE 851A/B generation and e-signature, per-loan allocation (for example 10 investors at most per note under the multi-lender exemption), funds-in tracking to a trust account, and an exemption declaration in the loan file.
 
 ### Gaps
@@ -158,14 +158,14 @@ Civil Code §1916.1 exempts broker-made or broker-arranged real-property loans f
 - Foreclosure: SB 1079 (2020, effective 2021) and Civ. Code §2924m apply to properties with 1–4 residential units. They ban bundling and give eligible tenants and bidders a post-sale right to buy. AB 1837 (2022) and AB 1957 (2024, chaptered 2024-07-02) amended the regime. Several sources said it would sunset January 1, 2026; **I could not confirm whether it was extended.** It does not apply to commercial collateral, but it does apply to 1–4-unit fix-and-flip collateral — [AAPL on SB 1079](https://aaplonline.com/articles/news/california-passes-sb-1079-creating-right-of-first-refusal-after-trustee-sales/); [NatLawReview](https://natlawreview.com/article/sb-1079-changes-to-nonjudicial-foreclosure-process-aim-to-benefit-tenants-primary); [Senate Judiciary AB 1837 analysis](https://sjud.senate.ca.gov/sites/sjud.senate.ca.gov/files/ab_1837_mia_bonta_sjud_analysis.pdf); [United Trustees Assn on AB 1957](https://unitedtrustees.com/?p=13444) (snippets)
 
 ### Inferences
-- **"Business-purpose loans are exempt from the MLDS" is not supported.** The DRE's own advisory says the MLDS applies to commercial property and raw land, and §10245's large-loan exemption carves §10240 back in. Kubera should assume an RE 882 is required on every loan it negotiates as broker unless counsel identifies a specific exemption, such as a lender-side or institutional exemption the DRE manual alludes to. This contradicts the framing in the brief and is the most important correction in this section.
-- **Usury:** Kubera's "usury-exempt under §1916.1" claim holds only where Kubera actually arranges the loan and is compensated or expects to be, or makes it with its own funds. After SB 1146, a licensed DRE broker, preferably Kubera, should arrange any extension or modification. Kubera's platform should log broker involvement and compensation on every modification as usury evidence.
-- **Licensing paths:** (a) stay DRE-only, arranging and table funding with the broker making or arranging loans under §1916.1 and §22050; or (b) add a CFL license for a Kubera lending entity that funds from its own balance sheet. A CFL licensee is usury-exempt under §22002 but reportedly cannot use trust-deed investors under that license. If Kubera wants to sell notes to individuals, the DRE broker license plus Article 5 and Article 6 compliance is the natural vehicle.
-- **Threshold status:** Kubera would likely become a threshold broker quickly at $750k–$25M ticket sizes; 10 loans at about $1M would cross the $1,000,000 aggregate on any reading. Plan for RE 853 notice, RE 881 annual reports, trust-fund reporting and a CPA review from the start.
+- **"Business-purpose loans are exempt from the MLDS" is not supported.** The DRE's own advisory says the MLDS applies to commercial property and raw land, and §10245's large-loan exemption carves §10240 back in. Corin should assume an RE 882 is required on every loan it negotiates as broker unless counsel identifies a specific exemption, such as a lender-side or institutional exemption the DRE manual alludes to. This contradicts the framing in the brief and is the most important correction in this section.
+- **Usury:** Corin's "usury-exempt under §1916.1" claim holds only where Corin actually arranges the loan and is compensated or expects to be, or makes it with its own funds. After SB 1146, a licensed DRE broker, preferably Corin, should arrange any extension or modification. Corin's platform should log broker involvement and compensation on every modification as usury evidence.
+- **Licensing paths:** (a) stay DRE-only, arranging and table funding with the broker making or arranging loans under §1916.1 and §22050; or (b) add a CFL license for a Corin lending entity that funds from its own balance sheet. A CFL licensee is usury-exempt under §22002 but reportedly cannot use trust-deed investors under that license. If Corin wants to sell notes to individuals, the DRE broker license plus Article 5 and Article 6 compliance is the natural vehicle.
+- **Threshold status:** Corin would likely become a threshold broker quickly at $750k–$25M ticket sizes; 10 loans at about $1M would cross the $1,000,000 aggregate on any reading. Plan for RE 853 notice, RE 881 annual reports, trust-fund reporting and a CPA review from the start.
 
 ### Gaps
 - I could not open statute text for §§10131, 10232, 10232.2, 10232.25, 10233, 10237, 10238, 10240 or Civ. Code §1916.1 because leginfo and dre.ca.gov are blocked here. The threshold criteria, the quarterly vs annual reporting cadence, CPA-review triggers, §10238's investor qualification tests, and whether §10232.3's LTV caps can be exceeded with written justification all need verification.
-- Whether a Kubera-affiliated fund lending on loans Kubera arranges is covered by §1916.1 and §22050, given self-dealing and affiliate concerns, was not answered. Counsel must decide.
+- Whether a Corin-affiliated fund lending on loans Corin arranges is covered by §1916.1 and §22050, given self-dealing and affiliate concerns, was not answered. Counsel must decide.
 - AB 2116 (2025–26) content and status, and any 2025–2026 DRE regulation changes to RE 851A/B or threshold-broker reporting, were not found.
 - Whether §2924m's sunset (2026-01-01) was extended is unknown.
 
@@ -185,7 +185,7 @@ After funding, the note is serviced either in-house by the broker (the activity 
   - Baseline: pre-authorized debits, a borrower payment portal and servicing reports — [Private Lender Link on Baseline](https://privatelenderlink.com/2024/02/baseline-software-features-and-experience-for-private-lenders/) (snippet, Feb 2024)
 
 ### Inferences
-- **Recommended for Kubera:** outsource servicing at launch to a licensed California subservicer (FCI or a peer) that already supports multi-lender remittances, 1098/1099 reporting and trustee-sale coordination. Kubera keeps the broker-of-record role and approves any modification or extension itself, to preserve §1916.1 coverage after SB 1146. Revisit in-house servicing once volume justifies CPA-reviewed trust accounting.
+- **Recommended for Corin:** outsource servicing at launch to a licensed California subservicer (FCI or a peer) that already supports multi-lender remittances, 1098/1099 reporting and trustee-sale coordination. Corin keeps the broker-of-record role and approves any modification or extension itself, to preserve §1916.1 coverage after SB 1146. Revisit in-house servicing once volume justifies CPA-reviewed trust accounting.
 - **California non-judicial foreclosure:** default management means a notice of default, a statutory waiting period, a notice of sale, then a trustee's sale. I did not verify the specific day-count timelines (Civ. Code §2924 et seq.) in this session, so they are not stated here. Counsel or the trustee must confirm them.
 
 ### Gaps
@@ -205,7 +205,7 @@ The private-lending software market is a handful of vertical suites:
 - **Liquid Logics:** hard-money-only LOS with draws and pools; custom pricing.
 - **Mortgage Automator:** acquired Lendr in August 2026; quote-only.
 
-Generic servicing cores (LoanPro, Bryt) are cheaper or more API-centric but less trust-deed-specific. "AI-first" entrants (2025–2026) are early and mostly unproven. For a broker that may later fund, the realistic choice is to keep origination, AI and CRM in Kubera's own stack, and integrate a servicing and investor-accounting system, or outsource to a subservicer, rather than rebuild trust accounting.
+Generic servicing cores (LoanPro, Bryt) are cheaper or more API-centric but less trust-deed-specific. "AI-first" entrants (2025–2026) are early and mostly unproven. For a broker that may later fund, the realistic choice is to keep origination, AI and CRM in Corin's own stack, and integrate a servicing and investor-accounting system, or outsource to a subservicer, rather than rebuild trust accounting.
 
 ### Cited Findings
 **Baseline** (baselinesoftware.com)
@@ -264,15 +264,15 @@ Generic servicing cores (LoanPro, Bryt) are cheaper or more API-centric but less
 - Pluto (January 2026) lends against private-market fund interests. Not real estate — [BusinessWire](https://www.businesswire.com/news/home/20260106516831/en/Pluto-Launches-an-AI-Powered-Lending-Platform-to-Unlock-Liquidity-in-Private-Markets-Backed-by-Leading-Credit-Investors)
 
 ### Inferences
-Fit for Kubera, a commercial broker that may fund later:
+Fit for Corin, a commercial broker that may fund later:
 
-| Platform | Fit for Kubera |
+| Platform | Fit for Corin |
 |---|---|
-| TMO | Best fit for the hard parts Kubera should not build: trust and fund accounting, fractional investors, 1098/1099, draws. Integrate it as the system of record for funded loans if Kubera services or manages investors in-house. Quote-only pricing and a legacy UX are the costs. |
-| Baseline | A cheaper all-in-one ($995–$1,995/month), but its weak API (as of 2024) would fight Kubera's Next.js, Supabase and Twenty stack. |
-| LendingWise | Overlaps with Kubera's existing CRM and LOS ambitions. Its servicing (Elite tier) and draws could be useful; its investor portal was not live. |
-| Liquid Logics / Mortgage Automator–Lendr | Full replacements for an LOS. Mostly redundant with what Kubera is building; consider them only if Kubera abandons its custom pipeline. |
-| LoanPro / Bryt | Servicing cores Kubera could drive by API, but neither is designed for California multi-lender trust-deed remittances. |
+| TMO | Best fit for the hard parts Corin should not build: trust and fund accounting, fractional investors, 1098/1099, draws. Integrate it as the system of record for funded loans if Corin services or manages investors in-house. Quote-only pricing and a legacy UX are the costs. |
+| Baseline | A cheaper all-in-one ($995–$1,995/month), but its weak API (as of 2024) would fight Corin's Next.js, Supabase and Twenty stack. |
+| LendingWise | Overlaps with Corin's existing CRM and LOS ambitions. Its servicing (Elite tier) and draws could be useful; its investor portal was not live. |
+| Liquid Logics / Mortgage Automator–Lendr | Full replacements for an LOS. Mostly redundant with what Corin is building; consider them only if Corin abandons its custom pipeline. |
+| LoanPro / Bryt | Servicing cores Corin could drive by API, but neither is designed for California multi-lender trust-deed remittances. |
 | Third-party subservicer (FCI etc.) | The cheapest way to get compliant servicing at launch. |
 
 ### Gaps
@@ -284,10 +284,10 @@ Fit for Kubera, a commercial broker that may fund later:
 
 ---
 
-## 6. What Kubera Commercial is missing to run hard money end to end (build / integrate / skip)
+## 6. What Corin Commercial is missing to run hard money end to end (build / integrate / skip)
 
 ### Takeaway
-Kubera's stack already covers intake, AI term sheets, routing, CRM, documents, e-sign, workflows and approval gates; that is roughly the origination front end. To run hard money end to end it still lacks hard-money sizing and underwriting objects, California-specific broker and investor compliance artifacts, draw management, the investor side (onboarding, allocation, portal, distributions), trust accounting, servicing and default management. Build what is differentiating and close to Kubera's AI pipeline. Integrate the regulated ledgers (trust and fund accounting, servicing, 1098/1099). Skip a full in-house servicing operation and a pooled fund until volume and counsel justify them.
+Corin's stack already covers intake, AI term sheets, routing, CRM, documents, e-sign, workflows and approval gates; that is roughly the origination front end. To run hard money end to end it still lacks hard-money sizing and underwriting objects, California-specific broker and investor compliance artifacts, draw management, the investor side (onboarding, allocation, portal, distributions), trust accounting, servicing and default management. Build what is differentiating and close to Corin's AI pipeline. Integrate the regulated ledgers (trust and fund accounting, servicing, 1098/1099). Skip a full in-house servicing operation and a pooled fund until volume and counsel justify them.
 
 ### Cited Findings
 - The required California artifacts these capabilities map to:
@@ -315,23 +315,23 @@ These tags are recommendations derived from the findings above, not sourced fact
 7. **Draw management:** draw requests, inspections (remote or third-party), lien waivers, holdback balance, budget-to-actual. **INTEGRATE** (Built, or the servicer's or TMO's draw module) rather than build. Revisit building if construction volume grows.
 
 **Investor (capital) side**
-8. **Investor onboarding:** an investor record type, accreditation and suitability capture, the 10%-of-net-worth statement, RE 870, KYC/OFAC (reuse the planned module), e-signed RE 851A/851B/851D before funds are accepted. **BUILD** (forms and workflow; differentiating; reuses Kubera's KYC and e-sign).
+8. **Investor onboarding:** an investor record type, accreditation and suitability capture, the 10%-of-net-worth statement, RE 870, KYC/OFAC (reuse the planned module), e-signed RE 851A/851B/851D before funds are accepted. **BUILD** (forms and workflow; differentiating; reuses Corin's KYC and e-sign).
 9. **Deal allocation and placement:** publish a trust-deed opportunity to the investor list, take reservations, enforce at most 10 investors per note for multi-lender deals, cap concentration, block self-dealing, track funds-in to the trust account. **BUILD** (light), with the ledger in item 10.
 10. **Trust account and investor ledger:** 3-business-day deposit tracking, per-owner sub-ledgers, the §2832.1 consent check, monthly three-way reconciliation, CPA-review support. **INTEGRATE** (TMO Fund Management or a servicer's trust accounting). Building regulated trust accounting is high-risk.
-11. **Investor portal:** positions, statements, distributions, documents, K-1 or 1099 delivery. **INTEGRATE** at first, using the servicer's or TMO's portal behind Kubera branding. A light Kubera-branded view backed by Supabase could come later.
+11. **Investor portal:** positions, statements, distributions, documents, K-1 or 1099 delivery. **INTEGRATE** at first, using the servicer's or TMO's portal behind Corin branding. A light Corin-branded view backed by Supabase could come later.
 12. **Pooled private fund** (Reg D offering, fund administration, capital calls, waterfall, Form D, DFPI notice, 3(c)(5)(C) analysis). **SKIP** for now. It is a separate securities and fund-admin project requiring securities counsel and an outside fund administrator.
 
 **Servicing and default**
-13. **Loan servicing** (payment processing, ACH, impounds, late notices, payoff demands, investor remittances, 1098/1099). **INTEGRATE**: outsource to a California subservicer such as FCI at launch, and move to TMO or another servicing system only if Kubera chooses in-house servicing under §10233. Sync each funded loan's servicing status back into Twenty CRM and Supabase.
+13. **Loan servicing** (payment processing, ACH, impounds, late notices, payoff demands, investor remittances, 1098/1099). **INTEGRATE**: outsource to a California subservicer such as FCI at launch, and move to TMO or another servicing system only if Corin chooses in-house servicing under §10233. Sync each funded loan's servicing status back into Twenty CRM and Supabase.
 14. **Default and foreclosure workflow** (default notices, NOD and NOS coordination with a foreclosure trustee, California §2924m checks for 1–4-unit collateral, REO). **INTEGRATE** with a trustee or servicer and skip building, but track milestones in the pipeline dashboard.
-15. **Extensions and modifications workflow,** routed through the broker approval gate and recording Kubera as arranging broker, for §1916.1 after SB 1146. **BUILD** (small; reuses the approval queue).
+15. **Extensions and modifications workflow,** routed through the broker approval gate and recording Corin as arranging broker, for §1916.1 after SB 1146. **BUILD** (small; reuses the approval queue).
 
 **Regulatory reporting**
 16. **DRE regulatory reporting pack:** threshold-broker trigger monitor (counts and aggregates against the §10232 criteria), RE 853 and RE 860 filing reminders, RE 881 annual report data, quarterly trust-fund report data. **BUILD** (Inngest scheduled jobs plus reports; small, high compliance value).
 
 **Product decisions**
-17. **CFL license for a Kubera lending entity** that funds from its own balance sheet. **SKIP or defer.** A business and legal decision, not software; revisit if Kubera starts funding balance-sheet loans.
-18. **Full third-party LOS** (LendingWise, Liquid Logics, Mortgage Automator/Lendr, Baseline). **SKIP.** It duplicates Kubera's custom pipeline, CRM and AI agents; take servicing and investor accounting only.
+17. **CFL license for a Corin lending entity** that funds from its own balance sheet. **SKIP or defer.** A business and legal decision, not software; revisit if Corin starts funding balance-sheet loans.
+18. **Full third-party LOS** (LendingWise, Liquid Logics, Mortgage Automator/Lendr, Baseline). **SKIP.** It duplicates Corin's custom pipeline, CRM and AI agents; take servicing and investor accounting only.
 
 ### Gaps
 - No pricing quotes for TMO, FCI or other subservicers, so the build-vs-integrate cost comparison is unquantified.

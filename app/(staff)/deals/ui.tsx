@@ -56,7 +56,7 @@ export function SignInRequired({ level = 2 }: HeadingLevel = {}) {
   return (
     <div className="bento p-6">
       <H className="text-lg font-semibold text-ink">Staff sign-in required</H>
-      <p className="mt-2 text-sm text-titanium">The deal desk is available to Kubera staff signed in with multi-factor authentication.</p>
+      <p className="mt-2 text-sm text-titanium">The deal desk is available to Corin staff signed in with multi-factor authentication.</p>
       <Link className="pill pill-primary mt-4 inline-flex" href="/login">
         Sign in
       </Link>

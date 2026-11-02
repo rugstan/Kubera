@@ -6,7 +6,7 @@ import { site } from "@/lib/site";
 export const metadata = legalMetadata(
   "/accessibility",
   "Accessibility statement",
-  "Kubera Commercial's commitment to WCAG 2.2 AA accessibility, what we test, known limitations, and how to reach us if something does not work for you.",
+  "Corin Commercial's commitment to WCAG 2.2 AA accessibility, what we test, known limitations, and how to reach us if something does not work for you.",
 );
 
 const LAST_REVIEWED = "November 2, 2026";

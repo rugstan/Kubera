@@ -15,7 +15,7 @@ const snapshot = (asOf: string, leased: number, occupied: number) => ({ asOf, un
 
 async function triggeredProject(deals: ReturnType<typeof dealDeskTakeoutCreator>) {
   const deps = { ...makeDeps(), deals };
-  const project = await createProject(deps, "broker@kubera.test", projectInput({ name: "Harbor View", generalContractorLicense: "", state: "CA" }));
+  const project = await createProject(deps, "broker@corin.test", projectInput({ name: "Harbor View", generalContractorLicense: "", state: "CA" }));
   await deps.store.updateProject(project.id, { phase: "under_construction" }, deps.now());
   await updateConversion(deps, "a", project.id, conv({ coDate: "2026-05-01", loanMaturityDate: "2027-02-01" }));
   await addLeaseUpSnapshot(deps, "a", project.id, snapshot("2026-07-01", 115, 110));
@@ -36,7 +36,7 @@ describe("take-out deal creator (deal desk)", () => {
     const store = new MemoryDealDeskStore();
     const { now } = clockAt();
     const { deps, project } = await triggeredProject(dealDeskTakeoutCreator({ store, now }));
-    const takeout = await createTakeoutDeal(deps, "broker@kubera.test", project.id);
+    const takeout = await createTakeoutDeal(deps, "broker@corin.test", project.id);
     expect(takeout).toMatchObject({ status: "deal_created", newDealId: expect.any(String) });
 
     const deal = (await store.getDeal(takeout.newDealId!))!;

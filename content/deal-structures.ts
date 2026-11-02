@@ -156,7 +156,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       { title: "Check whether HUD or 504 fits the size", body: "The advisor compares both on all-in cost, not rate alone, using the loan sizer assumptions." },
       { title: "Line up a bank and a CDC", body: "A bank agrees to the first lien. A Certified Development Company packages the debenture and submits it to SBA." },
       { title: "Underwriting and SBA review", body: "The bank, the CDC and SBA each review the file. Each can ask for more information or change terms." },
-      { title: "Closing and funding", body: "The lender funds as lender of record. Kubera does not hold or move loan funds." },
+      { title: "Closing and funding", body: "The lender funds as lender of record. Corin does not hold or move loan funds." },
     ],
     watch: [
       "State licensing and the operating history of the community, including any change of operator.",
@@ -281,7 +281,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     steps: [
       { title: "Confirm entitlement and licensing path", body: "Zoning or use-permit approval from the city and the RCFE license path are checked before the purchase closes." },
       { title: "Budget the conversion", body: "Hard and soft costs, contingency and the interest reserve are sized together so the loan covers the whole plan." },
-      { title: "Close the bridge", body: "The lender funds as lender of record. Kubera does not hold or move loan funds." },
+      { title: "Close the bridge", body: "The lender funds as lender of record. Corin does not hold or move loan funds." },
       { title: "License, lease up and refinance", body: "After licensing and stabilization, the property is re-underwritten for a takeout such as HUD Section 232 or a bank loan." },
     ],
     watch: [
@@ -320,7 +320,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     steps: [
       { title: "Test the exit first", body: "The advisor sizes the permanent loan on projected stabilized rents and expenses, then works backward to a construction loan the takeout can repay." },
       { title: "Size the budget and reserve", body: "Hard and soft costs, contingency, the developer fee and the interest reserve are budgeted together so the loan, C-PACE and equity cover the whole plan." },
-      { title: "Place the construction loan and C-PACE", body: "The bank funds the loan as lender of record and controls every funding during construction. Kubera never holds or moves loan funds." },
+      { title: "Place the construction loan and C-PACE", body: "The bank funds the loan as lender of record and controls every funding during construction. Corin never holds or moves loan funds." },
       { title: "Lease up and refinance", body: "After completion and lease-up, the property is underwritten for a permanent loan, such as an agency, HUD or bank loan, that repays the construction loan." },
     ],
     watch: [
@@ -361,7 +361,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       { title: "Build the rehab budget", body: "Contractor bids, scope and schedule become the rehab budget the lender reviews and inspects against." },
       {
         title: "Close with the private lender",
-        body: "The private lender funds the loan as lender of record and holds back the rehab budget, releasing it as work is completed. Kubera never holds or moves loan funds.",
+        body: "The private lender funds the loan as lender of record and holds back the rehab budget, releasing it as work is completed. Corin never holds or moves loan funds.",
       },
       { title: "Refinance or sell", body: "Once the work is done and the units are leased, a bank, agency or DSCR loan repays the private loan, or the property is sold." },
     ],

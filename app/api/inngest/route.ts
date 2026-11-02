@@ -2,7 +2,7 @@ import { serve } from "inngest/next";
 import { inngest, workflowsConfigured } from "@/lib/workflows/client";
 import { workflowFunctions } from "@/lib/workflows/server";
 
-// Inngest calls this endpoint to discover and run Kubera's workflow functions
+// Inngest calls this endpoint to discover and run Corin's workflow functions
 // (approval-gated outbound actions, inbound mail polling and processing, and
 // the Phase 3 agents: document extraction, CRM notes, lender term sheets,
 // speed-to-lead and the outreach sweep).

@@ -80,7 +80,7 @@ export function HotelDebtYieldCalculator({ benchmarks, asOf, live }: { benchmark
                 {pctOf(outcome.result.debtYieldNoiDown10, 2)}; a 10% rise to {pctOf(outcome.result.debtYieldNoiUp10, 2)}.
               </p>
             </div>
-            <p className="text-[13px] leading-relaxed text-titanium">Floors, coverage and loan-to-value follow Kubera&apos;s hotel CMBS assumptions as of {outcome.result.asOf}. Each lender sets its own.</p>
+            <p className="text-[13px] leading-relaxed text-titanium">Floors, coverage and loan-to-value follow Corin&apos;s hotel CMBS assumptions as of {outcome.result.asOf}. Each lender sets its own.</p>
           </div>
         ) : (
           <EmptyResults>{blank ? "Enter the keys, rate, occupancy, NOI and a loan amount to see debt yield and the largest loan the CMBS limits allow." : "Fix the highlighted fields to see your results."}</EmptyResults>

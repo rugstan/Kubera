@@ -68,7 +68,7 @@ export function documentAgentDeps(): ExtractionDeps | null {
   };
 }
 
-const DEMO_KEY = Symbol.for("kubera.documents.review.demo");
+const DEMO_KEY = Symbol.for("corin.documents.review.demo");
 type DemoReview = { deps: ReviewDeps; ready: Promise<void> };
 
 /** In-memory review queue for fake-auth mode (demo / e2e), seeded once per process. */

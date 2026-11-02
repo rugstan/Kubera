@@ -28,7 +28,7 @@ const exporter = await import("./request/[id]/export/route");
 const hold = await import("./legal-hold/route");
 const cron = await import("../cron/retention/route");
 
-const ORIGIN = "https://kuberacommercial.com";
+const ORIGIN = "https://corincommercial.com";
 const LEAD = "6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10";
 
 let db: InstanceType<typeof MemoryPrivacyDb>;
@@ -38,7 +38,7 @@ let audit: InstanceType<typeof MemoryAuditSink>;
 
 const ADMIN_ID = "0b6f2c1e-1111-4c39-9a55-3d3c1b7f2a10";
 function signedIn(staffRoles: string[] = ["admin"]) {
-  staffForMutation.mockResolvedValue({ ok: true, ctx: { principal: { userId: ADMIN_ID, email: "J.Rivera@Kuberacommercial.com", displayName: "J. Rivera", staffRoles }, accessToken: "t", services: { audit } } });
+  staffForMutation.mockResolvedValue({ ok: true, ctx: { principal: { userId: ADMIN_ID, email: "J.Rivera@Corincommercial.com", displayName: "J. Rivera", staffRoles }, accessToken: "t", services: { audit } } });
 }
 
 function install(tokenOk = false) {
@@ -186,8 +186,8 @@ describe("admin endpoints", () => {
     const v = await verify(t.id, { by: "Somebody Else" });
     expect(v.status).toBe(200);
     const verified = (await v.json()).request;
-    expect(verified).toMatchObject({ status: "verified", verified_by: `staff:j.rivera@kuberacommercial.com:${ADMIN_ID}` });
-    expect(audit.events.at(-1)).toMatchObject({ action: "privacy.verify", actorId: ADMIN_ID, actorLabel: "j.rivera@kuberacommercial.com", targetType: "privacy_request", targetId: t.id, ipHash: "iphash" });
+    expect(verified).toMatchObject({ status: "verified", verified_by: `staff:j.rivera@corincommercial.com:${ADMIN_ID}` });
+    expect(audit.events.at(-1)).toMatchObject({ action: "privacy.verify", actorId: ADMIN_ID, actorLabel: "j.rivera@corincommercial.com", targetType: "privacy_request", targetId: t.id, ipHash: "iphash" });
 
     // No code, or a wrong one: no export, no data, the failed attempt is audited.
     const noCode = await exporter.POST(exportReq(t.id), ctx(t.id));
@@ -208,11 +208,11 @@ describe("admin endpoints", () => {
     const doc = await res.json();
     expect(doc.records.leads[0].id).toBe(LEAD);
     const row = await db.get(t.id);
-    expect(row).toMatchObject({ status: "in_progress", export_sha256: res.headers.get("x-export-sha256"), resolution: { exportedBy: `staff:j.rivera@kuberacommercial.com:${ADMIN_ID}` } });
+    expect(row).toMatchObject({ status: "in_progress", export_sha256: res.headers.get("x-export-sha256"), resolution: { exportedBy: `staff:j.rivera@corincommercial.com:${ADMIN_ID}` } });
     expect(audit.events.filter((e) => e.action === "privacy.export")).toEqual([expect.objectContaining({ actorId: ADMIN_ID, targetId: t.id })]);
 
     const done = await action.POST(postJson(`/api/privacy/request/${t.id}`, { action: "complete", note: "Sent via secure link" }), ctx(t.id));
-    expect((await done.json()).request).toMatchObject({ status: "completed", resolution: { completedBy: `staff:j.rivera@kuberacommercial.com:${ADMIN_ID}` } });
+    expect((await done.json()).request).toMatchObject({ status: "completed", resolution: { completedBy: `staff:j.rivera@corincommercial.com:${ADMIN_ID}` } });
   });
 
   it("fails closed when the audit trail cannot be written: no export, no change", async () => {
@@ -245,7 +245,7 @@ describe("admin endpoints", () => {
   it("denies with a reason and 404s unknown ids", async () => {
     const t = await ticket();
     const res = await action.POST(postJson(`/api/privacy/request/${t.id}`, { action: "deny", reason: "Could not verify identity after two attempts" }), ctx(t.id));
-    expect((await res.json()).request).toMatchObject({ status: "denied", denial_reason: expect.stringMatching(/verify/), resolution: { deniedBy: `staff:j.rivera@kuberacommercial.com:${ADMIN_ID}` } });
+    expect((await res.json()).request).toMatchObject({ status: "denied", denial_reason: expect.stringMatching(/verify/), resolution: { deniedBy: `staff:j.rivera@corincommercial.com:${ADMIN_ID}` } });
     expect((await action.GET(admin(`/api/privacy/request/not-a-uuid`), ctx("not-a-uuid"))).status).toBe(404);
     expect((await action.GET(admin(`/api/privacy/request/${LEAD}`), ctx(LEAD))).status).toBe(404);
   });
@@ -254,7 +254,7 @@ describe("admin endpoints", () => {
     db.insertRow("leads", { id: LEAD, created_at: "2026-11-01T00:00:00Z", contact: { email: "pat@example.com" } });
     const place = await hold.POST(postJson("/api/privacy/legal-hold", { table: "leads", id: LEAD, hold: true, reason: "Litigation hold", actor: "Counsel" }));
     expect(place.status).toBe(200);
-    expect(db.find("leads", LEAD)).toMatchObject({ legal_hold: true, legal_hold_reason: "Litigation hold", legal_hold_set_by: `staff:j.rivera@kuberacommercial.com:${ADMIN_ID}` });
+    expect(db.find("leads", LEAD)).toMatchObject({ legal_hold: true, legal_hold_reason: "Litigation hold", legal_hold_set_by: `staff:j.rivera@corincommercial.com:${ADMIN_ID}` });
     expect(audit.events.at(-1)).toMatchObject({ action: "privacy.legal_hold_set", actorId: ADMIN_ID, targetType: "leads", targetId: LEAD, detail: { hold: true, reason: "Litigation hold" } });
     expect((await hold.POST(postJson("/api/privacy/legal-hold", { table: "leads", id: LEAD, hold: true }))).status).toBe(400);
     expect((await hold.POST(postJson("/api/privacy/legal-hold", { table: "kb_chunks", id: LEAD, hold: true, reason: "x x x" }))).status).toBe(400);

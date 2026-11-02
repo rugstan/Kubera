@@ -80,7 +80,7 @@ describe("server error mapping", () => {
   });
 
   it("uses the supplied contact address", () => {
-    expect(mapServerFailure(500, null, { contactEmail: "partners@kuberacommercial.com" }).message).toContain("partners@kuberacommercial.com");
+    expect(mapServerFailure(500, null, { contactEmail: "partners@corincommercial.com" }).message).toContain("partners@corincommercial.com");
   });
 
   it("reduces zod paths to field names and softens developer messages", () => {

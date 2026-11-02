@@ -11,7 +11,7 @@ export const sampleMldsInput: MldsInput = {
   ],
   property: { address: "1200 Ocean View Blvd, Pacific Grove, CA 93950", apn: "006-123-045", county: "Monterey" },
   broker: {
-    legalName: "Kubera Commercial, Inc.",
+    legalName: "Corin Commercial, Inc.",
     dreLicense: "02234567",
     licensedAddress: "100 Market St, Suite 300, San Francisco, CA 94105",
     representativeName: "Neeli Khanna",

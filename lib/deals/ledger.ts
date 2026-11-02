@@ -1,5 +1,5 @@
-// Fee ledger: Kubera's broker compensation per deal, as it will appear on the
-// lender's closing statement. Record keeping only — Kubera never receives loan
+// Fee ledger: Corin's broker compensation per deal, as it will appear on the
+// lender's closing statement. Record keeping only — Corin never receives loan
 // proceeds or holds anyone's funds; compensation is paid through the closing
 // (escrow / title) by the party named as payer.
 //
@@ -34,8 +34,8 @@ export const newFeeEntrySchema = z
       "referral_fee",
       "co_broker_split",
     ]),
-    payer: z.enum(["borrower", "lender", "kubera"]),
-    payee: z.enum(["kubera", "co_broker", "referral_partner"]),
+    payer: z.enum(["borrower", "lender", "corin"]),
+    payee: z.enum(["corin", "co_broker", "referral_partner"]),
     basis: z.enum(["flat", "percent_of_loan", "points", "percent_of_lender_fee"]),
     ratePct: z.number().finite().min(0).max(100).nullable(),
     baseCents: cents.nullable(),
@@ -49,12 +49,12 @@ export const newFeeEntrySchema = z
     sba159Category: z.enum(["packaging", "other_services", "referral"]).nullable().optional(),
   })
   .superRefine((e, ctx) => {
-    const kuberaReceives = e.payee === "kubera";
-    if (kuberaReceives === (e.payer === "kubera")) {
-      ctx.addIssue({ code: "custom", path: ["payer"], message: "Either Kubera receives compensation (from the borrower or lender) or Kubera owes a co-broker / referral partner its share" });
+    const corinReceives = e.payee === "corin";
+    if (corinReceives === (e.payer === "corin")) {
+      ctx.addIssue({ code: "custom", path: ["payer"], message: "Either Corin receives compensation (from the borrower or lender) or Corin owes a co-broker / referral partner its share" });
     }
-    if (!kuberaReceives && e.entryKind !== "co_broker_split" && e.entryKind !== "referral_fee") {
-      ctx.addIssue({ code: "custom", path: ["entryKind"], message: "Only co-broker splits and referral fees are owed by Kubera" });
+    if (!corinReceives && e.entryKind !== "co_broker_split" && e.entryKind !== "referral_fee") {
+      ctx.addIssue({ code: "custom", path: ["entryKind"], message: "Only co-broker splits and referral fees are owed by Corin" });
     }
     if (e.basis !== "flat") {
       if (e.ratePct === null || e.baseCents === null) ctx.addIssue({ code: "custom", path: ["ratePct"], message: "Percent-based entries need a rate and a base" });
@@ -83,33 +83,33 @@ export function brokerFee(b: Base & { loanAmountCents: number; pct?: number; fla
   const payer = b.payer ?? "borrower";
   const kind: FeeEntryKind = payer === "lender" ? "lender_paid_compensation" : "broker_fee";
   if (b.flatCents !== undefined) {
-    return entry(b, { entryKind: kind, payer, payee: "kubera", basis: "flat", ratePct: null, baseCents: null, amountCents: b.flatCents, description: payer === "lender" ? "Lender-paid broker compensation" : "Broker fee" }, `${kind}:flat`);
+    return entry(b, { entryKind: kind, payer, payee: "corin", basis: "flat", ratePct: null, baseCents: null, amountCents: b.flatCents, description: payer === "lender" ? "Lender-paid broker compensation" : "Broker fee" }, `${kind}:flat`);
   }
   const pct = b.pct ?? 0;
   return entry(
     b,
-    { entryKind: kind, payer, payee: "kubera", basis: "percent_of_loan", ratePct: pct, baseCents: b.loanAmountCents, amountCents: percentOf(b.loanAmountCents, pct), description: `${payer === "lender" ? "Lender-paid broker compensation" : "Broker fee"} ${pct}% of loan` },
+    { entryKind: kind, payer, payee: "corin", basis: "percent_of_loan", ratePct: pct, baseCents: b.loanAmountCents, amountCents: percentOf(b.loanAmountCents, pct), description: `${payer === "lender" ? "Lender-paid broker compensation" : "Broker fee"} ${pct}% of loan` },
     `${kind}:pct`,
   );
 }
 
 /**
  * Agency (Fannie Mae DUS / Freddie Mac Optigo) loans: the seller/servicer earns
- * an origination fee and pays Kubera an agreed share of it (lender-paid).
+ * an origination fee and pays Corin an agreed share of it (lender-paid).
  */
-export function agencySplit(b: Base & { loanAmountCents: number; lenderOriginationPct: number; kuberaSharePct: number; lenderName: string }): NewFeeEntry {
+export function agencySplit(b: Base & { loanAmountCents: number; lenderOriginationPct: number; corinSharePct: number; lenderName: string }): NewFeeEntry {
   const lenderFee = percentOf(b.loanAmountCents, b.lenderOriginationPct);
   return entry(
     b,
     {
       entryKind: "agency_split",
       payer: "lender",
-      payee: "kubera",
+      payee: "corin",
       basis: "percent_of_lender_fee",
-      ratePct: b.kuberaSharePct,
+      ratePct: b.corinSharePct,
       baseCents: lenderFee,
-      amountCents: percentOf(lenderFee, b.kuberaSharePct),
-      description: `${b.kuberaSharePct}% of ${b.lenderName}'s ${b.lenderOriginationPct}% origination fee`,
+      amountCents: percentOf(lenderFee, b.corinSharePct),
+      description: `${b.corinSharePct}% of ${b.lenderName}'s ${b.lenderOriginationPct}% origination fee`,
       counterparty: b.lenderName,
     },
     "agency_split",
@@ -117,21 +117,21 @@ export function agencySplit(b: Base & { loanAmountCents: number; lenderOriginati
 }
 
 /**
- * Hard money: Kubera's broker points (borrower-paid, on the closing statement)
+ * Hard money: Corin's broker points (borrower-paid, on the closing statement)
  * and, when the lender shares its own points, the lender-paid share.
  */
-export function hardMoneyPoints(b: Base & { loanAmountCents: number; brokerPoints: number; lenderPoints?: number; kuberaShareOfLenderPointsPct?: number; lenderName?: string }): NewFeeEntry[] {
+export function hardMoneyPoints(b: Base & { loanAmountCents: number; brokerPoints: number; lenderPoints?: number; corinShareOfLenderPointsPct?: number; lenderName?: string }): NewFeeEntry[] {
   const out: NewFeeEntry[] = [];
   if (b.brokerPoints > 0) {
     out.push(
       entry(
         b,
-        { entryKind: "hard_money_points", payer: "borrower", payee: "kubera", basis: "points", ratePct: b.brokerPoints, baseCents: b.loanAmountCents, amountCents: percentOf(b.loanAmountCents, b.brokerPoints), description: `${b.brokerPoints} broker point(s)` },
+        { entryKind: "hard_money_points", payer: "borrower", payee: "corin", basis: "points", ratePct: b.brokerPoints, baseCents: b.loanAmountCents, amountCents: percentOf(b.loanAmountCents, b.brokerPoints), description: `${b.brokerPoints} broker point(s)` },
         "hard_money_points:broker",
       ),
     );
   }
-  if (b.lenderPoints && b.kuberaShareOfLenderPointsPct) {
+  if (b.lenderPoints && b.corinShareOfLenderPointsPct) {
     const lenderPointsCents = percentOf(b.loanAmountCents, b.lenderPoints);
     out.push(
       entry(
@@ -139,12 +139,12 @@ export function hardMoneyPoints(b: Base & { loanAmountCents: number; brokerPoint
         {
           entryKind: "lender_paid_compensation",
           payer: "lender",
-          payee: "kubera",
+          payee: "corin",
           basis: "percent_of_lender_fee",
-          ratePct: b.kuberaShareOfLenderPointsPct,
+          ratePct: b.corinShareOfLenderPointsPct,
           baseCents: lenderPointsCents,
-          amountCents: percentOf(lenderPointsCents, b.kuberaShareOfLenderPointsPct),
-          description: `${b.kuberaShareOfLenderPointsPct}% of the lender's ${b.lenderPoints} point(s)`,
+          amountCents: percentOf(lenderPointsCents, b.corinShareOfLenderPointsPct),
+          description: `${b.corinShareOfLenderPointsPct}% of the lender's ${b.lenderPoints} point(s)`,
           counterparty: b.lenderName ?? null,
         },
         "hard_money_points:lender_share",
@@ -156,47 +156,47 @@ export function hardMoneyPoints(b: Base & { loanAmountCents: number; brokerPoint
 
 /**
  * Broker-arranged extension or modification fee. Under SB 1146 each change must
- * itself be arranged by a licensed broker; Kubera's compensation for arranging
+ * itself be arranged by a licensed broker; Corin's compensation for arranging
  * it is either a percent of the outstanding principal or a flat fee.
  */
 export function changeFee(
   b: Base & { kind: "extension" | "modification" | "forbearance"; modificationId: string; principalCents: number; pct?: number; flatCents?: number; payer: "borrower" | "lender" },
 ): NewFeeEntry {
   const entryKind: FeeEntryKind = b.kind === "extension" ? "extension_fee" : "modification_fee";
-  const label = `${b.kind[0]!.toUpperCase()}${b.kind.slice(1)} arranged by Kubera`;
+  const label = `${b.kind[0]!.toUpperCase()}${b.kind.slice(1)} arranged by Corin`;
   const key = `${entryKind}:${b.modificationId}`;
   if (b.flatCents !== undefined) {
-    return entry(b, { entryKind, payer: b.payer, payee: "kubera", basis: "flat", ratePct: null, baseCents: null, amountCents: b.flatCents, description: label, modificationId: b.modificationId }, key);
+    return entry(b, { entryKind, payer: b.payer, payee: "corin", basis: "flat", ratePct: null, baseCents: null, amountCents: b.flatCents, description: label, modificationId: b.modificationId }, key);
   }
   const pct = b.pct ?? 0;
   return entry(
     b,
-    { entryKind, payer: b.payer, payee: "kubera", basis: "percent_of_loan", ratePct: pct, baseCents: b.principalCents, amountCents: percentOf(b.principalCents, pct), description: `${label}: ${pct}% of outstanding principal`, modificationId: b.modificationId },
+    { entryKind, payer: b.payer, payee: "corin", basis: "percent_of_loan", ratePct: pct, baseCents: b.principalCents, amountCents: percentOf(b.principalCents, pct), description: `${label}: ${pct}% of outstanding principal`, modificationId: b.modificationId },
     key,
   );
 }
 
 /** SBA application packaging (applicant-paid) — Form 159 "packaging" line. */
 export function sbaPackagingFee(b: Base & { flatCents: number; description?: string }): NewFeeEntry {
-  return entry(b, { entryKind: "sba_packaging_fee", payer: "borrower", payee: "kubera", basis: "flat", ratePct: null, baseCents: null, amountCents: b.flatCents, description: b.description ?? "SBA loan application packaging", sba159Category: "packaging" }, "sba_packaging_fee");
+  return entry(b, { entryKind: "sba_packaging_fee", payer: "borrower", payee: "corin", basis: "flat", ratePct: null, baseCents: null, amountCents: b.flatCents, description: b.description ?? "SBA loan application packaging", sba159Category: "packaging" }, "sba_packaging_fee");
 }
 
 /** Lender-paid referral compensation — Form 159 "referral" line. */
 export function sbaLenderReferralFee(b: Base & { loanAmountCents: number; pct: number; lenderName: string }): NewFeeEntry {
   return entry(
     b,
-    { entryKind: "referral_fee", payer: "lender", payee: "kubera", basis: "percent_of_loan", ratePct: b.pct, baseCents: b.loanAmountCents, amountCents: percentOf(b.loanAmountCents, b.pct), description: `Referral fee paid by ${b.lenderName}`, counterparty: b.lenderName, sba159Category: "referral" },
+    { entryKind: "referral_fee", payer: "lender", payee: "corin", basis: "percent_of_loan", ratePct: b.pct, baseCents: b.loanAmountCents, amountCents: percentOf(b.loanAmountCents, b.pct), description: `Referral fee paid by ${b.lenderName}`, counterparty: b.lenderName, sba159Category: "referral" },
     "referral_fee:lender",
   );
 }
 
-/** Kubera's share owed to a co-broker or referral partner (ledger record only). */
-export function partnerSplit(b: Base & { payee: Exclude<FeePayee, "kubera">; ofCents: number; pct: number; partnerName: string }): NewFeeEntry {
+/** Corin's share owed to a co-broker or referral partner (ledger record only). */
+export function partnerSplit(b: Base & { payee: Exclude<FeePayee, "corin">; ofCents: number; pct: number; partnerName: string }): NewFeeEntry {
   return entry(
     b,
     {
       entryKind: b.payee === "co_broker" ? "co_broker_split" : "referral_fee",
-      payer: "kubera",
+      payer: "corin",
       payee: b.payee,
       basis: "percent_of_lender_fee",
       ratePct: b.pct,
@@ -232,22 +232,22 @@ export function assertFeeTransition(from: FeeStatus, to: FeeStatus): void {
 // Summary
 
 export type LedgerSummary = {
-  /** Kubera's gross compensation (excludes void). */
+  /** Corin's gross compensation (excludes void). */
   grossCents: number;
-  /** Shares Kubera owes co-brokers / referral partners (excludes void). */
+  /** Shares Corin owes co-brokers / referral partners (excludes void). */
   owedToPartnersCents: number;
   netCents: number;
   byStatus: Record<FeeStatus, number>;
-  byPayer: Record<Exclude<FeePayer, "kubera">, number>;
+  byPayer: Record<Exclude<FeePayer, "corin">, number>;
   bySba159: Record<Sba159Category, number>;
 };
 
 export function summarizeLedger(entries: FeeEntry[]): LedgerSummary {
   const live = entries.filter((e) => e.status !== "void");
-  const incoming = live.filter((e) => e.payee === "kubera");
-  const outgoing = live.filter((e) => e.payee !== "kubera");
+  const incoming = live.filter((e) => e.payee === "corin");
+  const outgoing = live.filter((e) => e.payee !== "corin");
   const byStatus = { projected: 0, earned: 0, invoiced: 0, settled: 0, void: 0 } as Record<FeeStatus, number>;
-  for (const e of entries) if (e.payee === "kubera") byStatus[e.status] += e.amountCents;
+  for (const e of entries) if (e.payee === "corin") byStatus[e.status] += e.amountCents;
   const grossCents = sumCents(incoming.map((e) => e.amountCents));
   const owedToPartnersCents = sumCents(outgoing.map((e) => e.amountCents));
   const byPayer = {
@@ -259,7 +259,7 @@ export function summarizeLedger(entries: FeeEntry[]): LedgerSummary {
   return { grossCents, owedToPartnersCents, netCents: grossCents - owedToPartnersCents, byStatus, byPayer, bySba159 };
 }
 
-/** Form 159 bucket for a Kubera-received entry. */
+/** Form 159 bucket for a Corin-received entry. */
 export function sba159CategoryOf(e: Pick<FeeEntry, "sba159Category" | "payer" | "entryKind">): Sba159Category {
   if (e.sba159Category) return e.sba159Category;
   if (e.entryKind === "sba_packaging_fee") return "packaging";

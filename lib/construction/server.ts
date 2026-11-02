@@ -56,7 +56,7 @@ export async function currentStaff(): Promise<StaffIdentity | null> {
 
 export async function requireStaff(): Promise<StaffIdentity> {
   const staff = await currentStaff();
-  if (!staff) throw new ConstructionError("forbidden", "Sign in as Kubera staff to use the construction desk");
+  if (!staff) throw new ConstructionError("forbidden", "Sign in as Corin staff to use the construction desk");
   return staff;
 }
 

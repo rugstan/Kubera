@@ -95,7 +95,7 @@ export function GlassHeader({ phone, telHref, call }: { phone?: string | null; t
           className="mx-auto flex h-12 max-w-[1024px] items-center justify-between gap-2 px-4 sm:gap-4 md:h-11 md:px-[22px]"
           aria-label="Primary"
         >
-          <Link href="/" className="flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Kubera Commercial home">
+          <Link href="/" className="flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Corin Commercial home">
             <Logo compact />
           </Link>
           <ul className="hidden items-center gap-6 lg:flex xl:gap-8">

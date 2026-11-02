@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Sign in" };
 const ERRORS: Record<string, string> = {
   email: "Enter a valid email address.",
   rate_limited: "Too many sign-in attempts. Wait a few minutes and try again.",
-  unavailable: "Sign-in is not available right now. Email deals@kuberacommercial.com if you need access.",
+  unavailable: "Sign-in is not available right now. Email deals@corincommercial.com if you need access.",
   expired: "Your sign-in code expired. Request a new one.",
   link: "That sign-in link is invalid or has already been used. Request a new code.",
 };
@@ -19,7 +19,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default function LoginPage({ searchParams }: { searchParams: SearchParams }) {
   return (
-    <AuthCard title="Sign in" intro="For Kubera staff. We will email you a 6-digit code and a sign-in link, then you confirm with your authenticator app.">
+    <AuthCard title="Sign in" intro="For Corin staff. We will email you a 6-digit code and a sign-in link, then you confirm with your authenticator app.">
       <Suspense fallback={<div className="h-40" aria-hidden="true" />}>
         <LoginForm searchParams={searchParams} />
       </Suspense>
@@ -52,7 +52,7 @@ async function LoginForm({ searchParams }: { searchParams: SearchParams }) {
       </form>
       {services?.mode === "fake" ? (
         <p className="mt-4 rounded-xl bg-white p-3 text-[13px] text-titanium" data-testid="fake-auth-note">
-          Test sign-in (fake provider): use broker@kubera.test, analyst@kubera.test or admin@kubera.test.
+          Test sign-in (fake provider): use broker@corin.test, analyst@corin.test or admin@corin.test.
         </p>
       ) : null}
     </>

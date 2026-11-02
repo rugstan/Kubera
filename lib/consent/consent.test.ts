@@ -10,14 +10,14 @@ const { CONSENT_TEXTS, CURRENT_CONSENT, resolveConsentText } = await import("./t
 // hashes fails, add a new version instead of editing the old text.
 const PINNED: Record<string, string> = {
   "qualifier-contact-2026-10-31": sha256(
-    "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
+    "I agree that Corin Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
   ),
   "qualifier-contact-2026-11-01": sha256(
-    "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+    "I agree that Corin Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
   ),
-  "partner-contact-2026-10-31": sha256("I agree that Kubera Commercial may contact me about this registration by phone, text, or email."),
+  "partner-contact-2026-10-31": sha256("I agree that Corin Commercial may contact me about this registration by phone, text, or email."),
   "partner-contact-2026-11-01": sha256(
-    "I agree that Kubera Commercial may contact me about this registration by phone, text, or email. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+    "I agree that Corin Commercial may contact me about this registration by phone, text, or email. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
   ),
 };
 

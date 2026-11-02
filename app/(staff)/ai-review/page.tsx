@@ -19,7 +19,7 @@ export default function AiReviewPage({ searchParams }: { searchParams: SearchPar
         <p className="eyebrow">AI supervision</p>
         <h1 className="font-display text-[32px] font-semibold text-ink">AI review</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">
-          Ask Kubera AI conversations. Sentences the output guardrails caught are rewritten before the borrower sees them and flagged here. Flag, annotate and
+          Ask Corin AI conversations. Sentences the output guardrails caught are rewritten before the borrower sees them and flagged here. Flag, annotate and
           sign off conversations so wrong or risky answers get fixed at the source.
         </p>
       </div>

@@ -4,7 +4,7 @@
 //
 // This encodes counsel research that is pending attorney sign-off. It never
 // concludes that a loan IS usury-exempt; it only reports whether the elements
-// Kubera must record are present and whether a deal must stop.
+// Corin must record are present and whether a deal must stop.
 
 import { computeMldsTimer, type MldsTimer } from "@/lib/disclosures/timer";
 import type { DisclosureStatus } from "@/lib/disclosures/state";
@@ -60,28 +60,28 @@ export function mldsRequirement(input: MldsFacts): MldsRequirement {
   const flags: Flag[] = [];
   const reasons: string[] = [];
 
-  if (facts.namesKuberaAsBeneficiary) {
-    flags.push({ code: "held_for_counsel", reason: "Deal documents name Kubera as trust-deed beneficiary; Kubera is a broker only.", authority: "B&P §10234" });
+  if (facts.namesCorinAsBeneficiary) {
+    flags.push({ code: "held_for_counsel", reason: "Deal documents name Corin as trust-deed beneficiary; Corin is a broker only.", authority: "B&P §10234" });
   }
-  if (facts.namesKuberaAsOriginator) {
-    flags.push({ code: "held_for_counsel", reason: "Deal documents name Kubera as originator or lender of record; Kubera is a broker only.", authority: "B&P §10234" });
+  if (facts.namesCorinAsOriginator) {
+    flags.push({ code: "held_for_counsel", reason: "Deal documents name Corin as originator or lender of record; Corin is a broker only.", authority: "B&P §10234" });
   }
-  if (facts.tableFundedInKuberaName) {
-    flags.push({ code: "held_for_counsel", reason: "Table-funded loan in Kubera's name.", authority: "B&P §10234; Civ. Code §1916.1" });
+  if (facts.tableFundedInCorinName) {
+    flags.push({ code: "held_for_counsel", reason: "Table-funded loan in Corin's name.", authority: "B&P §10234; Civ. Code §1916.1" });
   }
   if (facts.nonTraditionalResidential1to4) {
     flags.push({ code: "held_for_counsel", reason: "Non-traditional loan on 1–4 residential units needs RE 885, which is not supported.", authority: "DRE RE 885" });
   }
 
   const realProperty = facts.collateral.realPropertyLien && !facts.collateral.equityPledgeOrUccOnly;
-  const brokered = facts.kuberaRole === "broker" || facts.kuberaRole === "paid_referral";
+  const brokered = facts.corinRole === "broker" || facts.corinRole === "paid_referral";
   const required = realProperty && brokered;
 
   if (required) {
     reasons.push(
-      facts.kuberaRole === "paid_referral"
+      facts.corinRole === "paid_referral"
         ? "Paid referral on a real-property-secured loan: treated as MLDS-required (counsel gate A, open question 2)."
-        : "Kubera brokers a loan secured directly or collaterally by a lien on real property.",
+        : "Corin brokers a loan secured directly or collaterally by a lien on real property.",
     );
   } else if (!realProperty && brokered) {
     reasons.push("No lien on real property secures the loan, so no MLDS is required.");
@@ -94,7 +94,7 @@ export function mldsRequirement(input: MldsFacts): MldsRequirement {
       authority: "B&P §10131(d); Fin. Code §22057",
     });
   } else {
-    reasons.push("Unpaid referral where Kubera does not negotiate: no MLDS required.");
+    reasons.push("Unpaid referral where Corin does not negotiate: no MLDS required.");
   }
 
   const heldForCounsel = flags.some((f) => f.code === "held_for_counsel");
@@ -177,17 +177,17 @@ export type BrokerElement =
 export const BROKER_ELEMENT_LABELS: Record<BrokerElement, string> = {
   arranging_licensee: "Arranging DRE licensee (name and 8-digit license number)",
   licensee_active: "Licensee's license active on the transaction date",
-  acts_for: "Party Kubera acts for (borrower and/or lender)",
+  acts_for: "Party Corin acts for (borrower and/or lender)",
   engagement_agreement: "Signed engagement / fee agreement",
   compensation: "Compensation amount and payer",
-  negotiation_log: "Negotiation log showing Kubera actively arranged the loan (term-sheet versions or lender submissions)",
+  negotiation_log: "Negotiation log showing Corin actively arranged the loan (term-sheet versions or lender submissions)",
   collateral_identification: "Collateral APN and lien position",
   business_purpose_certification: "Business-purpose certification",
   officer_approval: "Designated-officer approval",
 };
 
 /**
- * Elements Kubera must record for a broker-arranged loan or modification that
+ * Elements Corin must record for a broker-arranged loan or modification that
  * are missing. `collateral` is the loan's collateral: a real-property lien must
  * be identified by APN and lien position (Reference, gate H).
  */
@@ -263,9 +263,9 @@ export function evaluateUsury(input: UsuryFacts): UsuryEvaluation {
   }
 
   let status: UsuryStatus;
-  if (facts.tableFundedInKuberaName) {
+  if (facts.tableFundedInCorinName) {
     status = "held_for_counsel";
-    flags.push({ code: "held_for_counsel", reason: "Table-funded loan naming Kubera as lender.", authority: "B&P §10234; Civ. Code §1916.1" });
+    flags.push({ code: "held_for_counsel", reason: "Table-funded loan naming Corin as lender.", authority: "B&P §10234; Civ. Code §1916.1" });
   } else if (lenderExempt) {
     status = "lender_exempt";
     reasons.push(`${facts.lender.name} is recorded as an exempt lender category (${facts.lender.category}).`);
@@ -339,17 +339,17 @@ export function evaluateModification(input: ModificationFacts, loan: LoanContext
       });
       const lenderNoticeRequired = mod.arrangedBy === "lender_or_servicer_only" && !mod.lenderNoticeSentAt;
       if (mod.arrangedBy === "lender_or_servicer_only") {
-        flags.push({ code: "no_exemption_representation", reason: `${mod.kind} negotiated only by the lender or servicer; Kubera makes no exemption representation.`, authority: "Civ. Code §1916.1 (SB 1146)" });
-        if (lenderNoticeRequired) flags.push({ code: "lender_written_notice_required", reason: "Send the lender written notice that Kubera did not arrange this change and makes no exemption representation." });
+        flags.push({ code: "no_exemption_representation", reason: `${mod.kind} negotiated only by the lender or servicer; Corin makes no exemption representation.`, authority: "Civ. Code §1916.1 (SB 1146)" });
+        if (lenderNoticeRequired) flags.push({ code: "lender_written_notice_required", reason: "Send the lender written notice that Corin did not arrange this change and makes no exemption representation." });
       }
       return { status: "held_for_counsel", ...rates, brokerArrangementDocumented: false, lenderNoticeRequired, missing: [], blocking: true, flags };
     }
   }
 
   if (mod.arrangedBy === "lender_or_servicer_only") {
-    flags.push({ code: "no_exemption_representation", reason: `${mod.kind} negotiated only by the lender or servicer; Kubera makes no exemption representation.`, authority: "Civ. Code §1916.1 (SB 1146)" });
+    flags.push({ code: "no_exemption_representation", reason: `${mod.kind} negotiated only by the lender or servicer; Corin makes no exemption representation.`, authority: "Civ. Code §1916.1 (SB 1146)" });
     const lenderNoticeRequired = !mod.lenderNoticeSentAt;
-    if (lenderNoticeRequired) flags.push({ code: "lender_written_notice_required", reason: "Send the lender written notice that Kubera did not arrange this change and makes no exemption representation." });
+    if (lenderNoticeRequired) flags.push({ code: "lender_written_notice_required", reason: "Send the lender written notice that Corin did not arrange this change and makes no exemption representation." });
     return { status: "no_exemption_representation", ...rates, brokerArrangementDocumented: false, lenderNoticeRequired, missing: [], blocking: false, flags };
   }
 
@@ -500,7 +500,7 @@ export function stageAdvanceGate(targetStage: string, compliance: DealCompliance
 
 /** Neutral wording approved for the advisor and documents (counsel gate H, replacement line 2). */
 export const USURY_NEUTRAL_STATEMENT =
-  "California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code §1916.1). Whether one applies depends on the lender, collateral, and how the loan and any later changes are arranged. Kubera does not give legal advice; ask your attorney.";
+  "California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code §1916.1). Whether one applies depends on the lender, collateral, and how the loan and any later changes are arranged. Corin does not give legal advice; ask your attorney.";
 
 const EXEMPTION_CLAIM = [
   /\b(this|your|the|our)\s+(loan|note|deal|financing)\s+(is|will be|would be)\s+(fully\s+)?(usury[- ]?)?exempt\b/gi,

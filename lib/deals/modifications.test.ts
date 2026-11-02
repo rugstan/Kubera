@@ -24,11 +24,11 @@ async function world(gateDefault: "approved" | "pending" = "approved", loanOver 
 
 /** Gate A clear: the deal's MLDS is signed, so a commitment may go to the borrower. */
 const mldsSignedCompliance = evaluateDealCompliance({
-  mlds: { facts: { kuberaRole: "broker", program: "PRIVATE_BRIDGE", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false } }, status: "signed" },
+  mlds: { facts: { corinRole: "broker", program: "PRIVATE_BRIDGE", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: false } }, status: "signed" },
   now: new Date("2026-11-03T17:00:00.000Z"),
 });
 
-const ext = (over: Partial<ModificationFacts> = {}): ModificationFacts => ({ kind: "extension", effectiveDate: "2026-11-15", arrangedBy: "kubera", noteRatePct: 12.5, agreementRecitesBrokerArrangement: true, elements: fullElements, ...over });
+const ext = (over: Partial<ModificationFacts> = {}): ModificationFacts => ({ kind: "extension", effectiveDate: "2026-11-15", arrangedBy: "corin", noteRatePct: 12.5, agreementRecitesBrokerArrangement: true, elements: fullElements, ...over });
 
 describe("modification gate (SB 1146)", () => {
   it("holds pre-2025 changes for counsel", async () => {
@@ -39,7 +39,7 @@ describe("modification gate (SB 1146)", () => {
     await expect(applyModificationTerms({ store, gate, now }, m.id, { lockedTerms: { noteRatePct: 13 } }, "a")).rejects.toMatchObject({ reason: "terms_not_allowed" });
   });
 
-  it("blocks a Kubera-arranged change above the cap with a non-exempt lender until the designated officer approves", async () => {
+  it("blocks a Corin-arranged change above the cap with a non-exempt lender until the designated officer approves", async () => {
     const { store, gate, now, deal } = await world();
     const m = await submitModification({ store, gate, now }, { dealId: deal.id, facts: ext(), actor: "broker:ana", fee: { principalCents: 400_000_000, pct: 0.5, payer: "borrower" } });
     expect(m.status).toBe("blocked");
@@ -50,7 +50,7 @@ describe("modification gate (SB 1146)", () => {
     const bor = store.brokerOfRecord.get(m.brokerOfRecordId!)!;
     expect(bor).toMatchObject({ record_kind: "extension", parent_id: "11111111-1111-4111-8111-111111111111", deal_id: deal.id, gate_status: "incomplete", gate_blocking: true });
 
-    // Kubera's arranging fee is projected on the ledger, linked to the change.
+    // Corin's arranging fee is projected on the ledger, linked to the change.
     const fee = (await store.listFeeEntries(deal.id))[0]!;
     expect(fee).toMatchObject({ entryKind: "extension_fee", amountCents: 2_000_000, status: "projected", modificationId: m.id });
     expect(m.feeEntryId).toBe(fee.id);
@@ -82,7 +82,7 @@ describe("modification gate (SB 1146)", () => {
     expect(gate.peeks).toHaveLength(1);
     expect(gate.peeks[0]).toMatchObject({ kind: "lender_notice", templateId: "lender_no_exemption_notice_v1", idempotencyKey: `lender_notice:no_exemption:${m.id}` });
     expect(mail.sent).toHaveLength(0);
-    // Kubera did not arrange it, so no arranging fee is recorded.
+    // Corin did not arrange it, so no arranging fee is recorded.
     expect(await store.listFeeEntries(deal.id)).toHaveLength(0);
 
     gate.decide(`lender_notice:no_exemption:${m.id}`, { status: "expired", approvalId: "appr_1" });

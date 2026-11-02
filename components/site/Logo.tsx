@@ -9,10 +9,10 @@ export function Logo({ dark = false, compact = false }: { dark?: boolean; compac
     <span className={`flex items-center gap-2 ${dark ? "text-white" : "text-ink"}`}>
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
         <rect width="24" height="24" rx="7" fill={dark ? "#f5f5f7" : "#1d1d1f"} />
-        <path d="M8 6v12M8 12l7-6M10.5 10l5 8" stroke={dark ? "#1d1d1f" : "#ffffff"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M16.24 7.76A6 6 0 1 0 16.24 16.24" stroke={dark ? "#1d1d1f" : "#ffffff"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
       <span className="text-[15px] font-semibold">
-        Kubera<span className={`font-normal ${dark ? "text-white/80" : "text-graphite"}${compact ? " max-[419px]:sr-only" : ""}`}> Commercial</span>
+        Corin<span className={`font-normal ${dark ? "text-white/80" : "text-graphite"}${compact ? " max-[419px]:sr-only" : ""}`}> Commercial</span>
       </span>
     </span>
   );

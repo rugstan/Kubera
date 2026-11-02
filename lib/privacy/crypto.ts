@@ -28,7 +28,7 @@ const INDEX_FORMAT = "bi1";
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const KEY_BYTES = 32;
-const HKDF_SALT = Buffer.from("kubera-commercial/pii", "utf8");
+const HKDF_SALT = Buffer.from("corin-commercial/pii", "utf8");
 
 export class PiiKeyError extends Error {
   constructor(message: string) {

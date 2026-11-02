@@ -103,7 +103,7 @@ export const HOME_REASONS: readonly HomeReason[] = [
   },
   {
     title: "Licensed and accountable",
-    body: "Kubera Commercial, Inc. is licensed by the California Department of Real Estate. You receive a Mortgage Loan Disclosure Statement on every loan we arrange that is secured by real property.",
+    body: "Corin Commercial, Inc. is licensed by the California Department of Real Estate. You receive a Mortgage Loan Disclosure Statement on every loan we arrange that is secured by real property.",
     verifyLicense: true,
   },
 ];
@@ -142,7 +142,7 @@ export const HOME_FAQ: readonly HomeFaqItem[] = [
   {
     question: "Do you handle construction draws or hold loan funds?",
     answer:
-      "No. The construction lender funds the loan and administers draws. Kubera has no role in draw requests, inspections or lien waivers, and never holds, transfers or disburses loan funds.",
+      "No. The construction lender funds the loan and administers draws. Corin has no role in draw requests, inspections or lien waivers, and never holds, transfers or disburses loan funds.",
   },
   {
     question: "Which loan is right for my property?",

@@ -1,7 +1,7 @@
 // Business-day calendar for disclosure clocks (MLDS: B&P §10240, 3 business days).
 //
 // A business day is Monday–Friday that is not a US federal holiday
-// (5 U.S.C. §6103), counted in Kubera's licensed-office time zone. Dates are
+// (5 U.S.C. §6103), counted in Corin's licensed-office time zone. Dates are
 // handled as civil dates ("YYYY-MM-DD") so DST and server time zones never
 // shift a deadline.
 //

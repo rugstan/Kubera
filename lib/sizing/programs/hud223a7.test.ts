@@ -1,6 +1,6 @@
 // HUD 223(a)(7): three hand-built refinances, then the flag.
 // Rate: 10-yr 4.25 + HUD multifamily mid 1.50 − 0.05 = 5.70%; MIP 0.25%;
-// percentage costs 0.25% upfront MIP + 1% financing + 0.15% application + 0.5% Kubera = 1.9%;
+// percentage costs 0.25% upfront MIP + 1% financing + 0.15% application + 0.5% Corin = 1.9%;
 // fixed costs 40,000 legal/title + 10,000 inspection = 50,000.
 
 import { describe, expect, it } from "vitest";

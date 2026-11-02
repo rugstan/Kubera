@@ -16,7 +16,7 @@ import {
   usuryCapPct,
   type FlagCode,
 } from "./gates";
-import { kuberaRoles, type BrokerOfRecordElements, type KuberaRole, type MldsFacts, type ModificationFacts, type UsuryFacts } from "./schemas";
+import { corinRoles, type BrokerOfRecordElements, type CorinRole, type MldsFacts, type ModificationFacts, type UsuryFacts } from "./schemas";
 
 const codes = (flags: { code: FlagCode }[]) => flags.map((f) => f.code);
 
@@ -53,7 +53,7 @@ const usury = (over: Partial<UsuryFacts> = {}): UsuryFacts => ({
 // ---------------------------------------------------------------------------
 
 describe("gate A: MLDS trigger matrix", () => {
-  const matrix: { role: KuberaRole; realProperty: boolean; required: boolean; cfl: boolean }[] = kuberaRoles.flatMap((role) =>
+  const matrix: { role: CorinRole; realProperty: boolean; required: boolean; cfl: boolean }[] = corinRoles.flatMap((role) =>
     [true, false].map((realProperty) => ({
       role,
       realProperty,
@@ -63,7 +63,7 @@ describe("gate A: MLDS trigger matrix", () => {
   );
 
   it.each(matrix)("role=$role realProperty=$realProperty → required=$required cfl=$cfl", ({ role, realProperty, required, cfl }) => {
-    const r = mldsRequirement({ kuberaRole: role, collateral: realProperty ? rp : businessAssets });
+    const r = mldsRequirement({ corinRole: role, collateral: realProperty ? rp : businessAssets });
     expect(r.required).toBe(required);
     expect(r.form).toBe(required ? "RE882" : null);
     expect(codes(r.flags).includes("cfl_license_review")).toBe(cfl);
@@ -71,43 +71,43 @@ describe("gate A: MLDS trigger matrix", () => {
   });
 
   it("requires an MLDS at any loan size and from any lender (no carve-out inputs exist)", () => {
-    expect(mldsRequirement({ kuberaRole: "broker", collateral: rp, program: "HUD_232" }).required).toBe(true);
-    expect(mldsRequirement({ kuberaRole: "broker", collateral: rp, program: "SBA_504" }).required).toBe(true);
+    expect(mldsRequirement({ corinRole: "broker", collateral: rp, program: "HUD_232" }).required).toBe(true);
+    expect(mldsRequirement({ corinRole: "broker", collateral: rp, program: "SBA_504" }).required).toBe(true);
   });
 
   it("treats a paid referral where the lender negotiates as MLDS-required", () => {
-    const r = mldsRequirement({ kuberaRole: "paid_referral", collateral: rp });
+    const r = mldsRequirement({ corinRole: "paid_referral", collateral: rp });
     expect(r.required).toBe(true);
     expect(r.reasons.join(" ")).toMatch(/Paid referral/);
   });
 
   it("flags business-asset-only SBA 7(a) for CFL license review with no MLDS", () => {
-    const r = mldsRequirement({ kuberaRole: "broker", collateral: businessAssets, program: "SBA_7A" });
+    const r = mldsRequirement({ corinRole: "broker", collateral: businessAssets, program: "SBA_7A" });
     expect(r.required).toBe(false);
     expect(r.flags).toEqual([expect.objectContaining({ code: "cfl_license_review", reason: expect.stringContaining("SBA 7(a)") })]);
   });
 
   it("treats equity-pledge / UCC-only collateral as no real-property lien", () => {
-    const r = mldsRequirement({ kuberaRole: "broker", collateral: ucc });
+    const r = mldsRequirement({ corinRole: "broker", collateral: ucc });
     expect(r.required).toBe(false);
     expect(codes(r.flags)).toContain("cfl_license_review");
   });
 
   it("rejects contradictory collateral", () => {
-    expect(() => mldsRequirement({ kuberaRole: "broker", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: true } })).toThrow(/both/);
+    expect(() => mldsRequirement({ corinRole: "broker", collateral: { realPropertyLien: true, equityPledgeOrUccOnly: true } })).toThrow(/both/);
   });
 
-  it("rejects Kubera as lender: the role enum has no lender value", () => {
-    expect(() => mldsRequirement({ kuberaRole: "lender" as KuberaRole, collateral: rp })).toThrow();
+  it("rejects Corin as lender: the role enum has no lender value", () => {
+    expect(() => mldsRequirement({ corinRole: "lender" as CorinRole, collateral: rp })).toThrow();
   });
 
   it.each<[keyof MldsFacts, string]>([
-    ["namesKuberaAsBeneficiary", "beneficiary"],
-    ["namesKuberaAsOriginator", "originator"],
-    ["tableFundedInKuberaName", "Table-funded"],
+    ["namesCorinAsBeneficiary", "beneficiary"],
+    ["namesCorinAsOriginator", "originator"],
+    ["tableFundedInCorinName", "Table-funded"],
     ["nonTraditionalResidential1to4", "RE 885"],
   ])("holds for counsel when %s", (key, text) => {
-    const r = mldsRequirement({ kuberaRole: "broker", collateral: rp, [key]: true });
+    const r = mldsRequirement({ corinRole: "broker", collateral: rp, [key]: true });
     expect(r.heldForCounsel).toBe(true);
     expect(r.required).toBe(true);
     expect(r.flags.find((f) => f.code === "held_for_counsel")?.reason).toContain(text);
@@ -115,9 +115,9 @@ describe("gate A: MLDS trigger matrix", () => {
 });
 
 describe("gate A: hard blocks", () => {
-  const required = mldsRequirement({ kuberaRole: "broker", collateral: rp });
-  const notRequired = mldsRequirement({ kuberaRole: "broker", collateral: businessAssets });
-  const held = mldsRequirement({ kuberaRole: "broker", collateral: rp, namesKuberaAsOriginator: true });
+  const required = mldsRequirement({ corinRole: "broker", collateral: rp });
+  const notRequired = mldsRequirement({ corinRole: "broker", collateral: businessAssets });
+  const held = mldsRequirement({ corinRole: "broker", collateral: rp, namesCorinAsOriginator: true });
 
   it.each(["required", "generated", "sent", null] as const)("blocks commitments and loan documents while the MLDS is %s", (status) => {
     for (const kind of ["commitment", "loan_document"] as const) {
@@ -142,18 +142,18 @@ describe("gate A: hard blocks", () => {
 
   it("blocks the move to closing without a signed MLDS", () => {
     const now = new Date("2026-11-20T18:00:00Z");
-    const unsigned = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "sent" }, now });
+    const unsigned = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: rp }, status: "sent" }, now });
     expect(stageAdvanceGate("closing", unsigned).allowed).toBe(false);
     expect(stageAdvanceGate("CLOSED_WON", unsigned).allowed).toBe(false);
     expect(stageAdvanceGate("term_sheet", unsigned).allowed).toBe(true);
-    const signed = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" }, usury: usury(), now });
+    const signed = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" }, usury: usury(), now });
     expect(stageAdvanceGate("closing", signed).allowed).toBe(true);
     expect(signed.gates.borrowerCommitment.allowed).toBe(true);
   });
 });
 
 describe("gate A: timer flags in the deal evaluation", () => {
-  const facts: MldsFacts = { kuberaRole: "broker", collateral: rp };
+  const facts: MldsFacts = { corinRole: "broker", collateral: rp };
   const applicationCompletedAt = new Date("2026-11-25T18:00:00Z");
 
   it("adds mlds_warning on business day 2 and mlds_overdue after the deadline", () => {
@@ -174,7 +174,7 @@ describe("gate A: timer flags in the deal evaluation", () => {
   });
 
   it("skips the timer when no MLDS is required", () => {
-    const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: businessAssets }, status: null }, timer: { applicationCompletedAt }, now: new Date("2026-12-10T17:00:00Z") });
+    const r = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: businessAssets }, status: null }, timer: { applicationCompletedAt }, now: new Date("2026-12-10T17:00:00Z") });
     expect(r.timer).toBeNull();
   });
 });
@@ -297,7 +297,7 @@ describe("gate H: usury evaluation", () => {
 
   it("blocks closing on a cleared-looking file with no APN", () => {
     const r = evaluateDealCompliance({
-      mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
+      mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" },
       usury: usury({ collateral: { realPropertyLien: true, lienPosition: 1 } }),
       now: new Date("2026-11-20T18:00:00Z"),
     });
@@ -326,9 +326,9 @@ describe("gate H: usury evaluation", () => {
     expect(codes(above.flags)).toEqual(expect.arrayContaining(["usury_exemption_unavailable", "held_for_counsel"]));
   });
 
-  it("holds table-funded deals naming Kubera for counsel regardless of rate or lender", () => {
+  it("holds table-funded deals naming Corin for counsel regardless of rate or lender", () => {
     for (const lender of [bank, privateLender]) {
-      const r = evaluateUsury(usury({ lender, noteRatePct: 7, tableFundedInKuberaName: true }));
+      const r = evaluateUsury(usury({ lender, noteRatePct: 7, tableFundedInCorinName: true }));
       expect(r.status).toBe("held_for_counsel");
       expect(r.blocking).toBe(true);
     }
@@ -340,7 +340,7 @@ describe("gate H: modifications (SB 1146)", () => {
   const mod = (over: Partial<ModificationFacts> = {}): ModificationFacts => ({
     kind: "extension",
     effectiveDate: "2026-06-01",
-    arrangedBy: "kubera",
+    arrangedBy: "corin",
     agreementRecitesBrokerArrangement: true,
     noteRatePct: 12,
     elements: completeElements,
@@ -365,14 +365,14 @@ describe("gate H: modifications (SB 1146)", () => {
     expect(codes(noticed.flags)).toEqual(["no_exemption_representation"]);
   });
 
-  it("requires its own elements when Kubera arranges it", () => {
+  it("requires its own elements when Corin arranges it", () => {
     const r = evaluateModification(mod({ elements: { ...completeElements, compensation: undefined, engagementAgreementRef: undefined } }), loan);
     expect(r.status).toBe("incomplete");
     expect(r.missing).toEqual(["engagement_agreement", "compensation"]);
     expect(r.blocking).toBe(true);
   });
 
-  it("keeps an above-cap Kubera-arranged modification blocked until the loan's APN and lien position are recorded", () => {
+  it("keeps an above-cap Corin-arranged modification blocked until the loan's APN and lien position are recorded", () => {
     const noApn = evaluateModification(mod({ noteRatePct: 12 }), { ...loan, collateral: { realPropertyLien: true, lienPosition: 1 } });
     expect(noApn).toMatchObject({ status: "incomplete", blocking: true, missing: ["collateral_identification"] });
     const recorded = evaluateModification(mod({ noteRatePct: 12 }), loan);
@@ -411,7 +411,7 @@ describe("gate H: modifications (SB 1146)", () => {
   it("holds an above-cap modification on UCC-only collateral from a non-exempt lender, whoever arranged it", () => {
     const uccLoan = { ...loan, collateral: ucc };
     for (const over of [
-      { arrangedBy: "kubera" as const },
+      { arrangedBy: "corin" as const },
       { arrangedBy: "other_licensed_broker" as const, otherBroker: { name: "Bay Capital Brokers", dreLicense: "01987654" }, elements: undefined },
       { arrangedBy: "lender_or_servicer_only" as const, elements: undefined },
     ]) {
@@ -434,9 +434,9 @@ describe("gate H: modifications (SB 1146)", () => {
     expect(evaluateModification(mod({ noteRatePct: 15 }), { ...loan, lender: bank, collateral: ucc }).status).toBe("documented");
   });
 
-  it("blocks closing when a Kubera-arranged extension takes a within-cap UCC-only loan above the cap", () => {
+  it("blocks closing when a Corin-arranged extension takes a within-cap UCC-only loan above the cap", () => {
     const r = evaluateDealCompliance({
-      mlds: { facts: { kuberaRole: "broker", collateral: ucc }, status: null },
+      mlds: { facts: { corinRole: "broker", collateral: ucc }, status: null },
       usury: usury({ collateral: ucc, noteRatePct: 9 }),
       modifications: [mod({ noteRatePct: 15 })],
       now: new Date("2026-11-20T18:00:00Z"),
@@ -453,7 +453,7 @@ describe("whole-deal evaluation", () => {
 
   it("blocks closing on an uncleared usury gate even with a signed MLDS", () => {
     const r = evaluateDealCompliance({
-      mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
+      mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" },
       usury: usury({ elements: { ...completeElements, officerApproval: undefined } }),
       now,
     });
@@ -464,9 +464,9 @@ describe("whole-deal evaluation", () => {
 
   it("holds the whole deal when a modification predates SB 1146", () => {
     const r = evaluateDealCompliance({
-      mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
+      mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" },
       usury: usury(),
-      modifications: [{ kind: "modification", effectiveDate: "2024-06-01", arrangedBy: "kubera", noteRatePct: 12 }],
+      modifications: [{ kind: "modification", effectiveDate: "2024-06-01", arrangedBy: "corin", noteRatePct: 12 }],
       now,
     });
     expect(r.heldForCounsel).toBe(true);
@@ -475,20 +475,20 @@ describe("whole-deal evaluation", () => {
   });
 
   it("blocks closing with a signed MLDS but no broker-of-record file", () => {
-    const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" }, now });
+    const r = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" }, now });
     expect(r.usury).toBeNull();
     expect(r.gates.closing.allowed).toBe(false);
     expect(r.gates.closing.reasons).toContain(BROKER_OF_RECORD_FILE_MISSING);
     expect(r.flags.map((f) => f.code)).toContain("broker_of_record_incomplete");
     // Business-asset-only loans record the file too.
-    const assets = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: { realPropertyLien: false, equityPledgeOrUccOnly: true } }, status: null }, now });
+    const assets = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: { realPropertyLien: false, equityPledgeOrUccOnly: true } }, status: null }, now });
     expect(assets.gates.closing.allowed).toBe(false);
   });
 
   it("blocks closing when modifications exist without the loan's usury facts", () => {
     const r = evaluateDealCompliance({
-      mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" },
-      modifications: [{ kind: "extension", effectiveDate: "2026-01-01", arrangedBy: "kubera", noteRatePct: 9 }],
+      mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" },
+      modifications: [{ kind: "extension", effectiveDate: "2026-01-01", arrangedBy: "corin", noteRatePct: 9 }],
       now,
     });
     expect(r.modifications).toEqual([]);
@@ -497,15 +497,15 @@ describe("whole-deal evaluation", () => {
   });
 
   it("allows closing for a clean, signed, cleared deal", () => {
-    const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp }, status: "signed" }, usury: usury(), now });
+    const r = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: rp }, status: "signed" }, usury: usury(), now });
     expect(r.gates.closing).toEqual({ allowed: true, reasons: [] });
     expect(r.heldForCounsel).toBe(false);
   });
 
   it("deduplicates flags", () => {
     const r = evaluateDealCompliance({
-      mlds: { facts: { kuberaRole: "broker", collateral: rp, tableFundedInKuberaName: true }, status: null },
-      usury: usury({ tableFundedInKuberaName: true }),
+      mlds: { facts: { corinRole: "broker", collateral: rp, tableFundedInCorinName: true }, status: null },
+      usury: usury({ tableFundedInCorinName: true }),
       now,
     });
     const keys = r.flags.map((f) => `${f.code}|${f.reason}`);
@@ -564,14 +564,18 @@ describe("gate H: effective rate with lender-retained charges (VERIFY)", () => {
   it("evaluates a modification's own lender charges against the cap", () => {
     const loan = { lender: privateLender, fedDiscountRatePct: 4.5, collateral: rp };
     const { officerApproval: _o, ...unapproved } = completeElements;
-    const base: ModificationFacts = { kind: "extension", effectiveDate: "2026-06-01", arrangedBy: "kubera", agreementRecitesBrokerArrangement: true, noteRatePct: 9.5, elements: unapproved };
+    const base: ModificationFacts = { kind: "extension", effectiveDate: "2026-06-01", arrangedBy: "corin", agreementRecitesBrokerArrangement: true, noteRatePct: 9.5, elements: unapproved };
     expect(evaluateModification(base, loan)).toMatchObject({ status: "documented", aboveCap: false });
     const withFee = evaluateModification({ ...base, lenderCharges: { exitFeePct: 1, termMonths: 6 } }, loan);
     expect(withFee).toMatchObject({ status: "incomplete", blocking: true, effectiveRatePct: 11.5, aboveCap: true, missing: ["officer_approval"] });
   });
 
-  it("never accepts Kubera as the lender of record", () => {
+  it("never accepts Corin as the lender of record", () => {
+    expect(() => evaluateUsury(usury({ lender: { name: "Corin Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" } }))).toThrow(/never the lender/);
+    // The former name can still appear on documents until the rename is recorded everywhere.
     expect(() => evaluateUsury(usury({ lender: { name: "Kubera Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" } }))).toThrow(/never the lender/);
+    // A word that merely contains the name is not the firm.
+    expect(() => evaluateUsury(usury({ lender: { name: "Scoring Capital Partners", category: "PRIVATE_NON_EXEMPT" } }))).not.toThrow(/never the lender/);
   });
 });
 
@@ -579,19 +583,19 @@ describe("gate A: an open MLDS stays required", () => {
   it("keeps the signed-MLDS closing block when the collateral answer changes after the case opened", () => {
     const now = new Date("2026-11-20T18:00:00Z");
     for (const status of ["required", "generated", "sent"] as const) {
-      const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: businessAssets }, status }, usury: usury(), now });
+      const r = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: businessAssets }, status }, usury: usury(), now });
       expect(r.mlds.required).toBe(true);
       expect(r.gates.closing.reasons).toContain("No deal moves to closing without a signed MLDS (RE 882) on file.");
       expect(r.gates.borrowerCommitment.allowed).toBe(false);
     }
-    const none = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: businessAssets }, status: null }, usury: usury(), now });
+    const none = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: businessAssets }, status: null }, usury: usury(), now });
     expect(none.mlds.required).toBe(false);
   });
 
-  it("holds deals whose documents name Kubera as beneficiary or originator", () => {
+  it("holds deals whose documents name Corin as beneficiary or originator", () => {
     const now = new Date("2026-11-20T18:00:00Z");
-    for (const flag of ["namesKuberaAsBeneficiary", "namesKuberaAsOriginator"] as const) {
-      const r = evaluateDealCompliance({ mlds: { facts: { kuberaRole: "broker", collateral: rp, [flag]: true }, status: "signed" }, usury: usury(), now });
+    for (const flag of ["namesCorinAsBeneficiary", "namesCorinAsOriginator"] as const) {
+      const r = evaluateDealCompliance({ mlds: { facts: { corinRole: "broker", collateral: rp, [flag]: true }, status: "signed" }, usury: usury(), now });
       expect(r.heldForCounsel).toBe(true);
       expect(r.gates.closing.reasons).toContain("Deal is held for counsel review.");
     }

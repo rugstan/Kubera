@@ -1,6 +1,6 @@
 # Knowledge base sources
 
-Drop Markdown excerpts here and run `npm run kb:ingest`. Each `## Heading` becomes one retrievable chunk for Ask Kubera AI (a section over 4,000 characters is split on paragraph breaks into `Heading (1)`, `Heading (2)`, ...). Text before the first `## ` (the title and a source note) is not retrievable. This README is never ingested.
+Drop Markdown excerpts here and run `npm run kb:ingest`. Each `## Heading` becomes one retrievable chunk for Ask Corin AI (a section over 4,000 characters is split on paragraph breaks into `Heading (1)`, `Heading (2)`, ...). Text before the first `## ` (the title and a source note) is not retrievable. This README is never ingested.
 
 Suggested files (one per source, named for citation; the file name is what the advisor cites):
 

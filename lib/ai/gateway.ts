@@ -1,4 +1,4 @@
-// Model gateway: one interface for every model Kubera calls.
+// Model gateway: one interface for every model Corin calls.
 //
 //   Claude      Anthropic SDK (lib/ai/gateway/anthropic.ts)
 //   NVIDIA NIM  OpenAI-compatible HTTP (integrate.api.nvidia.com)

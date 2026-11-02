@@ -64,7 +64,7 @@ describe("buildAdvisorRequest", () => {
     const last = withCtx.messages.at(-1)!;
     expect(last.role).toBe("user");
     const blocks = last.content as { type: string; text: string }[];
-    expect(blocks[0]?.text.startsWith('<deal_context source="kubera_loan_sizer">')).toBe(true);
+    expect(blocks[0]?.text.startsWith('<deal_context source="corin_loan_sizer">')).toBe(true);
     expect(blocks[0]?.text).toContain('"HUD first"');
     expect(blocks[1]?.text).toBe("Draft a term sheet");
     expect(systemText).toContain("INDICATIVE term sheet");
@@ -180,7 +180,7 @@ describe("streamAdvisorTurn", () => {
     const out = await readAll(
       await streamAdvisorTurn({ conversationId: conv.id, history: [], turnCount: 0, message: "x", mode: "chat", market, store, model: fakeModel([], "refusal"), retrieveExcerpts: async () => [] }),
     );
-    expect(out).toMatch(/Kubera advisor/);
+    expect(out).toMatch(/Corin advisor/);
     expect(store.rows.get(conv.id)!.messages[1]).toMatchObject({ stopReason: "refusal" });
   });
 

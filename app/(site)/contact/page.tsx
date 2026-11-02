@@ -44,7 +44,7 @@ export default function ContactPage() {
     >
       <JsonLd
         data={[
-          contactPageSchema({ path: meta.path, name: "Contact Kubera Commercial", description: meta.description }),
+          contactPageSchema({ path: meta.path, name: "Contact Corin Commercial", description: meta.description }),
           breadcrumbSchema([
             { name: "Home", path: "/" },
             { name: "Contact", path: meta.path },
@@ -128,7 +128,7 @@ export default function ContactPage() {
       <Section id="mailboxes" title="Which address to use" lead="Writing to the right mailbox gets your message to the right person sooner.">
         <div role="region" aria-label="Mailbox routing" tabIndex={0} className="bento overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-[14px]">
-            <caption className="sr-only">Which Kubera Commercial mailbox to use</caption>
+            <caption className="sr-only">Which Corin Commercial mailbox to use</caption>
             <thead>
               <tr className="border-b border-black/10 text-ink">
                 <th scope="col" className="px-6 py-3 font-semibold">Write to</th>

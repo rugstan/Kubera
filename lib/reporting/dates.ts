@@ -1,4 +1,4 @@
-// Calendar-date helpers for reports. Kubera is a California business, so a
+// Calendar-date helpers for reports. Corin is a California business, so a
 // timestamp belongs to the day and month it fell on in Pacific time.
 
 import { RANGE_KEYS, type RangeKey, type ReportWindow } from "./types";

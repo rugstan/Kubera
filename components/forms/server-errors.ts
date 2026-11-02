@@ -26,7 +26,7 @@ export type MapOptions = {
   contactEmail?: string;
 };
 
-const DEFAULT_EMAIL = "deals@kuberacommercial.com";
+const DEFAULT_EMAIL = "deals@corincommercial.com";
 
 /** Zod's default messages are developer-facing; turn them into plain language. */
 export function friendlyIssueMessage(message: string): string {

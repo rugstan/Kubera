@@ -1,4 +1,4 @@
-// Voice call scaffolding (WS-R). Kubera places an outbound call only when:
+// Voice call scaffolding (WS-R). Corin places an outbound call only when:
 //   - the consent ledger shows phone consent (and, for an AI voice, automated-
 //     contact consent that has not been revoked by a STOP),
 //   - an AI voice additionally has its own AI-voice consent on file,

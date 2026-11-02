@@ -1,4 +1,4 @@
-// No-custody guard (Global rule 1). Kubera brokers loans; it never accepts,
+// No-custody guard (Global rule 1). Corin brokers loans; it never accepts,
 // holds, transfers or disburses money and has no role in construction draws.
 // This module finds identifiers that would model funds custody or draw
 // servicing in SQL migrations and API/validation code. The same token list

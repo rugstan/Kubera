@@ -139,7 +139,7 @@ export function sizeAgency(lender: AgencyLender, i: AgencyInputs, rates: Benchma
     closingBreakdown: [
       { label: "Lender origination", amount: loan * AGENCY.originationPct },
       { label: "Reports, legal & title", amount: fixedCosts },
-      { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE_PCT.AGENCY },
+      { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE_PCT.AGENCY },
     ],
     noi: i.noi,
     value: i.value,

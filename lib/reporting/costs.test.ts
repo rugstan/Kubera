@@ -45,8 +45,8 @@ describe("cost writers", () => {
     const insert = vi.fn(async () => ({ error: null as { code?: string; message: string } | null }));
     const db = { from: () => ({ insert }) } as unknown as SupabaseClient;
     const writer = new SupabaseCostWriter(db);
-    expect(await writer.add(cost, "note", "staff:ana@kubera.test")).toEqual({ ok: true, cost });
-    expect(insert).toHaveBeenCalledWith({ created_by: "staff:ana@kubera.test", source: "google_ads", period_start: "2026-10-01", period_end: "2026-10-31", spend_cents: 100, note: "note" });
+    expect(await writer.add(cost, "note", "staff:ana@corin.test")).toEqual({ ok: true, cost });
+    expect(insert).toHaveBeenCalledWith({ created_by: "staff:ana@corin.test", source: "google_ads", period_start: "2026-10-01", period_end: "2026-10-31", spend_cents: 100, note: "note" });
 
     insert.mockResolvedValueOnce({ error: { code: "23505", message: "duplicate key" } });
     expect(await writer.add(cost, null, "x")).toMatchObject({ ok: false, error: expect.stringMatching(/already recorded/) });

@@ -75,7 +75,7 @@ test.afterAll(() => {
 async function signIn(page: Page, next: string) {
   await page.goto(`${base}${next}`);
   await expect(page).toHaveURL(/\/login\?next=/);
-  await page.getByLabel("Work email").fill("broker@kubera.test");
+  await page.getByLabel("Work email").fill("broker@corin.test");
   await page.getByRole("button", { name: "Email me a code" }).click();
   await expect(page).toHaveURL(/\/login\/verify$/);
   const code = (await page.getByTestId("fake-code").textContent())?.trim() ?? "";
@@ -186,8 +186,8 @@ test("a broker records the loan's broker-of-record file and the gate H closing r
   await bor.getByLabel("Fed discount rate (%)").fill("4.5");
   await bor.getByRole("textbox", { name: "APN", exact: true }).fill("001-002-003");
   await bor.getByRole("spinbutton", { name: "Lien position", exact: true }).fill("1");
-  await bor.getByRole("combobox", { name: "Kubera acts for", exact: true }).selectOption("borrower");
-  await bor.getByLabel("Kubera compensation (USD)").fill("92500");
+  await bor.getByRole("combobox", { name: "Corin acts for", exact: true }).selectOption("borrower");
+  await bor.getByLabel("Corin compensation (USD)").fill("92500");
   await bor.getByLabel("Negotiation reference").fill("term-sheet-v2");
   await bor.getByRole("textbox", { name: "Negotiation summary", exact: true }).fill("Negotiated rate and IO period");
   await bor.getByLabel("Business-purpose certification on file").check();
@@ -360,7 +360,7 @@ test("staff file unmatched inbound mail to a deal, which sends its attachments t
   await expect(deals.getByText("Matched only through a CC address")).toBeVisible();
   await expectAccessibleAndReflows(page, "/documents/mail");
 
-  await docs.getByLabel("Deal reference, deal ID or lead ID").fill("KC-10000000");
+  await docs.getByLabel("Deal reference, deal ID or lead ID").fill("CC-10000000");
   await docs.getByRole("button", { name: "File message" }).click();
   await expect(notice(page, "2 attachments were added to the vault")).toBeVisible();
   await expect(queue.getByRole("article", { name: "T-12 and rent roll for the Harbor Inn" })).toHaveCount(0);

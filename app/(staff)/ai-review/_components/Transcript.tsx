@@ -16,7 +16,7 @@ export function Transcript({ messages, events, annotations }: { messages: Stored
         return (
           <li key={i} id={`message-${i}`} className={`rounded-2xl border p-4 ${isUser ? "border-hairline bg-white" : "border-black/10 bg-canvas"}`}>
             <div className="flex flex-wrap items-center gap-2 text-[13px] text-titanium">
-              <strong className="font-semibold text-ink">{isUser ? "Borrower" : "Kubera AI"}</strong>
+              <strong className="font-semibold text-ink">{isUser ? "Borrower" : "Corin AI"}</strong>
               <span>Message {i + 1}</span>
               <time dateTime={m.at}>{when(m.at)}</time>
               {m.role === "assistant" && m.model ? <span>{m.model}</span> : null}

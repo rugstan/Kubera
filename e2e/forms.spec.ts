@@ -91,7 +91,7 @@ test.describe("qualifier form behaviour", () => {
     const calls = await mockJsonApi(page, "/api/qualify", { body: QUALIFIER_RESULT });
     await gotoHydrated(page, "/express");
     await fillQualifierThroughContact(page);
-    await page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i }).check();
+    await page.getByRole("checkbox", { name: /i agree that corin commercial may contact me/i }).check();
     await page.getByRole("button", { name: /see my indicative structure/i }).click();
 
     await expect(page.getByLabel(/mobile phone/i)).toHaveAttribute("aria-invalid", "true");
@@ -141,12 +141,12 @@ test.describe("qualifier form behaviour", () => {
     await page.getByRole("button", { name: /see my indicative structure/i }).click();
     const alert = page.getByRole("alert").filter({ hasText: /couldn.t reach our servers/i });
     await expect(alert).toBeVisible();
-    await expect(alert).toContainText(/deals@kuberacommercial\.com/);
+    await expect(alert).toContainText(/deals@corincommercial\.com/);
   });
 
   test("the logo links home", async ({ page }) => {
     await gotoHydrated(page, "/express");
-    const logo = page.getByRole("link", { name: /kubera commercial home/i });
+    const logo = page.getByRole("link", { name: /corin commercial home/i });
     await expect(logo).toHaveAttribute("href", "/");
     await logo.click();
     await expect(page).toHaveURL(/\/$/);
@@ -226,6 +226,6 @@ test.describe("partner form behaviour", () => {
     await page.getByLabel(/^company/i).fill("Rivera Appraisal Group");
     await chooseOption(page, /^phase i esa$/i);
     await page.getByRole("button", { name: /submit registration/i }).click();
-    await expect(page.getByRole("alert").filter({ hasText: /too many submissions/i })).toContainText("partners@kuberacommercial.com");
+    await expect(page.getByRole("alert").filter({ hasText: /too many submissions/i })).toContainText("partners@corincommercial.com");
   });
 });

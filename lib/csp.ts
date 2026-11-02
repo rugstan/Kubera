@@ -74,7 +74,7 @@ export function securityHeaders(env: CspEnv = process.env): { key: string; value
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     { key: "X-Frame-Options", value: "DENY" },
-    // No payment APIs anywhere: Kubera never handles funds.
+    // No payment APIs anywhere: Corin never handles funds.
     { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
     // same-origin-allow-popups keeps Cal.com and Turnstile popups working.

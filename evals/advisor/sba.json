@@ -55,7 +55,7 @@
         { "fact": "Confirm against the SOP revision in effect at application", "anyOf": ["SOP", "confirm", "verify", "current guidance"] }
       ],
       "forbiddenClaims": [],
-      "source": "Program primer (Kubera's 2026 7(a)+504 model), as of 2026-10"
+      "source": "Program primer (Corin's 2026 7(a)+504 model), as of 2026-10"
     },
     {
       "id": "sba-fees",

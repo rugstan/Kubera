@@ -1,6 +1,6 @@
 # Vendor account MFA and access checklist
 
-Every vendor account that can reach production data, send messages as Kubera, or move DNS must meet this bar. Review quarterly and on every staffing change.
+Every vendor account that can reach production data, send messages as Corin, or move DNS must meet this bar. Review quarterly and on every staffing change.
 
 ## Baseline for every vendor
 

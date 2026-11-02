@@ -9,7 +9,7 @@
 --    note rate (lib/compliance/gates.ts effectiveRatePct; VERIFY pending
 --    counsel). The computed figure is stored next to the note rate.
 -- 2. The beneficiary named on the deed of trust and the originator named on
---    the note. A document naming Kubera holds the deal for counsel (gate A/H);
+--    the note. A document naming Corin holds the deal for counsel (gate A/H);
 --    the names are stored as written, and the derived booleans are kept for
 --    reporting.
 
@@ -22,8 +22,8 @@ alter table public.broker_of_record
   add column effective_rate_pct numeric(8, 4) check (effective_rate_pct >= 0),
   add column deed_beneficiary_name text,
   add column originator_name text,
-  add column names_kubera_as_beneficiary boolean generated always as (coalesce(deed_beneficiary_name ~* '\mkubera\M', false)) stored,
-  add column names_kubera_as_originator boolean generated always as (coalesce(originator_name ~* '\mkubera\M', false)) stored;
+  add column names_corin_as_beneficiary boolean generated always as (coalesce(deed_beneficiary_name ~* '\mcorin\M', false)) stored,
+  add column names_corin_as_originator boolean generated always as (coalesce(originator_name ~* '\mcorin\M', false)) stored;
 
 comment on column public.broker_of_record.effective_rate_pct is
   'Note rate plus lender-retained charges, annualized over the stated term (VERIFY, counsel gate H). Not a usury determination.';

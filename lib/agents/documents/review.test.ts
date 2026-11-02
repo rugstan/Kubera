@@ -22,13 +22,13 @@ describe("review queue", () => {
 
   it("will not approve while figures still disagree", async () => {
     const { rec, review } = await queued("pfs-mismatch-xlsx", "PFS");
-    await expect(correctAndApprove(review, rec.id, { reviewer: "analyst@kubera" })).rejects.toThrow(/assets_mismatch/);
+    await expect(correctAndApprove(review, rec.id, { reviewer: "analyst@corin" })).rejects.toThrow(/assets_mismatch/);
   });
 
   it("approves after a correction: reviewer values, events with field names only", async () => {
     const { h, rec, review } = await queued("pfs-mismatch-xlsx", "PFS");
-    const approved = await correctAndApprove(review, rec.id, { reviewer: "analyst@kubera", corrections: { scalars: { totalAssets: "1,900,000", netWorth: 1_500_000 } }, notes: "Statement total was a typo." });
-    expect(approved).toMatchObject({ status: "approved", reviewed_by: "analyst@kubera", low_confidence_fields: [] });
+    const approved = await correctAndApprove(review, rec.id, { reviewer: "analyst@corin", corrections: { scalars: { totalAssets: "1,900,000", netWorth: 1_500_000 } }, notes: "Statement total was a typo." });
+    expect(approved).toMatchObject({ status: "approved", reviewed_by: "analyst@corin", low_confidence_fields: [] });
     expect(approved.fields.scalars.totalAssets).toMatchObject({ value: 1_900_000, confidence: 1, source: "reviewer" });
     const ev = h.events.events.filter((e) => e.extraction_id === rec.id);
     expect(ev.map((e) => e.event_type)).toEqual(["extracted", "queued_for_review", "corrected", "approved"]);
@@ -51,7 +51,7 @@ describe("review queue", () => {
     const preview = applyCorrections(toResult(rec), { rows: [{ index: 1, values: { category: "Hard" } }], removeRows: [3], addRows: [{ description: "Design fees", category: "soft", amount: "150,000" }] });
     expect(preview.changed).toEqual(["lineItems[1]", "lineItems:removed:1", "lineItems:added"]);
     expect(preview.result.rows).toHaveLength(5);
-    const approved = await correctAndApprove(review, rec.id, { reviewer: "analyst@kubera", corrections: { rows: [{ index: 1, values: { category: "hard" } }] } });
+    const approved = await correctAndApprove(review, rec.id, { reviewer: "analyst@corin", corrections: { rows: [{ index: 1, values: { category: "hard" } }] } });
     expect(approved.status).toBe("approved");
     expect((await h.budgets.get(rec.id))?.status).toBe("approved");
   });

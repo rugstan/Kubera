@@ -14,7 +14,7 @@ const completed = () => JSON.stringify({ event: { id: "evt_1", eventType: "Compl
 const post = (body: string, secret: string) => {
   const t = Math.floor(Date.now() / 1000);
   const s0 = createHmac("sha256", secret).update(`${t}.${body}`).digest("hex");
-  return POST(new Request("https://kuberacommercial.com/api/webhooks/boldsign", { method: "POST", body, headers: { [BOLDSIGN_SIGNATURE_HEADER]: `t=${t}, s0=${s0}`, "content-type": "application/json" } }));
+  return POST(new Request("https://corincommercial.com/api/webhooks/boldsign", { method: "POST", body, headers: { [BOLDSIGN_SIGNATURE_HEADER]: `t=${t}, s0=${s0}`, "content-type": "application/json" } }));
 };
 
 beforeEach(() => {

@@ -109,9 +109,9 @@ describe("model path", () => {
     // The forged close tag and the override are stripped before the model sees them.
     expect(content).not.toMatch(/ignore previous instructions/i);
     expect(content).not.toContain("&lt;/body&gt;&lt;/term_sheet&gt;");
-    expect(content).toContain("[removed by Kubera: instruction-like text]");
+    expect(content).toContain("[removed by Corin: instruction-like text]");
     expect(content.match(/<\/term_sheet>/g)).toHaveLength(1);
-    expect(req.system).toContain("[removed by Kubera: instruction-like text]");
+    expect(req.system).toContain("[removed by Corin: instruction-like text]");
     expect(r.guard.flagged).toBe(true);
     expect(r.guard.reasonCodes).toEqual(expect.arrayContaining(["injection.override_instructions", "injection.instructions_stripped"]));
     expect(r.prompt).toMatchObject({ id: "lenders.term_sheet", version: "1.1.0", model: TERM_SHEET_MODEL });

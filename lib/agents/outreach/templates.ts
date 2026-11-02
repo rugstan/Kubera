@@ -109,7 +109,7 @@ const TEMPLATES: readonly TemplateDef[] = [
     audiences: ["borrower"],
     consent: "required",
     preApproved: true,
-    sample: { firstName: "Pat", bookingUrl: "https://cal.com/kubera/intro" },
+    sample: { firstName: "Pat", bookingUrl: "https://cal.com/corin/intro" },
     schema: z.object({ firstName: firstName.nullish(), bookingUrl: httpsUrl.nullish() }),
     body: (d) =>
       `${site.name}: thanks for your financing request${d.firstName ? `, ${d.firstName}` : ""}. An advisor is reviewing it. ${
@@ -123,13 +123,13 @@ const TEMPLATES: readonly TemplateDef[] = [
     audiences: ["borrower"],
     consent: "not_revoked",
     preApproved: true,
-    sample: { firstName: "Pat", bookingUrl: "https://cal.com/kubera/intro" },
+    sample: { firstName: "Pat", bookingUrl: "https://cal.com/corin/intro" },
     schema: z.object({ firstName: firstName.nullish(), bookingUrl: httpsUrl.nullish() }),
     run: (d) => ({
       subject: "We received your financing request",
       greeting: `Hi ${d.firstName ?? "there"},`,
       paragraphs: [
-        "Thanks for your financing request. An advisor at Kubera Commercial is reviewing the details you shared.",
+        "Thanks for your financing request. An advisor at Corin Commercial is reviewing the details you shared.",
         d.bookingUrl ? "If you would like to talk it through, you can pick a time that suits you." : "If you would like to talk it through, reply to this email with a good time.",
       ],
       link: d.bookingUrl ? { href: d.bookingUrl, label: "Pick a time to talk" } : null,
@@ -155,7 +155,7 @@ const TEMPLATES: readonly TemplateDef[] = [
     audiences: ["borrower"],
     consent: "not_revoked",
     preApproved: false,
-    sample: { firstName: "Pat", items: [{ title: "Trailing 12-month operating statement", needsCorrection: false }], portalUrl: "https://kuberacommercial.com/portal", reminderNumber: 1 },
+    sample: { firstName: "Pat", items: [{ title: "Trailing 12-month operating statement", needsCorrection: false }], portalUrl: "https://corincommercial.com/portal", reminderNumber: 1 },
     schema: z.object({
       firstName,
       items: z.array(z.object({ title: line, needsCorrection: z.boolean(), note: z.string().trim().max(300).nullish() })).min(1).max(30),
@@ -197,7 +197,7 @@ const TEMPLATES: readonly TemplateDef[] = [
     audiences: ["borrower"],
     consent: "not_revoked",
     preApproved: false,
-    sample: { firstName: "Pat", items: ["Evidence of property insurance"], portalUrl: "https://kuberacommercial.com/portal", reminderNumber: 1 },
+    sample: { firstName: "Pat", items: ["Evidence of property insurance"], portalUrl: "https://corincommercial.com/portal", reminderNumber: 1 },
     schema: z.object({ firstName, items: z.array(line).min(1).max(30), portalUrl: httpsUrl.nullish(), reminderNumber: z.number().int().min(1).max(20) }),
     run: (d) => ({
       subject: "Open items on your closing checklist",
@@ -235,7 +235,7 @@ const TEMPLATES: readonly TemplateDef[] = [
       paragraphs: [
         `We are following up on the ${d.reportLabel} order${d.propertyRef ? ` for ${d.propertyRef}` : ""}${d.vendorReference ? ` (your reference ${d.vendorReference})` : ""}.`,
         d.dueDate ? (d.overdue ? `It was due ${d.dueDate}. Could you reply with a status update and an expected delivery date?` : `It is due ${d.dueDate}. Could you confirm you are on track, or reply with an expected delivery date?`) : "Could you reply with a status update and an expected delivery date?",
-        "Kubera Commercial is the borrower's loan broker. If anything is holding up the order, please tell us what you need and we will pass it to the borrower.",
+        "Corin Commercial is the borrower's loan broker. If anything is holding up the order, please tell us what you need and we will pass it to the borrower.",
       ],
     }),
   }),

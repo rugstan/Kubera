@@ -11,7 +11,7 @@ describe("host detection", () => {
   it("recognizes the default express hosts only", () => {
     expect(isExpressHost("kubera.loans", {})).toBe(true);
     expect(isExpressHost("www.kubera.loans", {})).toBe(true);
-    expect(isExpressHost("kuberacommercial.com", {})).toBe(false);
+    expect(isExpressHost("corincommercial.com", {})).toBe(false);
     expect(isExpressHost("localhost:3000", {})).toBe(false);
     expect(isExpressHost(undefined, {})).toBe(false);
   });

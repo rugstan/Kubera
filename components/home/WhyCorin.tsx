@@ -6,15 +6,15 @@ import { dreLookupUrl, site } from "@/lib/site";
 import { Reveal } from "./Reveal";
 
 /** The homepage's one black section: why a broker, plus verified closings once there are any. */
-export function WhyKubera() {
+export function WhyCorin() {
   const license = site.dreCorporateLicense;
   const records = publishableRecords().slice(0, 3);
   return (
-    <section aria-labelledby="why-kubera-title" className="bg-pro py-20 text-white md:py-32">
+    <section aria-labelledby="why-corin-title" className="bg-pro py-20 text-white md:py-32">
       <div className="mx-auto max-w-[1280px] px-5 md:px-8">
         <Reveal className="mx-auto max-w-[980px] text-center">
           <p className="eyebrow">Why a broker</p>
-          <h2 id="why-kubera-title" className="mt-3 text-headline font-semibold md:text-section">
+          <h2 id="why-corin-title" className="mt-3 text-headline font-semibold md:text-section">
             We work for you, not for one lender.
           </h2>
           <p className="mx-auto mt-4 max-w-3xl text-[17px] text-titanium md:text-lede">

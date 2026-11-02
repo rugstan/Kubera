@@ -234,7 +234,7 @@ describe("idempotency and failure handling", () => {
     const h = makeHarness();
     h.email.failNext = new EmailError("Resend 500: boom", 500);
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const req = { templateId: "staff_alert" as const, to: { audience: "staff" as const, email: "deals@kuberacommercial.com" }, data: { title: "Hi", lines: [] }, idempotencyKey: "f1" };
+    const req = { templateId: "staff_alert" as const, to: { audience: "staff" as const, email: "deals@corincommercial.com" }, data: { title: "Hi", lines: [] }, idempotencyKey: "f1" };
     const first = await h.notifier.send(req);
     spy.mockRestore();
     expect(first.status).toBe("failed");
@@ -247,11 +247,11 @@ describe("idempotency and failure handling", () => {
 
   /** A Notifier on the real Telnyx client with a scripted fetch, counting POSTs that reach "Telnyx". */
   const telnyxHarness = (respond: (call: number) => Promise<Response>) => {
-    const h = makeHarness({ staffEmails: ["deals@kuberacommercial.com"] });
+    const h = makeHarness({ staffEmails: ["deals@corincommercial.com"] });
     const calls = { n: 0 };
     const fetchMock = (async () => respond(++calls.n)) as typeof fetch;
     const sms = new TelnyxSmsClient({ apiKey: "k", from: "+13105550199", fetch: fetchMock });
-    const notifier = new Notifier({ email: h.email, sms, store: h.store, consent: h.consent, gate: h.gate, staffEmails: ["deals@kuberacommercial.com"], now: () => h.clock.now });
+    const notifier = new Notifier({ email: h.email, sms, store: h.store, consent: h.consent, gate: h.gate, staffEmails: ["deals@corincommercial.com"], now: () => h.clock.now });
     return { ...h, notifier, calls };
   };
   const timeout = () => Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError"));
@@ -275,7 +275,7 @@ describe("idempotency and failure handling", () => {
 
     // One staff email, masked number only.
     expect(h.email.sent).toHaveLength(1);
-    expect(h.email.sent[0]?.to).toBe("deals@kuberacommercial.com");
+    expect(h.email.sent[0]?.to).toBe("deals@corincommercial.com");
     expect(h.email.sent[0]?.text).toContain("staff_tier1_sms");
     expect(h.email.sent[0]?.text).not.toContain(PHONE);
   });

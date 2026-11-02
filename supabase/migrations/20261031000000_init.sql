@@ -1,4 +1,4 @@
--- Kubera Commercial — core schema.
+-- Corin Commercial — core schema.
 -- Twenty CRM is the system of record for relationships and pipeline; Supabase
 -- keeps the raw intake, Jev decisions, partner registrations, rate history,
 -- the RAG knowledge base, and the encrypted borrower document vault.

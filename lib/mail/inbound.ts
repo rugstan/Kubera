@@ -8,9 +8,9 @@
 //   process fetch → classify (bulk tier via the gateway, rules fallback) → route to
 //           a deal/lead → attachments to quarantine (+ vault row) → mail_messages
 //
-// The pipeline only reads mail and writes Kubera's own tables. It sends no
+// The pipeline only reads mail and writes Corin's own tables. It sends no
 // email and makes no CRM or other third-party write; downstream agents act on
-// the `kubera/mail.routed` event through the approval gate.
+// the `corin/mail.routed` event through the approval gate.
 
 import { recordInjection } from "@/lib/agents/core/inbound";
 import type { AgentEventStore } from "@/lib/agents/core/events";

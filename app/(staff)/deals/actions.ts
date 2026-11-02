@@ -25,7 +25,7 @@ import { InvalidTransitionError } from "@/lib/disclosures/state";
 import { mldsTemplateId } from "@/lib/esign";
 import { parseLender } from "@/lib/deals/lenders";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
-import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, kuberaAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
+import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, corinAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { StaffAccessError, can, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from "@/lib/deals/types";
 import { lenderCategories, type LenderCategory, type LenderChargesInput, type ModificationFacts } from "@/lib/compliance/schemas";
@@ -179,10 +179,10 @@ export async function addFeeAction(f: FormData): Promise<never> {
         entries = [flat !== null ? brokerFee({ dealId: id, loanAmountCents: loan, flatCents: flat, payer: "lender", idempotencyKey: key }) : brokerFee({ dealId: id, loanAmountCents: loan, pct, payer: "lender", idempotencyKey: key })];
         break;
       case "agency_split":
-        entries = [agencySplit({ dealId: id, loanAmountCents: loan, lenderOriginationPct: num(f, "lenderPct") ?? 0, kuberaSharePct: pct, lenderName: counterparty, idempotencyKey: key })];
+        entries = [agencySplit({ dealId: id, loanAmountCents: loan, lenderOriginationPct: num(f, "lenderPct") ?? 0, corinSharePct: pct, lenderName: counterparty, idempotencyKey: key })];
         break;
       case "hard_money_points":
-        entries = hardMoneyPoints({ dealId: id, loanAmountCents: loan, brokerPoints: pct, lenderPoints: num(f, "lenderPct"), kuberaShareOfLenderPointsPct: num(f, "sharePct"), lenderName: counterparty, idempotencyKey: key });
+        entries = hardMoneyPoints({ dealId: id, loanAmountCents: loan, brokerPoints: pct, lenderPoints: num(f, "lenderPct"), corinShareOfLenderPointsPct: num(f, "sharePct"), lenderName: counterparty, idempotencyKey: key });
         break;
       case "sba_packaging":
         if (flat === null) throw new DealError("Enter the packaging fee amount");
@@ -192,7 +192,7 @@ export async function addFeeAction(f: FormData): Promise<never> {
         entries = [sbaLenderReferralFee({ dealId: id, loanAmountCents: loan, pct, lenderName: counterparty, idempotencyKey: key })];
         break;
       case "co_broker_split": {
-        const gross = (await rt.store.listFeeEntries(id)).filter((e) => e.payee === "kubera" && e.status !== "void").reduce((a, e) => a + e.amountCents, 0);
+        const gross = (await rt.store.listFeeEntries(id)).filter((e) => e.payee === "corin" && e.status !== "void").reduce((a, e) => a + e.amountCents, 0);
         entries = [partnerSplit({ dealId: id, payee: "co_broker", ofCents: gross, pct, partnerName: counterparty, idempotencyKey: key })];
         break;
       }
@@ -316,7 +316,7 @@ type PartyValue = (typeof PARTIES)[number];
 const party = (f: FormData, k: string): PartyValue | undefined => {
   const v = str(f, k);
   if (!v) return undefined;
-  if (!(PARTIES as readonly string[]).includes(v)) throw new DealError(`Pick who ${k === "payer" ? "pays" : "Kubera acts for"}`);
+  if (!(PARTIES as readonly string[]).includes(v)) throw new DealError(`Pick who ${k === "payer" ? "pays" : "Corin acts for"}`);
   return v as PartyValue;
 };
 /** A view of `f` reading `prefix + key` (str/num/bool only call get). */
@@ -371,7 +371,7 @@ export async function recordLoanBrokerOfRecordAction(f: FormData): Promise<never
       transactionDate: str(b, "transactionDate"),
       tableFunded: bool(b, "tableFunded"),
       ...(str(b, "trueFundingSource") ? { trueFundingSource: str(b, "trueFundingSource") } : {}),
-      tableFundedInKuberaName: bool(b, "tableFundedInKuberaName"),
+      tableFundedInCorinName: bool(b, "tableFundedInCorinName"),
       ...(str(b, "deedBeneficiaryName") ? { deedBeneficiaryName: str(b, "deedBeneficiaryName") } : {}),
       ...(str(b, "originatorName") ? { originatorName: str(b, "originatorName") } : {}),
       ...(actsFor ? { actsFor } : {}),
@@ -387,7 +387,7 @@ export async function recordLoanBrokerOfRecordAction(f: FormData): Promise<never
     const r = await recordLoanBrokerOfRecord({ store: rt.store, now: rt.now, disclosures: rt.disclosures }, { dealId: id, file, actor: staff.actor });
     const parts = [r.created ? "Broker-of-record file recorded." : "Broker-of-record file updated."];
     if (r.officerApprovalCleared) parts.push("The loan facts changed, so the officer must approve again.");
-    if (r.heldForCounsel) parts.push("The loan documents name Kubera (or the loan is table funded in Kubera's name): the deal is held for counsel.");
+    if (r.heldForCounsel) parts.push("The loan documents name Corin (or the loan is table funded in Corin's name): the deal is held for counsel.");
     if (!staff.dreLicense) parts.push("Your profile has no DRE license, so the arranging licensee is not recorded.");
     return parts.join(" ");
   });
@@ -416,7 +416,7 @@ export async function submitModificationAction(f: FormData): Promise<never> {
       agreementRecitesBrokerArrangement: bool(f, "recital"),
       ...(arrangedBy === "other_licensed_broker" && str(f, "otherBrokerName") ? { otherBroker: { name: str(f, "otherBrokerName"), dreLicense: str(f, "otherBrokerDre") } } : {}),
       elements: {
-        ...(arrangedBy === "kubera" && staff.dreLicense ? { arrangingLicensee: { name: staff.name, dreLicense: staff.dreLicense, activeAtTransaction: bool(f, "licenseActive") } } : {}),
+        ...(arrangedBy === "corin" && staff.dreLicense ? { arrangingLicensee: { name: staff.name, dreLicense: staff.dreLicense, activeAtTransaction: bool(f, "licenseActive") } } : {}),
         ...(str(f, "actsFor") ? { actsFor: str(f, "actsFor") as "borrower" | "lender" | "borrower_and_lender" } : {}),
         ...(str(f, "engagementRef") ? { engagementAgreementRef: str(f, "engagementRef") } : {}),
         ...(compUsd ? { compensation: { amountUsd: compUsd, payer: (str(f, "payer") || "borrower") as "borrower" | "lender", expected: true } } : {}),
@@ -426,7 +426,7 @@ export async function submitModificationAction(f: FormData): Promise<never> {
     };
     const m = await submitModification(
       { store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer },
-      { dealId: id, facts, actor: staff.actor, ...(arrangedBy === "kubera" && compUsd ? { fee: { principalCents: (await rt.store.getDeal(id))?.loanAmountCents ?? 0, flatCents: Math.round(compUsd * 100), payer: (str(f, "payer") || "borrower") as "borrower" | "lender" } } : {}) },
+      { dealId: id, facts, actor: staff.actor, ...(arrangedBy === "corin" && compUsd ? { fee: { principalCents: (await rt.store.getDeal(id))?.loanAmountCents ?? 0, flatCents: Math.round(compUsd * 100), payer: (str(f, "payer") || "borrower") as "borrower" | "lender" } } : {}) },
     );
     return `${m.kind[0]!.toUpperCase()}${m.kind.slice(1)} recorded: ${m.status.replace(/_/g, " ")}.`;
   });
@@ -475,7 +475,7 @@ export async function generateForm159Action(f: FormData): Promise<never> {
         sbaLoanNumber: opt(f, "sbaLoanNumber"),
         lender: { name: str(f, "lenderName"), locationId: opt(f, "lenderLocationId"), signer: signerName ? { name: signerName, email: str(f, "lenderSignerEmail") } : null },
         applicant: { businessName: str(f, "applicantName"), signers: applicantSigner ? [{ name: applicantSigner, email: str(f, "applicantSignerEmail"), title: opt(f, "applicantSignerTitle") ?? undefined }] : [] },
-        agent: kuberaAgent(staff),
+        agent: corinAgent(staff),
       },
       staff.actor,
     );
@@ -516,7 +516,7 @@ export async function generateMldsAction(f: FormData): Promise<never> {
       today: rt.now().toISOString().slice(0, 10),
     });
     const record = await generateDealMlds({ ...mldsDeps(rt), render: renderPdf }, { dealId: id, disclosureId: str(f, "disclosureId"), mlds: input, actor: staff.actor });
-    if (record.status === "held_for_counsel") return `MLDS held for counsel review: ${record.heldReason ?? "the figures name Kubera as lender or lienholder"}. Borrower documents and closing are blocked until it is released.`;
+    if (record.status === "held_for_counsel") return `MLDS held for counsel review: ${record.heldReason ?? "the figures name Corin as lender or lienholder"}. Borrower documents and closing are blocked until it is released.`;
     return record.flags.includes("draft_template")
       ? "MLDS generated on the DRAFT template (pending counsel review); it cannot be sent to borrowers yet."
       : "MLDS generated. Each borrower now gives e-sign consent in the portal.";

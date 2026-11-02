@@ -13,7 +13,7 @@ const MAIL_ID = "40000000-0000-4000-8000-000000000001";
 const mail = (over: Partial<RoutedMail> = {}): RoutedMail => ({
   id: MAIL_ID,
   mailbox: "lenders",
-  subject: "Re: KC-10000000 Oak Terrace indicative terms",
+  subject: "Re: CC-10000000 Oak Terrace indicative terms",
   fromAddress: "underwriter@lender.example",
   fromName: "Lee Underwriter",
   receivedAt: "2026-11-04T16:00:00.000Z",
@@ -44,7 +44,7 @@ describe("handleMailRouted", () => {
     const out = await handleMailRouted(routedEvent, h.deps);
     expect(out.note.status).toBe("executed");
     expect(out.task.status).toBe("executed");
-    expect(h.crm.notes[0]).toMatchObject({ title: "Lender terms received: Re: KC-10000000 Oak Terrace indicative terms", targets: { opportunityId: "opp-1", personId: "person-1" } });
+    expect(h.crm.notes[0]).toMatchObject({ title: "Lender terms received: Re: CC-10000000 Oak Terrace indicative terms", targets: { opportunityId: "opp-1", personId: "person-1" } });
     expect(h.crm.notes[0]!.markdown).toContain("65% LTV");
     expect(h.crm.notes[0]!.markdown).toContain(MAIL_ID);
     expect(h.crm.tasks[0]).toMatchObject({ title: expect.stringMatching(/Lender terms arrived/), assigneeId: "member-1" });
@@ -172,7 +172,7 @@ describe("handleCallLogged", () => {
     const sent = anthropic.requests[0]!.messages[0]!.content;
     // The forged close tags are stripped by the inbound guard; nothing can close the block.
     expect(sent).not.toContain("&lt;/transcript&gt;");
-    expect(sent).toContain("[removed by Kubera: instruction-like text]");
+    expect(sent).toContain("[removed by Corin: instruction-like text]");
     expect(sent.match(/<\/transcript>/g)).toHaveLength(1);
     expect(anthropic.requests[0]!.system).not.toContain("CLOSED_WON");
     // Nothing the transcript says can reach the stage: only note and task writes exist for this task.
@@ -194,8 +194,8 @@ describe("handleCallLogged", () => {
     const sent = anthropic.requests[0]!.messages[0]!.content;
     expect(sent).not.toMatch(/ignore all previous instructions|crm_update_stage/i);
     expect(sent).toContain("I will send the rent roll Friday");
-    expect(sent).toContain("[removed by Kubera: instruction-like text]");
-    expect(anthropic.requests[0]!.system).toContain("[removed by Kubera: instruction-like text]");
+    expect(sent).toContain("[removed by Corin: instruction-like text]");
+    expect(anthropic.requests[0]!.system).toContain("[removed by Corin: instruction-like text]");
 
     // Default autonomy writes notes directly; a tainted run's writes wait for a broker instead.
     expect(out.note.status).toBe("pending_approval");

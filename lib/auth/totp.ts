@@ -74,7 +74,7 @@ export function verifyTotp(secret: string, code: string, atMs: number = Date.now
   return ok;
 }
 
-export function otpauthUri(secret: string, account: string, issuer = "Kubera Commercial"): string {
+export function otpauthUri(secret: string, account: string, issuer = "Corin Commercial"): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=${TOTP_PERIOD_SECONDS}`;
 }

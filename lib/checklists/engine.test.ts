@@ -122,7 +122,7 @@ describe("conditions", () => {
   it("only the imposing party can waive", () => {
     expect(() => transitionCondition(c(), { to: "waived", staffId: "b", note: "Not needed", now: NOW })).toThrow(/written waiver/);
     expect(transitionCondition(c(), { to: "waived", staffId: "b", note: "Lender waived", waiverEvidence: "Email from J. Lee 2026-11-02", now: NOW })).toMatchObject({ status: "waived", waiverEvidence: "Email from J. Lee 2026-11-02" });
-    expect(transitionCondition(c({ source: "kubera" }), { to: "waived", staffId: "b", note: "Internal check done elsewhere", now: NOW })).toMatchObject({ status: "waived" });
+    expect(transitionCondition(c({ source: "corin" }), { to: "waived", staffId: "b", note: "Internal check done elsewhere", now: NOW })).toMatchObject({ status: "waived" });
     expect(() => transitionCondition(c({ status: "cleared" }), { to: "waived", staffId: "b", note: "x", now: NOW })).toThrow(/Cannot move/);
   });
 

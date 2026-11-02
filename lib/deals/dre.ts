@@ -9,7 +9,7 @@
 //       $1,000,000;
 //   (2) intends to do the same in the next 12 months;
 //   (3) collected 100+ payments or $250,000+ in any 3 months for note owners —
-//       never true for Kubera, which does not service loans (Global rule 1).
+//       never true for Corin, which does not service loans (Global rule 1).
 // A broker meeting a criterion notifies the DRE within 30 days (RE 853).
 
 import { addCalendarDays } from "@/lib/disclosures/business-days";
@@ -42,7 +42,7 @@ export type ThresholdCounters = {
   asOf: string;
   trailing: { from: string; to: string; count: number; aggregateCents: number; dealIds: string[] };
   forward: { count: number; aggregateCents: number; dealIds: string[] };
-  /** Kubera never collects payments for note owners; recorded as zero by design. */
+  /** Corin never collects payments for note owners; recorded as zero by design. */
   servicing: { payments: 0; aggregateCents: 0 };
   /** Closed loans without a real-property lien (business-asset-only): listed for review, not counted. */
   excludedForReview: { count: number; dealIds: string[] };
@@ -141,7 +141,7 @@ export function re853Data(c: ThresholdCounters, broker: BrokerIdentity): Re853Da
     forwardCount: c.forward.count,
     forwardAggregateCents: c.forward.aggregateCents,
     servicingPayments: 0,
-    note: "Kubera Commercial, Inc. brokers only: it does not service loans, collect payments for note owners, or hold trust funds.",
+    note: "Corin Commercial, Inc. brokers only: it does not service loans, collect payments for note owners, or hold trust funds.",
   };
 }
 
@@ -181,7 +181,7 @@ export function annualActivity(form: "RE860" | "RE881", year: number, closed: Cl
     .filter((l) => l.closedOn >= period.from && l.closedOn <= period.to)
     .sort((a, b) => a.closedOn.localeCompare(b.closedOn))
     .map((l) => {
-      const fees = (ledgers.get(l.dealId) ?? []).filter((e) => e.payee === "kubera" && e.status !== "void");
+      const fees = (ledgers.get(l.dealId) ?? []).filter((e) => e.payee === "corin" && e.status !== "void");
       const from = (p: string) => fees.filter((e) => e.payer === p).reduce((a, e) => a + e.amountCents, 0);
       return {
         dealId: l.dealId,

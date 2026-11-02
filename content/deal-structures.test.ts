@@ -111,7 +111,7 @@ describe("illustrative structures", () => {
       const s = getDealStructure(slug)!;
       expect(s.stack, slug).toBeUndefined();
       expect(s.gold, slug).toBeUndefined();
-      expect(s.steps.some((step) => /as lender of record/.test(step.body) && /Kubera never holds or moves loan funds\./.test(step.body)), slug).toBe(true);
+      expect(s.steps.some((step) => /as lender of record/.test(step.body) && /Corin never holds or moves loan funds\./.test(step.body)), slug).toBe(true);
     }
   });
 
@@ -134,7 +134,7 @@ describe("illustrative structures", () => {
   it("describe no role in loan funds or construction draws", () => {
     const text = JSON.stringify(DEAL_STRUCTURES);
     expect(text).not.toMatch(/\bdraw(s|n)?\b|lien waiver|disburs|escrow balance|trust account/i);
-    expect(text).not.toMatch(/kubera (funds|lends|originates|services)/i);
+    expect(text).not.toMatch(/corin (funds|lends|originates|services)/i);
   });
 
   it("never promise outcomes", () => {

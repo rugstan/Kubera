@@ -84,7 +84,7 @@ test("every prospecting page asks for staff sign-in and is not indexable", async
 });
 
 test("a broker works the ranked list, drafts a letter, approves it, and marks it mailed", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/prospects");
+  await signIn(page, "broker@corin.test", "/prospects");
   await expect(page).toHaveURL(`${base}/prospects`);
   await expect(page.getByRole("heading", { name: "Refinance-maturity prospects", level: 1 })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
@@ -148,7 +148,7 @@ test("a broker works the ranked list, drafts a letter, approves it, and marks it
 });
 
 test("an email draft needs a contact, and a do-not-contact entry stops further outreach", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/prospects");
+  await signIn(page, "broker@corin.test", "/prospects");
   await page.getByRole("link", { name: "55 Sample Blvd" }).click();
   await page.getByLabel("Contact email").fill("care@sample.example");
   await page.getByRole("button", { name: "Save" }).click();
@@ -171,7 +171,7 @@ test("an email draft needs a contact, and a do-not-contact entry stops further o
 });
 
 test("the weekly market note is a cited rules digest without an xAI key, and a reviewer approves it", async ({ page }) => {
-  await signIn(page, "broker@kubera.test", "/prospects/intel");
+  await signIn(page, "broker@corin.test", "/prospects/intel");
   await expect(page.getByRole("heading", { name: "Weekly market note", level: 1 })).toBeVisible();
   await expect(page.getByText(/No xAI key is configured/)).toBeVisible();
   await page.getByRole("button", { name: "Generate draft" }).click();
@@ -196,7 +196,7 @@ test("the weekly market note is a cited rules digest without an xAI key, and a r
 
 test("the prospect list reflows at 390px without sideways page scroll", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signIn(page, "broker@kubera.test", "/prospects");
+  await signIn(page, "broker@corin.test", "/prospects");
   // Finish signing in first, or the loop below measures the sign-in page.
   await expect(page).toHaveURL(`${base}/prospects`);
   // Scan first: the prospect list and its "check waiting outreach" form only render once prospects exist.
@@ -218,7 +218,7 @@ test("the prospect list reflows at 390px without sideways page scroll", async ({
 
 test("at 375px the prospect tables scroll inside focusable, named regions with no serious axe issues", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
-  await signIn(page, "broker@kubera.test", "/prospects");
+  await signIn(page, "broker@corin.test", "/prospects");
   await expect(page.getByRole("heading", { name: "Refinance-maturity prospects", level: 1 })).toBeVisible();
   // A scan adds the recent-scans table, so both tables on the list page are checked.
   await page.getByLabel("ZIP codes (up to 25)").fill("90001");

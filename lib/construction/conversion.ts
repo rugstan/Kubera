@@ -1,7 +1,7 @@
 // Conversion and payoff tracker rules: lease-up metrics, the stabilization
 // test and the take-out refinance trigger. Pure functions.
 //
-// Kubera tracks dates and statuses only. The construction lender of record
+// Corin tracks dates and statuses only. The construction lender of record
 // funds, administers and is paid off by the take-out; there are no payoff
 // amounts or draw data here (Global rule 1).
 

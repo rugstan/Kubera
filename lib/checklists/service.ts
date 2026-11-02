@@ -156,13 +156,13 @@ function assertBorrowerItem(item: DealChecklistItem | null, scope: PortalPrincip
   return item;
 }
 
-const UPLOADS_UNAVAILABLE = "Uploads are not available right now. Email your documents to docs@kuberacommercial.com.";
+const UPLOADS_UNAVAILABLE = "Uploads are not available right now. Email your documents to docs@corincommercial.com.";
 
 /** Lead the deal's vault documents are filed under: the checklist's lead, else the deal's. */
 async function vaultLead(deps: ChecklistDeps, vault: ChecklistVault, dealId: string): Promise<string> {
   const fromChecklist = (await deps.checklists.checklistsForDeal(dealId)).find((c) => c.leadId)?.leadId ?? null;
   const leadId = fromChecklist ?? (await vault.leadForDeal(dealId));
-  if (!leadId) throw new ChecklistError("Uploads are not set up for this loan file yet. Email your documents to docs@kuberacommercial.com and your advisor will add them.", 409);
+  if (!leadId) throw new ChecklistError("Uploads are not set up for this loan file yet. Email your documents to docs@corincommercial.com and your advisor will add them.", 409);
   return leadId;
 }
 

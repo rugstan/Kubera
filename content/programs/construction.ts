@@ -7,7 +7,7 @@ const mf = HUD.multifamily;
 const s232 = HUD.section232;
 
 const NO_DRAW_ROLE =
-  "The construction lender, not Kubera, funds and administers draws. Kubera has no role in draw requests, inspections or lien waivers, and never holds or disburses loan funds.";
+  "The construction lender, not Corin, funds and administers draws. Corin has no role in draw requests, inspections or lien waivers, and never holds or disburses loan funds.";
 
 export const constructionPrograms: ProgramEntry[] = [
   {
@@ -27,9 +27,9 @@ export const constructionPrograms: ProgramEntry[] = [
       fact("Debt fund: loan-to-cost", CONSTRUCTION_MARKET.debtFund.ltc, SRC.market),
       fact("Debt fund: pricing", CONSTRUCTION_MARKET.debtFund.pricing, SRC.market),
       fact("Private lender: loan-to-cost", `${CONSTRUCTION_MARKET.privateLender.ltc}, ${CONSTRUCTION_MARKET.privateLender.cap}`, SRC.market),
-      fact("Kubera sizing assumption: max loan-to-cost", pct(BRIDGE.construction.maxLtc), SRC.kubera),
-      fact("Kubera sizing assumption: min debt yield on cost", pct(BRIDGE.construction.minDebtYieldOnCost, 1), SRC.kubera),
-      fact("Kubera sizing assumption: term", `${BRIDGE.construction.termMonths} months`, SRC.kubera),
+      fact("Corin sizing assumption: max loan-to-cost", pct(BRIDGE.construction.maxLtc), SRC.corin),
+      fact("Corin sizing assumption: min debt yield on cost", pct(BRIDGE.construction.minDebtYieldOnCost, 1), SRC.corin),
+      fact("Corin sizing assumption: term", `${BRIDGE.construction.termMonths} months`, SRC.corin),
     ],
     sections: [
       {
@@ -97,7 +97,7 @@ export const constructionPrograms: ProgramEntry[] = [
       {
         heading: "One closing, two phases",
         paragraphs: [
-          "HUD's construction-to-permanent products are the clearest examples: the borrower closes one insured loan, construction funds are released by the HUD lender under HUD oversight, and the loan converts to a long fixed amortizing term at completion. Kubera has no role in the draw process.",
+          "HUD's construction-to-permanent products are the clearest examples: the borrower closes one insured loan, construction funds are released by the HUD lender under HUD oversight, and the loan converts to a long fixed amortizing term at completion. Corin has no role in the draw process.",
           "Banks also offer construction-to-perm structures, usually with a shorter permanent term and often a rate reset at conversion.",
         ],
       },
@@ -145,14 +145,14 @@ export const constructionPrograms: ProgramEntry[] = [
       fact("Eligible uses", "Energy efficiency, water conservation, renewable energy and resilience improvements", "State and local C-PACE enabling law"),
       fact("Availability", "Set by state and local program; confirm for the property's jurisdiction", "State and local C-PACE enabling law"),
       fact("Existing mortgage holder", "Consent is generally required", "Program guidelines"),
-      fact("Stack position", "Can sit beside senior, mezzanine or preferred equity capital", SRC.kubera, { verify: false }),
+      fact("Stack position", "Can sit beside senior, mezzanine or preferred equity capital", SRC.corin, { verify: false }),
     ],
     sections: [
       {
         heading: "Where C-PACE fits",
         paragraphs: [
           "C-PACE can replace a portion of equity or mezzanine debt in a construction or renovation budget because it is long-term and non-recourse to the owner, and it is typically ranked ahead of the mortgage as a tax lien. That priority is why senior lenders review it and often must consent.",
-          "C-PACE is arranged with programs and capital providers that fund at closing. Kubera brokers the introduction and coordinates the capital stack and does not fund or hold any money.",
+          "C-PACE is arranged with programs and capital providers that fund at closing. Corin brokers the introduction and coordinates the capital stack and does not fund or hold any money.",
         ],
         bullets: [
           "New construction that exceeds code in energy or water performance",

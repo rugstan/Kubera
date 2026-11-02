@@ -18,7 +18,7 @@ function signed(body: unknown, opts: { key?: KeyObject; timestamp?: string; raw?
   const raw = opts.raw ?? JSON.stringify(body);
   const timestamp = opts.timestamp ?? ts();
   const signature = sign(null, Buffer.from(`${timestamp}|${raw}`), opts.key ?? privateKey).toString("base64");
-  return new Request("https://kuberacommercial.com/api/webhooks/telnyx", {
+  return new Request("https://corincommercial.com/api/webhooks/telnyx", {
     method: "POST",
     headers: { "content-type": "application/json", "telnyx-signature-ed25519": signature, "telnyx-timestamp": timestamp },
     body: raw,
@@ -42,7 +42,7 @@ function deps(h: Harness, over: Partial<TelnyxWebhookDeps> = {}): TelnyxWebhookD
     ledger: h.ledger,
     consent: h.consent,
     optOut: h.optOut,
-    staffEmails: ["deals@kuberacommercial.com"],
+    staffEmails: ["deals@corincommercial.com"],
     now: () => NOW,
     ...over,
   };
@@ -254,7 +254,7 @@ describe("free-form opt-outs (FCC revocation rule)", () => {
     expect(h.optOut.calls).toEqual([{ phone: PHONE, optOut: true }]);
     expect(h.store.sms.find((s) => s.direction === "inbound")).toMatchObject({ keyword: "stop", body: text });
     // Staff still see the text.
-    expect(h.email.sent.some((e) => e.to === "deals@kuberacommercial.com" && e.text.includes(text))).toBe(true);
+    expect(h.email.sent.some((e) => e.to === "deals@corincommercial.com" && e.text.includes(text))).toBe(true);
 
     expect(consentState(await h.consent.history("sms", { phone: PHONE }), "sms").state).toBe("revoked");
     const after = await h.notifier.send({ templateId: "milestone_update_sms", to: { audience: "borrower", phone: PHONE }, data: { label: "Closing coordination" }, idempotencyKey: `post-${id}` });
@@ -268,7 +268,7 @@ describe("HELP and START", () => {
     const h = makeHarness();
     await handleTelnyxWebhook(signed(inbound("HELP")), deps(h));
     expect(h.sms.sent).toHaveLength(1);
-    expect(h.sms.sent[0]?.text).toContain("deals@kuberacommercial.com");
+    expect(h.sms.sent[0]?.text).toContain("deals@corincommercial.com");
     expect(h.sms.sent[0]?.text).toContain("Reply STOP to opt out");
     expect(h.ledger.events).toHaveLength(0);
   });
@@ -306,7 +306,7 @@ describe("other inbound texts and delivery status", () => {
     await handleTelnyxWebhook(signed(inbound("Can you send the term sheet?", "m_plain")), deps(h));
     expect(h.store.sms[0]).toMatchObject({ keyword: null, body: "Can you send the term sheet?" });
     expect(h.email.sent).toHaveLength(1);
-    expect(h.email.sent[0]?.to).toBe("deals@kuberacommercial.com");
+    expect(h.email.sent[0]?.to).toBe("deals@corincommercial.com");
     expect(h.email.sent[0]?.text).toContain("term sheet");
     expect(h.ledger.events).toHaveLength(0);
   });

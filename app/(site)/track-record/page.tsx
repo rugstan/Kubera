@@ -32,7 +32,7 @@ export default function TrackRecordPage() {
       }
       breadcrumb={[{ href: meta.path, label: "Track record" }]}
     >
-      <JsonLd data={trackRecordSchemas({ path: meta.path, name: "Kubera Commercial track record", description: meta.description }, records)} />
+      <JsonLd data={trackRecordSchemas({ path: meta.path, name: "Corin Commercial track record", description: meta.description }, records)} />
 
       {records.length > 0 ? (
         <Section id="closed" title="Closed transactions">

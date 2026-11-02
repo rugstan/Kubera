@@ -20,7 +20,7 @@ export type AgentSafety = {
   runner(tools: readonly Tool[]): Promise<ToolRunner | null>;
 };
 
-const MEMORY_KEY = Symbol.for("kubera.agents.core.memory");
+const MEMORY_KEY = Symbol.for("corin.agents.core.memory");
 type MemoryBundle = { events: MemoryAgentEventStore; autonomy: MemoryAutonomyStore };
 
 function memory(): MemoryBundle {

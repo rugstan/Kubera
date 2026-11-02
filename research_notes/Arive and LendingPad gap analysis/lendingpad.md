@@ -1,4 +1,4 @@
-# LendingPad (lendingpad.com): Feature Inventory and Relevance to Kubera Commercial
+# LendingPad (lendingpad.com): Feature Inventory and Relevance to Corin Commercial
 
 > **Method and source caveat (read first).** Direct page fetches failed from this environment: `www.lendingpad.com` and `ainora.lt` both returned DNS failures (hosts outside the session's allowed network domains). **Every finding below comes from web-search result snippets and search-engine summaries of pages, not from pages I opened.** That includes the LendingPad knowledge base (kb.lendingpad.com / lendingpad.com/kb), its blog/press releases, and review sites. Treat specifics (prices, setup steps, field names) as needing confirmation from the vendor. To verify, allow `lendingpad.com`, `kb.lendingpad.com` and `blog.lendingpad.com` in the session's network settings and re-run. Research date: 2026-10-31. Items dated before 2025 are marked **[older]**.
 
@@ -102,7 +102,7 @@ LendingPad (WEI Technology LLC, McLean VA) is a cloud, browser-based **residenti
 ### Inferences
 - LendingPad's moat for brokers is **lender connectivity**: the LP-to-LP clone network, plus direct API registration and condition sync with large wholesalers. Even in 2026 the direct integrations are partial (UWM: no documents or statuses back). That signals how hard bi-directional broker–lender file exchange is even in standardized residential lending.
 - The architecture is **file-centric and MISMO/1003-centric**. Lender exchange runs on MISMO data, fees map to LE/CD screens, and AUS runs against 1003 data. None of this maps onto a commercial deal (rent roll, T-12, STR, sponsor, entity structure).
-- The gated API (Lender Edition only, NDA) means a broker on the Broker Edition has little programmatic access. That contrasts with Kubera's API-first stack (Supabase, Twenty).
+- The gated API (Lender Edition only, NDA) means a broker on the Broker Edition has little programmatic access. That contrasts with Corin's API-first stack (Supabase, Twenty).
 
 ### Gaps
 - No primary-page verification. All facts are from search snippets, because fetches to lendingpad.com and kb.lendingpad.com were blocked.
@@ -130,8 +130,8 @@ Lead (CRM/POS) → 1003 application (the "Application Taken" date moves the file
 - NMLS: selecting a lender marks the loan as brokered for MCR reporting. — [KB: Getting Started](https://kb.lendingpad.com/getting-started-in-lendingpad)
 
 ### Inferences
-- The broker workflow assumes **one lender per file**: you register with a single wholesaler. There is no evidence of multi-lender marketing, side-by-side quote comparison of lender responses, or term-sheet negotiation. Commercial brokerage is the opposite: one deal is shopped to many capital sources and competing term sheets are compared. Kubera's planned lender matching and term-sheet parsing have no LendingPad analogue.
-- The condition loop (lender issues conditions → broker submits docs → clear to close) is the most transferable concept. It maps onto Kubera's planned document-chasing and closing-checklist agents, keyed to lender commitment letters and HUD/SBA checklists.
+- The broker workflow assumes **one lender per file**: you register with a single wholesaler. There is no evidence of multi-lender marketing, side-by-side quote comparison of lender responses, or term-sheet negotiation. Commercial brokerage is the opposite: one deal is shopped to many capital sources and competing term sheets are compared. Corin's planned lender matching and term-sheet parsing have no LendingPad analogue.
+- The condition loop (lender issues conditions → broker submits docs → clear to close) is the most transferable concept. It maps onto Corin's planned document-chasing and closing-checklist agents, keyed to lender commitment letters and HUD/SBA checklists.
 - I found no evidence of commission/payout accounting after funding (invoicing lenders, splitting with referral brokers). LendingPad records comp amounts for disclosure, not for receivables.
 
 ### Gaps
@@ -158,7 +158,7 @@ Target users are U.S. **residential** mortgage brokers, plus lenders, banks, cre
 
 ### Inferences
 - "Business purpose" support in LendingPad means **1–4 unit residential investor loans** (DSCR) priced through non-QM engines. It is still a residential 1003/MISMO file. It is not commercial real estate. The Gartner "Commercial LOS" category listing rests on one review and looks like a taxonomy artifact, not a product capability.
-- At about $40–$55 per user per month, a small Kubera team (2–5 staff) would pay roughly $1–3.3k a year. The money is not the obstacle. Fit is.
+- At about $40–$55 per user per month, a small Corin team (2–5 staff) would pay roughly $1–3.3k a year. The money is not the obstacle. Fit is.
 
 ### Gaps
 - No current (2026) vendor price sheet. Implementation and onboarding fees are unknown.
@@ -166,10 +166,10 @@ Target users are U.S. **residential** mortgage brokers, plus lenders, banks, cre
 
 ---
 
-## 4. Which LendingPad features are residential-only and not needed for business-purpose commercial loans? And for each capability, is it relevant to Kubera, does Kubera have or plan it, and what is the gap?
+## 4. Which LendingPad features are residential-only and not needed for business-purpose commercial loans? And for each capability, is it relevant to Corin, does Corin have or plan it, and what is the gap?
 
 ### Takeaway
-Roughly half of LendingPad's surface is residential consumer-compliance machinery: TRID LE/CD, HMDA, the NMLS MCR, AUS (DU/LPA), the agency 1003/MISMO, consumer credit tri-merge and comp-to-disclosure sync. None of it applies to Kubera's business-purpose commercial loans. What *does* transfer is the workflow scaffolding: milestones, role-scoped pipelines, condition loops, a document vault, e-sign, licensing records and comp tracking. Above all, the **lender-handoff concept**, which Kubera must rebuild for a multi-lender, term-sheet-driven commercial process. Most of that is already planned.
+Roughly half of LendingPad's surface is residential consumer-compliance machinery: TRID LE/CD, HMDA, the NMLS MCR, AUS (DU/LPA), the agency 1003/MISMO, consumer credit tri-merge and comp-to-disclosure sync. None of it applies to Corin's business-purpose commercial loans. What *does* transfer is the workflow scaffolding: milestones, role-scoped pipelines, condition loops, a document vault, e-sign, licensing records and comp tracking. Above all, the **lender-handoff concept**, which Corin must rebuild for a multi-lender, term-sheet-driven commercial process. Most of that is already planned.
 
 ### Cited Findings
 - TRID / LE-CD disclosures (initial disclosure package by loan type and state) — [KB: Getting Started](https://kb.lendingpad.com/getting-started-in-lendingpad)
@@ -181,44 +181,44 @@ Roughly half of LendingPad's surface is residential consumer-compliance machiner
 
 ### Inferences
 
-**Relevance and gap matrix.** Legend: Relevance = **High / Med / Low / N/A** (N/A = residential-only). Kubera status = **Has** (in production today), **Planned**, or **Missing**. Kubera status reflects the context brief only. I did not inspect the Kubera repo.
+**Relevance and gap matrix.** Legend: Relevance = **High / Med / Low / N/A** (N/A = residential-only). Corin status = **Has** (in production today), **Planned**, or **Missing**. Corin status reflects the context brief only. I did not inspect the Corin repo.
 
-| LendingPad module / feature | Residential-only? | Relevance to Kubera | Kubera status | What Kubera needs to build or integrate |
+| LendingPad module / feature | Residential-only? | Relevance to Corin | Corin status | What Corin needs to build or integrate |
 |---|---|---|---|---|
 | Lead capture + CRM, campaigns, lead providers | No | High | **Has** (Twenty CRM sync, qualifier, Jev classification); automation agents **Planned** | Lead-source attribution and referral-partner linkage on opportunities. Twenty workflows for stage SLAs (LendingPad "service level agreements" analogue) |
 | POS / borrower application (1003) | 1003 is residential | High (concept); 1003 N/A | 60-second qualifier **Has**; borrower portal **Planned** | A commercial intake form instead of a 1003: sponsor/guarantor PFS, entity docs, property data, T-12, rent roll, STR, PIP budget, capex. Borrower portal with checklist status (avoid LendingPad's reported POS weaknesses: duplicate accounts, login friction) |
 | Auto-advancing milestones / statuses | No | High | Pipeline dashboard **Planned** | Define commercial stages (Intake → Sized → Term sheets out → TS accepted → Application/deposit → 3rd-party reports → Commitment → Closing → Funded → Fee collected). Advance them from dates and events, as LendingPad does, so the pipeline is not manually maintained |
 | Tasks, due/overdue dashboard | No | High | **Planned** (staff dashboard, closing-checklist agent) | Task model in Supabase or Twenty tasks. Overdue views per deal and per staffer |
 | Underwriting conditions (single + batch templates) | No (concept) | High | Document-chasing / closing-checklist agents **Planned** | Per-program condition templates (HUD 232 / 223(f) checklist, SBA 504/7(a) forms, CMBS lender closing checklist, bridge). Lender-issued commitment conditions parsed into tracked items |
-| Pricing engine (Optimal Blue, Loansifter, Polly, LoanNEX) | Yes (agency/non-QM rate sheets) | Low as-is; concept High | Loan sizer + fee breakdown **Has**; term-sheet parsing / quote comparison **Planned** | No commercial PPE exists for HUD/CMBS/bridge. Kubera's sizer plus parsed lender term sheets is the right substitute. Keep a rate/spread index (Treasury, SOFR, MIP) feed for the sizer |
+| Pricing engine (Optimal Blue, Loansifter, Polly, LoanNEX) | Yes (agency/non-QM rate sheets) | Low as-is; concept High | Loan sizer + fee breakdown **Has**; term-sheet parsing / quote comparison **Planned** | No commercial PPE exists for HUD/CMBS/bridge. Corin's sizer plus parsed lender term sheets is the right substitute. Keep a rate/spread index (Treasury, SOFR, MIP) feed for the sizer |
 | Native wholesale network ("Register with Lender" clone) | Residential network | High (concept) | Static lender list routing **Has**; lender matching vs credit boxes **Planned**; partner portal **Planned** | A multi-lender "shop the deal" flow: generate a package or offering memo, send it to N matched lenders, track per-lender status (sent / reviewing / passed / term sheet), and collect term sheets into the comparison. Unlike LendingPad, the broker keeps editing rights. Lenders get versioned package links (Supabase signed URLs) and not a locked clone |
 | Direct lender API integrations (UWM, Mutual of Omaha; condition sync) | Residential | Low | Missing (not applicable) | Commercial lenders have no MISMO-style intake APIs. Use email + data room + partner portal. Optional lender-side portal for uploading conditions and term sheets |
 | Disclosures: LE/CD, initial package, TRID tolerance | **Yes** | N/A | n/a | Not needed for business-purpose loans. Instead: California DRE broker disclosures where applicable (e.g., the DRE Mortgage Loan Disclosure Statement is generally for consumer loans; confirm with counsel whether any CA commercial broker disclosure applies), a fee agreement or engagement letter, and a non-circumvention agreement |
 | ComplianceEase / HOEPA / high-cost testing | **Yes** | N/A | n/a | None |
-| HMDA reporting | **Yes** for residential. Multifamily 5+ can be HMDA-reportable for *lenders* (not brokers) | N/A for a broker | n/a | None (Kubera is not the lender of record) |
-| NMLS MCR, NMLS license auto-update | Yes (NMLS/SAFE). Kubera is DRE-licensed | Low | Missing | Light licensing record: DRE license number and expiry for the firm and staff, displayed on the site and in disclosures. Calendar reminder on renewal |
+| HMDA reporting | **Yes** for residential. Multifamily 5+ can be HMDA-reportable for *lenders* (not brokers) | N/A for a broker | n/a | None (Corin is not the lender of record) |
+| NMLS MCR, NMLS license auto-update | Yes (NMLS/SAFE). Corin is DRE-licensed | Low | Missing | Light licensing record: DRE license number and expiry for the firm and staff, displayed on the site and in disclosures. Calendar reminder on renewal |
 | Credit pulls / AUS (DU, LPA) | **Yes** (consumer tri-merge, agency AUS) | N/A (AUS); Low (credit) | Missing | Commercial lenders pull sponsor credit themselves. At most, record a borrower credit-authorization consent in the consent ledger (**Planned**) |
 | VOE/VOI/asset verifications | Yes (residential income docs) | Low | Missing | Not needed. The commercial equivalents are an AI document agent on T-12 / rent roll / STR / bank statements (**Planned**) and sponsor REO schedule extraction |
 | Document management / archiving | No | High | Supabase vault with signed uploads **Has** | Doc-type taxonomy per program, versioning, a per-lender share log (who received what package version), and retention rules |
 | E-sign (DocuSign, $2.50/envelope) | No | High | DocuSign **Planned** | Templates: engagement / fee agreement, LOI acceptance, borrower authorizations, partner NDAs and referral agreements |
 | Roles and permissions (LO/processor see assigned files only; status-based edit locks) | No | High | Staff login **Planned** | Supabase RLS by role (admin, originator, processor, partner, borrower). Assigned-deal scoping. Lock key fields after term-sheet acceptance |
-| Branch / virtual branch, licensing enforcement | Mostly multi-branch residential | Low | Missing | Not needed at Kubera's size. Virtual-team grouping is enough |
+| Branch / virtual branch, licensing enforcement | Mostly multi-branch residential | Low | Missing | Not needed at Corin's size. Virtual-team grouping is enough |
 | Broker compensation (lender-paid / borrower-paid, synced to disclosures) | Disclosure sync is residential (LO comp rule) | High (comp tracking itself) | Fee breakdown in sizer **Has**; payout tracking **Missing** | Deal-level fee ledger: origination/placement fee, borrower-paid vs lender-paid (YSP/premium), referral-broker splits, invoice and receipt status, 1099 data for partners |
-| Secondary marketing, lock desk, MCT, warehouse, post-closing (Lender Edition) | **Yes** (lender functions) | N/A | n/a | None. Kubera is a broker. Track only the rate-lock / rate-cap date in commercial term sheets |
+| Secondary marketing, lock desk, MCT, warehouse, post-closing (Lender Edition) | **Yes** (lender functions) | N/A | n/a | None. Corin is a broker. Track only the rate-lock / rate-cap date in commercial term sheets |
 | Reporting / custom reports / dashboards | No | Med–High | Insights **Planned** | Pipeline-by-stage, fee forecast, lender hit rate (term sheets per submission), time-in-stage, source ROI |
 | Third-party vendor orders (appraisal, credit; integrated vendor list) | Residential AMC/credit vendors | Med (concept) | Vendor order tracking **Planned** | Track appraisal, Phase I ESA, PCA, market study, CNA (HUD), and hotel PIP/brand reports: ordered, due date, cost, received |
-| API (gated, Lender Edition, NDA) + Zapier "Loan Updated" | No | Med | Supabase + Twenty APIs **Has** | Kubera already exceeds this. Expose webhooks (deal stage changes) for Twenty automation agents |
-| AI (none native; partner AI1 predictive scoring) | n/a | High | Claude advisor + indicative term sheets **Has**; doc agent, package/OM generation, CRM agents **Planned** | Kubera is ahead of LendingPad here. Add the AI conversation log (**Planned**) for compliance and audit |
+| API (gated, Lender Edition, NDA) + Zapier "Loan Updated" | No | Med | Supabase + Twenty APIs **Has** | Corin already exceeds this. Expose webhooks (deal stage changes) for Twenty automation agents |
+| AI (none native; partner AI1 predictive scoring) | n/a | High | Claude advisor + indicative term sheets **Has**; doc agent, package/OM generation, CRM agents **Planned** | Corin is ahead of LendingPad here. Add the AI conversation log (**Planned**) for compliance and audit |
 | Audit trail / QC role | No | Med | Consent ledger and AI logs **Planned** | Append-only event log per deal (field changes, document shares, lender submissions, consents) |
 | Email / SMS / scheduling | Not documented as LendingPad-native | High | Zoho, Resend, Telnyx, Cal.com **Planned** | Log communications to the deal timeline (Twenty notes/messages) |
 
 **Summary judgments**
 - **Residential-only, skip:** TRID LE/CD and tolerance, initial disclosure packages, ComplianceEase/HOEPA, HMDA (as a broker), NMLS MCR, AUS DU/LPA, consumer tri-merge credit and VOE/VOI, MISMO 1003, LO-comp-to-disclosure sync, Lender Edition secondary/lock desk/warehouse/post-closing, and the residential wholesale network and its UWM/Mutual of Omaha APIs.
-- **Transferable, already planned by Kubera:** milestones and pipeline, tasks, condition and closing checklists, document vault, DocuSign, roles/permissions, reporting, vendor-order tracking, borrower and partner portals.
-- **Real gaps, not on Kubera's plan list:** (1) a **deal-level fee and commission ledger** (placement fee, lender premium, referral splits, invoices). (2) A **DRE licensing record**, plus a California commercial broker disclosure / fee-agreement template (verify the legal requirements with counsel). (3) A **per-lender submission tracker**, the commercial replacement for "Register with Lender": which package version went to which lender, when, and the outcome. Implied by lender matching, but worth specifying explicitly. (4) **Auto-advancing stage logic** driven by dates and events, with field locks after term-sheet acceptance.
-- **Where Kubera is already ahead:** AI (advisor, indicative term sheets, planned document extraction and OM generation), open APIs, and a multi-program commercial sizer. LendingPad has no shipped native AI as of 2026 and gates its API.
+- **Transferable, already planned by Corin:** milestones and pipeline, tasks, condition and closing checklists, document vault, DocuSign, roles/permissions, reporting, vendor-order tracking, borrower and partner portals.
+- **Real gaps, not on Corin's plan list:** (1) a **deal-level fee and commission ledger** (placement fee, lender premium, referral splits, invoices). (2) A **DRE licensing record**, plus a California commercial broker disclosure / fee-agreement template (verify the legal requirements with counsel). (3) A **per-lender submission tracker**, the commercial replacement for "Register with Lender": which package version went to which lender, when, and the outcome. Implied by lender matching, but worth specifying explicitly. (4) **Auto-advancing stage logic** driven by dates and events, with field locks after term-sheet acceptance.
+- **Where Corin is already ahead:** AI (advisor, indicative term sheets, planned document extraction and OM generation), open APIs, and a multi-program commercial sizer. LendingPad has no shipped native AI as of 2026 and gates its API.
 
 ### Gaps
-- Kubera status is taken from the brief. I did not check the /home/user/Kubera codebase to confirm what is actually live.
+- Corin status is taken from the brief. I did not check the /home/user/Corin codebase to confirm what is actually live.
 - The California DRE disclosure requirements for commercial business-purpose loans were not researched here and need legal review.
 - LendingPad's residential-only scope was inferred from the absence of commercial documentation. I found no explicit vendor statement.

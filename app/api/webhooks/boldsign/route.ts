@@ -9,7 +9,7 @@ import { handleEsignWebhook } from "@/lib/esign/webhook";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 // BoldSign webhook (the fallback e-sign provider, ESIGN_PROVIDER=boldsign):
-// BoldSign app → API → Webhooks, URL https://kuberacommercial.com/api/webhooks/boldsign,
+// BoldSign app → API → Webhooks, URL https://corincommercial.com/api/webhooks/boldsign,
 // with its signing key in BOLDSIGN_WEBHOOK_SECRET (X-BoldSign-Signature is
 // verified over the raw body). Same pipeline as the Zoho Sign route: status to
 // `disclosures`, the audit trail in `disclosure_events`, the signed copy to the

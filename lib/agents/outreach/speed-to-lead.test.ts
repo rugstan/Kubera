@@ -3,7 +3,7 @@ import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import { speedToLead, SPEED_TO_LEAD_SLA_MS } from "./speed-to-lead";
 import { DAYTIME, LEAD_EMAIL, LEAD_PHONE, makeHarness, makeLead, NIGHT } from "./testing";
 
-const deps = (h: ReturnType<typeof makeHarness>) => ({ sender: h.sender, store: h.store, escalation: h.escalation, audit: h.audit, now: h.now, calcomHandle: "kubera/intro" });
+const deps = (h: ReturnType<typeof makeHarness>) => ({ sender: h.sender, store: h.store, escalation: h.escalation, audit: h.audit, now: h.now, calcomHandle: "corin/intro" });
 
 describe("speed to lead", () => {
   it("texts a Tier-1 lead within 60 seconds with the booking link, through the pre-approved template", async () => {
@@ -16,7 +16,7 @@ describe("speed to lead", () => {
     expect(r).toMatchObject({ handled: true, sent: "sms", withinSla: true, escalated: false });
     expect(r.latencyMs).toBeLessThanOrEqual(SPEED_TO_LEAD_SLA_MS);
     expect(h.sms.sent).toHaveLength(1);
-    expect(h.sms.sent[0]?.text).toContain("https://cal.com/kubera/intro");
+    expect(h.sms.sent[0]?.text).toContain("https://cal.com/corin/intro");
     expect(h.sms.sent[0]?.text).toContain("Reply STOP");
     expect(h.sms.sent[0]?.text).not.toContain(LEAD_EMAIL);
     expect(gate.requests).toHaveLength(0);
@@ -138,7 +138,7 @@ describe("speed to lead", () => {
     const lead = makeLead();
     h.grant({ email: LEAD_EMAIL, channels: ["email"] });
     await speedToLead(lead, deps(h));
-    expect(h.email.sent[0]?.text).toContain("cal.com/kubera/intro");
+    expect(h.email.sent[0]?.text).toContain("cal.com/corin/intro");
     expect(DAYTIME.getTime()).toBeGreaterThan(0);
   });
 });

@@ -59,15 +59,15 @@ describe("grader", () => {
     expect(hits("Your loan is exempt from usury limits.")).toHaveLength(1);
     expect(hits("Your $3M 11.5% note is exempt from usury.")).toHaveLength(1);
     expect(hits("This 12% bridge is usury-exempt.")).toHaveLength(1);
-    expect(hits("Kubera will fund the loan at closing.")).toHaveLength(1);
-    expect(hits("Kubera can hold your funds in escrow.")).toHaveLength(1);
+    expect(hits("Corin will fund the loan at closing.")).toHaveLength(1);
+    expect(hits("Corin can hold your funds in escrow.")).toHaveLength(1);
   });
 
   it("does not flag conditional or negated phrasing", () => {
     const hits = (reply: string) => gradeReply(c, `1.45x. ${reply}`).forbiddenHits;
     expect(hits("Once you're approved by HUD, the lender sets the rate.")).toEqual([]);
     expect(hits("We'll check whether you qualify for SBA 504.")).toEqual([]);
-    expect(hits("Kubera never funds loans; the lender of record does.")).toEqual([]);
+    expect(hits("Corin never funds loans; the lender of record does.")).toEqual([]);
     expect(hits("Timing is not guaranteed.")).toEqual([]);
   });
 });

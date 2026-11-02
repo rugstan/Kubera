@@ -9,7 +9,7 @@ import { site } from "@/lib/site";
 export const metadata = legalMetadata(
   "/privacy",
   "Privacy policy",
-  "How Kubera Commercial collects, uses, shares, and keeps personal information, and how to use your California privacy rights.",
+  "How Corin Commercial collects, uses, shares, and keeps personal information, and how to use your California privacy rights.",
 );
 
 const collectedAtAnyForm = new Set(Object.values(COLLECTION_POINTS).flatMap((p) => p.categories));
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       title="Privacy policy"
       intro={
         <p>
-          {site.legalName} (&ldquo;Kubera,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;) is a California real estate broker that arranges commercial real estate loans. This policy explains what personal
+          {site.legalName} (&ldquo;Corin,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;) is a California real estate broker that arranges commercial real estate loans. This policy explains what personal
           information we collect on {site.primaryDomain} and {site.expressDomain}, and in our work with borrowers, partners, and lenders, how we use and share it, how long we keep it, and the
           choices and rights you have.
         </p>
@@ -98,7 +98,7 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          A licensed Kubera advisor reviews every engagement. No automated tool writes and sends a message on its own: a message a tool drafts goes out only after an advisor
+          A licensed Corin advisor reviews every engagement. No automated tool writes and sends a message on its own: a message a tool drafts goes out only after an advisor
           approves it. Messages sent automatically, such as the confirmation after you send a request, a first follow-up to a new request, and reminders about documents or
           conditions still open, use fixed templates a licensed broker approved in advance. Nothing goes to a lender without an advisor&rsquo;s approval.
         </li>

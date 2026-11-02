@@ -80,7 +80,7 @@ export const MANUAL_STATUSES: readonly ReportStatus[] = ["in_progress", "deliver
 
 // Turnaround ------------------------------------------------------------------------
 
-/** Typical vendor turnaround in business days. VERIFY with the vendors Kubera uses. */
+/** Typical vendor turnaround in business days. VERIFY with the vendors Corin uses. */
 export const TURNAROUND_BUSINESS_DAYS: Record<ReportType, number> = {
   seismic_pml: 10,
   plan_and_cost_review: 15,

@@ -3,11 +3,11 @@ import { allTemplates, findBannedCopy, templateById, type TemplateId } from "./t
 
 // Representative data for each template, used to render and lint every message.
 const SAMPLE: Record<TemplateId, unknown> = {
-  lead_confirmation: { firstName: "Pat", reference: "3F9A12BC", bookingUrl: "https://cal.com/kubera/intro?name=Pat" },
-  document_request: { firstName: "Pat", items: ["Trailing 12-month operating statement", "Current rent roll"], uploadUrl: "https://kuberacommercial.com/upload/abc" },
+  lead_confirmation: { firstName: "Pat", reference: "3F9A12BC", bookingUrl: "https://cal.com/corin/intro?name=Pat" },
+  document_request: { firstName: "Pat", items: ["Trailing 12-month operating statement", "Current rent roll"], uploadUrl: "https://corincommercial.com/upload/abc" },
   milestone_update: { firstName: "Pat", label: "Lender terms received", message: "Lender terms are in. Terms are indicative until a lender issues a commitment." },
-  portal_invite: { firstName: "Pat", portalUrl: "https://kuberacommercial.com/portal/access?token=abc", expiresLabel: "on Thu, 05 Nov 2026 17:00 UTC" },
-  staff_alert: { title: "Tier-1 lead 3F9A12BC", lines: ["Phone and text consent is on file."], link: { href: "https://kuberacommercial.com/pipeline", label: "Open the pipeline" } },
+  portal_invite: { firstName: "Pat", portalUrl: "https://corincommercial.com/portal/access?token=abc", expiresLabel: "on Thu, 05 Nov 2026 17:00 UTC" },
+  staff_alert: { title: "Tier-1 lead 3F9A12BC", lines: ["Phone and text consent is on file."], link: { href: "https://corincommercial.com/pipeline", label: "Open the pipeline" } },
   document_request_sms: { count: 2 },
   milestone_update_sms: { label: "Lender outreach" },
   staff_tier1_sms: { reference: "3F9A12BC", summary: "$12.0M assisted living HUD 232", contactOk: true },

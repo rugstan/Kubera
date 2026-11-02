@@ -61,7 +61,7 @@ async function DreData({ searchParams }: { searchParams: Search }) {
           </div>
           <div>
             <dt className="text-xs text-titanium">Payments collected for note owners</dt>
-            <dd className="text-ink">0 (Kubera does not service loans)</dd>
+            <dd className="text-ink">0 (Corin does not service loans)</dd>
           </div>
           <div>
             <dt className="text-xs text-titanium">Business-asset-only loans (review)</dt>

@@ -180,8 +180,8 @@ export async function currentStaff(): Promise<StaffSession | null> {
   };
 }
 
-/** Kubera as Form 159 agent and DRE reporting broker, from configuration. */
-export function kuberaAgent(staff: StaffSession): Form159Data["agent"] {
+/** Corin as Form 159 agent and DRE reporting broker, from configuration. */
+export function corinAgent(staff: StaffSession): Form159Data["agent"] {
   return {
     legalName: site.legalName,
     agentType: "BROKER",

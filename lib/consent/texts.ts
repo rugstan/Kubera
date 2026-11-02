@@ -28,28 +28,28 @@ export const CONSENT_TEXTS = {
     form: "qualifier",
     effective: "2026-10-31",
     channels: ["phone", "sms", "email", "autodialer"],
-    text: "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
+    text: "I agree that Corin Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out.",
   },
   "qualifier-contact-2026-11-01": {
     id: "qualifier-contact-2026-11-01",
     form: "qualifier",
     effective: "2026-11-01",
     channels: ["phone", "sms", "email", "autodialer"],
-    text: "I agree that Kubera Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+    text: "I agree that Corin Commercial may contact me about this financing request by phone, text, or email, including by automated means. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
   },
   "partner-contact-2026-10-31": {
     id: "partner-contact-2026-10-31",
     form: "partner",
     effective: "2026-10-31",
     channels: ["phone", "sms", "email"],
-    text: "I agree that Kubera Commercial may contact me about this registration by phone, text, or email.",
+    text: "I agree that Corin Commercial may contact me about this registration by phone, text, or email.",
   },
   "partner-contact-2026-11-01": {
     id: "partner-contact-2026-11-01",
     form: "partner",
     effective: "2026-11-01",
     channels: ["phone", "sms", "email"],
-    text: "I agree that Kubera Commercial may contact me about this registration by phone, text, or email. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
+    text: "I agree that Corin Commercial may contact me about this registration by phone, text, or email. Consent is not a condition of any service. Message and data rates may apply; reply STOP to opt out or HELP for help.",
   },
 } as const satisfies Record<string, ConsentText>;
 

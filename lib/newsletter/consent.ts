@@ -11,7 +11,7 @@ export const NEWSLETTER_CONSENT_TEXTS = {
     form: "newsletter",
     effective: "2026-11-05",
     channels: ["email"],
-    text: "Send me the Kubera Commercial newsletter by email: market notes, program updates and new tools, about once a month. I will confirm my address by clicking a link in a confirmation email before anything is sent, and I can unsubscribe at any time. Subscribing is not a condition of any service.",
+    text: "Send me the Corin Commercial newsletter by email: market notes, program updates and new tools, about once a month. I will confirm my address by clicking a link in a confirmation email before anything is sent, and I can unsubscribe at any time. Subscribing is not a condition of any service.",
   },
 } as const satisfies Record<string, ConsentText>;
 

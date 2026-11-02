@@ -1,6 +1,6 @@
 // MLDS delivery clock sweep (B&P §10240; counsel gate A).
 //
-// The RE 882 is due by the earlier of 3 business days after Kubera receives
+// The RE 882 is due by the earlier of 3 business days after Corin receives
 // the completed written loan application or the moment the borrower becomes
 // obligated. The deal page shows the clock (lib/deals/service.ts passes it to
 // the compliance gates); this sweep pages staff once when an undelivered MLDS

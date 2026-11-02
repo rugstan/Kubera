@@ -29,7 +29,7 @@ export interface SitemapRoute {
 export const coreRoutes: SitemapRoute[] = [
   {
     path: "/",
-    title: "Kubera Commercial home",
+    title: "Corin Commercial home",
     description: "Licensed California commercial real estate loan broker for senior living, hotels, multifamily, construction and hard money.",
     changeFrequency: "weekly",
     priority: 1,

@@ -45,7 +45,7 @@ function sendDeps(over: Partial<SendDeps> = {}): SendDeps {
     gate,
     now,
     templateId: "tmpl_mlds",
-    brokerSigner: { name: "Neeli Khanna", email: "neeli@kuberacommercial.com" },
+    brokerSigner: { name: "Neeli Khanna", email: "neeli@corincommercial.com" },
     approvedTemplate: true,
     deal: gatedCrmSink(crmGate, async (w) => {
       crmWrites.push(w);
@@ -57,7 +57,7 @@ function sendDeps(over: Partial<SendDeps> = {}): SendDeps {
 async function openCase() {
   const { record } = await openMldsCase(
     { store, now },
-    { leadId: LEAD, twentyOpportunityId: OPP, facts: { kuberaRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: clock, actor: "staff:neeli" },
+    { leadId: LEAD, twentyOpportunityId: OPP, facts: { corinRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: clock, actor: "staff:neeli" },
   );
   if (!record) throw new Error("expected a record");
   return record;
@@ -173,23 +173,23 @@ describe("openMldsCase", () => {
   it("opens nothing when no MLDS is required", async () => {
     const { record, requirement } = await openMldsCase(
       { store, now },
-      { leadId: LEAD, facts: { kuberaRole: "broker", collateral: { realPropertyLien: false }, program: "SBA_7A" }, applicationCompletedAt: clock, actor: "staff" },
+      { leadId: LEAD, facts: { corinRole: "broker", collateral: { realPropertyLien: false }, program: "SBA_7A" }, applicationCompletedAt: clock, actor: "staff" },
     );
     expect(record).toBeNull();
     expect(requirement.flags[0]?.code).toBe("cfl_license_review");
   });
 
-  it("opens deals naming Kubera as originator in held_for_counsel", async () => {
+  it("opens deals naming Corin as originator in held_for_counsel", async () => {
     const { record } = await openMldsCase(
       { store, now },
-      { leadId: LEAD, facts: { kuberaRole: "broker", collateral: { realPropertyLien: true }, namesKuberaAsOriginator: true }, applicationCompletedAt: clock, actor: "staff" },
+      { leadId: LEAD, facts: { corinRole: "broker", collateral: { realPropertyLien: true }, namesCorinAsOriginator: true }, applicationCompletedAt: clock, actor: "staff" },
     );
     expect(record?.status).toBe("held_for_counsel");
     expect(record?.heldReason).toMatch(/originator/);
   });
 
   it("requires a deal reference", async () => {
-    await expect(openMldsCase({ store, now }, { facts: { kuberaRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: clock, actor: "x" })).rejects.toThrow(/reference/);
+    await expect(openMldsCase({ store, now }, { facts: { corinRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: clock, actor: "x" })).rejects.toThrow(/reference/);
   });
 });
 
@@ -218,7 +218,7 @@ describe("generateMlds", () => {
   it("refuses held and sent disclosures", async () => {
     const s = await sent();
     await expect(generateMlds({ store, storage, render, now }, s.id, sampleMldsInput, "staff")).rejects.toMatchObject({ reason: "invalid_status" });
-    const r2 = await openMldsCase({ store, now }, { dealId: "44444444-4444-4444-8444-444444444444", facts: { kuberaRole: "broker", collateral: { realPropertyLien: true }, tableFundedInKuberaName: true }, applicationCompletedAt: clock, actor: "x" });
+    const r2 = await openMldsCase({ store, now }, { dealId: "44444444-4444-4444-8444-444444444444", facts: { corinRole: "broker", collateral: { realPropertyLien: true }, tableFundedInCorinName: true }, applicationCompletedAt: clock, actor: "x" });
     await expect(generateMlds({ store, storage, render, now }, r2.record?.id as string, sampleMldsInput, "staff")).rejects.toMatchObject({ reason: "held_for_counsel" });
   });
 });

@@ -31,7 +31,7 @@ async function Conversation({ params }: { params: Params }) {
   if (!c) notFound();
 
   const conversationNotes = c.annotations.filter((a) => a.messageIndex === null);
-  const targets = c.messages.map((m, i) => ({ index: i, label: `Message ${i + 1}, ${m.role === "user" ? "borrower" : "Kubera AI"}` }));
+  const targets = c.messages.map((m, i) => ({ index: i, label: `Message ${i + 1}, ${m.role === "user" ? "borrower" : "Corin AI"}` }));
 
   return (
     <>

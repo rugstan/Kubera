@@ -28,7 +28,7 @@ describe("weeklyIntelWorkflow", () => {
   });
 
   it("exposes event names for the registration", () => {
-    expect(Object.values(INTEL_EVENTS).every((n) => n.startsWith("kubera/"))).toBe(true);
+    expect(Object.values(INTEL_EVENTS).every((n) => n.startsWith("corin/"))).toBe(true);
   });
 });
 

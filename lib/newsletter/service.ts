@@ -33,7 +33,7 @@ export type NewsletterDeps = {
   gate: ApprovalGate;
   /** Null when no signing secret is configured. */
   tokenSecret: string | null;
-  /** Site origin used in emailed links, e.g. https://kuberacommercial.com. */
+  /** Site origin used in emailed links, e.g. https://corincommercial.com. */
   baseUrl: string;
   contactEmail: string;
   preApproved?: ReadonlySet<string>;
@@ -207,7 +207,7 @@ export class NewsletterService {
     }
   }
 
-  /** A signed unsubscribe link for a subscriber, for emails Kubera composes itself. */
+  /** A signed unsubscribe link for a subscriber, for emails Corin composes itself. */
   unsubscribeUrl(subscriberId: string): string | null {
     if (!this.deps.tokenSecret) return null;
     return `${this.deps.baseUrl.replace(/\/+$/, "")}/newsletter/unsubscribe?token=${encodeURIComponent(signToken(this.deps.tokenSecret, "unsubscribe", subscriberId))}`;

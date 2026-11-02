@@ -15,7 +15,7 @@ export default function ChecklistsPage({ searchParams }: { searchParams: SearchP
     <>
       <p className="eyebrow">Deal desk</p>
       <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">Deal checklists</h1>
-      <p className="mt-2 max-w-2xl text-[15px] text-ink/80">Pre-closing document checklists, conditions, principals and sanctions screening for each deal Kubera brokers.</p>
+      <p className="mt-2 max-w-2xl text-[15px] text-ink/80">Pre-closing document checklists, conditions, principals and sanctions screening for each deal Corin brokers.</p>
       <div className="mt-8">
         <Suspense fallback={<p className="text-[15px] text-ink/80">Loading the desk…</p>}>
           <Desk searchParams={searchParams} />

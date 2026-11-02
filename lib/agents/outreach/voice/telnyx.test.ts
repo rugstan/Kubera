@@ -22,7 +22,7 @@ describe("Telnyx voice client", () => {
 
   it("places a call with machine detection, a webhook url and client state", async () => {
     const { c, calls } = client([{ json: { data: { call_control_id: "cc_9", call_session_id: "ss_9" } } }]);
-    const out = await c.dial({ to: "+14155550100", clientState: encodeState({ callId: "c1", stage: "dial" }), webhookUrl: "https://kuberacommercial.com/api/webhooks/telnyx-voice" });
+    const out = await c.dial({ to: "+14155550100", clientState: encodeState({ callId: "c1", stage: "dial" }), webhookUrl: "https://corincommercial.com/api/webhooks/telnyx-voice" });
     expect(out).toEqual({ callControlId: "cc_9", callSessionId: "ss_9" });
     expect(calls[0]?.url).toBe("https://api.telnyx.com/v2/calls");
     expect(calls[0]?.auth).toBe("Bearer key");

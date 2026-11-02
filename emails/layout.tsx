@@ -21,7 +21,7 @@ export const mutedText = { color: mail.muted, fontFamily: mail.font, fontSize: "
 export const linkStyle = { color: mail.link, textDecoration: "underline" } as const;
 
 export const BROKER_STATEMENT =
-  "Kubera Commercial arranges commercial real estate loans between borrowers and lenders. We are a licensed broker, not a lender, and nothing in this message is a commitment to lend or a rate lock.";
+  "Corin Commercial arranges commercial real estate loans between borrowers and lenders. We are a licensed broker, not a lender, and nothing in this message is a commitment to lend or a rate lock.";
 
 export function EmailLayout({ preview, children, footerNote }: { preview: string; children: ReactNode; footerNote?: string }) {
   return (

@@ -8,9 +8,9 @@ const siteverify = (body: Record<string, unknown>, status = 200) =>
 
 describe("CloudflareTurnstileVerifier", () => {
   it("posts secret, token and remote IP to siteverify", async () => {
-    const fetchImpl = siteverify({ success: true, hostname: "kuberacommercial.com", action: "qualify" });
+    const fetchImpl = siteverify({ success: true, hostname: "corincommercial.com", action: "qualify" });
     const v = new CloudflareTurnstileVerifier("sekret", fetchImpl as unknown as typeof fetch);
-    const r = await v.verify({ token: "tok", remoteIp: "1.2.3.4", action: "qualify", allowedHostnames: ["kuberacommercial.com"] });
+    const r = await v.verify({ token: "tok", remoteIp: "1.2.3.4", action: "qualify", allowedHostnames: ["corincommercial.com"] });
     expect(r.success).toBe(true);
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://challenges.cloudflare.com/turnstile/v0/siteverify");
@@ -27,7 +27,7 @@ describe("CloudflareTurnstileVerifier", () => {
     expect((await wrongAction.verify({ token: "t", action: "qualify" })).success).toBe(false);
 
     const wrongHost = new CloudflareTurnstileVerifier("s", siteverify({ success: true, hostname: "evil.example" }) as unknown as typeof fetch);
-    expect((await wrongHost.verify({ token: "t", allowedHostnames: ["kuberacommercial.com"] })).success).toBe(false);
+    expect((await wrongHost.verify({ token: "t", allowedHostnames: ["corincommercial.com"] })).success).toBe(false);
   });
 
   it("fails closed on empty/oversized tokens, HTTP errors and network errors", async () => {

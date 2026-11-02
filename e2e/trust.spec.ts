@@ -58,10 +58,10 @@ test.describe("trust pages", () => {
 
   test("contact lists the mailbox routing table", async ({ page }) => {
     await page.goto("/contact");
-    const table = page.getByRole("table", { name: /which kubera commercial mailbox/i });
+    const table = page.getByRole("table", { name: /which corin commercial mailbox/i });
     await expect(table).toBeVisible();
     for (const box of ["deals", "lenders", "partners", "vendors", "compliance"]) {
-      await expect(table.getByRole("link", { name: `${box}@kuberacommercial.com` })).toBeVisible();
+      await expect(table.getByRole("link", { name: `${box}@corincommercial.com` })).toBeVisible();
     }
     // No booking handle or phone in the e2e env: an email path for a call, no placeholder copy and no third-party frame.
     await expect(page.locator("#schedule")).toContainText(/two or three times that work for you/i);
@@ -115,7 +115,7 @@ test.describe("trust pages", () => {
   test("header and footer link to the trust pages", async ({ page }) => {
     await page.goto("/about");
     const footer = page.getByRole("contentinfo");
-    for (const name of ["About Kubera", "Representative structures", "Contact"]) {
+    for (const name of ["About Corin", "Representative structures", "Contact"]) {
       await expect(footer.getByRole("link", { name })).toBeVisible();
     }
     // The e2e build has no published closings and only a placeholder advisor, so the

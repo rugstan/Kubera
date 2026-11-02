@@ -488,7 +488,7 @@ export function supabaseDealDirectory(db: SupabaseClient): DealDirectory {
 
   return {
     async byReference(reference) {
-      const hex = reference.replace(/^KC-/i, "").toLowerCase();
+      const hex = reference.replace(/^CC-/i, "").toLowerCase();
       if (!/^[0-9a-f]{8}$/.test(hex)) return [];
       // uuid order is byte order, so the 8-hex prefix is a range scan.
       const rows = await deals((q) => q.gte("id", `${hex}-0000-0000-0000-000000000000`).lte("id", `${hex}-ffff-ffff-ffff-ffffffffffff`).limit(5));

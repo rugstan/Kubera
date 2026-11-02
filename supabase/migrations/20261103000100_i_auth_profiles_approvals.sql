@@ -180,7 +180,7 @@ revoke execute on function public.can_edit_deals() from public, anon;
 grant execute on function public.current_user_roles(), public.has_role(text), public.is_staff_mfa(), public.is_admin_mfa(), public.can_edit_deals() to authenticated;
 
 -- Deals (base) ------------------------------------------------------------------------------
--- Kubera is the broker on every deal (Global rule 1): never the lender,
+-- Corin is the broker on every deal (Global rule 1): never the lender,
 -- originator of record or trust-deed beneficiary.
 create table public.deals (
   id uuid primary key default gen_random_uuid(),
@@ -201,7 +201,7 @@ create table public.deals (
   borrower_entity text check (borrower_entity is null or length(borrower_entity) <= 200),
   owner_id uuid references public.profiles (id) on delete set null,
   analyst_id uuid references public.profiles (id) on delete set null,
-  kubera_role text not null default 'broker',
+  corin_role text not null default 'broker',
   urgency_tier text check (urgency_tier is null or length(urgency_tier) <= 40),
   next_step text check (next_step is null or length(next_step) <= 500),
   last_activity_at timestamptz,
@@ -211,7 +211,7 @@ create table public.deals (
     'term_sheet', 'underwriting', 'commitment', 'closing', 'closed', 'lost'
   )),
   constraint deals_status_check check (status in ('active', 'on_hold', 'held_for_counsel', 'won', 'lost', 'withdrawn')),
-  constraint deals_kubera_is_broker check (kubera_role = 'broker')
+  constraint deals_corin_is_broker check (corin_role = 'broker')
 );
 create index deals_stage_idx on public.deals (stage) where status = 'active';
 create index deals_owner_idx on public.deals (owner_id);

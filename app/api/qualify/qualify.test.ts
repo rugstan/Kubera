@@ -17,7 +17,7 @@ const LEAD = "6f1b5c1e-2a8e-4c39-9a55-3d3c1b7f2a10";
 vi.mock("server-only", () => ({}));
 // The assistant endpoint is staff-only; these tests act as a signed-in staff member.
 vi.mock("@/lib/auth/dal", () => ({
-  staffForMutation: async () => ({ ok: true, ctx: { principal: { userId: "staff-1", email: "advisor@kuberacommercial.com", staffRoles: ["broker"] } } }),
+  staffForMutation: async () => ({ ok: true, ctx: { principal: { userId: "staff-1", email: "advisor@corincommercial.com", staffRoles: ["broker"] } } }),
 }));
 vi.mock("@/lib/supabase/server", () => {
   const db = {
@@ -62,7 +62,7 @@ const qualify = await import("./route");
 const privacy = await import("../privacy/request/route");
 const ask = await import("../ask/route");
 
-const ORIGIN = "https://kuberacommercial.com";
+const ORIGIN = "https://corincommercial.com";
 const JEV_URL = "https://jev.test/decide";
 
 const leadBody = {

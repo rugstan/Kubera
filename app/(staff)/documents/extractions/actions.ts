@@ -16,7 +16,7 @@ import { EVENTS } from "@/lib/workflows/events";
 // Each action re-authenticates the caller and re-checks the capability; the
 // review service enforces the lifecycle (compare-and-set on status). An
 // approved extraction feeds spreads and Jev re-sizing through
-// kubera/document.extracted. Values never go into events or logs.
+// corin/document.extracted. Values never go into events or logs.
 
 export type ReviewState = { ok?: boolean; message?: string };
 

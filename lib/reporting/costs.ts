@@ -3,7 +3,7 @@ import { z } from "zod";
 import { dollarsToCents, MoneyError } from "@/lib/deals/money";
 import type { SourceCost } from "./types";
 
-// Recording Kubera's own marketing spend per lead source (lead_source_costs),
+// Recording Corin's own marketing spend per lead source (lead_source_costs),
 // the denominator of lead-source ROI. It is a cost record only: nothing here
 // pays anyone or moves money.
 

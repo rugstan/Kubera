@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
 function SummaryPdf({ spec }: { spec: ExecutiveSummarySpec }) {
   const date = new Date(`${spec.asOf}T00:00:00.000Z`);
   return (
-    <Document title={spec.title} author="Kubera Commercial, Inc." subject="Loan package executive summary" creator="Kubera Commercial" producer="Kubera Commercial" creationDate={date} modificationDate={date}>
+    <Document title={spec.title} author="Corin Commercial, Inc." subject="Loan package executive summary" creator="Corin Commercial" producer="Corin Commercial" creationDate={date} modificationDate={date}>
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.title}>{spec.title}</Text>
         <Text style={styles.subtitle}>{spec.subtitle}</Text>

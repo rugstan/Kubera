@@ -20,7 +20,7 @@ describe("session cookie", () => {
   const KEY = "k".repeat(32);
   const signed = (raw: unknown) => {
     const payload = Buffer.from(JSON.stringify(raw)).toString("base64url");
-    const mac = createHmac("sha256", KEY).update(`kc_session.v1.${payload}`).digest("base64url");
+    const mac = createHmac("sha256", KEY).update(`cc_session.v1.${payload}`).digest("base64url");
     return `${payload}.${mac}`;
   };
 
@@ -75,8 +75,8 @@ describe("session cookie", () => {
   });
 
   it("expires the pending sign-in after 15 minutes", () => {
-    const v = encodePendingLogin({ email: "pat@kubera.test", next: "/approvals", sentAt: 1_000 });
-    expect(decodePendingLogin(v, 1_100)).toEqual({ email: "pat@kubera.test", next: "/approvals", sentAt: 1_000 });
+    const v = encodePendingLogin({ email: "pat@corin.test", next: "/approvals", sentAt: 1_000 });
+    expect(decodePendingLogin(v, 1_100)).toEqual({ email: "pat@corin.test", next: "/approvals", sentAt: 1_000 });
     expect(decodePendingLogin(v, 1_000 + 16 * 60)).toBeNull();
     expect(decodePendingLogin(encodePendingLogin({ email: "p@x.co", next: "https://evil.example", sentAt: 1_000 }), 1_001)?.next).toBe("/pipeline");
   });

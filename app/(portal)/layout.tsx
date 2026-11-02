@@ -29,7 +29,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <footer className="mx-auto max-w-4xl px-4 pb-10 text-[12px] leading-relaxed text-ink/80">
         <p>{licenseLine()}</p>
         <p className="mt-2">
-          Kubera Commercial arranges loans as a broker; the lender of record makes every credit decision. Questions? Email{" "}
+          Corin Commercial arranges loans as a broker; the lender of record makes every credit decision. Questions? Email{" "}
           <a href={`mailto:${site.email}`} className="font-medium text-accent underline underline-offset-2">
             {site.email}
           </a>

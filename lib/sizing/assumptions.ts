@@ -111,7 +111,7 @@ export const SBA = {
   cdcCap: 5_000_000,
   cdcCapGreen: 5_500_000,
   sevenACap: 5_000_000,
-  // VERIFY: combined 7(a) + 504 exposure Kubera models for the 2026 stacking
+  // VERIFY: combined 7(a) + 504 exposure Corin models for the 2026 stacking
   // structure. Confirm against the SOP 50 10 revision in effect at application.
   combinedExposureCap: 10_000_000,
   /** Equity injection: 10% base, +5% special-purpose property (hotels, care facilities), +5% start-up / new construction. */
@@ -172,7 +172,7 @@ export const BRIDGE = {
   closeDays: "Many close in 10–21 days after a complete file, subject to appraisal and title; not guaranteed",
 } as const;
 
-/** Advisory fee Kubera models per program, as a share of the loan arranged. */
+/** Advisory fee Corin models per program, as a share of the loan arranged. */
 export const BROKER_FEE_PCT = {
   HUD: 0.01,
   SBA: 0.01,

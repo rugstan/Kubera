@@ -13,8 +13,8 @@ import { MemoryDealHoldStore, MemoryScreeningStore } from "./store";
 import type { ScreeningRecord } from "./types";
 
 const NOW = new Date("2026-11-03T12:00:00Z");
-const broker: StaffIdentity = { id: "u1", email: "broker@kuberacommercial.com", name: "Broker", role: "broker", dreLicense: "01234567" };
-const analyst: StaffIdentity = { ...broker, id: "u2", email: "analyst@kuberacommercial.com", role: "analyst" };
+const broker: StaffIdentity = { id: "u1", email: "broker@corincommercial.com", name: "Broker", role: "broker", dreLicense: "01234567" };
+const analyst: StaffIdentity = { ...broker, id: "u2", email: "analyst@corincommercial.com", role: "analyst" };
 
 describe("name matching", () => {
   it("normalizes and compares names regardless of order, accents and entity suffixes", () => {
@@ -91,7 +91,7 @@ async function setup() {
 describe("screening service", () => {
   it("an OFAC hit holds the deal until a broker reviews it", async () => {
     const { deps, ivan, client, events } = await setup();
-    const { records, gate } = await screenDeal(deps, { dealId: DEAL_ID, purpose: "initial", requestedBy: "broker@kuberacommercial.com" });
+    const { records, gate } = await screenDeal(deps, { dealId: DEAL_ID, purpose: "initial", requestedBy: "broker@corincommercial.com" });
     expect(records).toHaveLength(3);
     // Name, birth date (decrypted for the lookup only) and country go to the provider.
     expect(client.calls.find((c) => c.name === "Ivan Petrov")).toEqual({ kind: "individual", name: "Ivan Petrov", dateOfBirth: "1965-03-02", countries: undefined });

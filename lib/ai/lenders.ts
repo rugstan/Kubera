@@ -15,7 +15,7 @@ export const WHOLESALE_LENDERS = [
 
 export type WholesaleLender = (typeof WHOLESALE_LENDERS)[number];
 
-// Routing table from program to the lenders Kubera sends that structure to,
+// Routing table from program to the lenders Corin sends that structure to,
 // in priority order. Keep it aligned with the signed correspondent and
 // fee-protection agreements; lender registrations from /partners land in
 // Twenty CRM for the desk to fold in here.

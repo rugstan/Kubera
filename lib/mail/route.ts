@@ -1,6 +1,6 @@
 // Routes a classified message to a deal (and/or lead), most reliable signal first:
 //
-//   1. reference   a KC-XXXXXXXX token in the subject or body
+//   1. reference   a CC-XXXXXXXX token in the subject or body
 //   2. thread      In-Reply-To / References match an earlier routed message
 //   3. participant the sender (or a cc) is a lead's contact with one active deal
 //   4. property    the classifier's property name matches exactly one deal (always reviewed)
@@ -39,7 +39,7 @@ export type MailRoute = {
 };
 
 const IGNORABLE = new Set(["auto_reply", "marketing"]);
-const OWN_DOMAIN = /@(kuberacommercial\.com|kubera\.loans)$/i;
+const OWN_DOMAIN = /@(corincommercial\.com|corin\.loans)$/i;
 
 export async function routeMail(msg: MailMessage, c: MailClassification, dir: DealDirectory): Promise<MailRoute> {
   const reasons: string[] = [];
@@ -169,7 +169,7 @@ export class MemoryDealDirectory implements DealDirectory {
   }
 
   async byReference(reference: string): Promise<DealMatch[]> {
-    const prefix = reference.replace(/^KC-/i, "").toLowerCase();
+    const prefix = reference.replace(/^CC-/i, "").toLowerCase();
     return this.deals.filter((d) => d.id.replace(/-/g, "").startsWith(prefix)).map((d) => this.match(d));
   }
 

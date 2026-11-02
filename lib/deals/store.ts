@@ -391,7 +391,7 @@ export class MemoryDealDeskStore implements DealDeskStore {
   async nextInvoiceNumber(year: number): Promise<string> {
     const n = (this.invoiceSeq.get(year) ?? 0) + 1;
     this.invoiceSeq.set(year, n);
-    return `KC-${year}-${String(n).padStart(4, "0")}`;
+    return `CC-${year}-${String(n).padStart(4, "0")}`;
   }
 
   async insertInvoice(i: Omit<Invoice, "id" | "createdAt" | "updatedAt">, actor: string, now: Date): Promise<Invoice> {

@@ -33,8 +33,8 @@ describe("TOTP", () => {
   it("generates 160-bit secrets and an authenticator URI", () => {
     const s = generateTotpSecret();
     expect(s).toMatch(/^[A-Z2-7]{32}$/);
-    expect(otpauthUri(s, "pat@kubera.test")).toBe(
-      `otpauth://totp/Kubera%20Commercial%3Apat%40kubera.test?secret=${s}&issuer=Kubera%20Commercial&algorithm=SHA1&digits=6&period=30`,
+    expect(otpauthUri(s, "pat@corin.test")).toBe(
+      `otpauth://totp/Corin%20Commercial%3Apat%40corin.test?secret=${s}&issuer=Corin%20Commercial&algorithm=SHA1&digits=6&period=30`,
     );
   });
 });

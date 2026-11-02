@@ -171,7 +171,7 @@ export type StageContext = {
    * acceptance, the commitment stages and closing. null/absent fails closed.
    */
   compliance?: DealCompliance | null;
-  /** SBA deals: Form 159 is signed by agent, applicant and lender, or no Kubera compensation exists. */
+  /** SBA deals: Form 159 is signed by agent, applicant and lender, or no Corin compensation exists. */
   form159Satisfied?: boolean;
   /**
    * Open holds on the deal (possible or confirmed sanctions match), as reasons.
@@ -240,7 +240,7 @@ function requirementReasons(req: Requirement, input: StageEventInput, to: string
       if (!c.compliance) return [complianceNotEvaluated(to)];
       return stageAdvanceGate(to, c.compliance).reasons;
     case "form159_signed":
-      return c.form159Satisfied ? [] : ["SBA Form 159 must be signed by Kubera, the applicant and the lender before closing."];
+      return c.form159Satisfied ? [] : ["SBA Form 159 must be signed by Corin, the applicant and the lender before closing."];
   }
 }
 

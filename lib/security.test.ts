@@ -11,7 +11,7 @@ const prodEnv = { NODE_ENV: "production" } as NodeJS.ProcessEnv;
 
 describe("origin allowlist", () => {
   it("allows both production domains", () => {
-    for (const o of ["https://kuberacommercial.com", "https://www.kuberacommercial.com", "https://kubera.loans", "https://www.kubera.loans"]) {
+    for (const o of ["https://corincommercial.com", "https://www.corincommercial.com", "https://kubera.loans", "https://www.kubera.loans"]) {
       expect(isAllowedOrigin(o, prodEnv)).toBe(true);
     }
   });
@@ -19,9 +19,9 @@ describe("origin allowlist", () => {
   it("rejects forged, lookalike, downgraded and missing origins", () => {
     for (const o of [
       "https://evil.example",
-      "https://kuberacommercial.com.evil.example",
-      "https://evilkuberacommercial.com",
-      "http://kuberacommercial.com",
+      "https://corincommercial.com.evil.example",
+      "https://evilcorincommercial.com",
+      "http://corincommercial.com",
       "null",
       "",
     ]) {
@@ -37,10 +37,10 @@ describe("origin allowlist", () => {
   });
 
   it("adds Vercel deployment URLs and explicit ALLOWED_ORIGINS", () => {
-    const env = { NODE_ENV: "production", VERCEL_URL: "kubera-abc123.vercel.app", ALLOWED_ORIGINS: "http://localhost:3999, https://staging.kuberacommercial.com" } as NodeJS.ProcessEnv;
-    expect(allowedOrigins(env).has("https://kubera-abc123.vercel.app")).toBe(true);
+    const env = { NODE_ENV: "production", VERCEL_URL: "corin-abc123.vercel.app", ALLOWED_ORIGINS: "http://localhost:3999, https://staging.corincommercial.com" } as NodeJS.ProcessEnv;
+    expect(allowedOrigins(env).has("https://corin-abc123.vercel.app")).toBe(true);
     expect(isAllowedOrigin("http://localhost:3999", env)).toBe(true);
-    expect(isAllowedOrigin("https://staging.kuberacommercial.com", env)).toBe(true);
+    expect(isAllowedOrigin("https://staging.corincommercial.com", env)).toBe(true);
     expect(isAllowedOrigin("http://localhost:4000", env)).toBe(false);
   });
 });
@@ -79,8 +79,8 @@ describe("guardPost", () => {
   });
 
   const post = (headers: Record<string, string>, body = JSON.stringify({ a: 1 })) =>
-    new Request("https://kuberacommercial.com/api/x", { method: "POST", headers: { "x-forwarded-for": "198.51.100.7", ...headers }, body });
-  const ok = { origin: "https://kuberacommercial.com", "content-type": "application/json" };
+    new Request("https://corincommercial.com/api/x", { method: "POST", headers: { "x-forwarded-for": "198.51.100.7", ...headers }, body });
+  const ok = { origin: "https://corincommercial.com", "content-type": "application/json" };
   const opts = { name: "t", rate: { limit: 2, windowMs: 60_000 }, turnstile: "qualify" as const };
 
   it("passes a well-formed, verified request and returns the parsed body", async () => {
@@ -121,7 +121,7 @@ describe("guardPost", () => {
         controller.enqueue(new Uint8Array(16_000).fill(32));
       },
     });
-    const req = new Request("https://kuberacommercial.com/api/x", { method: "POST", headers: ok, body: endless, duplex: "half" } as RequestInit);
+    const req = new Request("https://corincommercial.com/api/x", { method: "POST", headers: ok, body: endless, duplex: "half" } as RequestInit);
     const r = await guardPost(req, { ...opts, turnstile: false, maxBytes: 64_000 });
     expect(r.ok ? 200 : r.response.status).toBe(413);
     expect(pulls).toBeLessThan(10);

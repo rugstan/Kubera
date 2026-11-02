@@ -18,25 +18,25 @@ export const TRUST_PAGES = {
   about: {
     path: "/about",
     title: "About us",
-    description: "Kubera Commercial is a licensed California real estate broker that arranges commercial loans. We are not a lender. See our licenses and how we work.",
+    description: "Corin Commercial is a licensed California real estate broker that arranges commercial loans. We are not a lender. See our licenses and how we work.",
     priority: 0.7,
   },
   team: {
     path: "/team",
     title: "Our advisors",
-    description: "The licensed advisors who lead every Kubera Commercial engagement, with their California DRE license numbers.",
+    description: "The licensed advisors who lead every Corin Commercial engagement, with their California DRE license numbers.",
     priority: 0.5,
   },
   contact: {
     path: "/contact",
     title: "Contact",
-    description: "Reach Kubera Commercial by email, phone or scheduled call. See which mailbox to use for borrowers, lenders, partners, vendors and compliance.",
+    description: "Reach Corin Commercial by email, phone or scheduled call. See which mailbox to use for borrowers, lenders, partners, vendors and compliance.",
     priority: 0.7,
   },
   trackRecord: {
     path: "/track-record",
     title: "Track record",
-    description: "How Kubera Commercial reports closed transactions, and where to see representative loan structures in the meantime.",
+    description: "How Corin Commercial reports closed transactions, and where to see representative loan structures in the meantime.",
     priority: 0.5,
   },
   structures: {

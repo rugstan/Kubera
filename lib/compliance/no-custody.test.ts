@@ -38,9 +38,9 @@ describe("no-custody guard: detection", () => {
     expect(scanTs("route.ts", `const schema = z.object({ ${id}: z.number() });`)).toHaveLength(1);
   });
 
-  it("ignores comments and string literals (copy may say Kubera never disburses funds)", () => {
-    expect(scanSql("x.sql", "-- Kubera never disburses funds\ncomment on table public.t is 'no escrow_balance here';\n/* draw_amount */")).toEqual([]);
-    expect(scanTs("x.ts", `// no draw_amount\nconst copy = "Kubera never disburses funds";\nconst t = \`trust_account\`;\n/* escrowBalance */`)).toEqual([]);
+  it("ignores comments and string literals (copy may say Corin never disburses funds)", () => {
+    expect(scanSql("x.sql", "-- Corin never disburses funds\ncomment on table public.t is 'no escrow_balance here';\n/* draw_amount */")).toEqual([]);
+    expect(scanTs("x.ts", `// no draw_amount\nconst copy = "Corin never disburses funds";\nconst t = \`trust_account\`;\n/* escrowBalance */`)).toEqual([]);
   });
 
   it("does not flag ordinary fields", () => {

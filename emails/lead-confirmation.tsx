@@ -15,7 +15,7 @@ export const leadConfirmationSubject = "We received your financing request";
 export default function LeadConfirmation({ firstName, reference, bookingUrl, contactEmail }: LeadConfirmationProps) {
   return (
     <EmailLayout
-      preview="Your financing request is with a Kubera advisor."
+      preview="Your financing request is with a Corin advisor."
       footerNote="You are receiving this because you submitted a financing request on our website. Reply to this email if you would like us to stop emailing you about it."
     >
       <Text style={bodyText}>Hi {firstName},</Text>
@@ -47,4 +47,4 @@ export default function LeadConfirmation({ firstName, reference, bookingUrl, con
   );
 }
 
-LeadConfirmation.PreviewProps = { firstName: "Pat", reference: "3F9A12BC", bookingUrl: null, contactEmail: "deals@kuberacommercial.com" } satisfies LeadConfirmationProps;
+LeadConfirmation.PreviewProps = { firstName: "Pat", reference: "3F9A12BC", bookingUrl: null, contactEmail: "deals@corincommercial.com" } satisfies LeadConfirmationProps;

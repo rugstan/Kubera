@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
 const staffForMutation = vi.fn();
 vi.mock("@/lib/auth/dal", () => ({ staffForMutation: () => staffForMutation() }));
 
-const ctx = (email = "Ana@Kubera.test") => ({ ok: true as const, ctx: { principal: { userId: "u1", email, displayName: "Ana Ruiz", staffRoles: ["analyst"] }, accessToken: "t", services: { mode: "fake" } } });
+const ctx = (email = "Ana@Corin.test") => ({ ok: true as const, ctx: { principal: { userId: "u1", email, displayName: "Ana Ruiz", staffRoles: ["analyst"] }, accessToken: "t", services: { mode: "fake" } } });
 
 let actions: typeof import("./actions");
 let intelRuntime: typeof import("@/lib/agents/intel/runtime").intelRuntime;
@@ -107,7 +107,7 @@ describe("outreach", () => {
     expect(ok.searchParams.get("error")).toBeNull();
     expect(ok.searchParams.get("notice")).toMatch(/approvals queue/);
     const [draft] = await rt.prospects.listOutreach(prospect.id);
-    expect(draft).toMatchObject({ status: "pending_approval", channel: "email", draftedBy: "staff:ana@kubera.test" });
+    expect(draft).toMatchObject({ status: "pending_approval", channel: "email", draftedBy: "staff:ana@corin.test" });
 
     // Repeating the request does not create a second approval.
     const again = await call(() => actions.draftOutreachAction(form({ prospectId: prospect.id, channel: "email" })));
@@ -163,12 +163,12 @@ describe("market intel", () => {
     expect(gen.searchParams.get("notice")).toMatch(/Draft ready for review \(rules digest/);
     const rt = (await intelRuntime())!;
     const [draft] = await rt.intel.listDrafts({ status: "pending_review" });
-    expect(draft).toMatchObject({ generatedBy: "rules", createdBy: "staff:ana@kubera.test" });
+    expect(draft).toMatchObject({ generatedBy: "rules", createdBy: "staff:ana@corin.test" });
     expect(draft!.signals.length).toBeGreaterThan(0);
 
     const edited = await call(() => actions.editIntelAction(form({ id: draft!.id, headline: "Edited headline", summary: "Edited summary", "bullet-0-0": "Edited bullet" })));
     expect(edited.searchParams.get("notice")).toBe("Edits saved.");
-    expect((await rt.intel.getDraft(draft!.id))!).toMatchObject({ headline: "Edited headline", editedBy: "staff:ana@kubera.test" });
+    expect((await rt.intel.getDraft(draft!.id))!).toMatchObject({ headline: "Edited headline", editedBy: "staff:ana@corin.test" });
 
     expect((await call(() => actions.reviewIntelAction(form({ id: draft!.id, decision: "rejected" })))).searchParams.get("error")).toMatch(/why/);
     const approved = await call(() => actions.reviewIntelAction(form({ id: draft!.id, decision: "approved" })));

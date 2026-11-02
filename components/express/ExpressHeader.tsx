@@ -3,13 +3,13 @@ import { Logo } from "@/components/site/Logo";
 
 /**
  * The express page's masthead. The logo is a link home: on kubera.loans
- * that is the qualifier itself, on kuberacommercial.com the full site
+ * that is the qualifier itself, on corincommercial.com the full site
  * (proxy.ts decides which page `/` serves on each host).
  */
 export function ExpressHeader() {
   return (
     <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-6">
-      <Link href="/" aria-label="Kubera Commercial home" className="-m-2 inline-flex min-h-11 items-center rounded-lg p-2">
+      <Link href="/" aria-label="Corin Commercial home" className="-m-2 inline-flex min-h-11 items-center rounded-lg p-2">
         <Logo />
       </Link>
       <span className="flex items-center gap-1.5 text-[13px] text-titanium">

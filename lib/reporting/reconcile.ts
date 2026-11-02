@@ -20,7 +20,7 @@ export function reconcileFees(report: FeeReport, input: { fees: readonly ReportF
   const { fees, invoices, deals, window } = input;
   const checks: ReconCheck[] = [];
   const live = fees.filter((f) => f.status !== "void");
-  const income = (f: ReportFee) => f.payee === "kubera";
+  const income = (f: ReportFee) => f.payee === "corin";
 
   // Booked in the window, straight from the rows.
   const bookedRows = live.filter((f) => ["earned", "invoiced", "settled"].includes(f.status) && inWindow(f.earnedOn ?? laDate(f.createdAt), window));

@@ -104,7 +104,7 @@ export function sizeHud223a7(i: Hud223a7Inputs, rates: Benchmarks): SizerQuote {
       { label: "HUD application fee", amount: loan * HUD_223A7.applicationFeePct },
       { label: "Legal & title", amount: HUD_223A7.legalAndTitle },
       { label: "Inspection & reports", amount: HUD_223A7.thirdPartyReports },
-      { label: "Kubera advisory fee (est.)", amount: loan * BROKER_FEE.hud223a7 },
+      { label: "Corin advisory fee (est.)", amount: loan * BROKER_FEE.hud223a7 },
     ],
     noi: i.noi,
     value: i.value ?? 0,

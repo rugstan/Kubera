@@ -15,7 +15,7 @@ import { handleResendEvent, signSvix, svixHeaders, verifySvixSignature } from ".
 vi.mock("server-only", () => ({}));
 
 const SECRET = "test-newsletter-secret-0123456789";
-const BASE = "https://kuberacommercial.com";
+const BASE = "https://corincommercial.com";
 
 function setup(overrides: Partial<ConstructorParameters<typeof NewsletterService>[0]> = {}) {
   const clock = { now: new Date("2026-11-05T12:00:00Z") };
@@ -32,7 +32,7 @@ function setup(overrides: Partial<ConstructorParameters<typeof NewsletterService
     gate,
     tokenSecret: SECRET,
     baseUrl: BASE,
-    contactEmail: "deals@kuberacommercial.com",
+    contactEmail: "deals@corincommercial.com",
     now: () => clock.now,
     ...overrides,
   });
@@ -50,7 +50,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("consent wording", () => {
   it("pins the hash of every published version", () => {
     const hashes = Object.fromEntries(Object.values(NEWSLETTER_CONSENT_TEXTS).map((t) => [t.id, createHash("sha256").update(t.text, "utf8").digest("hex")]));
-    expect(hashes).toEqual({ "newsletter-signup-2026-11-05": "42bb791502cfb693ef7238df08775511701ffee5b24258defb0c8677952da108" });
+    expect(hashes).toEqual({ "newsletter-signup-2026-11-05": "8daa68ded51d5dc4111e35c0710c44e71f219bf83220c0ae478ca45792b9b6b0" });
   });
 
   it("covers email only, for the newsletter form, and resolves unknown versions to the current one", () => {
@@ -346,7 +346,7 @@ describe("unsubscribe", () => {
 
 describe("confirmation email", () => {
   it("renders the link, the licence line and no forbidden claims", async () => {
-    const { subject, html, text } = await renderNewsletterConfirmation({ confirmUrl: `${BASE}/newsletter/confirm?token=abc`, contactEmail: "deals@kuberacommercial.com" });
+    const { subject, html, text } = await renderNewsletterConfirmation({ confirmUrl: `${BASE}/newsletter/confirm?token=abc`, contactEmail: "deals@corincommercial.com" });
     expect(subject).toMatch(/confirm/i);
     expect(html).toContain("/newsletter/confirm?token=abc");
     expect(text).toContain("/newsletter/confirm?token=abc");

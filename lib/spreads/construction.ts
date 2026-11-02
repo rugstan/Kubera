@@ -1,6 +1,6 @@
 // Construction / PIP budget spread: hard, soft, contingency, developer fee and
 // financing costs, contingency adequacy, and loan-to-cost. Pre-closing sizing
-// only: Kubera has no role in construction draws.
+// only: Corin has no role in construction draws.
 
 import { CONSTRUCTION } from "@/lib/sizing/programs/assumptions";
 

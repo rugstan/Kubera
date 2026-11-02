@@ -9,7 +9,7 @@
 --                    closing@: classification, deal routing, attachments (stored
 --                    in quarantine), review queue.
 --
--- Nothing here models funds: Kubera brokers loans and never holds or moves money.
+-- Nothing here models funds: Corin brokers loans and never holds or moves money.
 -- RLS is enabled with no policies: only the service role reads or writes.
 
 -- Agent runs ---------------------------------------------------------------------------------

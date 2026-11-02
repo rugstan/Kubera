@@ -35,8 +35,8 @@ export const SRC = {
   hudMfML: "HUD Mortgagee Letter 2025-03 (Jan 2025)",
   hudMfMip: "Federal Register 2025-18379 (Sept 23, 2025)",
   sba: "SBA SOP 50 10 (confirm the revision in effect at application)",
-  sbaStack: "Kubera modeling of the 2026 combined 7(a) + 504 structure; confirm against SOP 50 10",
+  sbaStack: "Corin modeling of the 2026 combined 7(a) + 504 structure; confirm against SOP 50 10",
   // Public labels: they render in every facts table's source column.
-  kubera: "Kubera sizing estimate",
-  market: "Kubera estimate, varies by lender",
+  corin: "Corin sizing estimate",
+  market: "Corin estimate, varies by lender",
 } as const;

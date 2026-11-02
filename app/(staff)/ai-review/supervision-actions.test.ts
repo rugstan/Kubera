@@ -16,7 +16,7 @@ const { canViewReports } = await import("../reports/_lib/access");
 
 const ctx = (roles: string[], mode: "fake" | "supabase" = "fake") => ({
   ok: true as const,
-  ctx: { principal: { userId: "u1", email: "Ana@Kubera.test", displayName: "Ana Ruiz", staffRoles: roles }, accessToken: "t", services: { mode } },
+  ctx: { principal: { userId: "u1", email: "Ana@Corin.test", displayName: "Ana Ruiz", staffRoles: roles }, accessToken: "t", services: { mode } },
 });
 
 const form = (fields: Record<string, string>) => {
@@ -46,7 +46,7 @@ describe("AI review actions", () => {
     expect(missing).toMatchObject({ ok: false, message: expect.stringMatching(/reason/) });
 
     expect(await flagAction({}, form({ id: ID, flagged: "true", reason: "Quoted a rate as final" }))).toEqual({ ok: true, message: "Flagged for review." });
-    expect(await demoReviewStore().get(ID)).toMatchObject({ flagged: true, flagReason: "Quoted a rate as final", flaggedBy: "staff:ana@kubera.test" });
+    expect(await demoReviewStore().get(ID)).toMatchObject({ flagged: true, flagReason: "Quoted a rate as final", flaggedBy: "staff:ana@corin.test" });
 
     expect(await flagAction({}, form({ id: ID, flagged: "false" }))).toEqual({ ok: true, message: "Flag removed." });
     expect(await demoReviewStore().get(ID)).toMatchObject({ flagged: false, flagReason: null });
@@ -55,7 +55,7 @@ describe("AI review actions", () => {
   it("sets the review status for the signed-in reviewer", async () => {
     staffForMutation.mockResolvedValue(ctx(["broker"]));
     expect(await reviewStatusAction({}, form({ id: ID, status: "reviewed" }))).toEqual({ ok: true, message: "Marked reviewed." });
-    expect(await demoReviewStore().get(ID)).toMatchObject({ reviewStatus: "reviewed", reviewedBy: "staff:ana@kubera.test" });
+    expect(await demoReviewStore().get(ID)).toMatchObject({ reviewStatus: "reviewed", reviewedBy: "staff:ana@corin.test" });
     expect(await reviewStatusAction({}, form({ id: ID, status: "done" }))).toMatchObject({ ok: false });
     expect(await reviewStatusAction({}, form({ id: "11111111-1111-4111-8111-999999999999", status: "reviewed" }))).toMatchObject({ ok: false, message: expect.stringMatching(/no longer exists/) });
   });

@@ -23,11 +23,11 @@ export default function TeamPage() {
     <PageShell
       eyebrow="Our advisors"
       title="Licensed advisors lead every engagement."
-      intro={<p>Every loan Kubera arranges is led by a California-licensed real estate professional. Verify any license with the Department of Real Estate.</p>}
+      intro={<p>Every loan Corin arranges is led by a California-licensed real estate professional. Verify any license with the Department of Real Estate.</p>}
       breadcrumb={[{ href: meta.path, label: "Advisors" }]}
     >
       <JsonLd
-        data={teamPageSchemas({ path: meta.path, name: "Kubera Commercial advisors", description: meta.description }, cards.filter((c) => !c.placeholder))}
+        data={teamPageSchemas({ path: meta.path, name: "Corin Commercial advisors", description: meta.description }, cards.filter((c) => !c.placeholder))}
       />
 
       {!production && hasPlaceholders && (

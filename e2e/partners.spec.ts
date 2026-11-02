@@ -18,7 +18,7 @@ test.describe("partner portal", () => {
     await expect(page.getByRole("tab", { name: /vendor/i })).toHaveAttribute("aria-selected", "true");
     await fillVendor(page);
     await page.getByLabel(/^phone/i).fill("415-555-0132");
-    await page.getByRole("checkbox", { name: /i agree that kubera commercial may contact me/i }).check();
+    await page.getByRole("checkbox", { name: /i agree that corin commercial may contact me/i }).check();
     await page.getByRole("button", { name: /submit registration/i }).click();
 
     await expect(page.getByText(/you.re in the queue/i)).toBeVisible();

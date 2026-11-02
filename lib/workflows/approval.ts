@@ -4,7 +4,7 @@
 //
 //   1. ask the broker approval gate (lib/compliance/approval-gate.ts; the real
 //      queue is lib/approvals). Pre-approved templates come back approved at once.
-//   2. while pending: wait for a `kubera/approval.decided` event for this
+//   2. while pending: wait for a `corin/approval.decided` event for this
 //      idempotency key, polling the gate between waits so a missed event
 //      cannot strand the run. The gate is the source of truth; the event is
 //      only a wake-up call and is never trusted on its own.

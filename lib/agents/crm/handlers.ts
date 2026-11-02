@@ -1,4 +1,4 @@
-// Entry points the platform calls: a routed email (kubera/mail.routed), a
+// Entry points the platform calls: a routed email (corin/mail.routed), a
 // logged call, the daily duplicate scan and the stage reconcile sweep. Each
 // builds CRM changes and hands them to the CrmAgentWriter, which applies the
 // autonomy policy, the broker approval gate and the event log.

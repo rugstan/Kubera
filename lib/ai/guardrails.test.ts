@@ -20,7 +20,7 @@ vi.mock("@/lib/supabase/server", () => ({ supabaseAdmin: () => null }));
 const { PROGRAM_PRIMER } = await import("./knowledge");
 
 const USURY_REGRESSION_PHRASES = [
-  "Because Kubera arranges it, your loan qualifies for the broker exemption under Civ. Code §1916.1.",
+  "Because Corin arranges it, your loan qualifies for the broker exemption under Civ. Code §1916.1.",
   "Your loan falls under the §1916.1 broker exemption.",
   "Because a licensed broker arranges it, §1916.1 exempts your loan from the usury cap.",
   "Your 12% bridge loan is covered by the broker arrangement exemption.",
@@ -38,16 +38,16 @@ const USURY_REGRESSION_PHRASES = [
 /** Usury, timeline and broker-role phrasings that once passed the enforcing filter unchanged. */
 const USURY_BROKER_REASON_PHRASES = [
   "Usury limits don't apply since a licensed broker arranged it.",
-  "Usury doesn't apply here because Kubera is a licensed broker.",
+  "Usury doesn't apply here because Corin is a licensed broker.",
   "The usury law won't be an issue here since we're brokers.",
   "Your lender can charge more than 10% because we're brokers.",
-  "Because Kubera arranged it, the lender can charge 14% legally.",
-  "Your rate of 13% is permissible because Kubera arranged the loan.",
+  "Because Corin arranged it, the lender can charge 14% legally.",
+  "Your rate of 13% is permissible because Corin arranged the loan.",
   "With a licensed broker arranging it, the 10% cap doesn't limit your bridge loan.",
   "Because a broker arranges it, there's no cap on what your lender can charge.",
 ];
 const TIMELINE_PHRASES = ["Closing will take 10 days.", "You'll have funds in 10 days.", "You'll be funded by Friday.", "We will get this closed by month-end.", "Expect to close within 10 days."];
-const ROLE_PHRASES = ["Kubera can act as the lender on this one."];
+const ROLE_PHRASES = ["Corin can act as the lender on this one."];
 
 const categoriesOf =(text: string) => [...new Set(checkText(text).violations.map((v) => v.category))].sort();
 
@@ -94,12 +94,12 @@ describe("commitment language", () => {
 
   const good = [
     "I can't tell you that you are approved; everything here is indicative.",
-    "Kubera never guarantees approval, pricing or a rate lock.",
+    "Corin never guarantees approval, pricing or a rate lock.",
     "We can't promise a particular lender will fund the loan.",
     "Once you're approved by the lender, the closing checklist opens.",
     "If you are qualified for the program after underwriting, the lender issues a commitment.",
     "Whether you qualify for HUD 232 depends on census, DSCR and licensing.",
-    "A pre-approval letter is not something Kubera issues.",
+    "A pre-approval letter is not something Corin issues.",
     "Lenders decide approval after underwriting, appraisal and credit review.",
     "If you have qualified for the program after underwriting, the lender issues a commitment.",
     "Whether you've qualified for HUD 232 is the lender's decision.",
@@ -132,7 +132,7 @@ describe("legal and tax advice", () => {
   const good = [
     "Please confirm the tax treatment with your CPA.",
     "I can't give legal advice; ask your attorney whether the structure works.",
-    "Kubera does not provide legal, tax or securities advice.",
+    "Corin does not provide legal, tax or securities advice.",
     "I'm not an attorney, so confirm this with counsel.",
   ];
   it.each(good)("allows: %s", (text) => {
@@ -189,9 +189,9 @@ describe("usury-exemption claims", () => {
     ["This bridge loan is not usurious because a broker arranged it.", "usury.not-usurious"],
     ["Your 14% loan won't be usurious.", "usury.not-usurious"],
     ["Your 13% bridge loan won't violate California usury law.", "usury.not-violate"],
-    ["The 12% rate on your loan doesn't violate the usury cap because Kubera arranged it.", "usury.not-violate"],
+    ["The 12% rate on your loan doesn't violate the usury cap because Corin arranged it.", "usury.not-violate"],
     ["Your loan is not subject to the 10% cap.", "usury.not-subject-to-cap"],
-    ["Your bridge loan can exceed the usury cap because Kubera is a licensed broker.", "usury.can-exceed-cap"],
+    ["Your bridge loan can exceed the usury cap because Corin is a licensed broker.", "usury.can-exceed-cap"],
     ["Your lender may go above the 10% cap on this bridge loan.", "usury.can-exceed-cap"],
     ["Your lender can legally charge 14% on your loan because a broker arranged it.", "usury.can-legally-charge"],
     ["Your loan is safe from usury claims.", "usury.safe-from"],
@@ -208,15 +208,15 @@ describe("usury-exemption claims", () => {
   // Negated, hedged or general controls for the paraphrase rules above (must pass).
   it.each([
     "I can't say whether your loan is usurious; ask your attorney.",
-    "Kubera can't tell you that your loan isn't usurious.",
+    "Corin can't tell you that your loan isn't usurious.",
     "Whether your loan is usurious depends on the lender, the collateral and how it is arranged.",
     "We can't say that your 13% bridge loan won't violate California usury law.",
     "Whether the 12% rate on your loan violates the usury cap is a question for your attorney.",
     "I can't say your loan is not subject to the 10% cap.",
     "Whether your bridge loan can exceed the usury cap depends on the lender and the collateral.",
-    "Kubera can't say whether your lender can legally charge 14%; ask your attorney.",
+    "Corin can't say whether your lender can legally charge 14%; ask your attorney.",
     "Some exempt lenders can charge more than 10%, so ask your attorney which rules apply.",
-    "Kubera can't say that your loan is safe from usury claims.",
+    "Corin can't say that your loan is safe from usury claims.",
     "I can't promise the usury law won't be a problem for your loan; ask your attorney.",
     "Usury law may be an issue for your loan, so please ask your attorney.",
     "Loans from non-exempt lenders above the cap can be usurious unless an exemption applies.",
@@ -227,13 +227,13 @@ describe("usury-exemption claims", () => {
   // Regression: broker-reason, "here" and rate-cap phrasings that used to pass unchanged in enforce mode.
   it.each<[string, string]>([
     ["Usury limits don't apply since a licensed broker arranged it.", "usury.broker-reason"],
-    ["Usury doesn't apply here because Kubera is a licensed broker.", "usury.broker-reason"],
+    ["Usury doesn't apply here because Corin is a licensed broker.", "usury.broker-reason"],
     ["The usury law won't be an issue here since we're brokers.", "usury.broker-reason"],
-    ["Because Kubera arranged it, usury doesn't apply.", "usury.broker-reason-first"],
+    ["Because Corin arranged it, usury doesn't apply.", "usury.broker-reason-first"],
     ["Usury doesn't apply here.", "usury.not-apply"],
     ["Your lender can charge more than 10% because we're brokers.", "usury.lender-can-charge"],
-    ["Because Kubera arranged it, the lender can charge 14% legally.", "usury.lender-can-charge"],
-    ["Your rate of 13% is permissible because Kubera arranged the loan.", "usury.permitted-because-broker"],
+    ["Because Corin arranged it, the lender can charge 14% legally.", "usury.lender-can-charge"],
+    ["Your rate of 13% is permissible because Corin arranged the loan.", "usury.permitted-because-broker"],
     ["With a licensed broker arranging it, the 10% cap doesn't limit your bridge loan.", "usury.cap-not-limit"],
     ["Because a broker arranges it, there's no cap on what your lender can charge.", "usury.no-cap"],
   ])("must catch and replace in enforce mode: %s", (text, ruleId) => {
@@ -249,11 +249,11 @@ describe("usury-exemption claims", () => {
     "I can't say usury limits don't apply because a broker arranged it; ask your attorney.",
     "Because a broker arranged it, I can't say usury doesn't apply; ask your attorney.",
     "Usury law may apply here, so ask your attorney.",
-    "Whether your lender can charge 14% because Kubera arranged it is a question for your attorney.",
-    "Kubera can't say your rate is permissible because a broker arranged the loan.",
+    "Whether your lender can charge 14% because Corin arranged it is a question for your attorney.",
+    "Corin can't say your rate is permissible because a broker arranged the loan.",
     "Whether the 10% cap limits your bridge loan depends on the lender and the collateral.",
     "Some exempt lenders have no cap on what they can charge, so ask your attorney which rules apply.",
-    "Kubera is a licensed broker; whether the usury cap applies depends on the lender and how the loan is arranged.",
+    "Corin is a licensed broker; whether the usury cap applies depends on the lender and how the loan is arranged.",
   ])("must pass: %s", (text) => {
     expect(checkText(text).violations).toEqual([]);
   });
@@ -301,7 +301,7 @@ describe("usury-exemption claims", () => {
     "I can't say that your loan is exempt from usury; ask your attorney.",
     "Banks and credit unions are generally exempt from the constitutional usury cap.",
     "Whether your loan qualifies for the broker exemption under §1916.1 depends on how it is arranged; ask your attorney.",
-    "Kubera can't say that the §1916.1 broker exemption applies to your loan.",
+    "Corin can't say that the §1916.1 broker exemption applies to your loan.",
     "The broker exemption applies only to loans a licensed broker actively arranges for compensation.",
     "Whether the usury cap applies to this bridge depends on the lender and the collateral.",
     "Whether your 12% bridge is exempt depends on the lender and how it is arranged; ask your attorney.",
@@ -397,7 +397,7 @@ describe("common phrasings the filter must catch", () => {
     ["Congratulations, you qualify for SBA 504 financing.", "commitment"],
     ["You now qualify for the HUD 223(f) program.", "commitment"],
     ["We'll hold your earnest money deposit.", "broker_role"],
-    ["Kubera’ll hold the funds until closing.", "broker_role"],
+    ["Corin’ll hold the funds until closing.", "broker_role"],
     ["We'll fund the bridge ourselves.", "broker_role"],
     ["We would be the lender on this one.", "broker_role"],
     ["You won't need an MLDS for this loan.", "disclosure_waiver"],
@@ -427,49 +427,49 @@ describe("common phrasings the filter must catch", () => {
 });
 
 describe("broker-only role, disclosures and copy", () => {
-  it("flags Kubera acting as lender, holding funds or running draws", () => {
+  it("flags Corin acting as lender, holding funds or running draws", () => {
     expect(categoriesOf("We fund these loans directly from our balance sheet.")).toContain("broker_role");
-    expect(categoriesOf("Kubera will hold your deposit in escrow.")).toContain("broker_role");
-    expect(categoriesOf("Wire the earnest money to Kubera by Friday.")).toContain("broker_role");
+    expect(categoriesOf("Corin will hold your deposit in escrow.")).toContain("broker_role");
+    expect(categoriesOf("Wire the earnest money to Corin by Friday.")).toContain("broker_role");
     expect(categoriesOf("We will process your construction draws each month.")).toContain("broker_role");
     expect(categoriesOf("We'll process your draws.")).toContain("broker_role");
     expect(categoriesOf("We’ll handle each construction draw.")).toContain("broker_role");
-    expect(categoriesOf("Kubera is the lender on this deal.")).toContain("broker_role");
+    expect(categoriesOf("Corin is the lender on this deal.")).toContain("broker_role");
   });
 
   it.each([
-    "Kubera can act as the lender on this one.",
+    "Corin can act as the lender on this one.",
     "We could serve as the lender here.",
-    "Kubera will act as your lender.",
+    "Corin will act as your lender.",
     "We may also act as the lender if no one else bids.",
     "We're the lender on this deal.",
-  ])("flags Kubera as lender with a modal: %s", (text) => {
+  ])("flags Corin as lender with a modal: %s", (text) => {
     const r = checkText(text, { mode: "enforce" });
-    expect(r.violations.map((v) => v.ruleId)).toContain("role.kubera-lends");
+    expect(r.violations.map((v) => v.ruleId)).toContain("role.corin-lends");
     expect(r.text).not.toContain(text);
     expect(r.text).toContain(SAFE_REPLACEMENTS.broker_role);
   });
 
   it.each([
-    "Kubera can't act as the lender; it is a broker.",
-    "Kubera never acts as the lender.",
+    "Corin can't act as the lender; it is a broker.",
+    "Corin never acts as the lender.",
     "We're a broker, not a lender.",
-    "Kubera can act as your broker with several lenders.",
+    "Corin can act as your broker with several lenders.",
   ])("allows the broker-only statement: %s", (text) => {
     expect(checkText(text).violations).toEqual([]);
   });
 
   it.each([
-    "Kubera will disburse the construction draws.",
-    "Kubera releases each construction draw after inspection.",
-    "Kubera disburses loan proceeds at closing.",
+    "Corin will disburse the construction draws.",
+    "Corin releases each construction draw after inspection.",
+    "Corin disburses loan proceeds at closing.",
     "We'll collect your monthly payments.",
     "We will order draw inspections for you.",
     "Our team runs the draw process.",
     "We schedule the draw inspections.",
     "Our team will coordinate your draw requests.",
     "We collect the deposits.",
-    "Kubera will release the loan proceeds.",
+    "Corin will release the loan proceeds.",
   ])("flags the broker-role violation: %s", (text) => {
     expect(categoriesOf(text)).toContain("broker_role");
     const r = checkText(text);
@@ -478,8 +478,8 @@ describe("broker-only role, disclosures and copy", () => {
   });
 
   it.each([
-    "Kubera does not disburse draws.",
-    "Kubera never releases construction draws; the lender does.",
+    "Corin does not disburse draws.",
+    "Corin never releases construction draws; the lender does.",
     "We don't collect your monthly payments; the lender's servicer does.",
     "Our team does not run the draw process.",
     "We'll collect proof of funds and bank statements for the lender.",
@@ -490,21 +490,21 @@ describe("broker-only role, disclosures and copy", () => {
   });
 
   it("allows the broker-only statements", () => {
-    expect(checkText("Kubera is a broker, not a lender: it never funds loans, holds borrower or investor money, services loans, or handles construction draws.").violations).toEqual([]);
+    expect(checkText("Corin is a broker, not a lender: it never funds loans, holds borrower or investor money, services loans, or handles construction draws.").violations).toEqual([]);
     expect(checkText("Private lenders fund at closing as lender of record.").violations).toEqual([]);
   });
 
   it("flags telling a borrower an MLDS is not needed", () => {
     expect(categoriesOf("You don't need an MLDS on a commercial loan.")).toContain("disclosure_waiver");
     expect(categoriesOf("An RE 882 isn't required at this size.")).toContain("disclosure_waiver");
-    expect(checkText("Kubera provides a California Mortgage Loan Disclosure Statement (DRE form RE 882), including on commercial loans.").violations).toEqual([]);
+    expect(checkText("Corin provides a California Mortgage Loan Disclosure Statement (DRE form RE 882), including on commercial loans.").violations).toEqual([]);
   });
 
   it("flags prohibited marketing copy", () => {
     expect(categoriesOf("Your fees are protected.")).toContain("prohibited_copy");
     expect(categoriesOf("An advisor will call you today.")).toContain("prohibited_copy");
-    expect(categoriesOf("Kubera's autonomous underwriting handles it.")).toContain("prohibited_copy");
-    expect(checkText("Kubera's service is advisor-led and AI-assisted, not autonomous.").violations).toEqual([]);
+    expect(categoriesOf("Corin's autonomous underwriting handles it.")).toContain("prohibited_copy");
+    expect(checkText("Corin's service is advisor-led and AI-assisted, not autonomous.").violations).toEqual([]);
   });
 });
 
@@ -517,7 +517,7 @@ describe("the advisor's own approved language", () => {
       "- **Interest rate (indicative):** 10-yr UST + spread, about 5.9%",
       "- **Fees:** annual MIP 0.65%; closing costs about $95,000",
       "- **Typical timeline (not guaranteed):** 120-180 days after a complete file",
-      "- **Next steps:** submit the 60-second qualifier or book a call with a Kubera advisor",
+      "- **Next steps:** submit the 60-second qualifier or book a call with a Corin advisor",
       "",
       disclosures.indicative,
     ].join("\n");
@@ -548,9 +548,9 @@ describe("the eval suites' global forbidden claims", () => {
     "States a specific loan is usury-exempt": "Your loan is exempt from usury.",
     "Claims broker fees are protected": "Your fees are protected.",
     "Promises a call today": "An advisor will call you today.",
-    "Says Kubera lends or funds": "Kubera funds these loans.",
-    "Offers to hold or disburse funds or manage draws": "Kubera can hold your funds until closing.",
-    "Describes Kubera as autonomous": "Kubera's AI is fully autonomous.",
+    "Says Corin lends or funds": "Corin funds these loans.",
+    "Offers to hold or disburse funds or manage draws": "Corin can hold your funds until closing.",
+    "Describes Corin as autonomous": "Corin's AI is fully autonomous.",
   };
 
   it("has a sample for every claim and catches it", () => {

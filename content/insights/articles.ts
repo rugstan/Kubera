@@ -1,7 +1,7 @@
 // Insight articles. Every figure comes from lib/sizing/assumptions.ts or the
 // calculators, so an article cannot disagree with the sizer. Copy rules
 // (Global rule 4): advisor-led positioning, no approval or outcome promises,
-// no guaranteed timelines, Kubera is a broker and not a lender.
+// no guaranteed timelines, Corin is a broker and not a lender.
 
 import { calcDscr } from "@/lib/calculators/dscr";
 import { calcHotelDebtYield } from "@/lib/calculators/hotel-debt-yield";
@@ -71,7 +71,7 @@ export const INSIGHTS: readonly Insight[] = [
         paragraphs: [
           `A Federal Register notice published on September 23, 2025 set the annual mortgage insurance premium (MIP) for FHA multifamily programs at a flat ${pct(HUD.multifamily.mip.annual, 2)} for applications submitted or amended on or after ${HUD.multifamily.mip.effectiveForApplicationsOnOrAfter}. It removed the separate green, affordable and broadly affordable categories, so a green certification no longer lowers the premium.`,
           `On a $10,000,000 loan at 6.00% over ${HUD.multifamily.s223f.termYears} years, the first-year premium is about ${usd(roundTo(mipExample.yearOneMip, 100))}, which adds roughly ${mipExample.mipAsRatePoints.toFixed(2)} percentage points to the note rate in year one. The premium is charged on the average balance, so it falls as the loan amortizes. The HUD MIP calculator shows the full schedule.`,
-          `The upfront premium is configurable in Kubera's assumptions (default ${pct(HUD.multifamily.mip.upfront, 2)}) because it rests on a secondary source; a HUD lender confirms the figure for a specific application.`,
+          `The upfront premium is configurable in Corin's assumptions (default ${pct(HUD.multifamily.mip.upfront, 2)}) because it rests on a secondary source; a HUD lender confirms the figure for a specific application.`,
         ],
       },
       {
@@ -84,7 +84,7 @@ export const INSIGHTS: readonly Insight[] = [
       {
         heading: "What did not change",
         paragraphs: [
-          `Section 232 senior housing and healthcare loans were not changed by Mortgagee Letter 2025-03. Kubera's assumptions keep ${pct(HUD.section232.refi.maxLtv)} loan-to-value and ${x(HUD.section232.refi.minDscr)} coverage for refinances, with annual premiums of ${pct(HUD.section232.refi.annualMip, 2)} on refinances and ${pct(HUD.section232.newConstruction.annualMip, 2)} on new construction. Whether the flat ${pct(HUD.multifamily.mip.annual, 2)} notice reaches Section 232 has not been confirmed, so treat the Section 232 premium as a figure to verify.`,
+          `Section 232 senior housing and healthcare loans were not changed by Mortgagee Letter 2025-03. Corin's assumptions keep ${pct(HUD.section232.refi.maxLtv)} loan-to-value and ${x(HUD.section232.refi.minDscr)} coverage for refinances, with annual premiums of ${pct(HUD.section232.refi.annualMip, 2)} on refinances and ${pct(HUD.section232.newConstruction.annualMip, 2)} on new construction. Whether the flat ${pct(HUD.multifamily.mip.annual, 2)} notice reaches Section 232 has not been confirmed, so treat the Section 232 premium as a figure to verify.`,
           "HUD processing remains a multi-step lender and HUD review. Timelines vary by lender and HUD office and are not guaranteed.",
         ],
       },
@@ -104,7 +104,7 @@ export const INSIGHTS: readonly Insight[] = [
     sources: [
       "HUD Mortgagee Letter 2025-03 (January 2025)",
       "Federal Register 2025-18379 (September 23, 2025), flat annual MIP for FHA multifamily programs",
-      "Kubera underwriting assumptions, reviewed " + PUBLISHED,
+      "Corin underwriting assumptions, reviewed " + PUBLISHED,
     ],
   },
   {
@@ -117,7 +117,7 @@ export const INSIGHTS: readonly Insight[] = [
     updated: PUBLISHED,
     summary: `HUD 232 is the lowest-cost permanent debt for a care facility, but it needs a stabilized operating history. When a facility is newly built, recently acquired or still filling, a bridge loan covers the gap, sized to be repaid by a 232 refinance once the property qualifies.`,
     keyTakeaways: [
-      `HUD 232 refinances in Kubera's assumptions size at up to ${pct(HUD.section232.refi.maxLtv)} loan-to-value and ${x(HUD.section232.refi.minDscr)} coverage over ${HUD.section232.refi.termYears} years.`,
+      `HUD 232 refinances in Corin's assumptions size at up to ${pct(HUD.section232.refi.maxLtv)} loan-to-value and ${x(HUD.section232.refi.minDscr)} coverage over ${HUD.section232.refi.termYears} years.`,
       `HUD generally looks for at least ${HUD.section232.minYearsSinceCompletion} years since completion and ${pct(HUD.section232.stabilizedOccupancy)} stabilized occupancy on a refinance.`,
       `A senior-housing bridge in the sizer allows up to ${pct(BRIDGE.senior.maxLtv)} loan-to-value on a ${BRIDGE.senior.termMonths}-month term, with a ${pct(BRIDGE.senior.minDebtYield)} minimum debt yield.`,
       "The deciding question is whether the bridge exit, a 232 refinance, will clear HUD's tests when the bridge matures.",
@@ -126,7 +126,7 @@ export const INSIGHTS: readonly Insight[] = [
       {
         heading: "Why HUD 232 is hard to reach on day one",
         paragraphs: [
-          `HUD 232 is attractive because it is long-term, fully amortizing and non-recourse apart from standard carve-outs. The cost of that is a demanding file. On a refinance or purchase, Kubera's assumptions assume a facility at least ${HUD.section232.minYearsSinceCompletion} years past completion, operating near ${pct(HUD.section232.stabilizedOccupancy)} occupancy, with enough income to carry a ${x(HUD.section232.refi.minDscr)} coverage ratio. Facilities below roughly ${HUD.section232.practicalMinBeds} beds often find HUD's fixed costs outweigh its rate advantage.`,
+          `HUD 232 is attractive because it is long-term, fully amortizing and non-recourse apart from standard carve-outs. The cost of that is a demanding file. On a refinance or purchase, Corin's assumptions assume a facility at least ${HUD.section232.minYearsSinceCompletion} years past completion, operating near ${pct(HUD.section232.stabilizedOccupancy)} occupancy, with enough income to carry a ${x(HUD.section232.refi.minDscr)} coverage ratio. Facilities below roughly ${HUD.section232.practicalMinBeds} beds often find HUD's fixed costs outweigh its rate advantage.`,
           "A new operator, a licensing change, a lease-up or a deferred-maintenance backlog can each push a facility out of the 232 box for now, even when the long-term plan is a 232 refinance.",
         ],
       },
@@ -151,16 +151,16 @@ export const INSIGHTS: readonly Insight[] = [
         ],
       },
       {
-        heading: "How Kubera approaches the choice",
+        heading: "How Corin approaches the choice",
         paragraphs: [
-          "Kubera is a licensed California real estate broker, not a lender. An advisor reviews the facility, runs both paths in the sizer and shows the numbers side by side, and lenders make their own credit decisions.",
+          "Corin is a licensed California real estate broker, not a lender. An advisor reviews the facility, runs both paths in the sizer and shows the numbers side by side, and lenders make their own credit decisions.",
           disclosures.timeline,
         ],
       },
     ],
     faq: [
-      { question: "Can I get a HUD 232 loan on a newly built facility?", answer: `HUD has a separate Section 232 new construction program, and refinancing a completed facility generally looks for at least ${HUD.section232.minYearsSinceCompletion} years of operating history in Kubera's assumptions. A newly built facility often uses construction financing and then a bridge before it reaches the refinance box.` },
-      { question: "How long does a bridge loan last?", answer: `Kubera's senior-housing bridge assumption is ${BRIDGE.senior.termMonths} months. Terms and extensions vary by lender.` },
+      { question: "Can I get a HUD 232 loan on a newly built facility?", answer: `HUD has a separate Section 232 new construction program, and refinancing a completed facility generally looks for at least ${HUD.section232.minYearsSinceCompletion} years of operating history in Corin's assumptions. A newly built facility often uses construction financing and then a bridge before it reaches the refinance box.` },
+      { question: "How long does a bridge loan last?", answer: `Corin's senior-housing bridge assumption is ${BRIDGE.senior.termMonths} months. Terms and extensions vary by lender.` },
       { question: "Is a bridge loan more expensive than HUD 232?", answer: "Usually, yes on an annual basis: bridge loans are floating-rate and interest-only, and HUD 232 is fixed-rate and fully amortizing. The comparison that matters is total cost over the period you will hold each loan, including closing costs on both." },
     ],
     related: [
@@ -171,7 +171,7 @@ export const INSIGHTS: readonly Insight[] = [
     ],
     sources: [
       "HUD Handbook 4232.1 and prior MIP schedule",
-      "Kubera underwriting assumptions, reviewed " + PUBLISHED,
+      "Corin underwriting assumptions, reviewed " + PUBLISHED,
     ],
   },
   {
@@ -185,29 +185,29 @@ export const INSIGHTS: readonly Insight[] = [
     summary: `For an owner-operator buying a hotel, SBA 504 usually gives lower fixed-rate cost on the real estate portion, and 7(a) is more flexible about what it can finance. A 7(a) plus 504 stack combines them when the project needs more than either program alone.`,
     keyTakeaways: [
       `SBA 504 splits the project into a bank first lien (${pct(SBA.bankFirstPct)}), an SBA-backed debenture and ${pct(SBA.equity.base + SBA.equity.specialPurpose)} equity for an existing hotel.`,
-      `The standard debenture cap in Kubera's assumptions is ${millions(SBA.cdcCap)}; a 7(a) loan is capped at ${millions(SBA.sevenACap)}, and Kubera models combined exposure up to ${millions(SBA.combinedExposureCap)} for the stack.`,
+      `The standard debenture cap in Corin's assumptions is ${millions(SBA.cdcCap)}; a 7(a) loan is capped at ${millions(SBA.sevenACap)}, and Corin models combined exposure up to ${millions(SBA.combinedExposureCap)} for the stack.`,
       "504 is for fixed assets; 7(a) can also finance working capital, a business purchase and goodwill.",
-      `Both programs need personal guaranties and a minimum ${x(SBA.minDscr)} coverage in Kubera's assumptions.`,
+      `Both programs need personal guaranties and a minimum ${x(SBA.minDscr)} coverage in Corin's assumptions.`,
     ],
     sections: [
       {
         heading: "How SBA 504 is built",
         paragraphs: [
           `SBA 504 pairs a bank first lien of about ${pct(SBA.bankFirstPct)} of the project with a second lien from a Certified Development Company, funded by an SBA-backed debenture, for most of the remainder. The borrower contributes equity: ${pct(SBA.equity.base)} as a base, plus ${pct(SBA.equity.specialPurpose)} for special-purpose property such as a hotel, plus ${pct(SBA.equity.newBusiness)} more for a start-up or new construction.`,
-          `The debenture is fixed-rate for the life of the loan with a ${SBA.cdcAmortYears}-year amortization, which is the main source of the program's appeal: a large share of the debt is fixed at a long-term rate. Ongoing SBA and servicing fees (${pct(SBA.annualDebentureFees, 2)} a year in Kubera's assumptions) add to the cost, and Kubera's sizer includes them.`,
+          `The debenture is fixed-rate for the life of the loan with a ${SBA.cdcAmortYears}-year amortization, which is the main source of the program's appeal: a large share of the debt is fixed at a long-term rate. Ongoing SBA and servicing fees (${pct(SBA.annualDebentureFees, 2)} a year in Corin's assumptions) add to the cost, and Corin's sizer includes them.`,
         ],
       },
       {
         heading: "Where 7(a) is different",
         paragraphs: [
-          `A 7(a) loan is a bank loan partly backed by an SBA guaranty, usually floating-rate and priced over Prime. In Kubera's assumptions the guaranty covers ${pct(SBA.sevenAGuaranteedShare)} of the loan, and the program has an upfront guaranty fee and an annual servicing fee. It can finance real estate, but also working capital, equipment, a business purchase and goodwill, which 504 cannot.`,
+          `A 7(a) loan is a bank loan partly backed by an SBA guaranty, usually floating-rate and priced over Prime. In Corin's assumptions the guaranty covers ${pct(SBA.sevenAGuaranteedShare)} of the loan, and the program has an upfront guaranty fee and an annual servicing fee. It can finance real estate, but also working capital, equipment, a business purchase and goodwill, which 504 cannot.`,
           "For a hotel purchase that includes a going-concern value or needs working capital for a ramp-up, 7(a) may be the only program that funds all of it. For a straightforward purchase of the real estate, 504 is often the lower-cost structure because of the fixed debenture.",
         ],
       },
       {
         heading: "The 7(a) plus 504 stack",
         paragraphs: [
-          `When one program alone leaves a gap, a 7(a) loan can sit alongside a 504 structure. Kubera's modeling of the combined structure allows up to ${millions(SBA.combinedExposureCap)} of total SBA exposure, split between the ${millions(SBA.cdcCap)} debenture and a 7(a) loan up to ${millions(SBA.sevenACap)}. That figure rests on the 2026 SOP and is marked for verification; confirm it against the revision in effect when you apply.`,
+          `When one program alone leaves a gap, a 7(a) loan can sit alongside a 504 structure. Corin's modeling of the combined structure allows up to ${millions(SBA.combinedExposureCap)} of total SBA exposure, split between the ${millions(SBA.cdcCap)} debenture and a 7(a) loan up to ${millions(SBA.sevenACap)}. That figure rests on the 2026 SOP and is marked for verification; confirm it against the revision in effect when you apply.`,
           "A stack has more moving parts: two SBA lenders or a bank that is also the 7(a) lender, intercreditor terms and a longer approval path. It is worth it when the project cost genuinely exceeds what 504 alone supports.",
         ],
       },
@@ -236,8 +236,8 @@ export const INSIGHTS: readonly Insight[] = [
     ],
     sources: [
       "SBA SOP 50 10 (confirm the revision in effect at application)",
-      "Kubera modeling of the 2026 combined 7(a) plus 504 structure",
-      "Kubera underwriting assumptions, reviewed " + PUBLISHED,
+      "Corin modeling of the 2026 combined 7(a) plus 504 structure",
+      "Corin underwriting assumptions, reviewed " + PUBLISHED,
     ],
   },
   {
@@ -252,7 +252,7 @@ export const INSIGHTS: readonly Insight[] = [
     keyTakeaways: [
       "The binding constraint is whichever test produces the smallest loan; relaxing any other test does not raise proceeds.",
       "DSCR depends on the rate and amortization, so it tightens when rates rise. Debt yield ignores both.",
-      `Hotel CMBS lenders in Kubera's assumptions require ${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} to ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} debt yield by hotel type, which often binds before coverage.`,
+      `Hotel CMBS lenders in Corin's assumptions require ${pct(CMBS.minDebtYield.PREMIUM_FLAG, 1)} to ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} debt yield by hotel type, which often binds before coverage.`,
       "Run all three tests before deciding how to improve a deal.",
     ],
     sections: [
@@ -272,17 +272,17 @@ export const INSIGHTS: readonly Insight[] = [
       },
       {
         heading: "When each one binds",
-        paragraphs: ["As a rule of thumb, from how Kubera's sizer behaves across programs:"],
+        paragraphs: ["As a rule of thumb, from how Corin's sizer behaves across programs:"],
         bullets: [
           `Coverage binds on long-term fixed-rate programs with a high minimum, such as HUD 232 at ${x(HUD.section232.refi.minDscr)}, especially when rates are high.`,
           `Debt yield binds on conduit and bridge loans, where lenders want a floor on income that does not move with rates. A boutique hotel at ${pct(CMBS.minDebtYield.BOUTIQUE_INDEPENDENT, 1)} is an example.`,
-          `Loan-to-value binds when income is strong relative to value, for example a low cap rate market or a recently renovated property. Agency loans in Kubera's assumptions go to ${pct(AGENCY.maxLtv)}, but real deals often land lower because coverage binds first.`,
+          `Loan-to-value binds when income is strong relative to value, for example a low cap rate market or a recently renovated property. Agency loans in Corin's assumptions go to ${pct(AGENCY.maxLtv)}, but real deals often land lower because coverage binds first.`,
         ],
       },
       {
         heading: "Hotel example",
         paragraphs: [
-          `A 120-key hotel earning $1,800,000 of net operating income looking for a $15,000,000 loan has a debt yield of ${pct(hotelExample.debtYield, 1)}. For a boutique or independent hotel the floor in Kubera's CMBS assumptions is ${pct(hotelExample.minDebtYield, 1)}, so the largest loan on debt yield alone is about ${usd(roundTo(hotelExample.maxLoanAtMinDebtYield, 10_000))}. A premium-flag hotel with the same income clears a lower floor.`,
+          `A 120-key hotel earning $1,800,000 of net operating income looking for a $15,000,000 loan has a debt yield of ${pct(hotelExample.debtYield, 1)}. For a boutique or independent hotel the floor in Corin's CMBS assumptions is ${pct(hotelExample.minDebtYield, 1)}, so the largest loan on debt yield alone is about ${usd(roundTo(hotelExample.maxLoanAtMinDebtYield, 10_000))}. A premium-flag hotel with the same income clears a lower floor.`,
         ],
       },
       {
@@ -303,7 +303,7 @@ export const INSIGHTS: readonly Insight[] = [
       { href: "/glossary#debt-yield", label: "Glossary: debt yield" },
       { href: "/glossary#dscr", label: "Glossary: DSCR" },
     ],
-    sources: ["Kubera underwriting assumptions, reviewed " + PUBLISHED, "Kubera loan sizer (lib/sizing)"],
+    sources: ["Corin underwriting assumptions, reviewed " + PUBLISHED, "Corin loan sizer (lib/sizing)"],
   },
   {
     slug: "california-mortgage-loan-disclosure-statement",
@@ -318,7 +318,7 @@ export const INSIGHTS: readonly Insight[] = [
     keyTakeaways: [
       "The statement is a state-required disclosure, not a loan approval or a commitment to lend.",
       "It sets out estimated borrower-paid costs, all broker compensation including any paid by the lender, and the loan terms.",
-      "Kubera's process is to hold loan documents until the borrower has signed the statement.",
+      "Corin's process is to hold loan documents until the borrower has signed the statement.",
       "This article is general information, not legal advice.",
     ],
     sections: [
@@ -345,26 +345,26 @@ export const INSIGHTS: readonly Insight[] = [
         heading: "Who signs and what you receive",
         paragraphs: [
           "Each borrower signs the statement, and so does the broker or a licensee acting for the broker. The borrower receives an exact copy. Electronic signature is acceptable with the borrower's consent to sign electronically, and the broker keeps a copy for three years.",
-          "Kubera never accepts, holds or disburses loan funds. The statement describes the costs and compensation of the transaction; it does not mean Kubera is the lender.",
+          "Corin never accepts, holds or disburses loan funds. The statement describes the costs and compensation of the transaction; it does not mean Corin is the lender.",
         ],
       },
       {
-        heading: "How Kubera handles it",
+        heading: "How Corin handles it",
         paragraphs: [
-          "Kubera's process treats the statement as a gate. We do not deliver a loan commitment or loan documents to a borrower before the statement is signed, and a deal does not move to closing without a signed statement on file. Because rules and forms change, an attorney reviews our disclosure process, and this article stays in draft until that review is complete.",
+          "Corin's process treats the statement as a gate. We do not deliver a loan commitment or loan documents to a borrower before the statement is signed, and a deal does not move to closing without a signed statement on file. Because rules and forms change, an attorney reviews our disclosure process, and this article stays in draft until that review is complete.",
           "If you are comparing brokers or lenders, ask each one when you will receive the statement and what compensation it shows.",
         ],
       },
     ],
     faq: [
       { question: "Is the Mortgage Loan Disclosure Statement a loan approval?", answer: "No. It is a disclosure of costs, compensation and loan terms. It is not a commitment to lend." },
-      { question: "When do I receive it?", answer: "After the broker receives a completed written loan application and before you become obligated on the loan. Kubera's disclosure sets the outer limit at three business days after a completed application." },
-      { question: "Does the statement apply to every Kubera loan?", answer: "It applies to loans Kubera arranges that are secured directly or collaterally by real property. Your advisor will confirm whether it applies to your transaction." },
+      { question: "When do I receive it?", answer: "After the broker receives a completed written loan application and before you become obligated on the loan. Corin's disclosure sets the outer limit at three business days after a completed application." },
+      { question: "Does the statement apply to every Corin loan?", answer: "It applies to loans Corin arranges that are secured directly or collaterally by real property. Your advisor will confirm whether it applies to your transaction." },
     ],
     related: [
       { href: "/licensing", label: "Licensing and disclosures" },
       { href: "/glossary#mlds", label: "Glossary: Mortgage Loan Disclosure Statement" },
-      { href: "/about", label: "About Kubera Commercial" },
+      { href: "/about", label: "About Corin Commercial" },
     ],
     sources: ["California Business and Professions Code sections 10240 and 10241", "California Department of Real Estate form RE 882"],
   },

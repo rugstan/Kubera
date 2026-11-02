@@ -200,7 +200,7 @@ export function makeVoiceHarness(opts: { now?: Date; gate?: ApprovalGate; preApp
     gate: h.gate,
     preApproved: new Set(opts.preApproved ?? []),
     audit: h.audit,
-    webhookUrl: "https://kuberacommercial.com/api/webhooks/telnyx-voice",
+    webhookUrl: "https://corincommercial.com/api/webhooks/telnyx-voice",
     waitForMachineDetection: opts.waitForMachineDetection,
     now: h.now,
   });

@@ -47,10 +47,10 @@ describe("chaser templates", () => {
 
   it("speed-to-lead text includes the booking link when given and a fallback when not", () => {
     const t = templateById("speed_to_lead_sms");
-    const withLink = t.build({ firstName: "Pat", bookingUrl: "https://cal.com/kubera/intro?utm_source=kubera" });
+    const withLink = t.build({ firstName: "Pat", bookingUrl: "https://cal.com/corin/intro?utm_source=corin" });
     const without = t.build({ firstName: null, bookingUrl: null });
     if (withLink.channel !== "sms" || without.channel !== "sms") throw new Error("expected sms");
-    expect(withLink.body).toContain("https://cal.com/kubera/intro");
+    expect(withLink.body).toContain("https://cal.com/corin/intro");
     expect(withLink.body).toContain("Pat");
     expect(without.body).toContain("email deals@");
     expect(without.body).not.toContain("null");
@@ -81,7 +81,7 @@ describe("chaser templates", () => {
     expect(first.subject).not.toMatch(/reminder/i);
   });
 
-  it("vendor nudges say who Kubera is and ask for a status, nothing about fees", () => {
+  it("vendor nudges say who Corin is and ask for a status, nothing about fees", () => {
     const text = render("vendor_nudge_email");
     expect(text).toContain("loan broker");
     expect(text).toMatch(/status update|on track/);

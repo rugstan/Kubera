@@ -1,7 +1,7 @@
 -- Phase 3 integration fixes (slot 50).
 --
 -- 1. Jev re-sizing from the spreads (lib/spreads/workflow.ts, on
---    kubera/document.extracted) is saved as a versioned spreads row of kind
+--    corin/document.extracted) is saved as a versioned spreads row of kind
 --    'jev_resize'.
 -- 2. Personal financial statement extractions are restricted personal
 --    information: their fields (values and evidence) are sealed by the

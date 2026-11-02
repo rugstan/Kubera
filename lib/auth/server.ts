@@ -35,7 +35,7 @@ type FakeBundle = { provider: FakeAuthProvider; directory: MemoryDirectory; audi
 
 // One fake identity store per server process. globalThis keeps it shared
 // across route bundles (pages, actions and route handlers load separately).
-const FAKE_KEY = Symbol.for("kubera.auth.fake");
+const FAKE_KEY = Symbol.for("corin.auth.fake");
 
 export function fakeAuthBundle(): FakeBundle {
   const g = globalThis as unknown as Record<symbol, FakeBundle | undefined>;
@@ -82,7 +82,7 @@ export function authServices(): AuthServices | null {
   return cached;
 }
 
-const KEY_SYMBOL = Symbol.for("kubera.auth.cookie-key");
+const KEY_SYMBOL = Symbol.for("corin.auth.cookie-key");
 
 /**
  * HMAC key for the session cookie: AUTH_COOKIE_SECRET when set, otherwise
@@ -93,7 +93,7 @@ export function sessionSigningKey(env: Record<string, string | undefined> = proc
   const explicit = env.AUTH_COOKIE_SECRET?.trim();
   if (explicit && explicit.length >= 32) return explicit;
   const service = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (service) return createHash("sha256").update(`kubera:session-cookie:${service}`).digest("base64url");
+  if (service) return createHash("sha256").update(`corin:session-cookie:${service}`).digest("base64url");
   const g = globalThis as unknown as Record<symbol, string | undefined>;
   g[KEY_SYMBOL] ??= randomBytes(32).toString("base64url");
   return g[KEY_SYMBOL]!;

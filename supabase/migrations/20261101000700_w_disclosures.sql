@@ -7,7 +7,7 @@
 --                     forbearance / extension / modification (SB 1146)
 -- deal_disclosure_status  current MLDS state per lead/deal for pipeline gates
 -- custody guard       public.custody_column_violations() + DDL event trigger:
---                     Kubera never holds or moves funds and has no draw role.
+--                     Corin never holds or moves funds and has no draw role.
 --
 -- RLS is enabled on every table with no policies: only the service role reads
 -- or writes. Signed MLDS copies are retained at least 3 years (B&P §10148).
@@ -122,7 +122,7 @@ create table public.broker_of_record (
   parent_id uuid references public.broker_of_record (id) on delete restrict,
   transaction_date date,
   effective_date date,
-  arranged_by text not null check (arranged_by in ('kubera', 'other_licensed_broker', 'lender_or_servicer_only')),
+  arranged_by text not null check (arranged_by in ('corin', 'other_licensed_broker', 'lender_or_servicer_only')),
   arranging_licensee_name text,
   arranging_licensee_dre text check (arranging_licensee_dre ~ '^\d{8}$'),
   licensee_active_at_transaction boolean,
@@ -150,7 +150,7 @@ create table public.broker_of_record (
   fed_discount_rate_pct numeric(7, 4) not null check (fed_discount_rate_pct >= 0),
   table_funded boolean not null default false,
   true_funding_source text,
-  table_funded_in_kubera_name boolean not null default false,
+  table_funded_in_corin_name boolean not null default false,
   agreement_recites_broker_arrangement boolean,
   lender_notice_sent_at timestamptz,
   officer_approved_by text,
@@ -168,7 +168,7 @@ create table public.broker_of_record (
   retain_until date generated always as ((coalesce(effective_date, transaction_date) + interval '3 years')::date) stored,
   constraint broker_of_record_deal_ref check (lead_id is not null or deal_id is not null or twenty_opportunity_id is not null),
   constraint broker_of_record_loan_shape check (
-    (record_kind = 'loan' and parent_id is null and transaction_date is not null and arranged_by = 'kubera')
+    (record_kind = 'loan' and parent_id is null and transaction_date is not null and arranged_by = 'corin')
     or (record_kind <> 'loan' and parent_id is not null and effective_date is not null)
   ),
   constraint broker_of_record_equity_only check (not (collateral_real_property_lien and collateral_equity_pledge_or_ucc_only))
@@ -240,7 +240,7 @@ declare
   v record;
 begin
   for v in select * from public.custody_column_violations() loop
-    raise exception 'No-custody guard: public.%.% looks like a funds or draw field. Kubera never holds or disburses funds and has no role in construction draws.',
+    raise exception 'No-custody guard: public.%.% looks like a funds or draw field. Corin never holds or disburses funds and has no role in construction draws.',
       v.table_name, v.column_name
       using errcode = 'check_violation';
   end loop;

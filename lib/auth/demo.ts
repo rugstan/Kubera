@@ -13,7 +13,7 @@ export type DemoAccount = { id: string; email: string; roles: Role[]; totp: bool
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     id: "00000000-0000-4000-8000-0000000000b1",
-    email: "broker@kubera.test",
+    email: "broker@corin.test",
     roles: ["broker"],
     totp: true,
     profile: {
@@ -27,21 +27,21 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     id: "00000000-0000-4000-8000-0000000000a1",
-    email: "analyst@kubera.test",
+    email: "analyst@corin.test",
     roles: ["analyst"],
     totp: false,
     profile: { fullName: "Demo Analyst", title: "Analyst" },
   },
   {
     id: "00000000-0000-4000-8000-0000000000ad",
-    email: "admin@kubera.test",
+    email: "admin@corin.test",
     roles: ["admin"],
     totp: true,
     profile: { fullName: "Demo Admin", title: "Operations" },
   },
   {
     id: "00000000-0000-4000-8000-0000000000c1",
-    email: "borrower@kubera.test",
+    email: "borrower@corin.test",
     roles: ["borrower"],
     totp: false,
     profile: { fullName: "Demo Borrower" },

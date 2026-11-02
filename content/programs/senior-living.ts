@@ -29,14 +29,14 @@ export const seniorLivingPrograms: ProgramEntry[] = [
         verify: true,
       }),
       fact("Upfront MIP", pct(s232.refi.upfrontMip, 2), SRC.hud232),
-      fact("Annual CPA audit", `About ${usd(HUD.annualAuditCost)} per year`, SRC.kubera),
+      fact("Annual CPA audit", `About ${usd(HUD.annualAuditCost)} per year`, SRC.corin),
     ],
     sections: [
       {
         heading: "How the program works",
         paragraphs: [
           "A HUD MAP lender originates and underwrites the loan, HUD insures it, and the loan is typically pooled into a Ginnie Mae security. Because HUD insures the lender against default, lenders accept higher leverage and longer terms than conventional lenders. The loan is non-recourse to the borrower except for customary carve-outs, and it is assumable with HUD consent.",
-          "Kubera does not lend or insure. We arrange the loan as a licensed broker: we help size it, choose the right HUD lender, and organize the file so underwriting starts complete.",
+          "Corin does not lend or insure. We arrange the loan as a licensed broker: we help size it, choose the right HUD lender, and organize the file so underwriting starts complete.",
         ],
       },
       {
@@ -97,8 +97,8 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       fact("Minimum DSCR", x(s232.refi.minDscr), SRC.hud232),
       fact("Seasoning", `${s232.minYearsSinceCompletion}+ years since construction completion`, SRC.hud232),
       fact("Stabilized occupancy", `Around ${pct(s232.stabilizedOccupancy)}`, SRC.hud232),
-      fact("Practical minimum size", `About ${s232.practicalMinBeds} beds`, SRC.kubera),
-      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.hud232.lo)}–${pts(SPREADS.hud232.hi)} points`, SRC.kubera, { verify: false }),
+      fact("Practical minimum size", `About ${s232.practicalMinBeds} beds`, SRC.corin),
+      fact("Indicative pricing", `Ten-year Treasury + ${pts(SPREADS.hud232.lo)}–${pts(SPREADS.hud232.hi)} points`, SRC.corin, { verify: false }),
     ],
     sections: [
       {
@@ -116,7 +116,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
         heading: "What can slow a 223(f) file",
         paragraphs: [
           "Most delays trace back to the file, not the program. Licensing gaps, a property and operator structure HUD has not seen before, thin trailing financials, deferred maintenance flagged in the capital needs assessment, and environmental findings are the usual causes.",
-          `Costs include the HUD application fee (${pct(HUD.applicationFeePct, 1)}), the lender financing fee, third-party reports and legal. Kubera models these side by side with SBA and bridge options in the sizer so the all-in comparison is visible before you commit.`,
+          `Costs include the HUD application fee (${pct(HUD.applicationFeePct, 1)}), the lender financing fee, third-party reports and legal. Corin models these side by side with SBA and bridge options in the sizer so the all-in comparison is visible before you commit.`,
         ],
       },
     ],
@@ -148,11 +148,11 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       "A bridge-to-HUD loan is a short-term, floating-rate, interest-only loan from a private lender or debt fund that finances the acquisition or stabilization of a senior living property that does not yet meet HUD's seasoning or occupancy tests, sized so the property can take out into a HUD 232/223(f) loan.",
     loanType: "Short-term bridge loan (brokered)",
     facts: [
-      fact("Max LTV", pct(BRIDGE.senior.maxLtv), SRC.kubera),
-      fact("Minimum debt yield", pct(BRIDGE.senior.minDebtYield), SRC.kubera),
-      fact("Typical term", `${BRIDGE.senior.termMonths} months`, SRC.kubera),
-      fact("Indicative spread", `SOFR + ${pts(BRIDGE.senior.spread)} points`, SRC.kubera),
-      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.kubera),
+      fact("Max LTV", pct(BRIDGE.senior.maxLtv), SRC.corin),
+      fact("Minimum debt yield", pct(BRIDGE.senior.minDebtYield), SRC.corin),
+      fact("Typical term", `${BRIDGE.senior.termMonths} months`, SRC.corin),
+      fact("Indicative spread", `SOFR + ${pts(BRIDGE.senior.spread)} points`, SRC.corin),
+      fact("Lender fee / exit fee", `${pct(BRIDGE.lenderFeePct, 1)} / ${pct(BRIDGE.exitFeePct, 1)}`, SRC.corin),
       fact("Takeout test", `${pct(s232.stabilizedOccupancy)} occupancy, ${s232.minYearsSinceCompletion}+ years since completion, ${x(s232.refi.minDscr)} DSCR`, SRC.hud232),
     ],
     sections: [
@@ -170,7 +170,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       {
         heading: "Risks to price in",
         paragraphs: [
-          "Floating-rate interest, extension fees if lease-up runs long, and the possibility that HUD's tests or timing move before takeout are the main risks. A bridge lender funds as lender of record and underwrites its own credit decision; Kubera does not fund bridge loans or hold any borrower money.",
+          "Floating-rate interest, extension fees if lease-up runs long, and the possibility that HUD's tests or timing move before takeout are the main risks. A bridge lender funds as lender of record and underwrites its own credit decision; Corin does not fund bridge loans or hold any borrower money.",
         ],
       },
     ],
@@ -203,11 +203,11 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     loanType: "Assisted living facility mortgage (brokered)",
     facts: [
       fact("HUD 232/223(f): max LTV / DSCR", `${pct(s232.refi.maxLtv)} / ${x(s232.refi.minDscr)}`, SRC.hud232),
-      fact("HUD fit", `Generally ${usd(HUD.smallLoanThreshold)}+ and ${s232.practicalMinBeds}+ beds`, SRC.kubera),
+      fact("HUD fit", `Generally ${usd(HUD.smallLoanThreshold)}+ and ${s232.practicalMinBeds}+ beds`, SRC.corin),
       fact("SBA 504: bank first lien", pct(SBA.bankFirstPct), SRC.sba),
       fact("SBA 504: equity for special-purpose property", pct(SBA.equity.base + SBA.equity.specialPurpose), SRC.sba),
       fact("SBA 504: CDC debenture cap", usd(SBA.cdcCap), SRC.sba),
-      fact("Bridge: max LTV", pct(BRIDGE.senior.maxLtv), SRC.kubera),
+      fact("Bridge: max LTV", pct(BRIDGE.senior.maxLtv), SRC.corin),
     ],
     sections: [
       {
@@ -260,7 +260,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       fact("SBA 504: bank first lien", pct(SBA.bankFirstPct), SRC.sba),
       fact("SBA 504: equity for special-purpose property", pct(SBA.equity.base + SBA.equity.specialPurpose), SRC.sba),
       fact("SBA 504: CDC debenture cap", usd(SBA.cdcCap), SRC.sba),
-      fact("HUD 232 practical minimum size", `About ${s232.practicalMinBeds} beds`, SRC.kubera),
+      fact("HUD 232 practical minimum size", `About ${s232.practicalMinBeds} beds`, SRC.corin),
       fact("SBA typical close", `${SBA.closeRange} after a complete file`, SRC.sba),
     ],
     sections: [
@@ -311,8 +311,8 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     loanType: "Memory care facility mortgage (brokered)",
     facts: [
       fact("HUD 232/223(f): max LTV / DSCR", `${pct(s232.refi.maxLtv)} / ${x(s232.refi.minDscr)}`, SRC.hud232),
-      fact("Bridge: max LTV", pct(BRIDGE.senior.maxLtv), SRC.kubera),
-      fact("Bridge: typical term", `${BRIDGE.senior.termMonths} months`, SRC.kubera),
+      fact("Bridge: max LTV", pct(BRIDGE.senior.maxLtv), SRC.corin),
+      fact("Bridge: typical term", `${BRIDGE.senior.termMonths} months`, SRC.corin),
       fact("SBA 504: equity for special-purpose property", pct(SBA.equity.base + SBA.equity.specialPurpose), SRC.sba),
       fact("Stabilization benchmark", `Around ${pct(s232.stabilizedOccupancy)} occupancy`, SRC.hud232),
     ],
@@ -367,8 +367,8 @@ export const seniorLivingPrograms: ProgramEntry[] = [
       fact("HUD 232/223(f): term", `Up to ${years(s232.refi.termYears)} fixed`, SRC.hud232),
       fact("HUD 232/223(f): max LTV / DSCR", `${pct(s232.refi.maxLtv)} / ${x(s232.refi.minDscr)}`, SRC.hud232),
       fact("Annual MIP (refinance)", pct(s232.refi.annualMip, 2), SRC.hud232),
-      fact("Annual CPA audit", `About ${usd(HUD.annualAuditCost)} per year`, SRC.kubera),
-      fact("Bridge: max LTV", pct(BRIDGE.senior.maxLtv), SRC.kubera),
+      fact("Annual CPA audit", `About ${usd(HUD.annualAuditCost)} per year`, SRC.corin),
+      fact("Bridge: max LTV", pct(BRIDGE.senior.maxLtv), SRC.corin),
     ],
     sections: [
       {

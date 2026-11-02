@@ -9,7 +9,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = pageMetadata({
   title: "Financing programs",
   description:
-    "Every loan program Kubera Commercial arranges: HUD, SBA, CMBS, agency, bridge, construction and hard money for senior living, hotels and multifamily.",
+    "Every loan program Corin Commercial arranges: HUD, SBA, CMBS, agency, bridge, construction and hard money for senior living, hotels and multifamily.",
   path: FINANCING_BASE,
 });
 
@@ -30,7 +30,7 @@ export default function FinancingIndexPage() {
           <p className="eyebrow">Financing</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Financing programs</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">
-            Kubera Commercial arranges commercial real estate loans as a licensed California real estate broker. Each page below explains one program: how it works, the figures lenders use, what slows a file down, and which alternatives to compare.
+            Corin Commercial arranges commercial real estate loans as a licensed California real estate broker. Each page below explains one program: how it works, the figures lenders use, what slows a file down, and which alternatives to compare.
           </p>
         </header>
 

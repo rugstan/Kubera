@@ -109,7 +109,7 @@ export class ToolDefinitionError extends Error {
 export function defineTool<I>(spec: ToolSpec<I>): Tool {
   if (!TOOL_NAME.test(spec.name)) throw new ToolDefinitionError(`tool name "${spec.name}" is invalid`);
   if (!SEMVER.test(spec.version)) throw new ToolDefinitionError(`tool ${spec.name}: version must be x.y.z`);
-  if (MONEY_MOVEMENT.test(spec.name) || forbiddenTokenIn(spec.name)) throw new ToolDefinitionError(`tool ${spec.name}: Kubera never moves or holds funds`);
+  if (MONEY_MOVEMENT.test(spec.name) || forbiddenTokenIn(spec.name)) throw new ToolDefinitionError(`tool ${spec.name}: Corin never moves or holds funds`);
   if (spec.effect === "write") {
     if (!spec.approvalKind || !KIND_PATTERN.test(spec.approvalKind)) throw new ToolDefinitionError(`write tool ${spec.name} needs a valid approvalKind`);
     if (MONEY_MOVEMENT.test(spec.approvalKind) || forbiddenTokenIn(spec.approvalKind)) throw new ToolDefinitionError(`tool ${spec.name}: approval kind "${spec.approvalKind}" moves funds`);
@@ -322,7 +322,7 @@ export class ToolRunner {
       if (unknown.length) return blocked([TOOL_REASONS.recipientNotTrusted], { untrustedRecipients: unknown.length });
     }
 
-    // Reads run directly (they change nothing outside Kubera).
+    // Reads run directly (they change nothing outside Corin).
     if (tool.effect === "read") {
       const base = this.base(ctx, tool, null);
       try {

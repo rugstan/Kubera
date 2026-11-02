@@ -224,7 +224,7 @@ describe("facts come from lib/sizing/assumptions", () => {
     expect(factValue("pip-bridge", /loan-to-cost/)).toBe(pct(BRIDGE.hotelPip.maxLtc));
     expect(factValue("multifamily-bridge", /Max LTV/)).toBe(pct(BRIDGE.cre.maxLtv));
     expect(factValue("bridge-to-hud", /Max LTV/)).toBe(pct(BRIDGE.senior.maxLtv));
-    expect(factValue("construction-loans", /Kubera sizing assumption: max/)).toBe(pct(BRIDGE.construction.maxLtc));
+    expect(factValue("construction-loans", /Corin sizing assumption: max/)).toBe(pct(BRIDGE.construction.maxLtc));
   });
 
   it("shows bridge and SBA timeline facts as a plain range plus one qualifier", () => {
@@ -274,7 +274,7 @@ describe("copy rules", () => {
     ["autonomous", /\bautonomous\b/i],
     ["guaranteed outcome", /(?<!not )\bguarantee[sd]?\b(?! fee)/i],
     ["usury-exempt claim", /usury[- ]exempt|exempt from usury/i],
-    ["Kubera as lender", /\b(we|kubera) (lend|fund|originate|service)s?\b/i],
+    ["Corin as lender", /\b(we|corin) (lend|fund|originate|service)s?\b/i],
     ["instant promises", /\b(instant|same[- ]day) (approval|funding|close)/i],
   ];
 
@@ -308,11 +308,11 @@ describe("copy rules", () => {
     }
   });
 
-  it("places no role for Kubera in construction draws", () => {
+  it("places no role for Corin in construction draws", () => {
     for (const e of allEntries.filter((p) => p.family === "construction" || /draw/i.test(allText(p)))) {
       for (const para of allText(e).split("\n")) {
         if (/\bdraws?\b/i.test(para) && !para.endsWith("?")) {
-          expect(para, `${e.slug}: ${para.slice(0, 80)}`).toMatch(/no role|not Kubera|lender|HUD|holdback|Kubera has no/i);
+          expect(para, `${e.slug}: ${para.slice(0, 80)}`).toMatch(/no role|not Corin|lender|HUD|holdback|Corin has no/i);
         }
       }
     }

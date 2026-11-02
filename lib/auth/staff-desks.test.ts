@@ -8,7 +8,7 @@ vi.mock("server-only", () => ({}));
 
 const signedIn = vi.fn();
 const jar = [
-  { name: "kubera_staff", value: "interim-cookie" },
+  { name: "corin_staff", value: "interim-cookie" },
   { name: "sb-abcd1234-auth-token", value: JSON.stringify({ access_token: "a.b.c" }) },
 ];
 
@@ -23,7 +23,7 @@ vi.mock("@/lib/auth/staff", () => ({
   staffDreLicense: () => "01234567",
 }));
 
-const principal = { userId: "u1", email: "Ana@KuberaCommercial.com", displayName: "Ana Ruiz", staffRoles: ["broker"], profile: { dreLicenseNumber: "01234567", dreLicenseType: "broker_officer" } };
+const principal = { userId: "u1", email: "Ana@CorinCommercial.com", displayName: "Ana Ruiz", staffRoles: ["broker"], profile: { dreLicenseNumber: "01234567", dreLicenseType: "broker_officer" } };
 
 describe("staff desks use lib/auth only", () => {
   beforeEach(() => {
@@ -50,8 +50,8 @@ describe("staff desks use lib/auth only", () => {
     const deals = await import("@/lib/deals/runtime");
     const checklists = await import("@/app/(staff)/checklists/_lib/session");
     const construction = await import("@/lib/construction/server");
-    expect(await deals.currentStaff()).toMatchObject({ userId: "u1", email: "ana@kuberacommercial.com", role: "broker", designatedOfficer: true, actor: "staff:ana@kuberacommercial.com" });
-    expect(await checklists.currentStaff()).toMatchObject({ id: "u1", email: "ana@kuberacommercial.com", role: "broker" });
+    expect(await deals.currentStaff()).toMatchObject({ userId: "u1", email: "ana@corincommercial.com", role: "broker", designatedOfficer: true, actor: "staff:ana@corincommercial.com" });
+    expect(await checklists.currentStaff()).toMatchObject({ id: "u1", email: "ana@corincommercial.com", role: "broker" });
     expect(await construction.currentStaff()).toMatchObject({ id: "u1", role: "broker" });
   });
 

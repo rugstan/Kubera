@@ -45,7 +45,7 @@ const scanRoute = await import("./scan/route");
 const downloadRoute = await import("./[id]/download/route");
 const deleteRoute = await import("./[id]/route");
 
-const ORIGIN = "https://kuberacommercial.com";
+const ORIGIN = "https://corincommercial.com";
 const TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 
 let provider: InstanceType<typeof FakeAuthProvider>;
@@ -113,8 +113,8 @@ beforeEach(() => {
   provider = new FakeAuthProvider();
   directory = new MemoryDirectory();
   setAuthServices({ mode: "fake", provider, directory, audit: new MemoryAuditSink(), userClient: () => null });
-  addPerson("pat@kubera.test", ["broker"], { totp: true });
-  addPerson("alex@kubera.test", ["analyst"], { totp: true });
+  addPerson("pat@corin.test", ["broker"], { totp: true });
+  addPerson("alex@corin.test", ["analyst"], { totp: true });
   addPerson("bo@borrower.test", ["borrower"]);
   setRateLimiter(new MemoryRateLimiter());
   turnstile = new FakeTurnstileVerifier();
@@ -180,7 +180,7 @@ describe("full upload flow", () => {
     expect(afterCallbacks).toHaveLength(1);
 
     // Quarantined: staff cannot download yet.
-    await signInAs("alex@kubera.test");
+    await signInAs("alex@corin.test");
     const early = await downloadRoute.GET(new Request(`${ORIGIN}/x`), { params: Promise.resolve({ id: String(body.documentId) }) });
     expect(early.status).toBe(409);
 
@@ -195,7 +195,7 @@ describe("full upload flow", () => {
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ fileName: "t12.pdf", expiresInSeconds: 60, url: expect.stringContaining(VAULT_BUCKET) });
     expect(vault.events.events.find((e) => e.event === "download")).toMatchObject({
-      actor: `staff:${people.get("alex@kubera.test")}:alex@kubera.test`,
+      actor: `staff:${people.get("alex@corin.test")}:alex@corin.test`,
       detail: { purpose: "underwriting" },
     });
     expect(vault.events.events.find((e) => e.event === "download")?.ip_hash).toMatch(/^[0-9a-f]{32}$/);
@@ -256,7 +256,7 @@ describe("staff routes", () => {
   });
 
   it("requires MFA and a staff role", async () => {
-    await signInAs("pat@kubera.test", false);
+    await signInAs("pat@corin.test", false);
     const noMfa = await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id));
     expect(noMfa.status).toBe(403);
     expect((await noMfa.json()).code).toBe("mfa_required");
@@ -274,7 +274,7 @@ describe("staff routes", () => {
   });
 
   it("answers 404 for unknown or malformed ids and audits nothing sensitive", async () => {
-    await signInAs("alex@kubera.test");
+    await signInAs("alex@corin.test");
     expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx("not-a-uuid"))).status).toBe(404);
     expect((await downloadRoute.GET(new Request(`${ORIGIN}/x`), ctx(id))).status).toBe(404);
   });
@@ -283,11 +283,11 @@ describe("staff routes", () => {
     const { body } = await mint();
     vault.storage.upload(QUARANTINE_BUCKET, String(body.path), PDF_BYTES);
     const docId = String(body.documentId);
-    await signInAs("alex@kubera.test");
+    await signInAs("alex@corin.test");
     const analyst = await deleteRoute.DELETE(del(), ctx(docId));
     expect(analyst.status).toBe(403);
     expect((await analyst.json()).code).toBe("forbidden");
-    await signInAs("pat@kubera.test");
+    await signInAs("pat@corin.test");
     expect((await deleteRoute.DELETE(del("/x", { origin: "https://evil.example" }), ctx(docId))).status).toBe(403);
     expect(vault.store.rows.size).toBe(1);
     expect(vault.events.events.some((e) => e.event === "deleted")).toBe(false);
@@ -297,7 +297,7 @@ describe("staff routes", () => {
     const { body } = await mint();
     vault.storage.upload(QUARANTINE_BUCKET, String(body.path), PDF_BYTES);
     const docId = String(body.documentId);
-    await signInAs("pat@kubera.test");
+    await signInAs("pat@corin.test");
 
     vault.store.rows.get(docId)!.legal_hold = true;
     const held = await deleteRoute.DELETE(del("/x", { origin: ORIGIN }), ctx(docId));
@@ -310,7 +310,7 @@ describe("staff routes", () => {
     expect(vault.storage.paths(QUARANTINE_BUCKET)).toEqual([]);
     expect(vault.store.rows.size).toBe(0);
     expect(vault.events.events.find((e) => e.event === "deleted")).toMatchObject({
-      actor: `staff:${people.get("pat@kubera.test")}:pat@kubera.test`,
+      actor: `staff:${people.get("pat@corin.test")}:pat@corin.test`,
       detail: { reason: "borrower request" },
     });
   });

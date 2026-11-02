@@ -18,7 +18,7 @@ let provider: FakeEsignProvider;
 let requestId: string;
 let disclosureId: string;
 
-const post = (body: string, headers: Headers) => new Request("https://kuberacommercial.com/api/webhooks/zoho-sign", { method: "POST", body, headers });
+const post = (body: string, headers: Headers) => new Request("https://corincommercial.com/api/webhooks/zoho-sign", { method: "POST", body, headers });
 const deps = (over: Partial<WebhookDeps> = {}): WebhookDeps => ({ provider, secretConfigured: true, backends: { store, storage }, now, ...over });
 
 beforeEach(async () => {
@@ -27,7 +27,7 @@ beforeEach(async () => {
   provider = new FakeEsignProvider("zs-secret");
   const { record } = await openMldsCase(
     { store, now },
-    { leadId: "11111111-1111-4111-8111-111111111111", facts: { kuberaRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: now(), actor: "staff" },
+    { leadId: "11111111-1111-4111-8111-111111111111", facts: { corinRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: now(), actor: "staff" },
   );
   disclosureId = record?.id as string;
   await generateMlds({ store, storage, render: async () => new Uint8Array([1, 2, 3]), now, approvedTemplate: true }, disclosureId, sampleMldsInput, "staff");
@@ -137,7 +137,7 @@ describe("e-sign webhook handler with the BoldSign fallback", () => {
     );
     const { record } = await openMldsCase(
       { store: s, now },
-      { leadId: "11111111-1111-4111-8111-111111111112", facts: { kuberaRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: now(), actor: "staff" },
+      { leadId: "11111111-1111-4111-8111-111111111112", facts: { corinRole: "broker", collateral: { realPropertyLien: true } }, applicationCompletedAt: now(), actor: "staff" },
     );
     const id = record?.id as string;
     await generateMlds({ store: s, storage: docs, render: async () => new Uint8Array([1, 2, 3]), now, approvedTemplate: true }, id, sampleMldsInput, "staff");
@@ -152,7 +152,7 @@ describe("e-sign webhook handler with the BoldSign fallback", () => {
     const body = JSON.stringify({ event: { id: "evt_bold_1", eventType: "Completed", created: clockMs / 1000 }, data: { documentId: "bold_doc_1" } });
     const t = clockMs / 1000;
     const headers = new Headers({ [BOLDSIGN_SIGNATURE_HEADER]: `t=${t}, s0=${createHmac("sha256", "bs-secret").update(`${t}.${body}`).digest("hex")}` });
-    const res = await handleEsignWebhook(new Request("https://kuberacommercial.com/api/webhooks/boldsign", { method: "POST", body, headers }), {
+    const res = await handleEsignWebhook(new Request("https://corincommercial.com/api/webhooks/boldsign", { method: "POST", body, headers }), {
       provider: bold,
       secretConfigured: true,
       backends: { store: s, storage: docs },

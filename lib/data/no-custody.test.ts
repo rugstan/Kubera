@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { scanTs } from "@/lib/compliance/no-custody";
 
 // WS-Z owns lib/data and lib/rules, which the repository-wide custody scan does
-// not cover. Kubera holds no funds and has no draw role (Global rule 1).
+// not cover. Corin holds no funds and has no draw role (Global rule 1).
 
 const root = path.resolve(import.meta.dirname, "..", "..");
 

@@ -44,7 +44,7 @@ describe("loan-level broker-of-record file (gate H)", () => {
     expect(r.file).toMatchObject({ lender: { name: "Example Community Bank", category: "STATE_BANK" }, noteRatePct: 6.4, transactionDate: "2026-11-20" });
     expect(r.file.elements.negotiationLog).toHaveLength(1);
     const row = [...w.store.brokerOfRecord.values()][0]!;
-    expect(row).toMatchObject({ record_kind: "loan", deal_id: deal.id, arranged_by: "kubera", gate_status: "lender_exempt", gate_blocking: false, arranging_licensee_dre: "01234567" });
+    expect(row).toMatchObject({ record_kind: "loan", deal_id: deal.id, arranged_by: "corin", gate_status: "lender_exempt", gate_blocking: false, arranging_licensee_dre: "01234567" });
 
     const after = await loadDealCompliance(w.deps, deal);
     expect(after.missing).toEqual([]);
@@ -84,7 +84,7 @@ describe("loan-level broker-of-record file (gate H)", () => {
   it("unblocks modifications: a change can be submitted once the loan file exists", async () => {
     const w = world();
     const deal = await newDeal(w.store, w.now, { program: "PRIVATE_BRIDGE" });
-    const ext = { kind: "extension" as const, effectiveDate: "2026-12-01", arrangedBy: "kubera" as const, noteRatePct: 6.4, agreementRecitesBrokerArrangement: true };
+    const ext = { kind: "extension" as const, effectiveDate: "2026-12-01", arrangedBy: "corin" as const, noteRatePct: 6.4, agreementRecitesBrokerArrangement: true };
     await expect(submitModification({ ...w.deps, gate: w.gate }, { dealId: deal.id, facts: ext, actor: "a" })).rejects.toMatchObject({ reason: "no_loan_record" });
     const loan = await recordLoanBrokerOfRecord(w.deps, { dealId: deal.id, file: file(), actor: "a" });
     const m = await submitModification({ ...w.deps, gate: w.gate }, { dealId: deal.id, facts: ext, actor: "a" });
@@ -94,23 +94,23 @@ describe("loan-level broker-of-record file (gate H)", () => {
     expect((await w.store.getModification(m.id))!.evaluation.status).toBe("incomplete");
   });
 
-  it("rejects Kubera as the lender, and holds the deal for counsel when the documents name Kubera as beneficiary or originator", async () => {
+  it("rejects Corin as the lender, and holds the deal for counsel when the documents name Corin as beneficiary or originator", async () => {
     const w = world();
     const deal = await newDeal(w.store, w.now);
-    await expect(recordLoanBrokerOfRecord(w.deps, { dealId: deal.id, file: file({ lender: { name: "Kubera Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" } }), actor: "a" })).rejects.toThrow(/never the lender/);
+    await expect(recordLoanBrokerOfRecord(w.deps, { dealId: deal.id, file: file({ lender: { name: "Corin Commercial, Inc.", category: "PRIVATE_NON_EXEMPT" } }), actor: "a" })).rejects.toThrow(/never the lender/);
 
     const { record } = await openDealMlds({ ...w.deps, storage: { put: async () => {} } }, { dealId: deal.id, applicationCompletedAt: new Date(w.now().getTime() - 3_600_000), actor: "a" });
     expect(record!.status).toBe("required");
-    const r = await recordLoanBrokerOfRecord(w.deps, { dealId: deal.id, file: file({ deedBeneficiaryName: "Kubera Commercial, Inc.", originatorName: "Example Community Bank" }), actor: "a" });
+    const r = await recordLoanBrokerOfRecord(w.deps, { dealId: deal.id, file: file({ deedBeneficiaryName: "Corin Commercial, Inc.", originatorName: "Example Community Bank" }), actor: "a" });
     expect(r.heldForCounsel).toBe(true);
-    expect(w.store.brokerOfRecord.get(r.file.id)).toMatchObject({ deed_beneficiary_name: "Kubera Commercial, Inc.", originator_name: "Example Community Bank" });
+    expect(w.store.brokerOfRecord.get(r.file.id)).toMatchObject({ deed_beneficiary_name: "Corin Commercial, Inc.", originator_name: "Example Community Bank" });
     expect((await w.disclosures.get(record!.id))!.status).toBe("held_for_counsel");
     const { compliance } = await loadDealCompliance(w.deps, deal);
     expect(compliance!.heldForCounsel).toBe(true);
     expect(compliance!.flags.some((f) => f.code === "held_for_counsel" && /trust-deed beneficiary/.test(f.reason))).toBe(true);
 
     const deal2 = await newDeal(w.store, w.now, { title: "Originator deal" });
-    await recordLoanBrokerOfRecord(w.deps, { dealId: deal2.id, file: file({ originatorName: "Kubera Commercial" }), actor: "a" });
+    await recordLoanBrokerOfRecord(w.deps, { dealId: deal2.id, file: file({ originatorName: "Corin Commercial" }), actor: "a" });
     expect((await loadDealCompliance(w.deps, deal2)).compliance!.flags.some((f) => /originator or lender of record/.test(f.reason))).toBe(true);
   });
 

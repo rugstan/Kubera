@@ -142,7 +142,7 @@ export function LoanSizer({ benchmarks, live, call }: { benchmarks: Benchmarks; 
         <div>
           <QuoteCarousel quotes={result.quotes} bestId={result.bestFit} tab={tab} />
 
-          {/* A light card on the canvas section: WhyKubera stays the homepage's only dark surface. */}
+          {/* A light card on the canvas section: WhyCorin stays the homepage's only dark surface. */}
           <div className="bento mt-6 flex flex-col items-start justify-between gap-4 p-6 md:flex-row md:items-center">
             <div>
               <p className="text-lg font-semibold text-ink">{best ? `${best.name} looks strongest: ${usd(best.loanAmount)} at ~${best.ratePct.toFixed(2)}%.` : "No structure fits yet — adjust the inputs or talk to us."}</p>

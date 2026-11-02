@@ -15,7 +15,7 @@ import { Inngest } from "inngest";
 import { deploymentEnv } from "@/lib/deploy-env";
 import type { OutgoingEvent } from "./step";
 
-export const INNGEST_APP_ID = "kubera-commercial";
+export const INNGEST_APP_ID = "corin-commercial";
 
 let client: Inngest | undefined;
 

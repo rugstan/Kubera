@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 const { GET } = await import("./route");
 
 const SECRET = "cron-secret-for-tests-0123456789";
-const call = (auth?: string) => GET(new Request("https://kuberacommercial.com/api/cron/mlds-clock", { headers: auth ? { authorization: auth } : {} }));
+const call = (auth?: string) => GET(new Request("https://corincommercial.com/api/cron/mlds-clock", { headers: auth ? { authorization: auth } : {} }));
 
 describe("MLDS delivery clock cron", () => {
   beforeEach(() => {

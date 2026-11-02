@@ -33,7 +33,7 @@ export function Hero() {
           </p>
           <h1 className="mt-4 text-tile font-semibold md:text-hero">We help you find the right lender for your commercial real estate loan.</h1>
           <p className="mx-auto mt-6 max-w-3xl text-[17px] text-titanium md:text-lede">
-            Kubera Commercial is a licensed California real estate broker. We arrange senior living, hotel, multifamily, construction and hard money loans,
+            Corin Commercial is a licensed California real estate broker. We arrange senior living, hotel, multifamily, construction and hard money loans,
             comparing HUD, SBA, CMBS, agency, bank and private lenders for you. We are not a lender, so we are not tied to one lender&apos;s loans.
           </p>
         </Reveal>

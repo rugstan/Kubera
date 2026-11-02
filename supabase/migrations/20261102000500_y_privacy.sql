@@ -64,7 +64,7 @@ create table public.privacy_requests (
   status text not null check (status in ('pending_verification', 'verified', 'in_progress', 'completed', 'partially_completed', 'denied', 'withdrawn')),
   -- The queue this ticket lands in; compliance@ (no CRM sync) owns privacy requests.
   queue text not null default 'compliance' check (queue = 'compliance'),
-  mailbox text not null default 'compliance@kuberacommercial.com' check (mailbox ~ '^[^@\s]+@[^@\s]+$'),
+  mailbox text not null default 'compliance@corincommercial.com' check (mailbox ~ '^[^@\s]+@[^@\s]+$'),
   subject_email text not null check (subject_email = lower(subject_email) and length(subject_email) between 3 and 200),
   subject_name text check (subject_name is null or length(subject_name) <= 200),
   subject_phone text check (subject_phone is null or length(subject_phone) <= 40),
@@ -124,7 +124,7 @@ create table public.privacy_preferences (
   human_review_only boolean not null default false,
   -- No personal data about this person is sent to any AI model (lib/ai/routing.ts).
   ai_processing_opt_out boolean not null default false,
-  -- Opt-out of sale/sharing (and GPC). Kubera does not sell or share; recorded anyway.
+  -- Opt-out of sale/sharing (and GPC). Corin does not sell or share; recorded anyway.
   opt_out_sale_share boolean not null default false,
   source_request_id uuid references public.privacy_requests (id) on delete set null
 );

@@ -6,15 +6,15 @@
 -- deal_packages       versioned loan packages; a version is locked (immutable) when sent
 -- share_links         expiring, per-lender links to one locked package version (token hashed)
 -- lender_outreach     package submissions to lenders, each through the broker approval gate
--- fee_ledger          Kubera's broker compensation per deal (record keeping only)
--- invoices            Kubera's invoices for its own compensation, settled on the closing statement
+-- fee_ledger          Corin's broker compensation per deal (record keeping only)
+-- invoices            Corin's invoices for its own compensation, settled on the closing statement
 -- deal_modifications  forbearance / extension / modification workflow (gate H, SB 1146)
 -- sba_form159         SBA Form 159 fee disclosure data built from the ledger, e-sign status
 -- dre_reporting       §10232 threshold monitor snapshots and RE 853 / RE 860 / RE 881 data
 -- audit_log           append-only, trigger-written history of every row change above
 --
 -- Broker only (Global rule 1): nothing here accepts, holds, transfers or
--- disburses money. Amounts are Kubera's own compensation as recorded on the
+-- disburses money. Amounts are Corin's own compensation as recorded on the
 -- lender's closing statement. RLS is enabled with no policies: only the
 -- service role reads or writes until WS-I defines staff policies.
 
@@ -240,8 +240,8 @@ create table public.fee_ledger (
     'broker_fee', 'lender_paid_compensation', 'agency_split', 'hard_money_points',
     'extension_fee', 'modification_fee', 'sba_packaging_fee', 'referral_fee', 'co_broker_split'
   )),
-  payer text not null check (payer in ('borrower', 'lender', 'kubera')),
-  payee text not null check (payee in ('kubera', 'co_broker', 'referral_partner')),
+  payer text not null check (payer in ('borrower', 'lender', 'corin')),
+  payee text not null check (payee in ('corin', 'co_broker', 'referral_partner')),
   basis text not null check (basis in ('flat', 'percent_of_loan', 'points', 'percent_of_lender_fee')),
   rate_pct numeric(12, 6),
   base_cents bigint check (base_cents is null or base_cents >= 0),
@@ -256,8 +256,8 @@ create table public.fee_ledger (
   idempotency_key text not null unique,
   void_reason text,
   constraint fee_ledger_void_reason check (status <> 'void' or void_reason is not null),
-  -- Kubera pays only a co-broker or referral partner's share, and only as a ledger record.
-  constraint fee_ledger_party_shape check ((payee = 'kubera' and payer <> 'kubera') or (payee <> 'kubera' and payer = 'kubera'))
+  -- Corin pays only a co-broker or referral partner's share, and only as a ledger record.
+  constraint fee_ledger_party_shape check ((payee = 'corin' and payer <> 'corin') or (payee <> 'corin' and payer = 'corin'))
 );
 create index fee_ledger_deal_idx on public.fee_ledger (deal_id);
 
@@ -328,7 +328,7 @@ returns text
 language sql
 set search_path = ''
 as $$
-  select format('KC-%s-%s', p_year, lpad(nextval('public.invoice_number_seq')::text, 4, '0'))
+  select format('CC-%s-%s', p_year, lpad(nextval('public.invoice_number_seq')::text, 4, '0'))
 $$;
 revoke execute on function public.next_invoice_number(integer) from public, anon, authenticated;
 revoke all on sequence public.invoice_number_seq from anon, authenticated;

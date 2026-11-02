@@ -1,4 +1,4 @@
-// kubera/document.extracted → spreads → Jev re-sizing (WS-L).
+// corin/document.extracted → spreads → Jev re-sizing (WS-L).
 //
 // When an extraction finishes (or a reviewer approves one), every spread for
 // its deal (or lead) is recalculated from the accepted extractions and saved

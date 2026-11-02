@@ -40,13 +40,13 @@ describe("broker_of_record loan file columns", () => {
       lenderCharges: { lenderPointsPct: 1, termMonths: 6 },
       elements: fullElements,
       transactionDate: "2026-11-20",
-      deedBeneficiaryName: "Kubera Commercial, Inc.",
+      deedBeneficiaryName: "Corin Commercial, Inc.",
       originatorName: "Pacific Bridge Partners LLC",
     });
     const stored = await insert(row);
-    expect(stored).toMatchObject({ gate_status: "blocked", names_kubera_as_beneficiary: true, names_kubera_as_originator: false, charges_term_months: 6 });
+    expect(stored).toMatchObject({ gate_status: "blocked", names_corin_as_beneficiary: true, names_corin_as_originator: false, charges_term_months: 6 });
     expect(Number(stored.effective_rate_pct)).toBe(11.5);
     const loan = loanBrokerOfRecordFromRow(stored);
-    expect(loan).toMatchObject({ noteRatePct: 9.5, lenderCharges: { lenderPointsPct: 1, termMonths: 6 }, deedBeneficiaryName: "Kubera Commercial, Inc.", transactionDate: "2026-11-20" });
+    expect(loan).toMatchObject({ noteRatePct: 9.5, lenderCharges: { lenderPointsPct: 1, termMonths: 6 }, deedBeneficiaryName: "Corin Commercial, Inc.", transactionDate: "2026-11-20" });
   });
 });

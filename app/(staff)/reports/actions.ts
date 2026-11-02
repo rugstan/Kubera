@@ -8,7 +8,7 @@ import { canViewReports } from "./_lib/access";
 
 export type SpendState = { ok?: boolean; message?: string };
 
-/** Records Kubera's marketing spend for one lead source and period (the ROI denominator). */
+/** Records Corin's marketing spend for one lead source and period (the ROI denominator). */
 export async function recordSpendAction(_prev: SpendState, formData: FormData): Promise<SpendState> {
   const auth = await staffForMutation();
   if (!auth.ok) return { ok: false, message: auth.reason === "mfa_required" ? "Confirm two-step verification, then try again." : "Your session ended. Sign in again." };

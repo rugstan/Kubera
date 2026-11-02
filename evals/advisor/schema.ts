@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Golden-set format for Ask Kubera AI. Each evals/advisor/*.json file is one
+// Golden-set format for Ask Corin AI. Each evals/advisor/*.json file is one
 // suite. A case passes when every expected fact matches (any one of its
 // patterns) and no forbidden claim matches. Patterns are case-insensitive
 // JavaScript regular expressions applied to the advisor's full reply.
@@ -59,9 +59,9 @@ export const GLOBAL_FORBIDDEN: { claim: string; pattern: string }[] = [
   { claim: "States a specific loan is usury-exempt", pattern: "\\b(?:your|this|the) (?:\\S+ ){0,3}(?:loan|bridge|note|deal|financing|refinance) (?:is|will be) (?:fully )?(?:exempt from (?:california(?:'s)? )?usury|usury[- ]exempt\\b)" },
   { claim: "Claims broker fees are protected", pattern: "\\bfees? (?:are |is )?protected\\b" },
   { claim: "Promises a call today", pattern: "\\bwill call you today\\b" },
-  { claim: "Says Kubera lends or funds", pattern: "\\bkubera (?:will )?(?:fund|lend)s?\\b|\\bkubera is (?:the|a|your) lender\\b" },
-  { claim: "Offers to hold or disburse funds or manage draws", pattern: "\\bkubera (?:can |will )?(?:hold|disburse|manage|process)e?s? (?:your |the )?(?:funds|escrow|draws?)\\b" },
-  { claim: "Describes Kubera as autonomous", pattern: "\\bkubera(?:'s)? (?:ai )?is (?:fully )?autonomous\\b" },
+  { claim: "Says Corin lends or funds", pattern: "\\bcorin (?:will )?(?:fund|lend)s?\\b|\\bcorin is (?:the|a|your) lender\\b" },
+  { claim: "Offers to hold or disburse funds or manage draws", pattern: "\\bcorin (?:can |will )?(?:hold|disburse|manage|process)e?s? (?:your |the )?(?:funds|escrow|draws?)\\b" },
+  { claim: "Describes Corin as autonomous", pattern: "\\bcorin(?:'s)? (?:ai )?is (?:fully )?autonomous\\b" },
 ];
 
 export function compile(p: string): RegExp {

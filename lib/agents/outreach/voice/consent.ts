@@ -15,7 +15,7 @@ import type { ConsentReader, ConsentRecord } from "@/lib/notify/consent";
 
 export const AI_VOICE_CONSENT_TEXT = {
   id: "ai-voice-2026-11-04",
-  text: "I agree that Kubera Commercial may call me about this financing request using an artificial or prerecorded voice (an AI voice) at the number I gave. Consent is not a condition of any service. I can withdraw it at any time by telling you on a call, replying STOP to a text, or emailing privacy@kuberacommercial.com.",
+  text: "I agree that Corin Commercial may call me about this financing request using an artificial or prerecorded voice (an AI voice) at the number I gave. Consent is not a condition of any service. I can withdraw it at any time by telling you on a call, replying STOP to a text, or emailing privacy@corincommercial.com.",
 } as const;
 
 export type VoiceConsentEvent = {

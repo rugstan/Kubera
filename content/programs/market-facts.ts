@@ -2,9 +2,9 @@
 // flag. Where the sizer's program boxes (`lib/sizing/programs/assumptions.ts`)
 // hold the same figure, the range is derived from there so the pages and the
 // sizer cannot drift. The rest (points, extension fees and stabilized-bridge
-// leverage, where the market range is wider than Kubera's sizing grid; bank,
+// leverage, where the market range is wider than Corin's sizing grid; bank,
 // debt-fund and private construction ranges; HUD timing and California rent
-// rules) come from Kubera's market research notes and vary by lender and cycle.
+// rules) come from Corin's market research notes and vary by lender and cycle.
 //
 // This is the one content file allowed to hold literal percentages.
 

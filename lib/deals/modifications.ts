@@ -8,7 +8,7 @@
 //   - lender/servicer-only negotiation → no exemption representation, and the
 //     lender gets written notice — an outbound message, so it goes through the
 //     broker approval gate and never sends on a timed-out approval;
-//   - Kubera-arranged changes above the cap → blocked until every element and
+//   - Corin-arranged changes above the cap → blocked until every element and
 //     designated-officer approval are recorded.
 // Locked deal terms change only through a documented modification.
 
@@ -104,8 +104,8 @@ export function lenderNoticeText(deal: Pick<Deal, "title">, m: Pick<Modification
   return [
     `Re: ${deal.title} — ${m.kind} effective ${m.facts.effectiveDate}`,
     "",
-    `Kubera Commercial, Inc. did not negotiate or arrange this ${m.kind}. It was negotiated directly between the lender or servicer and the borrower.`,
-    "Kubera makes no representation that any exemption from California usury limits (including Civ. Code §1916.1) applies to it. Please consult your counsel.",
+    `Corin Commercial, Inc. did not negotiate or arrange this ${m.kind}. It was negotiated directly between the lender or servicer and the borrower.`,
+    "Corin makes no representation that any exemption from California usury limits (including Civ. Code §1916.1) applies to it. Please consult your counsel.",
   ].join("\n");
 }
 
@@ -118,7 +118,7 @@ function lenderNoticeAction(deal: Deal, loan: LoanBrokerOfRecord, m: Modificatio
   return {
     kind: "lender_notice",
     idempotencyKey: lenderNoticeKey(m.id),
-    summary: `Send ${loan.lender.name} written notice that Kubera did not arrange the ${m.kind} on "${deal.title}"`,
+    summary: `Send ${loan.lender.name} written notice that Corin did not arrange the ${m.kind} on "${deal.title}"`,
     templateId: LENDER_NO_EXEMPTION_NOTICE_TEMPLATE_ID,
     payload: { modificationId: m.id, dealId: deal.id, lender: loan.lender.name, text },
     requestedBy: actor,
@@ -249,8 +249,8 @@ export async function submitModification(
   );
   m = (await lenderNotice(deps, m, input.actor)).modification;
 
-  // Kubera's compensation for arranging the change (projected until it closes).
-  if (input.fee && facts.arrangedBy === "kubera" && (input.fee.flatCents !== undefined || input.fee.pct !== undefined)) {
+  // Corin's compensation for arranging the change (projected until it closes).
+  if (input.fee && facts.arrangedBy === "corin" && (input.fee.flatCents !== undefined || input.fee.pct !== undefined)) {
     const entry = await deps.store.insertFeeEntry(changeFee({ dealId: deal.id, kind: facts.kind, modificationId: m.id, ...input.fee }), input.actor, now);
     m = await deps.store.updateModification(m.id, { feeEntryId: entry.id }, input.actor, now);
   }

@@ -16,7 +16,7 @@ export async function RatesData() {
 
   return (
     <>
-      {/* Dataset markup only for live FRED figures: fallbacks are Kubera's estimates, not a dated FRED dataset. */}
+      {/* Dataset markup only for live FRED figures: fallbacks are Corin's estimates, not a dated FRED dataset. */}
       {snap.live && (
         <JsonLd
           data={datasetSchema({
@@ -43,7 +43,7 @@ export async function RatesData() {
       </p>
       {!snap.live && (
         <p role="note" className="notice-warning mt-3 rounded-xl px-4 py-3 text-[14px] leading-relaxed">
-          One or more benchmark series could not be reached, so some figures below are Kubera&apos;s indicative fallbacks rather than the latest published values.
+          One or more benchmark series could not be reached, so some figures below are Corin&apos;s indicative fallbacks rather than the latest published values.
         </p>
       )}
 
@@ -106,7 +106,7 @@ export async function RatesData() {
           Indicative loan rates by program
         </h2>
         <p className="mt-2 text-[15px] text-titanium">
-          Each range is the benchmark above plus the spread band Kubera assumes for the program; hard money is priced at a fixed rate, so its range does not move with the benchmarks. They are planning estimates, not quotes, and lenders price each loan individually.
+          Each range is the benchmark above plus the spread band Corin assumes for the program; hard money is priced at a fixed rate, so its range does not move with the benchmarks. They are planning estimates, not quotes, and lenders price each loan individually.
         </p>
         <div className="bento mt-5 p-2 md:p-4">
           <TableScroll label="Indicative loan rates table">

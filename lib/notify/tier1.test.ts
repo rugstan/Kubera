@@ -4,7 +4,7 @@ import type { LeadRecord } from "./leads";
 import { DAYTIME, makeHarness, NIGHT } from "./testing";
 import { alertTier1Lead, leadReference, staffContactsFromEnv, tier1Summary, TIER1_SLA_MS } from "./tier1";
 
-const STAFF = { phones: ["+13105550111", "+13105550112"], emails: ["deals@kuberacommercial.com"] };
+const STAFF = { phones: ["+13105550111", "+13105550112"], emails: ["deals@corincommercial.com"] };
 
 const lead = (over: Partial<LeadRecord> = {}): LeadRecord => ({
   id: "3f9a12bc-0000-4000-8000-000000000001",
@@ -135,6 +135,6 @@ describe("helpers", () => {
       phones: ["+13105550111", "+13105550112"],
       emails: ["a@x.com"],
     });
-    expect(staffContactsFromEnv({})).toEqual({ phones: [], emails: ["deals@kuberacommercial.com"] });
+    expect(staffContactsFromEnv({})).toEqual({ phones: [], emails: ["deals@corincommercial.com"] });
   });
 });

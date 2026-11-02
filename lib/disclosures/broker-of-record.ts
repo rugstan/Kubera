@@ -1,4 +1,4 @@
-// Broker-of-record file (counsel gate H): the facts Kubera records on every
+// Broker-of-record file (counsel gate H): the facts Corin records on every
 // loan and on every forbearance, extension or modification to show that a
 // licensed broker arranged it for another, for compensation, on a
 // real-property-secured loan (Civ. Code §1916.1, as amended by SB 1146).
@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { evaluateModification, evaluateUsury, type ModificationEvaluation, type UsuryEvaluation } from "@/lib/compliance/gates";
 import {
-  KUBERA_NAME,
+  CORIN_NAME,
   arrangers,
   brokerOfRecordElementsSchema,
   collateralSchema,
@@ -42,21 +42,21 @@ export const loanBrokerOfRecordSchema = z.object({
   tableFunded: z.boolean().default(false),
   /** True funding source when table funded. */
   trueFundingSource: z.string().trim().max(160).optional(),
-  tableFundedInKuberaName: z.boolean().default(false),
+  tableFundedInCorinName: z.boolean().default(false),
   /**
    * Beneficiary named on the deed of trust and originator / lender named on
    * the note, exactly as the loan documents show them. Recorded as written
-   * (not rejected) so a document naming Kubera holds the deal for counsel.
+   * (not rejected) so a document naming Corin holds the deal for counsel.
    */
   deedBeneficiaryName: z.string().trim().max(160).optional(),
   originatorName: z.string().trim().max(160).optional(),
 });
 
-/** Gate-A/H facts derived from the names on the loan documents (Kubera is never beneficiary or originator). */
-export function namesKubera(r: { deedBeneficiaryName?: string | null; originatorName?: string | null }): { namesKuberaAsBeneficiary: boolean; namesKuberaAsOriginator: boolean } {
+/** Gate-A/H facts derived from the names on the loan documents (Corin is never beneficiary or originator). */
+export function namesCorin(r: { deedBeneficiaryName?: string | null; originatorName?: string | null }): { namesCorinAsBeneficiary: boolean; namesCorinAsOriginator: boolean } {
   return {
-    namesKuberaAsBeneficiary: Boolean(r.deedBeneficiaryName && KUBERA_NAME.test(r.deedBeneficiaryName)),
-    namesKuberaAsOriginator: Boolean(r.originatorName && KUBERA_NAME.test(r.originatorName)),
+    namesCorinAsBeneficiary: Boolean(r.deedBeneficiaryName && CORIN_NAME.test(r.deedBeneficiaryName)),
+    namesCorinAsOriginator: Boolean(r.originatorName && CORIN_NAME.test(r.originatorName)),
   };
 }
 
@@ -84,7 +84,7 @@ export function toUsuryFacts(r: z.output<typeof loanBrokerOfRecordSchema>): Usur
     ...(r.lenderCharges ? { lenderCharges: r.lenderCharges } : {}),
     collateral: r.collateral,
     elements: r.elements,
-    tableFundedInKuberaName: r.tableFundedInKuberaName,
+    tableFundedInCorinName: r.tableFundedInCorinName,
     transactionDate: r.transactionDate,
   };
 }
@@ -128,7 +128,7 @@ export function brokerOfRecordRow(input: BrokerOfRecordInput): Record<string, un
     parent_id: r.recordKind === "loan" ? null : r.parentId,
     transaction_date: r.recordKind === "loan" ? r.transactionDate : null,
     effective_date: r.recordKind === "loan" ? null : r.effectiveDate,
-    arranged_by: r.recordKind === "loan" ? "kubera" : r.arrangedBy,
+    arranged_by: r.recordKind === "loan" ? "corin" : r.arrangedBy,
     arranging_licensee_name: e.arrangingLicensee?.name ?? null,
     arranging_licensee_dre: e.arrangingLicensee?.dreLicense ?? null,
     licensee_active_at_transaction: e.arrangingLicensee?.activeAtTransaction ?? null,
@@ -161,7 +161,7 @@ export function brokerOfRecordRow(input: BrokerOfRecordInput): Record<string, un
     originator_name: r.recordKind === "loan" ? (r.originatorName ?? null) : null,
     table_funded: r.recordKind === "loan" ? r.tableFunded : false,
     true_funding_source: r.recordKind === "loan" ? (r.trueFundingSource ?? null) : null,
-    table_funded_in_kubera_name: r.recordKind === "loan" ? r.tableFundedInKuberaName : false,
+    table_funded_in_corin_name: r.recordKind === "loan" ? r.tableFundedInCorinName : false,
     agreement_recites_broker_arrangement: r.recordKind === "loan" ? null : r.agreementRecitesBrokerArrangement,
     lender_notice_sent_at: r.recordKind === "loan" ? null : (r.lenderNoticeSentAt ?? null),
     officer_approved_by: e.officerApproval?.name ?? null,

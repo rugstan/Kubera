@@ -1,9 +1,9 @@
 // Business reporting over the deal desk: pipeline by stage, time in stage, fee
 // forecast from the ledger, lender hit rate and lead-source ROI.
 //
-// Broker only (Global rule 1): every amount is Kubera's own compensation as
-// recorded in fee_ledger (integer cents) or Kubera's own marketing spend.
-// Loan amounts are the requested loan size, shown for pipeline volume; Kubera
+// Broker only (Global rule 1): every amount is Corin's own compensation as
+// recorded in fee_ledger (integer cents) or Corin's own marketing spend.
+// Loan amounts are the requested loan size, shown for pipeline volume; Corin
 // never holds, moves or disburses any of it. Reports are read-only.
 
 import type { FeeEntryKind, FeePayee, FeePayer, FeeStatus, OutreachStatus } from "@/lib/deals/types";
@@ -64,7 +64,7 @@ export type ReportLender = { id: string; name: string; category: string; brokerF
 
 export type ReportLead = { id: string; source: string; createdAt: string };
 
-/** Kubera's marketing spend on one lead source for a period (lead_source_costs). */
+/** Corin's marketing spend on one lead source for a period (lead_source_costs). */
 export type SourceCost = { source: string; periodStart: string; periodEnd: string; spendCents: number };
 
 export type ReportingData = {

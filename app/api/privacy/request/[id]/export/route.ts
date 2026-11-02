@@ -67,7 +67,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         "cache-control": "no-store",
         "x-robots-tag": "noindex",
         "content-type": "application/json; charset=utf-8",
-        "content-disposition": `attachment; filename="kubera-privacy-export-${row.id}.json"`,
+        "content-disposition": `attachment; filename="corin-privacy-export-${row.id}.json"`,
         "x-export-sha256": sha,
       },
     });

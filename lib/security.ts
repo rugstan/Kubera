@@ -15,15 +15,15 @@ export function clientIp(req: Request): string {
 
 /** Salted one-way IP fingerprint for records that do not need the raw address. */
 export function hashIp(ip: string): string {
-  const salt = process.env.IP_HASH_SALT || process.env.LEAD_TOKEN_SECRET || "kubera";
+  const salt = process.env.IP_HASH_SALT || process.env.LEAD_TOKEN_SECRET || "corin";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 32);
 }
 
 // --- Origin allowlist --------------------------------------------------------
 
 const PRODUCTION_ORIGINS = [
-  "https://kuberacommercial.com",
-  "https://www.kuberacommercial.com",
+  "https://corincommercial.com",
+  "https://www.corincommercial.com",
   "https://kubera.loans",
   "https://www.kubera.loans",
 ];
@@ -114,7 +114,7 @@ const json = (status: number, error: string, headers?: Record<string, string>) =
  */
 export async function guardPost(req: Request, opts: GuardOptions): Promise<GuardResult> {
   if (!isAllowedOrigin(req.headers.get("origin"))) {
-    return { ok: false, response: json(403, "Requests must come from the Kubera Commercial website.") };
+    return { ok: false, response: json(403, "Requests must come from the Corin Commercial website.") };
   }
   if (!isJsonContentType(req.headers.get("content-type"))) {
     return { ok: false, response: json(415, "Content-Type must be application/json.") };

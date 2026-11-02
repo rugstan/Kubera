@@ -46,27 +46,27 @@ describe("mail review queue", () => {
   it("filing to a lead registers the held attachments as quarantined vault documents for the scanner", async () => {
     const { store, sink, review, unrouted } = setup();
     const res = await unrouted();
-    const out = await assignReviewedMail(review, res.mailMessageId!, "analyst@kuberacommercial.com", LEAD_ID);
+    const out = await assignReviewedMail(review, res.mailMessageId!, "analyst@corincommercial.com", LEAD_ID);
     expect(out).toMatchObject({ ok: true, leadId: LEAD_ID, dealId: null, registered: 2, failed: 0, heldBack: 0 });
     expect(sink.documents).toHaveLength(2);
     expect(sink.documents.every((d) => d.leadId === LEAD_ID && d.status === "quarantined")).toBe(true);
     expect(sink.documents.map((d) => d.kind).sort()).toEqual(["RENT_ROLL", "T12"]);
 
     const row = store.rows.find((r) => r.id === res.mailMessageId)!;
-    expect(row).toMatchObject({ reviewedBy: "analyst@kuberacommercial.com", reviewOutcome: "assigned", reviewedAt: "2026-11-03T18:00:00.000Z" });
+    expect(row).toMatchObject({ reviewedBy: "analyst@corincommercial.com", reviewOutcome: "assigned", reviewedAt: "2026-11-03T18:00:00.000Z" });
     expect(row.route).toMatchObject({ status: "processed", leadId: LEAD_ID });
     expect(row.attachments.filter((a) => a.status === "registered").map((a) => a.documentId)).toEqual(sink.documents.map((d) => d.id));
     expect(await listReviewQueue(store)).toHaveLength(0);
 
     // A second resolution loses the compare-and-set.
-    expect(await assignReviewedMail(review, res.mailMessageId!, "broker@kuberacommercial.com", LEAD_ID)).toMatchObject({ ok: false, code: "not_in_queue" });
+    expect(await assignReviewedMail(review, res.mailMessageId!, "broker@corincommercial.com", LEAD_ID)).toMatchObject({ ok: false, code: "not_in_queue" });
     expect(sink.documents).toHaveLength(2);
   });
 
   it("accepts a KC deal reference and files under the deal's lead", async () => {
     const { review, unrouted, sink } = setup();
     const res = await unrouted();
-    const out = await assignReviewedMail(review, res.mailMessageId!, "analyst@kuberacommercial.com", dealReferenceToken(DEAL_ID));
+    const out = await assignReviewedMail(review, res.mailMessageId!, "analyst@corincommercial.com", dealReferenceToken(DEAL_ID));
     expect(out).toMatchObject({ ok: true, dealId: DEAL_ID, leadId: LEAD_ID, registered: 2 });
     expect(sink.documents.every((d) => d.leadId === LEAD_ID)).toBe(true);
   });
@@ -74,9 +74,9 @@ describe("mail review queue", () => {
   it("refuses a target that matches nothing and leaves the message in the queue", async () => {
     const { store, review, unrouted, sink } = setup();
     const res = await unrouted();
-    expect(await assignReviewedMail(review, res.mailMessageId!, "a@kuberacommercial.com", "KC-00000000")).toMatchObject({ ok: false, code: "unknown_target" });
-    expect(await assignReviewedMail(review, res.mailMessageId!, "a@kuberacommercial.com", "11111111-1111-4111-8111-111111111111")).toMatchObject({ ok: false, code: "unknown_target" });
-    expect(await assignReviewedMail(review, res.mailMessageId!, "a@kuberacommercial.com", "drop table")).toMatchObject({ ok: false, code: "unknown_target" });
+    expect(await assignReviewedMail(review, res.mailMessageId!, "a@corincommercial.com", "CC-00000000")).toMatchObject({ ok: false, code: "unknown_target" });
+    expect(await assignReviewedMail(review, res.mailMessageId!, "a@corincommercial.com", "11111111-1111-4111-8111-111111111111")).toMatchObject({ ok: false, code: "unknown_target" });
+    expect(await assignReviewedMail(review, res.mailMessageId!, "a@corincommercial.com", "drop table")).toMatchObject({ ok: false, code: "unknown_target" });
     expect(sink.documents).toHaveLength(0);
     expect(await listReviewQueue(store)).toHaveLength(1);
   });
@@ -84,7 +84,7 @@ describe("mail review queue", () => {
   it("dismissing closes the review without filing anything", async () => {
     const { store, review, unrouted, sink } = setup();
     const res = await unrouted();
-    expect(await dismissReviewedMail(review, res.mailMessageId!, "a@kuberacommercial.com")).toEqual({ ok: true });
+    expect(await dismissReviewedMail(review, res.mailMessageId!, "a@corincommercial.com")).toEqual({ ok: true });
     expect(store.rows[0]).toMatchObject({ reviewOutcome: "dismissed" });
     expect(store.rows[0]!.route.status).toBe("ignored");
     expect(sink.documents).toHaveLength(0);
@@ -98,8 +98,8 @@ describe("mail review queue", () => {
     expect(failed?.attempts).toBe(MAX_MAIL_ATTEMPTS);
     const [item] = await listReviewQueue(store);
     expect(item).toMatchObject({ id: failed!.id, status: "failed", error: "Zoho 500" });
-    expect(await assignReviewedMail(review, failed!.id, "a@kuberacommercial.com", LEAD_ID)).toMatchObject({ ok: false, code: "not_assignable" });
-    expect(await dismissReviewedMail(review, failed!.id, "a@kuberacommercial.com")).toEqual({ ok: true });
+    expect(await assignReviewedMail(review, failed!.id, "a@corincommercial.com", LEAD_ID)).toMatchObject({ ok: false, code: "not_assignable" });
+    expect(await dismissReviewedMail(review, failed!.id, "a@corincommercial.com")).toEqual({ ok: true });
     expect(await listReviewQueue(store)).toHaveLength(0);
   });
 

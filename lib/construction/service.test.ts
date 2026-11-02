@@ -22,7 +22,7 @@ import type { ConstructionReport } from "./types";
 const vendor = { vendorName: "Terracon", vendorEmail: "orders@terracon.test", vendorReference: "" };
 
 async function setup(deps = makeDeps(), over: Record<string, unknown> = {}) {
-  const project = await createProject(deps, "broker@kubera.test", projectInput(over));
+  const project = await createProject(deps, "broker@corin.test", projectInput(over));
   const reports = await deps.store.listReports(project.id);
   const report = (type: ConstructionReport["reportType"]) => reports.find((r) => r.reportType === type)!;
   return { deps, project, report };
@@ -57,10 +57,10 @@ describe("createProject", () => {
 describe("report orders go through the broker approval gate", () => {
   it("marks the report ordered only after approval and sets the vendor due date", async () => {
     const { deps, report } = await setup();
-    const updated = await requestReportOrder(deps, "analyst@kubera.test", report("phase_i").id, vendor);
+    const updated = await requestReportOrder(deps, "analyst@corin.test", report("phase_i").id, vendor);
     expect(updated).toMatchObject({ status: "ordered", vendorName: "Terracon", approvalId: "appr_1", orderedAt: "2026-11-04T18:00:00.000Z", dueAt: "2026-11-27" });
     expect(deps.gate.requests).toHaveLength(1);
-    expect(deps.gate.requests[0]).toMatchObject({ kind: "email", requestedBy: "analyst@kubera.test" });
+    expect(deps.gate.requests[0]).toMatchObject({ kind: "email", requestedBy: "analyst@corin.test" });
     expect(deps.gate.requests[0]!.templateId).toBeUndefined();
   });
 
@@ -80,7 +80,7 @@ describe("report orders go through the broker approval gate", () => {
     const id = report("phase_i").id;
     await requestReportOrder(deps, "a", id, vendor);
     const key = deps.gate.requests[0]!.idempotencyKey;
-    deps.gate.decide(key, { status: "approved", approvalId: "appr_9", decidedBy: "neeli@kubera.test", decidedAt: new Date(0) });
+    deps.gate.decide(key, { status: "approved", approvalId: "appr_9", decidedBy: "neeli@corin.test", decidedAt: new Date(0) });
     expect(await reconcileReportOrder(deps, "a", id)).toMatchObject({ status: "ordered", approvalId: "appr_9" });
   });
 
@@ -246,13 +246,13 @@ describe("conversion and lease-up", () => {
     await updateConversion(deps, "a", project.id, conv({ coDate: "2026-05-01", loanMaturityDate: "2027-02-01" }));
     await addLeaseUpSnapshot(deps, "a", project.id, snapshot("2026-07-01", 115, 110));
     await addLeaseUpSnapshot(deps, "a", project.id, snapshot("2026-10-15", 117, 114));
-    const takeout = await createTakeoutDeal(deps, "broker@kubera.test", project.id);
-    expect(takeout).toMatchObject({ status: "deal_created", newDealId: expect.any(String), resolvedBy: "broker@kubera.test" });
+    const takeout = await createTakeoutDeal(deps, "broker@corin.test", project.id);
+    expect(takeout).toMatchObject({ status: "deal_created", newDealId: expect.any(String), resolvedBy: "broker@corin.test" });
     expect(deps.deals.created).toHaveLength(1);
     expect(deps.deals.created[0]).toMatchObject({ loanPurpose: "refinance", sourceProjectId: project.id, units: 120, occupancyPct: 95 });
     expect((await deps.store.getProject(project.id))!.phase).toBe("taken_out");
     // A second click returns the same take-out and opens no second deal.
-    expect(await createTakeoutDeal(deps, "broker@kubera.test", project.id)).toMatchObject({ newDealId: takeout.newDealId });
+    expect(await createTakeoutDeal(deps, "broker@corin.test", project.id)).toMatchObject({ newDealId: takeout.newDealId });
     expect(deps.deals.created).toHaveLength(1);
   });
 

@@ -6,7 +6,7 @@
 // bytes (fixed PDF dates), so re-sending to another lender reuses the same
 // locked package version instead of minting a new one.
 //
-// Copy rules (Global rule 4): Kubera is the broker, not the lender; the summary
+// Copy rules (Global rule 4): Corin is the broker, not the lender; the summary
 // never says a loan is approved, qualified, guaranteed or usury-exempt, and
 // carries the license line.
 
@@ -149,7 +149,7 @@ export function buildExecutiveSummary(input: ExecutiveSummaryInput): ExecutiveSu
   sections.push({
     title: "About this package",
     paragraphs: [
-      `${site.legalName} is the broker for this request, not the lender. Figures come from the borrower's documents and Kubera's spreads; the lender performs its own underwriting and makes every credit decision.`,
+      `${site.legalName} is the broker for this request, not the lender. Figures come from the borrower's documents and Corin's spreads; the lender performs its own underwriting and makes every credit decision.`,
       ...(input.advisor ? [`Advisor: ${input.advisor.name} (${input.advisor.email}${input.advisor.dreLicense ? `, DRE ${input.advisor.dreLicense}` : ""}).`] : []),
       "Confidential: for the addressed institution's credit review only.",
     ],
@@ -174,7 +174,7 @@ export function summaryStoragePath(dealId: string, sha256: string): string {
 
 /** The manifest entry for a stored summary. */
 export function summaryPackageItem(dealId: string, sha256: string): PackageItem {
-  return { documentId: `summary-${sha256.slice(0, 24)}`, label: "Executive summary (Kubera)", kind: "EXECUTIVE_SUMMARY", storagePath: summaryStoragePath(dealId, sha256), sha256 };
+  return { documentId: `summary-${sha256.slice(0, 24)}`, label: "Executive summary (Corin)", kind: "EXECUTIVE_SUMMARY", storagePath: summaryStoragePath(dealId, sha256), sha256 };
 }
 
 /** The asset class implied by an approved box set or a program, when the deal does not say. */

@@ -1,9 +1,9 @@
 // The loan-level broker-of-record file (counsel gate H) on the deal desk.
 //
-// Gate H elements are recorded on every loan Kubera brokers: the lender and its
+// Gate H elements are recorded on every loan Corin brokers: the lender and its
 // exempt-lender category (with evidence), the note rate and the charges the
 // lender keeps, the Fed discount rate for the art. XV cap, the collateral, the
-// arranging licensee, who Kubera acts for, the engagement agreement, the
+// arranging licensee, who Corin acts for, the engagement agreement, the
 // compensation and its payer, the negotiation log, the business-purpose
 // certification and, when a non-exempt lender's effective rate is above the
 // cap, the designated officer's approval. Until the file exists the closing
@@ -11,14 +11,14 @@
 // submitted.
 //
 // Validation is lib/disclosures/broker-of-record.ts (loanBrokerOfRecordSchema,
-// which rejects Kubera as the lender); evaluation is lib/compliance/gates.ts.
+// which rejects Corin as the lender); evaluation is lib/compliance/gates.ts.
 // The beneficiary and originator named on the loan documents are recorded as
-// written, so a document naming Kubera holds the deal for counsel instead of
+// written, so a document naming Corin holds the deal for counsel instead of
 // being silently rejected.
 
 import { mldsRequirement } from "@/lib/compliance/gates";
 import { lenderChargesSchema, type CollateralInput, type LenderCategory, type LenderChargesInput } from "@/lib/compliance/schemas";
-import { brokerOfRecordRow, loanBrokerOfRecordSchema, namesKubera, type BrokerOfRecordInput } from "@/lib/disclosures/broker-of-record";
+import { brokerOfRecordRow, loanBrokerOfRecordSchema, namesCorin, type BrokerOfRecordInput } from "@/lib/disclosures/broker-of-record";
 import { holdForCounsel } from "@/lib/disclosures/service";
 import type { DisclosureStore } from "@/lib/disclosures/store";
 import { currentDealMlds } from "./mlds";
@@ -48,7 +48,7 @@ export type LoanFileInput = {
   transactionDate: string;
   tableFunded?: boolean;
   trueFundingSource?: string;
-  tableFundedInKuberaName?: boolean;
+  tableFundedInCorinName?: boolean;
   deedBeneficiaryName?: string;
   originatorName?: string;
   actsFor?: Party;
@@ -81,7 +81,7 @@ function loanRow(deal: Deal, file: Omit<LoanBrokerOfRecord, "id" | "dealId" | "l
     transactionDate: file.transactionDate,
     tableFunded: file.tableFunded ?? false,
     ...(file.trueFundingSource ? { trueFundingSource: file.trueFundingSource } : {}),
-    tableFundedInKuberaName: file.tableFundedInKuberaName,
+    tableFundedInCorinName: file.tableFundedInCorinName,
     ...(file.deedBeneficiaryName ? { deedBeneficiaryName: file.deedBeneficiaryName } : {}),
     ...(file.originatorName ? { originatorName: file.originatorName } : {}),
   };
@@ -89,7 +89,7 @@ function loanRow(deal: Deal, file: Omit<LoanBrokerOfRecord, "id" | "dealId" | "l
 }
 
 /** Facts whose change invalidates an earlier officer approval (the officer approved a different loan). */
-function approvalBasis(f: Pick<LoanBrokerOfRecord, "lender" | "noteRatePct" | "fedDiscountRatePct" | "lenderCharges" | "collateral" | "tableFunded" | "tableFundedInKuberaName" | "deedBeneficiaryName" | "originatorName" | "transactionDate">): string {
+function approvalBasis(f: Pick<LoanBrokerOfRecord, "lender" | "noteRatePct" | "fedDiscountRatePct" | "lenderCharges" | "collateral" | "tableFunded" | "tableFundedInCorinName" | "deedBeneficiaryName" | "originatorName" | "transactionDate">): string {
   const charges = f.lenderCharges ? lenderChargesSchema.parse(f.lenderCharges) : null;
   return JSON.stringify([
     [f.lender.name, f.lender.category, f.lender.evidenceRef ?? null],
@@ -98,7 +98,7 @@ function approvalBasis(f: Pick<LoanBrokerOfRecord, "lender" | "noteRatePct" | "f
     charges && [charges.lenderPointsPct, charges.exitFeePct, charges.minimumInterestMonths, charges.termMonths ?? null, charges.effectiveRatePct ?? null],
     [f.collateral.realPropertyLien, f.collateral.equityPledgeOrUccOnly ?? false, f.collateral.apn ?? null, f.collateral.lienPosition ?? null],
     Boolean(f.tableFunded),
-    f.tableFundedInKuberaName,
+    f.tableFundedInCorinName,
     f.deedBeneficiaryName ?? null,
     f.originatorName ?? null,
     f.transactionDate,
@@ -114,17 +114,17 @@ export async function governingNoteRate(store: DealDeskStore, deal: Deal): Promi
 }
 
 /**
- * When the loan documents name Kubera as beneficiary or originator (or the
- * loan is table funded in Kubera's name), gate A holds the deal for counsel:
+ * When the loan documents name Corin as beneficiary or originator (or the
+ * loan is table funded in Corin's name), gate A holds the deal for counsel:
  * an open MLDS is held too, so nothing goes to the borrower.
  */
 async function holdOpenMlds(deps: BrokerOfRecordDeps, deal: Deal, file: LoanBrokerOfRecord, actor: string): Promise<boolean> {
   const requirement = mldsRequirement({
-    kuberaRole: "broker",
+    corinRole: "broker",
     program: deal.program,
     collateral: file.collateral,
-    tableFundedInKuberaName: file.tableFundedInKuberaName,
-    ...namesKubera(file),
+    tableFundedInCorinName: file.tableFundedInCorinName,
+    ...namesCorin(file),
   });
   if (!requirement.heldForCounsel || !deps.disclosures) return requirement.heldForCounsel;
   const mlds = await currentDealMlds(deps.disclosures, deal);
@@ -168,7 +168,7 @@ export async function recordLoanBrokerOfRecord(deps: BrokerOfRecordDeps, input: 
     },
     tableFunded: f.tableFunded ?? false,
     ...(f.trueFundingSource ? { trueFundingSource: f.trueFundingSource } : {}),
-    tableFundedInKuberaName: f.tableFundedInKuberaName ?? false,
+    tableFundedInCorinName: f.tableFundedInCorinName ?? false,
     ...(f.deedBeneficiaryName ? { deedBeneficiaryName: f.deedBeneficiaryName } : {}),
     ...(f.originatorName ? { originatorName: f.originatorName } : {}),
     transactionDate: f.transactionDate,

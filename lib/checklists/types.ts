@@ -1,4 +1,4 @@
-// Deal checklist vocabulary (WS-U). Kubera brokers the loan, so every item is
+// Deal checklist vocabulary (WS-U). Corin brokers the loan, so every item is
 // something the borrower, a vendor, title/escrow or the lender of record
 // provides before closing. Nothing here tracks money movement or construction
 // draws (Global rule 1): the checklists stop at closing.
@@ -48,8 +48,8 @@ export const CATEGORY_LABEL: Record<ChecklistCategory, string> = {
   program: "Program forms",
 };
 
-/** Who supplies the item. "lender" means the lender of record (Kubera is never the lender). */
-export const RESPONSIBLE_PARTIES = ["borrower", "kubera", "lender", "vendor", "title_escrow"] as const;
+/** Who supplies the item. "lender" means the lender of record (Corin is never the lender). */
+export const RESPONSIBLE_PARTIES = ["borrower", "corin", "lender", "vendor", "title_escrow"] as const;
 export type ResponsibleParty = (typeof RESPONSIBLE_PARTIES)[number];
 
 export const CHECKLIST_STAGES = ["application", "underwriting", "pre_closing"] as const;

@@ -45,7 +45,7 @@ export const hubs: HubEntry[] = [
         answer: "It depends on size, stabilization and ownership. HUD 232/223(f) fits larger stabilized communities, SBA 504 fits owner-operators, and bridge loans fit transitional properties.",
       },
       {
-        question: "Is Kubera the lender on senior living loans?",
+        question: "Is Corin the lender on senior living loans?",
         answer: disclosures.brokerNotLender,
       },
     ],
@@ -162,7 +162,7 @@ export const hubs: HubEntry[] = [
       {
         heading: "Our role in construction projects",
         paragraphs: [
-          "Kubera arranges construction financing as a broker. The construction lender funds and administers draws. Kubera has no role in draw requests, inspections or lien waivers, and never holds or disburses loan funds.",
+          "Corin arranges construction financing as a broker. The construction lender funds and administers draws. Corin has no role in draw requests, inspections or lien waivers, and never holds or disburses loan funds.",
         ],
       },
     ],
@@ -172,8 +172,8 @@ export const hubs: HubEntry[] = [
         answer: "A portion of the loan set aside to pay interest during construction and lease-up. It is part of the loan, so it counts toward leverage.",
       },
       {
-        question: "Does Kubera manage construction draws?",
-        answer: "No. The construction lender funds and administers draws. Kubera has no role in them.",
+        question: "Does Corin manage construction draws?",
+        answer: "No. The construction lender funds and administers draws. Corin has no role in them.",
       },
     ],
     related: ["hud-221d4", "bridge-to-hud", "multifamily", "hard-money"],

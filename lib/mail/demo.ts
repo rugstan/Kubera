@@ -43,7 +43,7 @@ function row(mailbox: InboundMailbox, id: string, over: Partial<MailRow> & { rea
     references: [],
     fromAddress: "owner@example.com",
     fromName: "Demo Borrower",
-    toAddresses: [`${mailbox}@kuberacommercial.com`],
+    toAddresses: [`${mailbox}@corincommercial.com`],
     ccAddresses: [],
     subject: "",
     receivedAt: "2026-10-31T16:00:00.000Z",

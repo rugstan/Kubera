@@ -101,7 +101,7 @@ describe("legal pages", () => {
   it("privacy policy covers CalOPPA and CCPA essentials", () => {
     const t = text(rendered.privacy);
     for (const id of ["notice-at-collection", "retention", "rights", "requests", "signals", "sharing", "changes", "contact"]) expect(rendered.privacy).toContain(`id="${id}"`);
-    expect(t).toContain("privacy@kuberacommercial.com");
+    expect(t).toContain("privacy@corincommercial.com");
     expect(t).toContain("We do not sell personal information");
     expect(t).toContain("Global Privacy Control");
     expect(t).toContain("Do Not Track");
@@ -149,7 +149,7 @@ describe("legal pages", () => {
 
   it("no legal page mentions AI or a separate AI-use page", () => {
     for (const markup of Object.values(rendered)) {
-      expect(text(markup)).not.toMatch(/\bAI\b|Kubera AI|AI-assisted/);
+      expect(text(markup)).not.toMatch(/\bAI\b|Corin AI|AI-assisted/);
       expect(markup).not.toContain("/privacy/ai");
     }
   });
@@ -182,7 +182,7 @@ describe("legal pages", () => {
     const t = text(rendered.accessibility);
     expect(t).toContain("WCAG");
     expect(t).toContain("2.2");
-    expect(t).toMatch(/deals@kuberacommercial\.com/);
+    expect(t).toMatch(/deals@corincommercial\.com/);
   });
 });
 
@@ -200,7 +200,7 @@ describe("legalMetadata", () => {
     expect(images?.[0]).toMatchObject({ url: "/opengraph-image", width: 1200, height: 630 });
     expect((m.twitter as { card?: string }).card).toBe("summary_large_image");
     expect((m.twitter as { images?: string[] }).images).toEqual(["/opengraph-image"]);
-    expect((m.openGraph as { title?: string }).title).toBe("Terms of use · Kubera Commercial");
+    expect((m.openGraph as { title?: string }).title).toBe("Terms of use · Corin Commercial");
   });
 });
 

@@ -5,7 +5,7 @@ import { DAYTIME, LEAD_EMAIL, LEAD_PHONE, makeHarness, NIGHT } from "./testing";
 const smsReq = (key = "k1", over = {}) => ({
   templateId: "speed_to_lead_sms" as const,
   to: { audience: "borrower" as const, phone: LEAD_PHONE },
-  data: { firstName: "Pat", bookingUrl: "https://cal.com/kubera/intro" },
+  data: { firstName: "Pat", bookingUrl: "https://cal.com/corin/intro" },
   idempotencyKey: key,
   leadId: "11111111-1111-4111-8111-111111111111",
   ...over,

@@ -14,7 +14,7 @@ function msg(over: Partial<MailMessage> = {}): MailMessage {
     subject: "Rent roll attached",
     fromAddress: "attacker@evil-but-dmarc.test",
     fromName: null,
-    toAddresses: ["docs@kuberacommercial.com"],
+    toAddresses: ["docs@corincommercial.com"],
     ccAddresses: [],
     receivedAt: "2026-11-03T16:00:00Z",
     hasAttachments: true,
@@ -51,7 +51,7 @@ const directory = () =>
   new MemoryDealDirectory(
     [{ id: DEAL, leadId: LEAD, name: "Harbor View refi" }],
     [{ id: LEAD, email: "pat.lee@example.com" }],
-    [{ messageId: "kc-outbound-77@kuberacommercial.com", dealId: DEAL, leadId: LEAD }],
+    [{ messageId: "cc-outbound-77@corincommercial.com", dealId: DEAL, leadId: LEAD }],
   );
 
 describe("routeMail participant step", () => {
@@ -83,13 +83,13 @@ describe("routeMail participant step", () => {
 
 describe("routeMail thread step", () => {
   it("auto-routes a thread reply from an authenticated sender", async () => {
-    const r = await routeMail(msg({ fromAddress: "pat.lee@example.com", inReplyTo: "kc-outbound-77@kuberacommercial.com" }), classification, directory());
+    const r = await routeMail(msg({ fromAddress: "pat.lee@example.com", inReplyTo: "cc-outbound-77@corincommercial.com" }), classification, directory());
     expect(r).toMatchObject({ dealId: DEAL, method: "thread", status: "processed" });
   });
 
   it("sends a spoofed reply that copied References to review", async () => {
     const r = await routeMail(
-      msg({ fromAddress: "pat.lee@example.com", dmarc: "fail", references: ["kc-outbound-77@kuberacommercial.com"] }),
+      msg({ fromAddress: "pat.lee@example.com", dmarc: "fail", references: ["cc-outbound-77@corincommercial.com"] }),
       classification,
       directory(),
     );

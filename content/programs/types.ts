@@ -23,7 +23,7 @@ export interface ProgramFact {
   value: string;
   /** Date the underlying figure was last checked (YYYY-MM-DD). */
   asOf: string;
-  /** Where the figure comes from (program rule, notice, or Kubera's underwriting assumption). */
+  /** Where the figure comes from (program rule, notice, or Corin's underwriting assumption). */
   source: string;
   /**
    * Internal review flag: true when the figure rests on a rule that changes by

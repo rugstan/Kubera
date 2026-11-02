@@ -14,7 +14,7 @@ const FORBIDDEN: [string, RegExp][] = [
   ["autonomous", /\bautonomous\b/i],
   ["guarantee", /\bguarantee[sd]?\b(?!\s+(?:fee|share))(?<!not guaranteed)/i],
   ["usury-exempt claim", /usury[- ]exempt|exempt from usury/i],
-  ["Kubera as lender", /\b(we|kubera) (lend|fund|originate|service)s?\b/i],
+  ["Corin as lender", /\b(we|corin) (lend|fund|originate|service)s?\b/i],
   ["instant promises", /\b(instant|same[- ]day) (approval|funding|close)/i],
   ["closing timeline range", /\b\d+\s*[–-]\s*\d+\s+(?:days|business days)\b/i],
 ];
@@ -87,7 +87,7 @@ describe("homepage copy", () => {
 describe("homepage FAQ", () => {
   it("keeps the broker, timing and draw answers", () => {
     const answer = (q: RegExp) => HOME_FAQ.find((f) => q.test(f.question))!.answer;
-    expect(answer(/lender\?/)).toMatch(/^No\. Kubera Commercial is a real estate broker, not a lender\./);
+    expect(answer(/lender\?/)).toMatch(/^No\. Corin Commercial is a real estate broker, not a lender\./);
     expect(answer(/how long/i)).toContain("They are not guaranteed.");
     expect(answer(/draws/)).toMatch(/no role in draw requests/);
   });

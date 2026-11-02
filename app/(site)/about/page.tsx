@@ -45,7 +45,7 @@ export default function AboutPage() {
   const call = callLink();
   return (
     <PageShell
-      eyebrow="About Kubera Commercial"
+      eyebrow="About Corin Commercial"
       title="A licensed broker, not a lender."
       intro={
         <p>
@@ -57,7 +57,7 @@ export default function AboutPage() {
     >
       <JsonLd
         data={[
-          aboutPageSchema({ path: meta.path, name: "About Kubera Commercial", description: meta.description }),
+          aboutPageSchema({ path: meta.path, name: "About Corin Commercial", description: meta.description }),
           breadcrumbSchema([
             { name: "Home", path: "/" },
             { name: "About", path: meta.path },
@@ -79,7 +79,7 @@ export default function AboutPage() {
       <Section id="broker-not-lender" title="What broker means for you" lead="The line between broker and lender decides who holds your money and who makes the credit decision.">
         <div className="grid gap-5 md:grid-cols-2">
           <div className="bento p-7">
-            <h3 className="text-lg font-semibold">What Kubera does</h3>
+            <h3 className="text-lg font-semibold">What Corin does</h3>
             <ul className="mt-4 list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-titanium">
               <li>Finds, compares and negotiates with lenders on your behalf.</li>
               <li>Packages your file and coordinates third-party reports.</li>
@@ -87,7 +87,7 @@ export default function AboutPage() {
             </ul>
           </div>
           <div className="bento p-7">
-            <h3 className="text-lg font-semibold">What Kubera does not do</h3>
+            <h3 className="text-lg font-semibold">What Corin does not do</h3>
             <ul className="mt-4 list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-titanium">
               <li>Make credit decisions. The lender underwrites and funds as lender of record.</li>
               <li>Accept, hold, transfer or disburse borrower, investor or loan funds.</li>

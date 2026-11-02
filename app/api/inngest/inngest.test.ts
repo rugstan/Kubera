@@ -19,7 +19,7 @@ describe("/api/inngest", () => {
     for (const k of ENV_KEYS) delete process.env[k];
     const { GET, POST, PUT } = await import("./route");
     for (const handler of [GET, POST, PUT]) {
-      const res = await handler(new Request("https://kuberacommercial.com/api/inngest", { method: "POST", body: "{}" }), {});
+      const res = await handler(new Request("https://corincommercial.com/api/inngest", { method: "POST", body: "{}" }), {});
       expect(res.status).toBe(503);
     }
   });
@@ -57,7 +57,7 @@ describe("/api/inngest", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { sendWorkflowEvent, workflowsConfigured } = await import("@/lib/workflows/client");
     expect(workflowsConfigured()).toBe(false);
-    await expect(sendWorkflowEvent({ name: "kubera/mail.poll.requested", data: {} })).resolves.toEqual({ sent: 0 });
+    await expect(sendWorkflowEvent({ name: "corin/mail.poll.requested", data: {} })).resolves.toEqual({ sent: 0 });
     process.env.INNGEST_EVENT_KEY = "evt";
     process.env.INNGEST_SIGNING_KEY = "signkey-prod-0000";
     expect(workflowsConfigured()).toBe(true);

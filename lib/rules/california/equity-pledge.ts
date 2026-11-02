@@ -29,7 +29,7 @@ export type EquityPledgeResult = {
   usuryExemptionUnavailable: boolean;
   flags: Flag[];
   reasons: string[];
-  /** Counsel should review before Kubera represents anything about this position. */
+  /** Counsel should review before Corin represents anything about this position. */
   counselReview: boolean;
   /** Collateral shape for `lib/compliance/gates.ts` (evaluateUsury, mldsRequirement). */
   collateral: CollateralInput;

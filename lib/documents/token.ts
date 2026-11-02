@@ -14,7 +14,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 const VERSION = "v1";
-const PURPOSE = "kubera:document-upload:v1";
+const PURPOSE = "corin:document-upload:v1";
 
 const payloadSchema = z.object({ d: z.uuid(), l: z.uuid(), e: z.number().int().positive() });
 

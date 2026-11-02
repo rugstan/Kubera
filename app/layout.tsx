@@ -9,8 +9,8 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
   title: {
-    default: "Kubera Commercial | Commercial Real Estate Loan Broker",
-    template: "%s · Kubera Commercial",
+    default: "Corin Commercial | Commercial Real Estate Loan Broker",
+    template: "%s · Corin Commercial",
   },
   description:
     "Licensed California loan broker for senior living, hotel, multifamily, construction and hard money financing: HUD, SBA, CMBS, agency, bank and private lenders.",

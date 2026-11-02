@@ -28,7 +28,7 @@ const QUEUE_LABELS: Record<string, string> = {
 
 const ERRORS: Record<string, string> = {
   not_in_queue: "That message is no longer waiting for review; someone may have resolved it already.",
-  unknown_target: "No single deal or lead matches that reference. Use a KC- deal reference, a deal ID or a lead ID.",
+  unknown_target: "No single deal or lead matches that reference. Use a CC- deal reference, a deal ID or a lead ID.",
   not_assignable: "That message was never read successfully. Open it in Zoho Mail, then dismiss it here.",
   not_configured: "The mail review queue is not configured on this deployment.",
   forbidden: "Your role cannot file inbound mail.",
@@ -224,7 +224,7 @@ function MailCard({ mail: m, canFile }: { mail: ReviewMail; canFile: boolean }) 
                   required
                   maxLength={80}
                   defaultValue={suggestedTarget(m)}
-                  placeholder="KC-1A2B3C4D"
+                  placeholder="CC-1A2B3C4D"
                   autoComplete="off"
                   className="field w-72 max-w-full"
                   aria-describedby={held.length ? `held-${m.id}` : undefined}

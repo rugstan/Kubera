@@ -1,6 +1,6 @@
 // Hard money underwriting file (hm_underwriting): after-repair value, scope of
 // work, sponsor track record and exit plan, checked against the hard money
-// grid in lib/sizing/programs/assumptions.ts. Kubera presents the file to the
+// grid in lib/sizing/programs/assumptions.ts. Corin presents the file to the
 // private lender, which funds as lender of record, holds any rehab holdback
 // and administers it; nothing here schedules or releases rehab funds.
 

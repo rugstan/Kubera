@@ -14,8 +14,8 @@
 -- prospect_suppressions   do-not-contact list. Values are stored as SHA-256 hashes so the
 --                         list can be checked without keeping the address in a second place.
 --
--- Broker only (Global rule 1): these tables hold public-record facts and Kubera's own
--- drafts. Loan figures are the recorded mortgage on the property, never funds Kubera
+-- Broker only (Global rule 1): these tables hold public-record facts and Corin's own
+-- drafts. Loan figures are the recorded mortgage on the property, never funds Corin
 -- handles. RLS is enabled with no policies, so only the service role reads or writes
 -- (the staff pages authorize through lib/auth first).
 
@@ -105,7 +105,7 @@ create table public.prospects (
   -- Staff-entered contact (public records carry no email address).
   contact_name text check (contact_name is null or length(contact_name) <= 200),
   contact_email text check (contact_email is null or (length(contact_email) <= 320 and contact_email ~ '^[^\s@]+@[^\s@]+\.[^\s@]+$')),
-  -- The recorded mortgage that matures (public record, not Kubera's loan).
+  -- The recorded mortgage that matures (public record, not Corin's loan).
   loan_original_cents bigint check (loan_original_cents is null or loan_original_cents > 0),
   loan_lender text check (loan_lender is null or length(loan_lender) <= 200),
   loan_origination_date date,

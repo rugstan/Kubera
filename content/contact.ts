@@ -49,7 +49,7 @@ export function mailboxAddress(local: string): string {
   return `${local}@${site.primaryDomain}`;
 }
 
-/** Cal.com handle such as `kubera/intro`: one to three path segments of letters, digits, `-` and `_`. */
+/** Cal.com handle such as `corin/intro`: one to three path segments of letters, digits, `-` and `_`. */
 const CAL_LINK = /^[a-z0-9][a-z0-9_-]*(?:\/[a-z0-9][a-z0-9_-]*){0,2}$/i;
 
 type Env = Record<string, string | undefined>;

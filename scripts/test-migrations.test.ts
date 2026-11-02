@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { applyMigrations, createStubbedDb, custodyViolations, lintMigrationNames, lintWorkstreamSlots, listMigrations, runMigrationTests } from "./test-migrations.ts";
 
 function fixtureDir(files: Record<string, string>): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "kubera-migrations-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "corin-migrations-"));
   for (const [name, sql] of Object.entries(files)) writeFileSync(path.join(dir, name), sql);
   return dir;
 }

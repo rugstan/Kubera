@@ -18,7 +18,7 @@ export function InsightsIndex() {
             { name: INSIGHTS_INDEX.title, path: INSIGHTS_BASE },
           ]),
           collectionSchema({
-            name: "Kubera Commercial insights",
+            name: "Corin Commercial insights",
             description: INSIGHTS_INDEX.description,
             path: INSIGHTS_BASE,
             items: items.map((i) => ({ name: i.title, path: insightPath(i.slug) })),

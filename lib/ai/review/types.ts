@@ -1,4 +1,4 @@
-// Supervision of Ask Kubera AI: what staff see when they review a conversation.
+// Supervision of Ask Corin AI: what staff see when they review a conversation.
 // The transcript itself lives in public.ai_conversations (lib/conversations);
 // flags, review status, annotations and guardrail hits are the supervision
 // layer on top of it (migration 20261104000400_o_ai_supervision.sql).

@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
   title: "Partner portal",
-  description: "Register as a wholesale lender, referral broker, operator or third-party vendor with Kubera Commercial.",
+  description: "Register as a wholesale lender, referral broker, operator or third-party vendor with Corin Commercial.",
   path: "/partners",
 });
 

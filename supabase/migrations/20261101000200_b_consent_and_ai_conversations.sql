@@ -54,7 +54,7 @@ create trigger consent_events_no_update
   before update on public.consent_events
   for each row execute function public.consent_events_immutable();
 
--- Ask Kubera AI transcripts ---------------------------------------------------------
+-- Ask Corin AI transcripts ---------------------------------------------------------
 -- The server is the only writer: browsers send a conversation id and a new
 -- message, and the server appends the user turn plus its own reply here.
 create table public.ai_conversations (

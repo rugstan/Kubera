@@ -6,7 +6,7 @@ import { DAYTIME, makeHarness, type Harness } from "./testing";
 const SECRET = "internal-secret-with-more-than-32-characters";
 const CRON = "cron-secret-with-more-than-32-characters!!";
 const LEAD_ID = "3f9a12bc-0000-4000-8000-000000000001";
-const STAFF = { phones: ["+13105550111"], emails: ["deals@kuberacommercial.com"] };
+const STAFF = { phones: ["+13105550111"], emails: ["deals@corincommercial.com"] };
 
 const tier1Lead = (over: Partial<LeadRecord> = {}): LeadRecord => ({
   id: LEAD_ID,
@@ -24,7 +24,7 @@ let leads: MemoryLeadSource;
 let deps: NotifyHandlerDeps;
 
 const post = (path: string, body: unknown, auth: string | null = `Bearer ${SECRET}`) =>
-  new Request(`https://kuberacommercial.com/api/notify/${path}`, {
+  new Request(`https://corincommercial.com/api/notify/${path}`, {
     method: "POST",
     headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) },
     body: JSON.stringify(body),
@@ -114,7 +114,7 @@ describe("POST /api/notify/stage-event", () => {
 });
 
 describe("GET /api/notify/sweep", () => {
-  const get = (auth: string | null = `Bearer ${CRON}`) => new Request("https://kuberacommercial.com/api/notify/sweep", { headers: auth ? { authorization: auth } : {} });
+  const get = (auth: string | null = `Bearer ${CRON}`) => new Request("https://corincommercial.com/api/notify/sweep", { headers: auth ? { authorization: auth } : {} });
 
   it("requires the cron secret", async () => {
     expect((await handleSweep(get(null), deps)).status).toBe(401);

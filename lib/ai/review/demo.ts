@@ -39,7 +39,7 @@ export function seedDemoReviewStore(store: MemoryReviewStore = new MemoryReviewS
     page: "/express",
     messages: [
       user("I own a 58-bed assisted living facility. Am I approved for a HUD loan?", "2026-11-03T18:30:10.000Z"),
-      assistant(`Thanks for the details. A 58-bed assisted living facility with strong occupancy is the kind of property HUD 232 is built for. ${SAFE_REPLACEMENTS.commitment} Next, submit the 60-second qualifier or book a call with a Kubera advisor.`, "2026-11-03T18:30:40.000Z", {
+      assistant(`Thanks for the details. A 58-bed assisted living facility with strong occupancy is the kind of property HUD 232 is built for. ${SAFE_REPLACEMENTS.commitment} Next, submit the 60-second qualifier or book a call with a Corin advisor.`, "2026-11-03T18:30:40.000Z", {
         guardrail: { mode: "enforce", categories: ["commitment"], count: 1 },
       }),
     ],
@@ -63,7 +63,7 @@ export function seedDemoReviewStore(store: MemoryReviewStore = new MemoryReviewS
     ],
     flagged: true,
     flagReason: "Equity figure is for standard properties, not hotels",
-    flaggedBy: "staff:demo-analyst@kubera.test",
+    flaggedBy: "staff:demo-analyst@corin.test",
     flaggedAt: "2026-11-02T09:00:00.000Z",
     reviewStatus: "in_review",
   });
@@ -82,10 +82,10 @@ export function seedDemoReviewStore(store: MemoryReviewStore = new MemoryReviewS
     ],
     flagged: true,
     flagReason: "Check the timeline answer",
-    flaggedBy: "staff:demo-broker@kubera.test",
+    flaggedBy: "staff:demo-broker@corin.test",
     flaggedAt: "2026-10-30T17:00:00.000Z",
     reviewStatus: "reviewed",
-    reviewedBy: "staff:demo-broker@kubera.test",
+    reviewedBy: "staff:demo-broker@corin.test",
     reviewedAt: "2026-10-30T17:10:00.000Z",
   });
   void store.addAnnotation(
@@ -95,7 +95,7 @@ export function seedDemoReviewStore(store: MemoryReviewStore = new MemoryReviewS
   return store;
 }
 
-const DEMO_KEY = Symbol.for("kubera.ai-review.demo");
+const DEMO_KEY = Symbol.for("corin.ai-review.demo");
 
 /** One demo store per server process, shared across route bundles (like the fake auth store). */
 export function demoReviewStore(): MemoryReviewStore {

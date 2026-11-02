@@ -113,7 +113,7 @@ describe("sources", () => {
 
   it("the header has no Ask entry points", () => {
     const src = source("GlassHeader.tsx");
-    for (const gone of ["openCommandBar", "Ask Kubera", "data-ask"]) expect(src, gone).not.toContain(gone);
+    for (const gone of ["openCommandBar", "Ask Corin", "data-ask"]) expect(src, gone).not.toContain(gone);
   });
 
   it("nav.ts imports only the program types, never the program copy", () => {

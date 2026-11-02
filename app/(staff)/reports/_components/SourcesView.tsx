@@ -51,7 +51,7 @@ export function SourcesView({ r }: { r: ReportBundle }) {
         <p className="mt-3 text-[13px] text-titanium">Deals with no lead behind them (entered by hand, or opened from a take-out) appear as &quot;(no lead)&quot;.</p>
       </Panel>
 
-      <Panel title="Record marketing spend" description="What Kubera spent on a lead source over a period. A period that crosses the report dates is counted by days.">
+      <Panel title="Record marketing spend" description="What Corin spent on a lead source over a period. A period that crosses the report dates is counted by days.">
         <SpendForm />
       </Panel>
     </div>

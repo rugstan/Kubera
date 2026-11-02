@@ -18,11 +18,11 @@ import { brokerFee, sbaLenderReferralFee, sbaPackagingFee } from "./ledger";
 import { newDeal, setup } from "./test-fixtures";
 
 const agent = {
-  legalName: "Kubera Commercial, Inc.",
+  legalName: "Corin Commercial, Inc.",
   agentType: "BROKER" as const,
   address: "100 Market St, San Francisco, CA 94105",
   dreLicense: "02234567",
-  signer: { name: "Neeli Khanna", email: "neeli@kuberacommercial.com", dreLicense: "01234567" },
+  signer: { name: "Neeli Khanna", email: "neeli@corincommercial.com", dreLicense: "01234567" },
 };
 const lender = { name: "Live Oak Bank", locationId: "123456", signer: { name: "Pat Officer", email: "pat@liveoak.example" } };
 const applicant = { businessName: "Harbor Hotel Group LLC", signers: [{ name: "Ravi Shah", email: "ravi@harbor.example", title: "Managing member" }] };
@@ -35,7 +35,7 @@ async function sbaDeal() {
 }
 
 describe("Form 159 from the ledger", () => {
-  it("buckets Kubera's compensation into packaging, other services and lender-paid referral", async () => {
+  it("buckets Corin's compensation into packaging, other services and lender-paid referral", async () => {
     const { store, now, deal } = await sbaDeal();
     await store.insertFeeEntry(sbaPackagingFee({ dealId: deal.id, flatCents: 250_000 }), "broker:ana", now());
     await store.insertFeeEntry(brokerFee({ dealId: deal.id, loanAmountCents: 450_000_000, pct: 1 }), "broker:ana", now());

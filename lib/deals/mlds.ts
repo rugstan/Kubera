@@ -11,13 +11,13 @@
 //   webhook   the signed copy arrives (app/api/webhooks/zoho-sign), and the
 //             closing gate (lib/compliance/gates.ts) then lets the deal close
 //
-// Kubera is the broker, never the lender: figures that name Kubera as the
+// Corin is the broker, never the lender: figures that name Corin as the
 // lender or a lienholder / beneficiary hold the MLDS (and so the deal) for
 // counsel instead of generating it, and nothing here touches funds.
 
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
-import { KUBERA_NAME, type MldsFacts } from "@/lib/compliance/schemas";
-import { namesKubera } from "@/lib/disclosures/broker-of-record";
+import { CORIN_NAME, type MldsFacts } from "@/lib/compliance/schemas";
+import { namesCorin } from "@/lib/disclosures/broker-of-record";
 import { zonedInstant } from "@/lib/disclosures/business-days";
 import type { DealRecordSink } from "@/lib/disclosures/deal-record";
 import type { MldsData, MldsInput } from "@/lib/disclosures/mlds";
@@ -61,12 +61,12 @@ export async function dealMldsFacts(store: DealDeskStore, deal: Deal): Promise<M
   if (deal.collateralRealProperty === null) throw new MldsDeskError("Record whether a lien on real property secures the loan first.");
   const loan = await store.getLoanBrokerOfRecord(deal.id);
   return {
-    kuberaRole: "broker",
+    corinRole: "broker",
     program: deal.program,
     collateral: loan?.collateral ?? { realPropertyLien: deal.collateralRealProperty, equityPledgeOrUccOnly: false },
-    tableFundedInKuberaName: loan?.tableFundedInKuberaName ?? false,
-    // Beneficiary / originator as named on the loan documents (gate A: Kubera named ⇒ held for counsel).
-    ...namesKubera(loan ?? {}),
+    tableFundedInCorinName: loan?.tableFundedInCorinName ?? false,
+    // Beneficiary / originator as named on the loan documents (gate A: Corin named ⇒ held for counsel).
+    ...namesCorin(loan ?? {}),
   };
 }
 
@@ -168,7 +168,7 @@ export function parseBorrowers(raw: string): { name: string; email: string }[] {
 }
 
 /**
- * RE 882 input from the deal-desk form. Kubera's identity comes from
+ * RE 882 input from the deal-desk form. Corin's identity comes from
  * configuration and the signing licensee from the staff session; the schema
  * (mldsInputSchema) validates the rest when the MLDS is generated.
  */
@@ -242,18 +242,18 @@ export function mldsInputFromForm(get: FormReader, ctx: { broker: BrokerIdentity
   };
 }
 
-/** Why the entered RE 882 figures name Kubera as lender or lienholder, if they do (gate A: held for counsel). */
-export function mldsNamesKubera(input: MldsInput): string | null {
+/** Why the entered RE 882 figures name Corin as lender or lienholder, if they do (gate A: held for counsel). */
+export function mldsNamesCorin(input: MldsInput): string | null {
   const reasons: string[] = [];
-  if (input.loan.lenderName && KUBERA_NAME.test(input.loan.lenderName)) reasons.push("The MLDS figures name Kubera as the lender of record; Kubera is a broker only.");
+  if (input.loan.lenderName && CORIN_NAME.test(input.loan.lenderName)) reasons.push("The MLDS figures name Corin as the lender of record; Corin is a broker only.");
   const liens = [...(input.existingLiens ?? []), ...(input.expectedLiens ?? [])];
-  if (liens.some((l) => KUBERA_NAME.test(l.lienholder))) reasons.push("The MLDS figures name Kubera as a lienholder or trust-deed beneficiary; Kubera is a broker only.");
+  if (liens.some((l) => CORIN_NAME.test(l.lienholder))) reasons.push("The MLDS figures name Corin as a lienholder or trust-deed beneficiary; Corin is a broker only.");
   return reasons.length ? `${reasons.join(" ")} (B&P §10234)` : null;
 }
 
 /**
  * Step 2: render the RE 882 from the entered figures (regenerates until it is
- * sent). Figures that name Kubera as lender or lienholder are not a typo to
+ * sent). Figures that name Corin as lender or lienholder are not a typo to
  * fix: the deal is held for counsel (the MLDS is held, so borrower documents
  * and closing stop) and nothing is rendered.
  */
@@ -262,10 +262,10 @@ export async function generateDealMlds(
   input: { dealId: string; disclosureId: string; mlds: MldsInput; actor: string },
 ): Promise<DisclosureRecord> {
   const { record: current } = await dealDisclosure(deps, input.dealId, input.disclosureId);
-  const namesKuberaReason = mldsNamesKubera(input.mlds);
-  if (namesKuberaReason) {
+  const namesCorinReason = mldsNamesCorin(input.mlds);
+  if (namesCorinReason) {
     if (current.status === "held_for_counsel") return current;
-    return holdForCounsel({ store: deps.disclosures, now: deps.now, ...(deps.deal ? { deal: deps.deal } : {}) }, input.disclosureId, namesKuberaReason, input.actor);
+    return holdForCounsel({ store: deps.disclosures, now: deps.now, ...(deps.deal ? { deal: deps.deal } : {}) }, input.disclosureId, namesCorinReason, input.actor);
   }
   const { record } = await generateMlds(
     { store: deps.disclosures, storage: deps.storage, render: deps.render, now: deps.now, ...(deps.approvedTemplate !== undefined ? { approvedTemplate: deps.approvedTemplate } : {}) },

@@ -147,8 +147,8 @@ describe("Zoho Sign requests", () => {
       return Response.json({ status: "success" });
     });
     const z = new ZohoSignProvider(config, fetchImpl);
-    expect(await z.embeddedSigningUrl("req_9", "a1", "https://kuberacommercial.com")).toBe("https://sign.zoho.com/signembed/abc");
-    expect(new URLSearchParams(calls.find((c) => c.url.endsWith("/embedtoken"))?.body).get("host")).toBe("https://kuberacommercial.com");
+    expect(await z.embeddedSigningUrl("req_9", "a1", "https://corincommercial.com")).toBe("https://sign.zoho.com/signembed/abc");
+    expect(new URLSearchParams(calls.find((c) => c.url.endsWith("/embedtoken"))?.body).get("host")).toBe("https://corincommercial.com");
     expect(Buffer.from(await z.downloadSigned("req_9")).toString("latin1")).toBe("%PDF-1");
     await z.recall("req_9", "Terms changed");
     expect(calls.at(-1)?.url).toBe("https://sign.zoho.com/api/v1/requests/req_9/recall");

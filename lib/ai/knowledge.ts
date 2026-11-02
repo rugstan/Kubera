@@ -20,7 +20,7 @@ export const HUD_FACTS_AS_OF = ASSUMPTIONS_REVIEWED;
 // (HUD 4232.1, MAP Guide, SOP 50 10, CMBS/STR standards, Title 22) lives in the
 // kb_chunks table and is retrieved per question; see scripts/ingest-kb.ts.
 export const PROGRAM_PRIMER = `
-# Kubera Commercial program primer (summary — defer to current handbooks)
+# Corin Commercial program primer (summary — defer to current handbooks)
 
 ## HUD Section 232 (healthcare: assisted living, board & care / RCFE, memory care, SNF)
 - 232/223(f) refinance or acquisition of existing licensed facilities: up to ${s232.refi.termYears}-year fixed, fully amortizing, non-recourse, assumable. Typical max ${pct(s232.refi.maxLtv)} LTV (for-profit), ${x(s232.refi.minDscr)} minimum DSCR. Generally requires ${s232.minYearsSinceCompletion}+ years since construction completion and stabilized operations.
@@ -36,7 +36,7 @@ export const PROGRAM_PRIMER = `
 ## SBA 504 (owner-operated care facilities and hotels)
 - Bank 1st lien (~50%), CDC/SBA debenture 2nd (25-year fixed), borrower equity. Special-purpose properties (hotels, care facilities) need +5% equity (15% total); start-ups / new construction +5% more.
 - Standard CDC debenture cap $5M per project ($5.5M for qualifying energy-efficiency/manufacturing projects). Personal guaranties from 20%+ owners required (full recourse). Operating company must occupy ≥51%.
-- Kubera models a 2026 combined 7(a) + 504 structure of up to $10M SBA exposure plus the bank 1st for larger hotel and care-facility projects; confirm against the SOP 50 10 revision in effect at application.
+- Corin models a 2026 combined 7(a) + 504 structure of up to $10M SBA exposure plus the bank 1st for larger hotel and care-facility projects; confirm against the SOP 50 10 revision in effect at application.
 - Ongoing SBA guarantee, CDC servicing, and CSA fees (~1% annually on the debenture) are shown separately from P&I.
 
 ## Hospitality
@@ -49,12 +49,12 @@ export const PROGRAM_PRIMER = `
 - HUD 221(d)(4) (as of ${HUD_FACTS_AS_OF}; ML 2025-03): construction + ${mf.s221d4.termYears}-year fixed; market-rate max ${pct(mf.s221d4.maxLtc)} LTC at ${x(mf.s221d4.minDscr)}; affordable or rental-assistance ${pct(mf.s221d4.maxLtcAffordable)} LTC at ${x(mf.s221d4.minDscrAffordable)}. A middle-income 221(d)(4) tier has been reported by a single source; do not quote it until a HUD lender confirms it.
 - HUD multifamily MIP (as of ${HUD_FACTS_AS_OF}; Federal Register, Sept 23, 2025): a flat ${pct(mf.mip.annual, 2)} annual MIP for all FHA multifamily programs on applications submitted or amended on or after Oct 1, 2025; the separate green, affordable and market-rate MIP tiers no longer apply. Upfront premium modeled at ${pct(mf.mip.upfront, 2)} (being verified with HUD lenders).
 - Agency (Fannie Mae / Freddie Mac): ~${AGENCY_GRID.amortYears}-year amortization, ~${pct(AGENCY_GRID.tiers.TIER_2.maxLtv)} LTV, ${x(AGENCY_GRID.tiers.TIER_2.minDscr)} DSCR, non-recourse. Fannie Mae Small Loan (up to ${usdM(fannieT.smallLoanMax)}): fixed terms of ${agencyTerms(fannieT.terms)} years (${fannieT.terms.join("/")}). Freddie Mac Conventional Small (${usdM(freddieT.smallMin)}–${usdM(freddieT.smallMax)}): ${freddieT.terms.join("/")}-year fixed terms. Modeled assumptions, as of ${HUD_FACTS_AS_OF}; confirm with the lender.
-- Private bridge, hard money & construction ($750k–$25M): Kubera arranges loans from private lenders and debt funds, which fund at closing as lender of record. Many close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is never guaranteed.
+- Private bridge, hard money & construction ($750k–$25M): Corin arranges loans from private lenders and debt funds, which fund at closing as lender of record. Many close in 10–21 days after a complete file, subject to lender approval, appraisal, title and diligence; timing is never guaranteed.
 - Usury: California limits interest on some loans, but exemptions exist, including for certain lenders and for real-property-secured loans made or arranged by a licensed real estate broker (Civ. Code § 1916.1). Whether one applies depends on the lender, the collateral, and how the loan and any later extension or modification are arranged. Never tell a borrower that a specific loan is exempt; refer them to their attorney.
 
 ## California regulatory
-- Kubera Commercial, Inc. is a California DRE-licensed real estate corporation; arranging loans secured by real property for compensation requires a broker license (Bus. & Prof. Code § 10131(d)). Kubera is a broker, not a lender: it never funds loans, holds borrower or investor money, services loans, or handles construction draws.
-- For loans it arranges that are secured by real property, Kubera provides a California Mortgage Loan Disclosure Statement (DRE form RE 882), including on commercial loans.
+- Corin Commercial, Inc. is a California DRE-licensed real estate corporation; arranging loans secured by real property for compensation requires a broker license (Bus. & Prof. Code § 10131(d)). Corin is a broker, not a lender: it never funds loans, holds borrower or investor money, services loans, or handles construction draws.
+- For loans it arranges that are secured by real property, Corin provides a California Mortgage Loan Disclosure Statement (DRE form RE 882), including on commercial loans.
 - Title 22 (Cal. Code Regs.) governs RCFE licensing through CDSS Community Care Licensing; licensing timelines matter for hotel-to-RCFE conversions and HUD 232 eligibility.
 `.trim();
 

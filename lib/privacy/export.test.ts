@@ -75,7 +75,7 @@ describe("buildSubjectExport", () => {
     db.insertRow("sms_messages", { created_at: "2026-11-03T00:00:00Z", direction: "inbound", from_number: "+13105550100", to_number: "+14155550000", body: "STOP", keyword: "stop", provider_message_id: "tx-1" });
     db.insertRow("sms_messages", { created_at: "2026-11-03T00:00:00Z", direction: "inbound", from_number: "+19995550100", to_number: "+14155550000", body: "Someone else" });
     db.insertRow("notifications", { created_at: "2026-11-01T00:00:00Z", channel: "email", recipient: "pat@example.com", template_id: "lead_confirmation", audience: "borrower", idempotency_key: "k1" });
-    db.insertRow("notifications", { created_at: "2026-11-01T00:00:00Z", channel: "email", recipient: "deals@kuberacommercial.com", template_id: "staff_alert", audience: "staff", lead_id: lead.id });
+    db.insertRow("notifications", { created_at: "2026-11-01T00:00:00Z", channel: "email", recipient: "deals@corincommercial.com", template_id: "staff_alert", audience: "staff", lead_id: lead.id });
     db.insertRow("newsletter_subscribers", { created_at: "2026-11-01T00:00:00Z", email: "pat@example.com", status: "confirmed", resend_contact_id: "rc_1" });
 
     const doc = await buildSubjectExport(db, "pat@example.com");

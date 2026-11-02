@@ -1,5 +1,5 @@
 // Construction desk domain types (WS-AA). Pre-closing and post-construction
-// only: Kubera brokers the loan and has no role in construction draws, so
+// only: Corin brokers the loan and has no role in construction draws, so
 // nothing here models money movement, draw reviews, lien waivers or servicing.
 // Report orders carry no fees; vendors bill the borrower directly.
 

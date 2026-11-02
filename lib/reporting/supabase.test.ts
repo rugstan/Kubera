@@ -22,9 +22,9 @@ describe("row mapping", () => {
   });
 
   it("converts numeric strings from bigint columns", () => {
-    expect(mapFee({ id: "f", deal_id: "d", entry_kind: "broker_fee", payer: "borrower", payee: "kubera", status: "earned", amount_cents: "12500000", earned_on: "2026-10-15", created_at: "t", invoice_id: null }).amountCents).toBe(12_500_000);
-    expect(mapInvoice({ id: "i", deal_id: "d", number: "KC-1", status: "issued", total_cents: "100", lines: [{ feeEntryId: "f", amountCents: "100" }] }).lines).toEqual([{ feeEntryId: "f", amountCents: 100 }]);
-    expect(mapInvoice({ id: "i", deal_id: "d", number: "KC-1", status: "draft", total_cents: 0, lines: null }).lines).toEqual([]);
+    expect(mapFee({ id: "f", deal_id: "d", entry_kind: "broker_fee", payer: "borrower", payee: "corin", status: "earned", amount_cents: "12500000", earned_on: "2026-10-15", created_at: "t", invoice_id: null }).amountCents).toBe(12_500_000);
+    expect(mapInvoice({ id: "i", deal_id: "d", number: "CC-1", status: "issued", total_cents: "100", lines: [{ feeEntryId: "f", amountCents: "100" }] }).lines).toEqual([{ feeEntryId: "f", amountCents: 100 }]);
+    expect(mapInvoice({ id: "i", deal_id: "d", number: "CC-1", status: "draft", total_cents: 0, lines: null }).lines).toEqual([]);
     expect(mapOutreach({ id: "o", deal_id: "d", lender_id: "l", status: "sent", created_at: "a", updated_at: "b", sent_at: null })).toMatchObject({ dealId: "d", lenderId: "l", sentAt: null });
     expect(mapCost({ source: "s", period_start: "2026-10-01", period_end: "2026-10-31", spend_cents: "5000" }).spendCents).toBe(5_000);
   });
@@ -61,7 +61,7 @@ function fakeDb(tables: Record<string, unknown[]>) {
 
 describe("SupabaseReportingSource", () => {
   it("pages through every table and reads stage history from the audit log", async () => {
-    const fees = Array.from({ length: 2_300 }, (_, i) => ({ id: `f${i}`, deal_id: "d1", entry_kind: "broker_fee", payer: "borrower", payee: "kubera", status: "settled", amount_cents: 100, earned_on: "2026-10-15", created_at: "2026-10-15T00:00:00Z", invoice_id: null }));
+    const fees = Array.from({ length: 2_300 }, (_, i) => ({ id: `f${i}`, deal_id: "d1", entry_kind: "broker_fee", payer: "borrower", payee: "corin", status: "settled", amount_cents: 100, earned_on: "2026-10-15", created_at: "2026-10-15T00:00:00Z", invoice_id: null }));
     const { db, calls } = fakeDb({
       deals: [{ id: "d1", title: "A", name: "A", program: "HUD_232", stage: "intake", status: "active", loan_amount_cents: 100, loan_amount_usd: 1, lead_id: null, created_at: "2026-10-01T00:00:00Z", stage_entered_at: null, closed_on: null }],
       audit_log: [

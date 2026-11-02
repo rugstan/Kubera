@@ -35,7 +35,7 @@ describe("validateQuery", () => {
 describe("scanProspects", () => {
   it("stores scored prospects, records the scan and logs an agent event without PII", async () => {
     const { deps, store, events, provider } = setup();
-    const r = await scanProspects(deps, { query, actor: "staff:ana@kubera.test" });
+    const r = await scanProspects(deps, { query, actor: "staff:ana@corin.test" });
     expect(r).toMatchObject({ status: "completed", found: 2, created: 2, updated: 0, skipped: 0, suppressed: 0 });
     const rows = await store.listProspects();
     expect(rows).toHaveLength(2);
@@ -44,7 +44,7 @@ describe("scanProspects", () => {
     expect(rows.find((p) => p.apn === "0000-000-001")).toMatchObject({ loanOriginalCents: 740_000_000, recommendedProgram: "hud_223f", windowBucket: "months_6_12", scanId: r.status === "completed" ? r.scan.id : null });
     expect(provider.queries[0]).toMatchObject({ zips: ["90001", "91201"], maxResults: 500 });
     const scans = await store.listScans();
-    expect(scans[0]).toMatchObject({ status: "completed", provider: "fake", found: 2, createdCount: 2, startedBy: "staff:ana@kubera.test" });
+    expect(scans[0]).toMatchObject({ status: "completed", provider: "fake", found: 2, createdCount: 2, startedBy: "staff:ana@corin.test" });
     const ev = events.all().find((e) => e.eventType === "prospect.scan_completed")!;
     expect(ev).toMatchObject({ agent: "prospecting", outcome: "recorded" });
     expect(JSON.stringify(ev.detail)).not.toMatch(/Example|Sample|Ave|Blvd/);

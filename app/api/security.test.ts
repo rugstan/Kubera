@@ -7,7 +7,7 @@ import type { BetaMessage, BetaRawMessageStreamEvent } from "@anthropic-ai/sdk/r
 // The assistant endpoint is staff-only: staffForMutation resolves a signed-in
 // staff member by default, and the refusal cases swap in a denial.
 const staff = vi.hoisted(() => ({ result: null as unknown as { ok: boolean; status?: number; reason?: string; ctx?: unknown } }));
-const STAFF_OK = { ok: true, ctx: { principal: { userId: "staff-1", email: "advisor@kuberacommercial.com", staffRoles: ["broker"] } } };
+const STAFF_OK = { ok: true, ctx: { principal: { userId: "staff-1", email: "advisor@corincommercial.com", staffRoles: ["broker"] } } };
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/dal", () => ({ staffForMutation: async () => staff.result }));
@@ -31,7 +31,7 @@ const partners = await import("./partners/route");
 const ask = await import("./ask/route");
 const documents = await import("./documents/route");
 
-const ORIGIN = "https://kuberacommercial.com";
+const ORIGIN = "https://corincommercial.com";
 
 const leadBody = {
   intake: { assetType: "ASSISTED_LIVING", transaction: "REFINANCE", loanAmount: 2_500_000, noi: 420_000, value: 3_400_000, unitCount: 58, source: "express" },

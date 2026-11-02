@@ -110,7 +110,7 @@ export function PartnerPortal() {
       headers: turnstileHeaders(token),
       fields: FIELD_NAMES,
       labels: FIELD_LABELS,
-      contactEmail: "partners@kuberacommercial.com",
+      contactEmail: "partners@corincommercial.com",
     });
     if (result.ok) {
       track("partner_submitted", { type, consent: values.consent });
@@ -241,7 +241,7 @@ function ReferralFields({ licenseType }: { licenseType: string }) {
         boxed
         required
         name="acceptsAgreement"
-        label="I agree to receive and review Kubera Commercial's Non-Circumvention & Fee Split Agreement. Referral and co-brokerage compensation is paid only as permitted by California law (Bus. & Prof. Code § 10137) and is subject to review by our designated officer; finder arrangements with unlicensed parties are limited to introductions. A W-9 is collected by secure link after approval."
+        label="I agree to receive and review Corin Commercial's Non-Circumvention & Fee Split Agreement. Referral and co-brokerage compensation is paid only as permitted by California law (Bus. & Prof. Code § 10137) and is subject to review by our designated officer; finder arrangements with unlicensed parties are limited to introductions. A W-9 is collected by secure link after approval."
       />
     </section>
   );

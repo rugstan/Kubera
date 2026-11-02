@@ -12,11 +12,11 @@ export const CREDIT_AUTH_TEXTS: Record<string, CreditAuthText> = {
   "credit-auth-2026-11-01": {
     id: "credit-auth-2026-11-01",
     text:
-      "I authorize Kubera Commercial, Inc., a California licensed real estate broker, and the prospective lenders it presents my loan request to, " +
+      "I authorize Corin Commercial, Inc., a California licensed real estate broker, and the prospective lenders it presents my loan request to, " +
       "to obtain consumer credit reports about me, to verify the information I provide (including employment, income, assets and real estate owned), " +
       "and to screen my name against government sanctions and watch lists, for the purpose of evaluating and arranging the commercial loan request for this deal. " +
       "This authorization applies to me as an owner, officer or guarantor of the borrower. A copy of this authorization is as valid as the original. " +
-      "I can revoke it by writing to compliance@kuberacommercial.com, but that does not affect reports already obtained. " +
+      "I can revoke it by writing to compliance@corincommercial.com, but that does not affect reports already obtained. " +
       "By typing my full name I sign this authorization electronically.",
   },
 };

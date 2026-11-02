@@ -17,7 +17,7 @@ beforeAll(async () => {
     grant select, insert, update, delete on all tables in schema public to anon, authenticated;
     revoke all on public.agent_events, public.agent_task_autonomy, public.approval_reauthentications from anon, authenticated;
   `);
-  await db.query(`insert into auth.users (id, email) values ($1, 'dana@kuberacommercial.com')`, [BROKER]);
+  await db.query(`insert into auth.users (id, email) values ($1, 'dana@corincommercial.com')`, [BROKER]);
   const a = await db.query<{ id: string }>(
     `insert into public.approvals (kind, idempotency_key, summary, payload, payload_sha256, requested_by, expires_at)
      values ('lender_submission', 'agent:lenders.submit_package:k1', 'Submit', '{}'::jsonb, repeat('b', 64), 'agent:lenders.matching@1.0.0', now() + interval '1 day')

@@ -1,7 +1,7 @@
 import type { Form1919Prefill } from "@/lib/principals/form1919";
 import { Badge, Card, usd } from "./ui";
 
-// SBA Form 1919 prefill: what Kubera can hand the lender of record from the
+// SBA Form 1919 prefill: what Corin can hand the lender of record from the
 // chart and the portal, and what is still missing. Tax ids and birth dates
 // show only as "on file"; the lender collects them on the signed form.
 

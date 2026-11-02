@@ -7,7 +7,7 @@ import type { HubEntry, ProgramEntry } from "@/content/programs";
 import { canonicalUrl } from "@/lib/seo/hosts";
 
 /**
- * schema.org LoanOrCredit for one program. Kubera is a broker, so the page names
+ * schema.org LoanOrCredit for one program. Corin is a broker, so the page names
  * it as `broker`, never as `provider`, and carries no rate or amount claims.
  */
 export function loanOrCreditSchema(entry: ProgramEntry): JsonLdNode {

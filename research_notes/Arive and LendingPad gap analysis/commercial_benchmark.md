@@ -1,4 +1,4 @@
-# Commercial Loan Brokerage and Origination Software: Capability Benchmark for Kubera Commercial
+# Commercial Loan Brokerage and Origination Software: Capability Benchmark for Corin Commercial
 
 Method note (read first): This research was done on 2026-10-31. Direct page fetches failed: lev.com and janover.pro do not resolve from this environment because they are outside the session's allowed network domains. **Every finding below comes from web-search result snippets and search-engine summaries, not from pages I opened.** Several snippets come from vendor-authored "best of" lists (Janover, Docsumo, Ascendix, Lendflow) that rank themselves, so I mark vendor claims as such. I list no prices or features unless a snippet stated them. To confirm the open items, allow lev.com, janover.pro, commloan.com, hud.gov and sba.gov in network settings and re-fetch.
 
@@ -64,7 +64,7 @@ No single commercial equivalent of Arive or LendingPad exists for brokers. One 2
   - Lender matching and distribution: Lev, Janover Pro, CommLoan, Finance Lobby
   - Extraction and spreading: Clik.ai, Blooma and similar
 - A residential LOS's core features do not translate to these brokers: URLA/1003, AUS (DU/LP), pricing engines, TRID/LE/CD disclosures and HMDA. The commercial equivalents are lender matching against credit boxes, OM and loan package generation, and quote-matrix comparison.
-- Kubera's verticals (HUD 232, SBA, hotel CMBS, PIP bridge) are mostly served by lender-side tools, not broker-side ones. Lev and Janover appear tuned to conventional CRE debt; HUD 232 and SBA specialty workflows are not mentioned in any snippet for them.
+- Corin's verticals (HUD 232, SBA, hotel CMBS, PIP bridge) are mostly served by lender-side tools, not broker-side ones. Lev and Janover appear tuned to conventional CRE debt; HUD 232 and SBA specialty workflows are not mentioned in any snippet for them.
 
 ### Gaps
 - **"Rhino" (CRE):** no source found, so I cannot confirm it exists as a CRE financing product.
@@ -194,7 +194,7 @@ I found no software that automates HUD 232 packaging.
 - **Audited financials:** 232 refinancing requires audited financial statements — [Pease Bell CPAs](https://www.peasebell.com/insights/hud-232-refinancing/)
 
 ### Inferences
-- For SBA, Kubera's highest-value broker automation is not E-Tran, which is the lender's job. It is:
+- For SBA, Corin's highest-value broker automation is not E-Tran, which is the lender's job. It is:
   1. Pre-filling 1919 and the PFS from intake data
   2. Collecting and indexing the standard package (tax returns, interim financials, debt schedule, resumes, affiliate list)
   3. Generating and e-signing Form 159 with the correct fee amount
@@ -257,11 +257,11 @@ Broker-side CRE tools are cheap enough to subscribe to. Lev runs about $80–$40
 
 ### Inferences
 - **Worth integrating or licensing rather than building:**
-  - Lender universe data. 7,000-plus capital-source credit boxes are a data moat Kubera cannot replicate. Options: a Lev subscription used alongside Kubera's own registered-lender credit boxes, or CommLoan's free generator as a second opinion.
+  - Lender universe data. 7,000-plus capital-source credit boxes are a data moat Corin cannot replicate. Options: a Lev subscription used alongside Corin's own registered-lender credit boxes, or CommLoan's free generator as a second opinion.
   - KYC/OFAC/PEP screening via a per-check API.
   - E-sign (already planned: DocuSign).
-  - Optionally, a T-12/rent-roll extraction API, if Kubera's planned Claude document agent underperforms on scanned operating statements.
-- **Worth building:** the commercial-specific workflow is thin or absent in vendor tools for Kubera's niches (HUD 232, SBA 504/7(a), hotel PIP/CMBS):
+  - Optionally, a T-12/rent-roll extraction API, if Corin's planned Claude document agent underperforms on scanned operating statements.
+- **Worth building:** the commercial-specific workflow is thin or absent in vendor tools for Corin's niches (HUD 232, SBA 504/7(a), hotel PIP/CMBS):
   - Program-specific checklists
   - Form 159 generation
   - STR and census spreading
@@ -269,7 +269,7 @@ Broker-side CRE tools are cheap enough to subscribe to. Lev runs about $80–$40
   - Broker-fee agreements and invoices
   - A consent ledger
 - The registered-lender credit-box approach is a sound differentiator, because Janover and Lev market the same mechanism.
-- Kubera should not buy nCino, Abrigo, Built or Lenders Cooperative. They are lender systems priced for banks. Kubera can, however, align its package output with what those systems ingest, such as 1919 field data.
+- Corin should not buy nCino, Abrigo, Built or Lenders Cooperative. They are lender systems priced for banks. Corin can, however, align its package output with what those systems ingest, such as 1919 field data.
 
 ### Gaps
 - I found no confirmed current Lev price because the page could not be opened.
@@ -277,10 +277,10 @@ Broker-side CRE tools are cheap enough to subscribe to. Lev runs about $80–$40
 - I did not find whether Lev or Janover expose APIs for integration.
 - I found no source for commercial credit-pull vendors (guarantor tri-merge or soft pulls) or their pricing.
 
-## Q5. Which commercial capabilities is Kubera Commercial missing (today and after its planned build)?
+## Q5. Which commercial capabilities is Corin Commercial missing (today and after its planned build)?
 
 ### Takeaway
-After its planned build, Kubera covers most commercial broker workflow: pipeline, lender matching, OM generation, quote comparison, document and closing agents, vendor tracking, portals and consent. Gaps that remain:
+After its planned build, Corin covers most commercial broker workflow: pipeline, lender matching, OM generation, quote comparison, document and closing agents, vendor tracking, portals and consent. Gaps that remain:
 - **Not on the plan at all:**
   - SBA Form 159 and other SBA-specific package automation
   - Program-specific exhibit checklists (HUD 232, SBA, CMBS hotel)
@@ -293,15 +293,15 @@ After its planned build, Kubera covers most commercial broker workflow: pipeline
 - **Planned but should be prioritized:** DSCR, debt-yield and global-cash-flow spreading on extracted data, and an audit trail.
 
 ### Cited Findings (the benchmark each gap is measured against)
-- **Lender outreach and response tracking:** Janover Pro markets "multi-lender deal distribution and response tracking" — [Janover guide](https://janover.pro/guides/best-crm-for-commercial-mortgage-brokers). Finance Lobby has lenders "indicate interest" on a published deal — [Finance Lobby](https://lp.financelobby.com/CRElendingmarketplace). Kubera's plan has matching and term-sheet parsing but no explicit distribution and response log per lender.
-- **External lender universe:** Lev claims 7,000+ capital sources — [Lev](https://www.lev.com/stakeholders/brokers); CommLoan 900+ lenders and 600k programs — [NMP](https://nationalmortgageprofessional.com/news/commloan-launches-ai-powered-lender-matching-tool-cre-mortgage-brokers). Kubera matches only against a static list plus self-registered credit boxes.
-- **Quote matrix:** Lev's quote matrix compares rate, LTV and recourse — [Lev finance](https://www.lev.com/finance). Kubera's planned term-sheet parsing matches this; it should also normalize all-in cost — [AI Consulting Network](https://www.theaiconsultingnetwork.com/blog/ai-cre-lender-term-sheet-comparison-debt-quotes-2026).
-- **AI checklists:** Lev's AI checklist is generated from loan type — [Lev changelog](https://www.lev.com/docs/changelog/week-of-2026-04-19). Kubera's document-chasing agent should be driven by per-program templates.
-- **Form 159:** brokers paid as agents must sign it, with penalties for non-compliance — [SBA Form 159](https://www.sba7a.loans/s/SBA-form-159-official.pdf); [Coleman Report](https://colemanreport.com/colemans-sba-compliance-report-know-the-new-form-159-rules/). It is not in Kubera's plan.
-- **1919 and PFS:** borrowers complete 1919 for the lender — [FitSmallBusiness](https://fitsmallbusiness.com/sba-form-1919-borrower-information/). Lenders' LOS accept 1919 data, e.g. nCino via DocuSign — [nCino SBA](https://www.ncino.com/sba). Kubera could pre-fill these.
-- **HUD-2530/APPS:** principals' previous-participation data is required for 232 — [HUD handbook](https://www.hud.gov/sites/documents/45611c5hsgh.pdf); [HUD 2017 blast](https://www.hud.gov/sites/dfiles/Housing/documents/Email-Blast-2008-May2017.pdf). Kubera's sponsor and principal intake should collect it.
-- **Spreading:** T-12 and rent-roll extraction is a mature, cheap category — [Docsumo](https://www.docsumo.com/blog/best-cre-automation-tools). Kubera's planned AI document agent covers extraction; the gap is the spread and ratio layer (NOI normalization, DSCR at each lender's constant, debt yield, global cash flow across guarantors). This matters for SBA because lenders run global cash flow — [CCG Catalyst](https://www.ccgcatalyst.com/thought-leadership/research-snapshot/sector-spotlight-sba-7a-underwriting-support-technology-for-loan-origination/).
-- **KYC/OFAC:** available via inexpensive per-check APIs — [ComplyCube](https://complycube.com/pricing). It is not in Kubera's plan.
+- **Lender outreach and response tracking:** Janover Pro markets "multi-lender deal distribution and response tracking" — [Janover guide](https://janover.pro/guides/best-crm-for-commercial-mortgage-brokers). Finance Lobby has lenders "indicate interest" on a published deal — [Finance Lobby](https://lp.financelobby.com/CRElendingmarketplace). Corin's plan has matching and term-sheet parsing but no explicit distribution and response log per lender.
+- **External lender universe:** Lev claims 7,000+ capital sources — [Lev](https://www.lev.com/stakeholders/brokers); CommLoan 900+ lenders and 600k programs — [NMP](https://nationalmortgageprofessional.com/news/commloan-launches-ai-powered-lender-matching-tool-cre-mortgage-brokers). Corin matches only against a static list plus self-registered credit boxes.
+- **Quote matrix:** Lev's quote matrix compares rate, LTV and recourse — [Lev finance](https://www.lev.com/finance). Corin's planned term-sheet parsing matches this; it should also normalize all-in cost — [AI Consulting Network](https://www.theaiconsultingnetwork.com/blog/ai-cre-lender-term-sheet-comparison-debt-quotes-2026).
+- **AI checklists:** Lev's AI checklist is generated from loan type — [Lev changelog](https://www.lev.com/docs/changelog/week-of-2026-04-19). Corin's document-chasing agent should be driven by per-program templates.
+- **Form 159:** brokers paid as agents must sign it, with penalties for non-compliance — [SBA Form 159](https://www.sba7a.loans/s/SBA-form-159-official.pdf); [Coleman Report](https://colemanreport.com/colemans-sba-compliance-report-know-the-new-form-159-rules/). It is not in Corin's plan.
+- **1919 and PFS:** borrowers complete 1919 for the lender — [FitSmallBusiness](https://fitsmallbusiness.com/sba-form-1919-borrower-information/). Lenders' LOS accept 1919 data, e.g. nCino via DocuSign — [nCino SBA](https://www.ncino.com/sba). Corin could pre-fill these.
+- **HUD-2530/APPS:** principals' previous-participation data is required for 232 — [HUD handbook](https://www.hud.gov/sites/documents/45611c5hsgh.pdf); [HUD 2017 blast](https://www.hud.gov/sites/dfiles/Housing/documents/Email-Blast-2008-May2017.pdf). Corin's sponsor and principal intake should collect it.
+- **Spreading:** T-12 and rent-roll extraction is a mature, cheap category — [Docsumo](https://www.docsumo.com/blog/best-cre-automation-tools). Corin's planned AI document agent covers extraction; the gap is the spread and ratio layer (NOI normalization, DSCR at each lender's constant, debt yield, global cash flow across guarantors). This matters for SBA because lenders run global cash flow — [CCG Catalyst](https://www.ccgcatalyst.com/thought-leadership/research-snapshot/sector-spotlight-sba-7a-underwriting-support-technology-for-loan-origination/).
+- **KYC/OFAC:** available via inexpensive per-check APIs — [ComplyCube](https://complycube.com/pricing). It is not in Corin's plan.
 
 ### Inferences
 Prioritized gap list (my judgment):
@@ -324,7 +324,7 @@ Already covered or planned, matching the benchmark:
 - Vendor order tracking
 - CRM sync
 
-Kubera's AI advisor and urgency-tiered routing go beyond the snippet-level features I found at Lev, Janover or CommLoan. That is my inference from the absence of such features in the snippets, not a verified comparison.
+Corin's AI advisor and urgency-tiered routing go beyond the snippet-level features I found at Lev, Janover or CommLoan. That is my inference from the absence of such features in the snippets, not a verified comparison.
 
 ### Gaps
 - I could not verify full feature lists for Lev, Janover Pro or CommLoan; the "missing" judgments compare against snippet-level features only.

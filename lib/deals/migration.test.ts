@@ -72,9 +72,9 @@ describe("WS-T migration", () => {
   it("freezes invoiced ledger entries and never deletes them", async () => {
     const id = await deal();
     const fee = (await one<{ id: string }>(`insert into public.fee_ledger (deal_id, entry_kind, payer, payee, basis, amount_cents, status, description, idempotency_key)
-      values ($1, 'broker_fee', 'borrower', 'kubera', 'flat', 100000, 'earned', 'Broker fee', $2) returning id`, [id, `k-${id}`])).id;
+      values ($1, 'broker_fee', 'borrower', 'corin', 'flat', 100000, 'earned', 'Broker fee', $2) returning id`, [id, `k-${id}`])).id;
     await expect(db.query(`insert into public.fee_ledger (deal_id, entry_kind, payer, payee, basis, amount_cents, status, description, idempotency_key)
-      values ($1, 'broker_fee', 'kubera', 'kubera', 'flat', 1, 'earned', 'bad', $2)`, [id, `bad-${id}`])).rejects.toThrow(/fee_ledger_party_shape/);
+      values ($1, 'broker_fee', 'corin', 'corin', 'flat', 1, 'earned', 'bad', $2)`, [id, `bad-${id}`])).rejects.toThrow(/fee_ledger_party_shape/);
     await db.query(`update public.fee_ledger set status = 'invoiced' where id = $1`, [fee]);
     await expect(db.query(`update public.fee_ledger set amount_cents = 5 where id = $1`, [fee])).rejects.toThrow(/cannot change amount/);
     await expect(db.query(`delete from public.fee_ledger where id = $1`, [fee])).rejects.toThrow(/never deleted/);

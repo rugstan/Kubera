@@ -1,6 +1,6 @@
 // Construction desk operations: projects, third-party report orders (through
 // the broker approval gate), contractor license checks, lease-up tracking and
-// the take-out trigger. Pre-closing and post-construction only; Kubera has no
+// the take-out trigger. Pre-closing and post-construction only; Corin has no
 // draw role and moves no money.
 
 import { z } from "zod";

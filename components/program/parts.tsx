@@ -175,7 +175,7 @@ export function CtaBand({ heading = "Talk through your deal with an advisor", fa
     <section className="bento mt-14 p-6 sm:p-8 md:p-10">
       <h2 className="text-2xl font-semibold md:text-3xl">{heading}</h2>
       <p className="mt-3 max-w-2xl text-[16px] text-titanium">
-        Send the basics and a licensed Kubera advisor reviews which programs and lenders may fit, or size the loan yourself first.
+        Send the basics and a licensed Corin advisor reviews which programs and lenders may fit, or size the loan yourself first.
       </p>
       <div className="mt-6">
         <CtaLinks family={family} />

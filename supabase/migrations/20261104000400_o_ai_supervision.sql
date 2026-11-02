@@ -7,7 +7,7 @@
 -- match_kb_chunks       hybrid retrieval: full-text and vector rankings fused (reciprocal rank)
 -- lead_source_costs     marketing spend per lead source, for lead-source ROI in /reports
 --
--- Broker only (Global rule 1): lead_source_costs records what Kubera spends on its
+-- Broker only (Global rule 1): lead_source_costs records what Corin spends on its
 -- own marketing; nothing here models borrower, investor or loan funds. RLS is
 -- enabled with no policies, so only the service role reads or writes (the
 -- staff pages authorize through lib/auth first).
@@ -126,7 +126,7 @@ $$;
 revoke execute on function public.match_kb_chunks(text, extensions.vector, int) from public, anon, authenticated;
 
 -- Lead-source spend -------------------------------------------------------------------------------
--- Kubera's own marketing cost per lead source (leads.source) for a period. /reports
+-- Corin's own marketing cost per lead source (leads.source) for a period. /reports
 -- prorates a period that straddles the reporting window by days.
 create table public.lead_source_costs (
   id uuid primary key default gen_random_uuid(),

@@ -6,7 +6,7 @@ import { disclosures, site } from "@/lib/site";
 export const metadata = legalMetadata(
   "/terms",
   "Terms of use",
-  "The terms that apply when you use Kubera Commercial's websites, loan sizer, deal qualifier, document vault, and partner portal.",
+  "The terms that apply when you use Corin Commercial's websites, loan sizer, deal qualifier, document vault, and partner portal.",
 );
 
 export default function TermsPage() {
@@ -38,7 +38,7 @@ export default function TermsPage() {
       <h2 id="automated-tools">Estimates and automated tools</h2>
       <p>
         Our loan sizer, deal qualifier, calculators, and other online tools produce results automatically from what you enter and from market assumptions. Results can be wrong or
-        incomplete. They are not legal, tax, accounting, or investment advice, and a licensed Kubera advisor reviews every engagement. Check anything important with your advisor and
+        incomplete. They are not legal, tax, accounting, or investment advice, and a licensed Corin advisor reviews every engagement. Check anything important with your advisor and
         your own professionals.
       </p>
 
@@ -54,7 +54,7 @@ export default function TermsPage() {
 
       <h2 id="engagement">Working with us on a loan</h2>
       <p>
-        Using the sites does not by itself make Kubera your broker. An engagement starts only when you and Kubera sign a written agreement. For loans secured by real property, you will
+        Using the sites does not by itself make Corin your broker. An engagement starts only when you and Corin sign a written agreement. For loans secured by real property, you will
         receive a Mortgage Loan Disclosure Statement before you are obligated on any loan, as described on our <Link href="/licensing">licensing page</Link>.
       </p>
 
@@ -76,15 +76,15 @@ export default function TermsPage() {
         <li>submit false information or information about someone else without permission;</li>
         <li>probe, scan, or test the sites for vulnerabilities, or bypass security, rate limits, or bot protection;</li>
         <li>scrape the sites or their tools in bulk, or use them to build a competing product;</li>
-        <li>misrepresent results from the sites as an offer, a commitment, or advice from Kubera; or</li>
+        <li>misrepresent results from the sites as an offer, a commitment, or advice from Corin; or</li>
         <li>upload malware or files you do not have the right to share.</li>
       </ul>
       <p>We may suspend access or remove content that breaks these rules.</p>
 
       <h2 id="ip">Our content</h2>
       <p>
-        The sites, their design, text, software, and the Kubera name and logo belong to Kubera or its licensors. You may view and print pages for your own business use. HUD, FHA, SBA,
-        Fannie Mae, Freddie Mac, and other program names are used descriptively; Kubera is not affiliated with or endorsed by any government agency or program sponsor.
+        The sites, their design, text, software, and the Corin name and logo belong to Corin or its licensors. You may view and print pages for your own business use. HUD, FHA, SBA,
+        Fannie Mae, Freddie Mac, and other program names are used descriptively; Corin is not affiliated with or endorsed by any government agency or program sponsor.
       </p>
 
       <h2 id="third-party">Third-party sites and data</h2>
@@ -95,26 +95,26 @@ export default function TermsPage() {
 
       <h2 id="disclaimers">Disclaimers</h2>
       <p>
-        The sites are provided &ldquo;as is&rdquo; and &ldquo;as available.&rdquo; To the fullest extent the law allows, Kubera disclaims all warranties, express or implied, including
+        The sites are provided &ldquo;as is&rdquo; and &ldquo;as available.&rdquo; To the fullest extent the law allows, Corin disclaims all warranties, express or implied, including
         merchantability, fitness for a particular purpose, and non-infringement. We do not warrant that the sites will be uninterrupted or error-free.
       </p>
 
       <h2 id="liability">Limitation of liability</h2>
       <p>
-        To the fullest extent the law allows, Kubera is not liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits or lost financing
-        opportunities, arising from your use of the sites. Kubera&apos;s total liability for any claim about the sites is limited to $100. These limits do not apply to liability that
-        cannot be limited by law, and they do not change any duty Kubera owes you under a signed engagement or under the Real Estate Law.
+        To the fullest extent the law allows, Corin is not liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits or lost financing
+        opportunities, arising from your use of the sites. Corin&apos;s total liability for any claim about the sites is limited to $100. These limits do not apply to liability that
+        cannot be limited by law, and they do not change any duty Corin owes you under a signed engagement or under the Real Estate Law.
       </p>
 
       <h2 id="indemnity">Indemnity</h2>
       <p>
-        You agree to indemnify Kubera against third-party claims arising from information you submit without the right to do so or from your breach of these terms.
+        You agree to indemnify Corin against third-party claims arising from information you submit without the right to do so or from your breach of these terms.
       </p>
 
       <h2 id="law">Governing law</h2>
       <p>
         These terms are governed by California law, without regard to conflict-of-law rules. Any dispute about the sites will be brought in the state or federal courts located in
-        California, unless a signed agreement between you and Kubera says otherwise.
+        California, unless a signed agreement between you and Corin says otherwise.
       </p>
 
       <h2 id="changes">Changes</h2>

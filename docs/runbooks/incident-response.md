@@ -53,7 +53,7 @@ A "breach of the security of the system" is unauthorized acquisition of **unencr
 
 "Personal information" is a person's first name or initial and last name **plus** any of: Social Security number; driver's license, California ID, tax ID, passport, military ID or other government ID number; account number or credit/debit card number in combination with a required security code or password; medical information; health insurance information; unique biometric data; automated license plate reader data; genetic data. It also includes a username or email address **in combination with** a password or security question and answer that permits access to an online account.
 
-Kubera collects most of these through the principals, personal financial statement and document-vault flows, so assume the statute applies whenever the vault, principal records or application-layer encryption keys are in scope.
+Corin collects most of these through the principals, personal financial statement and document-vault flows, so assume the statute applies whenever the vault, principal records or application-layer encryption keys are in scope.
 
 ### Deadlines (VERIFY with counsel; amended effective 2026-01-01)
 

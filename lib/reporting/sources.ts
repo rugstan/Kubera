@@ -5,7 +5,7 @@ import type { ReportDeal, ReportFee, ReportLead, ReportWindow, SourceCost } from
 
 // Lead-source ROI. A cohort is the leads created in the window, by source,
 // followed through the deals they became and the fees those deals booked.
-// Spend is Kubera's own marketing cost per source (lead_source_costs), prorated
+// Spend is Corin's own marketing cost per source (lead_source_costs), prorated
 // by days when a cost period straddles the window.
 //
 //   booked net     income minus partner shares on earned, invoiced or settled entries (any date)
@@ -103,7 +103,7 @@ export function sourceReport(input: { leads: readonly ReportLead[]; deals: reado
   for (const f of input.fees) {
     const source = sourceOf.get(f.dealId);
     if (!source || f.status === "void") continue;
-    const sign = f.payee === "kubera" ? 1 : -1;
+    const sign = f.payee === "corin" ? 1 : -1;
     const a = get(source);
     if (f.status === "earned" || f.status === "invoiced" || f.status === "settled") {
       // Booked on any date: the cohort is what the leads in the window are worth.
