@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/site/Footer";
 import { GlassHeader } from "@/components/site/GlassHeader";
 import { NotFoundContent } from "@/components/site/NotFoundContent";
+import { contactDetails } from "@/content/contact";
 
 // Unmatched URLs anywhere in the app land here, inside the root layout only,
 // so this page brings its own header, <main> landmark (the skip-link target)
@@ -11,9 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default function NotFound() {
+  const { phone, telHref } = contactDetails();
   return (
     <>
-      <GlassHeader />
+      <GlassHeader phone={phone} telHref={telHref} />
       <main id="main-content">
         <NotFoundContent />
       </main>

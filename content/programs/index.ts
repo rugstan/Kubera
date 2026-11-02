@@ -21,14 +21,6 @@ export const programs: ProgramEntry[] = [
 
 export { hubs };
 
-export const FAMILY_LABELS: Record<ProgramFamily, string> = {
-  "senior-living": "Senior living",
-  hotels: "Hotels",
-  multifamily: "Multifamily",
-  construction: "Construction",
-  "hard-money": "Hard money and bridge",
-};
-
 const pages = new Map<string, FinancingPage>();
 for (const entry of programs) pages.set(entry.slug, { kind: "program", entry });
 for (const entry of hubs) pages.set(entry.slug, { kind: "hub", entry });

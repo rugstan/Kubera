@@ -4,6 +4,19 @@
 export const PROGRAM_FAMILIES = ["senior-living", "hotels", "multifamily", "construction", "hard-money"] as const;
 export type ProgramFamily = (typeof PROGRAM_FAMILIES)[number];
 
+/**
+ * Customer-facing name of each family. Lives here, with no imports, so client
+ * components (the header and footer menus) can read it without pulling every
+ * program's copy into the browser bundle.
+ */
+export const FAMILY_LABELS: Record<ProgramFamily, string> = {
+  "senior-living": "Senior living",
+  hotels: "Hotels",
+  multifamily: "Multifamily",
+  construction: "Construction",
+  "hard-money": "Hard money and bridge",
+};
+
 /** One row of a page's facts table. Numbers come from `lib/sizing/assumptions.ts`, never retyped. */
 export interface ProgramFact {
   label: string;
