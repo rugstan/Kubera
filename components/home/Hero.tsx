@@ -26,7 +26,8 @@ export function Hero() {
             {site.dreCorporateLicense ? (
               <>
                 {" · "}
-                <span className="whitespace-nowrap">CA DRE #{site.dreCorporateLicense}</span>
+                {/* Kept on one line when it fits; a long license value breaks instead of widening the page at 320px. */}
+                <span data-dre-license className="inline-block max-w-full [overflow-wrap:anywhere]">CA DRE #{site.dreCorporateLicense}</span>
               </>
             ) : null}
           </p>

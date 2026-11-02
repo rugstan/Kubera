@@ -151,10 +151,13 @@ test.describe("homepage", () => {
   test("keeps the DRE number on one line in the hero eyebrow on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
-    const license = page.locator("main > section").first().locator(".eyebrow span.whitespace-nowrap");
+    const license = page.locator("main > section").first().locator(".eyebrow [data-dre-license]");
     await expect(license).toHaveText(/^CA DRE #\S+$/);
     const box = (await license.boundingBox())!;
     expect(box.height).toBeLessThan(30);
+    // A long license value wraps rather than widening the page at the 320px reflow width.
+    await page.setViewportSize({ width: 320, height: 800 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   });
 
   test("states no day-range closing timelines", async ({ page }) => {
