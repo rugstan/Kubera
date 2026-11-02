@@ -9,6 +9,7 @@ import { ProgramFamilies } from "@/components/home/ProgramFamilies";
 import { Reveal } from "@/components/home/Reveal";
 import { WhyKubera } from "@/components/home/WhyKubera";
 import { LoanSizer } from "@/components/sizer/LoanSizer";
+import { callLink } from "@/content/contact";
 import { getMarketSnapshot } from "@/lib/rates";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -22,7 +23,7 @@ export const metadata: Metadata = pageMetadata({
 
 async function SizerWithRates() {
   const snap = await getMarketSnapshot();
-  return <LoanSizer benchmarks={snap.benchmarks} live={snap.live} />;
+  return <LoanSizer benchmarks={snap.benchmarks} live={snap.live} call={callLink()} />;
 }
 
 // Section backgrounds alternate white and canvas, with WhyKubera as the page's

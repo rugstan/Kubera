@@ -40,6 +40,11 @@ function badgeFor(q: SizerQuote): string | null {
   return null;
 }
 
+// An ineligible card is marked by a flat canvas fill and a dashed outline, not by
+// fading: opacity dropped titanium text to 2.9:1 (WCAG 1.4.3). The utilities
+// layer overrides the white card and shadow that .bento gets on a canvas section.
+const INELIGIBLE = "bg-canvas shadow-none outline-1 outline-dashed outline-field-border -outline-offset-1";
+
 /** A quote card for every sizer box: the original fields plus term-sheet detail, capital stack and exit test. */
 export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; index: number }) {
   const interestOnly = q.tranches.length > 0 && q.tranches.every((t) => t.amortYears === 0);
@@ -50,13 +55,13 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
       // No entrance state: cards must be visible in the server HTML.
       initial={false}
       transition={{ type: "spring", stiffness: 260, damping: 30, delay: index * 0.05 }}
-      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : "opacity-70"}`}
+      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : INELIGIBLE}`}
       aria-label={`${q.name} quote`}
     >
       <div className="flex flex-wrap items-center gap-2">
         {best && <span className="badge-accent rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
         {badge && <span className={`${badge === "Short-term" ? "bg-black/[0.05] text-ink/80" : "badge"} rounded-full px-2.5 py-0.5 text-[11px] font-semibold`}>{badge}</span>}
-        {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-titanium">Not a fit</span>}
+        {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-graphite">Not a fit</span>}
       </div>
       <h3 className="mt-3 text-xl font-semibold">{q.name}</h3>
       <p className="text-[13px] text-titanium">{q.short}</p>

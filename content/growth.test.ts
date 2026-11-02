@@ -12,7 +12,8 @@ import { INSIGHTS, INSIGHTS_BASE, getInsight, insightAuthor, insightPath, insigh
 import { INSIGHT_CATEGORIES } from "./insights/types";
 import { CALIFORNIA_BASE, MARKETS, getMarket, marketPath } from "./markets/california";
 import { getFinancingPage } from "./programs";
-import { RATES_PATH, SERIES, SPREAD_ROWS, fredSeriesUrl, programRange } from "./rates";
+import { CONSTRUCTION_BANK_SPREAD, HARD_MONEY } from "./programs/market-facts";
+import { FIXED_RATE_ROWS, RATES_PATH, SERIES, SPREAD_ROWS, fredSeriesUrl, programRange } from "./rates";
 
 const root = path.resolve(import.meta.dirname, "..");
 const exists = (p: string) => existsSync(path.join(root, p));
@@ -303,6 +304,15 @@ describe("rates page content", () => {
     expect(range.hi).toBeCloseTo(4.5 + 1.8, 10);
     const bridge = SPREAD_ROWS.find((r) => r.key === "bridge")!;
     expect(bridge.baseKey).toBe("sofr30");
+  });
+
+  it("lists construction and hard money rates from the market facts the program pages show", () => {
+    const construction = SPREAD_ROWS.find((r) => r.key === "constructionBank")!;
+    expect(construction.baseKey).toBe("sofr30");
+    expect({ lo: construction.lo, hi: construction.hi }).toEqual(CONSTRUCTION_BANK_SPREAD);
+    const hardMoney = FIXED_RATE_ROWS.find((r) => r.key === "hardMoney")!;
+    expect(`${hardMoney.lo}%–${hardMoney.hi}%`).toBe(HARD_MONEY.rate);
+    expect(hardMoney.basis).toMatch(/fixed/i);
   });
 });
 

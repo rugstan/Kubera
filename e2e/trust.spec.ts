@@ -63,8 +63,10 @@ test.describe("trust pages", () => {
     for (const box of ["deals", "lenders", "partners", "vendors", "compliance"]) {
       await expect(table.getByRole("link", { name: `${box}@kuberacommercial.com` })).toBeVisible();
     }
-    // No booking handle in the e2e env: an honest email fallback, no third-party frame.
-    await expect(page.getByText(/online scheduling is not set up yet/i)).toBeVisible();
+    // No booking handle or phone in the e2e env: an email path for a call, no placeholder copy and no third-party frame.
+    await expect(page.locator("#schedule")).toContainText(/two or three times that work for you/i);
+    await expect(page.locator("main")).not.toContainText(/not set up yet|coming soon/i);
+    await expect(page.getByRole("heading", { name: "Phone", exact: true })).toHaveCount(0);
     await expect(page.locator("iframe")).toHaveCount(0);
   });
 

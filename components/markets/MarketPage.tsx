@@ -14,7 +14,10 @@ function Facts({ facts }: { facts: MarketEntry["facts"] }) {
       <h2 id="market-facts-heading" className="text-2xl font-semibold md:text-3xl">
         Local rules and program figures
       </h2>
-      <p className="mt-2 text-[14px] text-titanium">Planning figures as of {facts[0]?.asOf}. Rules change by statute, ordinance and notice; verify before relying on any of them.</p>
+      {/* One caveat for the whole table: per-row `verify` flags are an internal review aid, not public copy. */}
+      <p className="mt-2 text-[14px] text-titanium">
+        Planning figures as of {facts[0]?.asOf}. Rules change by statute, ordinance and notice, so an advisor confirms them before you rely on any of them.
+      </p>
       <div className="bento mt-5 p-2 md:p-4">
         <TableScroll label="Local rules and program figures table">
           <table className="w-full min-w-[560px] border-collapse text-left text-[14px]">
@@ -33,7 +36,6 @@ function Facts({ facts }: { facts: MarketEntry["facts"] }) {
                   <td className="py-3 pr-4 align-top text-ink">{f.value}</td>
                   <td className="py-3 align-top text-[13px] text-titanium">
                     {f.source}
-                    {f.verify && <span className="ml-1 font-medium text-warning">Re-check before relying on it.</span>}
                   </td>
                 </tr>
               ))}

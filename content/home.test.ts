@@ -92,6 +92,15 @@ describe("homepage FAQ", () => {
     expect(answer(/draws/)).toMatch(/no role in draw requests/);
   });
 
+  it("describes compensation as the licensing page does: paid by you, by the lender, or both", () => {
+    const paid = HOME_FAQ.find((f) => /get paid/i.test(f.question))!;
+    expect(paid.answer).toMatch(/compensation from the lender, or both/);
+    expect(paid.answer).toMatch(/including lender-paid compensation/);
+    // The MLDS covers loans secured by real property only, never "every loan".
+    expect(paid.answer).toMatch(/on loans secured by real property/);
+    expect(paid.link?.href).toBe("/licensing#compensation");
+  });
+
   it("serializes to FAQPage JSON-LD with one question per item", () => {
     const node = faqSchema([...HOME_FAQ]) as { "@type": string; mainEntity: unknown[] };
     expect(node["@type"]).toBe("FAQPage");

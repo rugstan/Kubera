@@ -5,6 +5,7 @@ import { breadcrumbSchema } from "@/components/seo/schemas";
 import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShell";
 import { StructureCard } from "@/components/trust/StructureCard";
 import { webPageSchema } from "@/components/trust/schemas";
+import { HEADER_CTA, SIZER_LINK } from "@/components/site/nav";
 import { DEAL_STRUCTURES } from "@/content/deal-structures";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -21,7 +22,8 @@ export default function StructuresPage() {
       title="How these programs are typically arranged."
       intro={
         <p>
-          Four illustrative examples across senior living and hospitality. They show the reasoning behind a structure, not results we have delivered. {disclosures.illustrative}
+          Illustrative examples across senior living, hotels, construction and hard money. They show the reasoning behind a structure, not results we have delivered.{" "}
+          {disclosures.illustrative}
         </p>
       }
       breadcrumb={[{ href: meta.path, label: "Representative structures" }]}
@@ -36,8 +38,8 @@ export default function StructuresPage() {
         ]}
       />
 
-      <Section id="structures" title="Four illustrative structures">
-        <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <Section id="structures" title="Illustrative structures">
+        <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {DEAL_STRUCTURES.map((s) => (
             <li key={s.slug}>
               <StructureCard structure={s} />
@@ -48,8 +50,12 @@ export default function StructuresPage() {
 
       <Section id="next" title="Looking at a similar deal?">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link href="/#sizer" className="pill pill-primary">Size your loan</Link>
-          <Link href="/express" className="pill pill-glass">Start the 60-second qualifier</Link>
+          <Link href={HEADER_CTA.href} className="pill pill-primary">
+            {HEADER_CTA.label}
+          </Link>
+          <Link href={SIZER_LINK.href} className="pill pill-glass">
+            {SIZER_LINK.label}
+          </Link>
           <Link href="/track-record" className="pill pill-glass">How we report closed deals</Link>
         </div>
       </Section>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { faqSchema } from "@/components/seo/schemas";
 import { HOME_FAQ } from "@/content/home";
@@ -25,7 +26,17 @@ export function HomeFaq() {
                   <path d="m3.5 6 4.5 4.5L12.5 6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </summary>
-              <p className="max-w-3xl pb-6 text-[17px] text-titanium">{q.answer}</p>
+              <p className="max-w-3xl pb-6 text-[17px] text-titanium">
+                {q.answer}
+                {q.link && (
+                  <>
+                    {" "}
+                    <Link href={q.link.href} className="text-accent underline underline-offset-2">
+                      {q.link.label}
+                    </Link>
+                  </>
+                )}
+              </p>
             </details>
           ))}
         </div>

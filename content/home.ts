@@ -107,8 +107,13 @@ export const HOME_REASONS: readonly HomeReason[] = [
   },
 ];
 
-// Owner and counsel to confirm the fee answer (how the advisory fee is described).
-export const HOME_FAQ: readonly FaqItem[] = [
+/** An FAQ entry; `link` renders after the answer on the page and is left out of the JSON-LD. */
+export type HomeFaqItem = FaqItem & { link?: { href: string; label: string } };
+
+// Owner and counsel to confirm the fee answer. It follows the licensing page's
+// "How we are paid" section: borrower-paid, lender-paid or both, and the MLDS
+// only on loans secured by real property (an SBA 7(a) on business assets gets none).
+export const HOME_FAQ: readonly HomeFaqItem[] = [
   {
     question: "Are you a lender?",
     answer: `No. ${disclosures.brokerNotLender} Because we are not tied to one lender, we can compare programs and terms across many.`,
@@ -116,7 +121,8 @@ export const HOME_FAQ: readonly FaqItem[] = [
   {
     question: "How do you get paid?",
     answer:
-      "We charge an advisory fee, a percentage of the loan we arrange. Our sizer shows it as its own line in every estimate, and the Mortgage Loan Disclosure Statement you receive lists the compensation we expect to earn on the loan.",
+      "We may be paid an advisory fee by you, compensation from the lender, or both, only as agreed in writing. Our sizer shows our estimated advisory fee as its own line, and on loans secured by real property every amount we receive, including lender-paid compensation, appears on your Mortgage Loan Disclosure Statement.",
+    link: { href: "/licensing#compensation", label: "How we are paid" },
   },
   {
     question: "Does starting affect my credit?",

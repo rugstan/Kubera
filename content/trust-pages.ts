@@ -41,7 +41,7 @@ export const TRUST_PAGES = {
   structures: {
     path: "/structures",
     title: "Representative loan structures",
-    description: "Four illustrative debt structures for senior living, hotels and conversions, showing how HUD, SBA and bridge programs are typically arranged.",
+    description: "Illustrative debt structures for senior living, hotels, construction and hard money, showing how HUD, SBA, bridge and private loans are arranged.",
     priority: 0.6,
   },
 } as const satisfies Record<string, TrustPageMeta>;

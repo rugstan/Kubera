@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Breadcrumbs, CtaBand, FaqList, ProgramDisclosures, RelatedPages } from "@/components/program/parts";
+import { sizerLinkFor } from "@/components/site/nav";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { CALCULATORS, CALCULATORS_BASE, CALCULATORS_INDEX, calculatorPath, type CalculatorPage as CalculatorEntry } from "@/content/calculators";
@@ -13,6 +14,20 @@ import { HudMipCalculator } from "./HudMipCalculator";
 import { Sba504Calculator } from "./Sba504Calculator";
 
 const WRAP = "mx-auto max-w-5xl px-5 py-12 md:px-8 md:py-20";
+
+/** Construction and hard money are sized on the homepage sizer; these cards open it on the right tab. */
+const SIZER_CARDS = [
+  {
+    family: "construction",
+    name: "Construction loan sizer",
+    summary: "Enter land, hard and soft costs and the stabilized NOI to compare bank, debt fund and private construction quotes, with the capital stack and take-out test.",
+  },
+  {
+    family: "hard-money",
+    name: "Hard money and fix-and-flip sizer",
+    summary: "Enter the as-is value, rehab budget and strategy to size a fix-and-flip or private bridge loan, with its interest reserve and exit test.",
+  },
+] as const;
 
 /** Reads the cached market snapshot for default rates; lives inside a Suspense boundary. */
 async function Calculator({ slug }: { slug: CalculatorEntry["slug"] }) {
@@ -158,6 +173,18 @@ export function CalculatorsIndex() {
                 <span className="text-xl font-semibold text-ink">{c.name}</span>
                 <span className="mt-2 block text-[15px] leading-relaxed text-titanium">{c.summary}</span>
                 <span className="link-chevron mt-4 text-[14px]">Open the calculator</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <h2 className="mt-14 text-2xl font-semibold md:text-3xl">Construction and hard money</h2>
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+          {SIZER_CARDS.map((c) => (
+            <li key={c.family}>
+              <Link href={sizerLinkFor(c.family).href} className="bento block h-full p-6">
+                <span className="text-xl font-semibold text-ink">{c.name}</span>
+                <span className="mt-2 block text-[15px] leading-relaxed text-titanium">{c.summary}</span>
+                <span className="link-chevron mt-4 text-[14px]">Open the sizer</span>
               </Link>
             </li>
           ))}

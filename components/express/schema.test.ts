@@ -4,6 +4,7 @@ import {
   ASSETS,
   ASSET_GROUPS,
   EMPTY_VALUES,
+  PROJECT_PICKS,
   STEP_FIELDS,
   assetGroupsFor,
   assetStepHeading,
@@ -143,6 +144,14 @@ describe("family deep links", () => {
     expect(transactionAfterAssetChoice("SNF", "HARD_MONEY", "construction")).toBe("CONSTRUCTION");
     expect(transactionAfterAssetChoice("SNF", "HARD_MONEY")).toBe("");
     expect(transactionAfterAssetChoice("HOTEL_TO_SENIOR_CONVERSION", "CONSTRUCTION")).toBe("");
+  });
+
+  it("offers construction and hard money picks that behave like their family links", () => {
+    expect(PROJECT_PICKS.map((p) => p.family)).toEqual(["construction", "hard-money"]);
+    for (const p of PROJECT_PICKS) {
+      expect(p.label).not.toMatch(/guarantee|approv/i);
+      expect(assetStepHeading(p.family)).not.toBe(assetStepHeading());
+    }
   });
 
   it("lets the sizer's explicit asset and transaction win over the family", () => {

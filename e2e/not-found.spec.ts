@@ -36,6 +36,8 @@ for (const width of [390, 768, 1440]) {
         await expect(main.locator('a[href="/"]')).toBeVisible();
         await expect(main.locator('a[href="/financing"]')).toBeVisible();
         await expect(main.locator('a[href="/contact"]')).toBeVisible();
+        // The site-wide primary action, worded the same as everywhere else.
+        await expect(main.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
         await expect(page.locator("footer")).toContainText("California Department of Real Estate");
       });
     }

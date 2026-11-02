@@ -19,6 +19,8 @@ import {
   FRANCHISE_TIERS,
   HARD_MONEY_PURPOSES,
   HARD_MONEY_STRATEGIES,
+  PROJECT_PICKS,
+  PROJECT_PICKS_LABEL,
   STEPS,
   STEP_FIELDS,
   TIMELINES,
@@ -50,7 +52,9 @@ export function Qualifier() {
   const params = useSearchParams();
   const [prefill] = useState(() => prefillFromParams((k) => params.get(k)));
   // ?family= from the homepage and program pages. Explicit asset and transaction parameters win.
-  const [family] = useState(() => familyFromParams((k) => params.get(k)));
+  const [linkedFamily] = useState(() => familyFromParams((k) => params.get(k)));
+  // Without a family link, step 1 offers construction and hard money picks that set the family here.
+  const [family, setFamily] = useState(linkedFamily);
   const [initialTransaction] = useState(() => prefill.transaction ?? (prefill.assetType ? familyTransaction(prefill.assetType, family) : undefined));
   const [step, setStep] = useState(prefill.assetType ? 1 : 0);
   const [submitting, setSubmitting] = useState(false);
@@ -149,7 +153,7 @@ export function Qualifier() {
       <div className="bento p-6 md:p-8">
         <Form form={form} onSubmit={submit} onInvalid={onInvalid}>
           <motion.section key={step} initial={step === initialStep ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="space-y-5" aria-labelledby="qualifier-step-heading">
-            {step === 0 && <AssetStep headingRef={headingRef} selected={asset} onChoose={chooseAsset} family={family} />}
+            {step === 0 && <AssetStep headingRef={headingRef} selected={asset} onChoose={chooseAsset} family={family} onFamily={linkedFamily ? undefined : setFamily} />}
             {step === 1 && <DealStep headingRef={headingRef} asset={asset} transaction={transaction} />}
             {step === 2 && <TermsStep headingRef={headingRef} />}
             {step === 3 && <ContactStep headingRef={headingRef} turnstile={turnstile} />}
@@ -199,7 +203,22 @@ function StepHeading({ headingRef, n, children }: HeadingProps & { n: number; ch
   );
 }
 
-function AssetStep({ headingRef, selected, onChoose, family }: HeadingProps & { selected: Asset | ""; onChoose: (a: Asset) => void; family?: ProgramFamily }) {
+const TILE = "min-h-14 rounded-2xl border px-3 py-4 text-left text-[15px] font-medium transition hover:border-accent";
+const tileState = (on: boolean) => (on ? "border-accent bg-accent/5" : "border-black/20");
+
+function AssetStep({
+  headingRef,
+  selected,
+  onChoose,
+  family,
+  onFamily,
+}: HeadingProps & {
+  selected: Asset | "";
+  onChoose: (a: Asset) => void;
+  family?: ProgramFamily;
+  /** Set only when no family link was followed: shows the construction and hard money picks. */
+  onFamily?: (family: ProgramFamily | undefined) => void;
+}) {
   const groups = assetGroupsFor(family)
     .map((g) => ({ group: g, assets: assetsFor(g, family) }))
     .filter((g) => g.assets.length > 0);
@@ -208,6 +227,27 @@ function AssetStep({ headingRef, selected, onChoose, family }: HeadingProps & { 
       <StepHeading headingRef={headingRef} n={1}>
         {assetStepHeading(family)}
       </StepHeading>
+      {onFamily && (
+        <div role="group" aria-label={PROJECT_PICKS_LABEL}>
+          <p className="field-label" aria-hidden="true">
+            {PROJECT_PICKS_LABEL}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PROJECT_PICKS.map((p) => (
+              <button
+                key={p.family}
+                type="button"
+                aria-pressed={family === p.family}
+                onClick={() => onFamily(family === p.family ? undefined : p.family)}
+                className={`${TILE} ${tileState(family === p.family)}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[13px] text-titanium">Then choose the property type below.</p>
+        </div>
+      )}
       {groups.map(({ group: g, assets }) => (
         <div key={g} role="group" aria-label={g}>
           <p className="field-label" aria-hidden="true">
@@ -220,7 +260,7 @@ function AssetStep({ headingRef, selected, onChoose, family }: HeadingProps & { 
                 type="button"
                 aria-pressed={selected === a.value}
                 onClick={() => onChoose(a.value)}
-                className={`min-h-14 rounded-2xl border px-3 py-4 text-left text-[15px] font-medium transition hover:border-accent ${selected === a.value ? "border-accent bg-accent/5" : "border-black/20"}`}
+                className={`${TILE} ${tileState(selected === a.value)}`}
               >
                 {a.label}
               </button>

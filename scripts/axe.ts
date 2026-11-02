@@ -224,11 +224,18 @@ async function main() {
 
     // Each sizer tab, each partner tab.
     await go(page, `${BASE}/`);
-    for (const label of ["Hospitality & hotels", "Multifamily & CRE", "Hard money", "Construction"]) {
+    for (const label of ["Hotels", "Multifamily", "Construction", "Hard money"]) {
       await page.getByRole("tab", { name: label }).click();
       await page.waitForTimeout(900); // let entry animations finish; axe samples live colours
       scans.push(await scan(page, axeSource, `/ sizer tab: ${label}`));
     }
+    // Ineligible quote cards. The default inputs fit every program, so turn on
+    // "Non-recourse only", which rules out SBA 504, and scan the "Not a fit" card.
+    await go(page, `${BASE}/`);
+    await page.getByRole("switch", { name: /^Non-recourse only/ }).click();
+    await page.waitForTimeout(900);
+    check("sizer: non-recourse only shows a Not a fit card", (await page.locator('#sizer article:has-text("Not a fit")').count()) > 0);
+    scans.push(await scan(page, axeSource, "/ sizer: ineligible quote card"));
     await go(page, `${BASE}/partners`);
     for (const label of [/Referral brokers/i, /Operators/i, /Third-party vendors/i]) {
       await page.getByRole("tab", { name: label }).click();
@@ -246,12 +253,12 @@ async function main() {
 
     // Tabs: arrow keys move selection; roles wired.
     await go(page, `${BASE}/`);
-    const first = page.getByRole("tab", { name: "Senior living & care" });
+    const first = page.getByRole("tab", { name: "Senior living" });
     await first.focus();
     await page.waitForTimeout(150);
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(150);
-    check("sizer tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: "Hospitality & hotels" }).getAttribute("aria-selected")) === "true");
+    check("sizer tabs: ArrowRight selects the next tab", (await page.getByRole("tab", { name: "Hotels" }).getAttribute("aria-selected")) === "true");
     await page.keyboard.press("End");
     await page.waitForTimeout(150);
     const lastSizerTab = page.locator('#sizer [role="tablist"] [role="tab"]').last();

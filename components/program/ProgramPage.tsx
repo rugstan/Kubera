@@ -41,7 +41,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
-            <CtaLinks />
+            <CtaLinks family={entry.family} />
           </div>
         </header>
         <FactsTable facts={entry.facts} asOf={AS_OF} />
@@ -49,7 +49,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
         {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="More in this category" />}
         <FaqList faq={entry.faq} />
         <RelatedPages slugs={entry.related} />
-        <CtaBand />
+        <CtaBand family={entry.family} />
         <ProgramDisclosures />
       </article>
     </>
@@ -67,14 +67,14 @@ export function HubPage({ entry }: { entry: HubEntry }) {
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
-            <CtaLinks sizerLabel="Size a loan" />
+            <CtaLinks family={entry.family} />
           </div>
         </header>
         <FamilyList family={entry.family} heading="Programs we arrange" />
         <Sections sections={entry.sections} />
         <FaqList faq={entry.faq} />
         <RelatedPages slugs={entry.related} heading="Related financing" />
-        <CtaBand />
+        <CtaBand family={entry.family} />
         <ProgramDisclosures />
       </article>
     </>

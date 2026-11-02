@@ -32,10 +32,17 @@ describe("every financing slug renders", () => {
       expect(html).toContain("<h1");
       expect(html).toContain(page.entry.name);
       expect(html).toContain(page.entry.definition.slice(0, 60).replace(/&/g, "&amp;"));
-      // Internal links and calls to action.
-      expect(html).toContain('href="/#sizer"');
-      expect(html).toContain('href="/express"');
+      // Internal links and calls to action. Both actions carry the page's family, so a
+      // construction or hard money visitor lands on their own qualifier step and sizer tab.
+      const family = page.entry.family;
+      expect(html).toContain(`href="/?sizer=${family}#sizer"`);
+      expect(html).toContain(`href="/express?family=${family}"`);
+      expect(html).not.toContain('href="/express"');
       expect(html).toContain('href="/financing"');
+      // The closing call to action is a light card, never a dark band.
+      expect(html).not.toContain("bento-pro");
+      // Per-row review flags are internal: the table states one caveat instead.
+      expect(html).not.toContain("Re-check before relying on it");
       for (const related of page.entry.related) expect(html, `${slug} -> ${related}`).toContain(`href="${financingPath(related)}"`);
       // Legal copy.
       expect(html).toContain("Real estate broker, California Department of Real Estate");

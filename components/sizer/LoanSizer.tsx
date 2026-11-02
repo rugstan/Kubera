@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import type { NavLink } from "@/components/site/nav";
 import type { Benchmarks } from "@/lib/rates";
 import { disclosures } from "@/lib/site";
 import { sizeHospitality, sizeSenior, usd } from "@/lib/sizing/programs";
@@ -19,16 +21,7 @@ import { upd, type FormProps } from "./programs/form";
 import { HardMoneyForm } from "./programs/HardMoneyForm";
 import { MultifamilyForm } from "./programs/MultifamilyForm";
 import { QuoteCarousel } from "./QuoteCarousel";
-
-type Tab = "senior" | "hospitality" | "multifamily" | "hardMoney" | "construction";
-
-const TABS: { id: Tab; label: string; short: string }[] = [
-  { id: "senior", label: "Senior living & care", short: "Senior living" },
-  { id: "hospitality", label: "Hospitality & hotels", short: "Hotels" },
-  { id: "multifamily", label: "Multifamily & CRE", short: "Multifamily" },
-  { id: "hardMoney", label: "Hard money", short: "Hard money" },
-  { id: "construction", label: "Construction", short: "Construction" },
-];
+import { DEFAULT_SIZER_TAB, SIZER_TABS, sizerTabFromParam, type SizerTab as Tab } from "./tabs";
 
 // HUD 223(a)(7) stays behind a build-time flag until a HUD lender confirms the box.
 const HUD_223A7_ENABLED = hud223a7FlagFromEnv(process.env.NEXT_PUBLIC_SIZER_HUD_223A7);
@@ -59,8 +52,22 @@ const HOTEL_DEFAULT: HospitalityInputs = {
   green: true,
 };
 
-export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: boolean }) {
-  const [tab, setTab] = useState<Tab>("senior");
+/**
+ * Opens the tab a program page asked for (`/?sizer=construction#sizer`). It
+ * renders nothing and sits in its own Suspense boundary, so reading the query
+ * string never takes the sizer itself out of the prerendered HTML.
+ */
+function TabFromQuery({ onTab }: { onTab: (tab: Tab) => void }) {
+  const wanted = sizerTabFromParam(useSearchParams().get("sizer"));
+  useEffect(() => {
+    if (wanted) onTab(wanted);
+  }, [wanted, onTab]);
+  return null;
+}
+
+/** `call` is "Book a call" or, until online scheduling is set up, "Email an advisor" (content/contact.ts `callLink`). */
+export function LoanSizer({ benchmarks, live, call }: { benchmarks: Benchmarks; live: boolean; call: NavLink }) {
+  const [tab, setTab] = useState<Tab>(DEFAULT_SIZER_TAB);
   const [senior, setSenior] = useState(SENIOR_DEFAULT);
   const [hotel, setHotel] = useState(HOTEL_DEFAULT);
   const [mf, setMf] = useState(MULTIFAMILY_DEFAULT);
@@ -95,15 +102,19 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-      <TabsList className="mx-auto flex w-fit max-w-full overflow-x-auto rounded-full bg-black/[0.05] p-1" aria-label="Asset class">
-        {TABS.map((t) => (
+      <Suspense fallback={null}>
+        <TabFromQuery onTab={setTab} />
+      </Suspense>
+      {/* Phones wrap the five tabs onto two rows, so none is cut off or needs a sideways scroll. */}
+      <TabsList className="mx-auto flex w-fit max-w-full flex-wrap justify-center gap-1 rounded-[1.375rem] bg-black/[0.05] p-1 md:flex-nowrap md:gap-0 md:rounded-full" aria-label="Asset class">
+        {SIZER_TABS.map((t) => (
           <TabsTrigger
             key={t.id}
             value={t.id}
             className={`relative min-h-11 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors md:px-6 ${tab === t.id ? "text-ink" : "text-ink/70 hover:text-ink"}`}
           >
             {tab === t.id && <motion.span layoutId="sizer-tab" className="absolute inset-0 -z-0 rounded-full bg-white shadow-sm" transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
-            <span className="relative z-10"><span className="hidden sm:inline">{t.label}</span><span className="sm:hidden">{t.short}</span></span>
+            <span className="relative z-10">{t.label}</span>
           </TabsTrigger>
         ))}
       </TabsList>
@@ -131,17 +142,18 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
         <div>
           <QuoteCarousel quotes={result.quotes} bestId={result.bestFit} tab={tab} />
 
-          <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl bg-ink p-6 text-white md:flex-row md:items-center">
+          {/* A light card on the canvas section: WhyKubera stays the homepage's only dark surface. */}
+          <div className="bento mt-6 flex flex-col items-start justify-between gap-4 p-6 md:flex-row md:items-center">
             <div>
-              <p className="text-lg font-semibold">{best ? `${best.name} looks strongest: ${usd(best.loanAmount)} at ~${best.ratePct.toFixed(2)}%.` : "No structure fits yet — adjust the inputs or talk to us."}</p>
-              <p className="text-sm text-white/60">
+              <p className="text-lg font-semibold text-ink">{best ? `${best.name} looks strongest: ${usd(best.loanAmount)} at ~${best.ratePct.toFixed(2)}%.` : "No structure fits yet — adjust the inputs or talk to us."}</p>
+              <p className="mt-1 text-sm text-titanium">
                 Rates use {live ? "today's" : "indicative"} Treasury, SOFR, and Prime benchmarks.{" "}
                 <Link href="/rates" className="text-accent underline underline-offset-2">See today&rsquo;s rates</Link>
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={expressHref} className="pill pill-primary !py-2.5 !text-[15px]">Send this to an advisor</Link>
-              <Link href="/contact#schedule" className="pill pill-secondary !py-2.5 !text-[15px]">Book a call</Link>
+              <Link href={call.href} className="pill pill-secondary !py-2.5 !text-[15px]">{call.label}</Link>
             </div>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-titanium">{disclosures.indicative}</p>

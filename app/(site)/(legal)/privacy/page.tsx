@@ -93,11 +93,19 @@ export default function PrivacyPage() {
       <h3 id="automated-tools">Automated tools</h3>
       <p>
         We use automated tools to help our advisors work quickly and accurately. They estimate loan sizing and which programs may fit your request, suggest how soon an advisor should
-        follow up, read figures from documents you upload, and sort and draft correspondence for an advisor to review. Some of these tools are provided by the service providers
-        listed below, under contracts that do not allow them to use your information to train their products.
+        follow up, read figures from documents you upload, summarize call recordings and call notes for an advisor, and sort and draft correspondence for an advisor to review. Some
+        of these tools are provided by the service providers listed below, under contracts that do not allow them to use your information to train their products.
       </p>
       <ul>
-        <li>A licensed Kubera advisor reviews every engagement. Nothing is sent to you, a lender, or anyone else without an advisor&rsquo;s approval.</li>
+        <li>
+          A licensed Kubera advisor reviews every engagement. No automated tool writes and sends a message on its own: a message a tool drafts goes out only after an advisor
+          approves it. Messages sent automatically, such as the confirmation after you send a request, a first follow-up to a new request, and reminders about documents or
+          conditions still open, use fixed templates a licensed broker approved in advance. Nothing goes to a lender without an advisor&rsquo;s approval.
+        </li>
+        <li>
+          We call you with an automated or artificial voice only if you have given separate consent to those calls. Each such call says at the start that it is automated, and you
+          can withdraw that consent at any time. Before a call is recorded we tell you, and we do not record if you object.
+        </li>
         <li>No automated tool makes a credit decision. Lenders make all credit decisions.</li>
         <li>
           Before information is sent to these tools, we remove Social Security numbers, dates of birth, and bank, card, and account numbers, or we do not send it. The exception is a

@@ -6,7 +6,6 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Logo } from "./Logo";
 import {
   ALL_FINANCING,
-  CALL_LINK,
   FINANCING_FAMILIES,
   HEADER_CTA,
   POPULAR_PROGRAMS,
@@ -24,14 +23,15 @@ const BAR_TEXT =
 // Below this width the open menu is a stacked list; from it the bar shows the links.
 const DESKTOP_MIN = 1024;
 
-const GET_STARTED: NavLink[] = [
+/** The flyout's Get started column. `call` is "Book a call", or "Email an advisor" until scheduling is set up. */
+const getStarted = (call: NavLink): NavLink[] => [
   { href: HEADER_CTA.href, label: HEADER_CTA.label },
   SIZER_LINK,
-  CALL_LINK,
+  call,
   { href: "/rates", label: "Today's rates" },
 ];
 
-export function GlassHeader({ phone, telHref }: { phone?: string | null; telHref?: string | null }) {
+export function GlassHeader({ phone, telHref, call }: { phone?: string | null; telHref?: string | null; call: NavLink }) {
   const [open, setOpen] = useState(false);
   const [flyout, setFlyout] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -88,7 +88,7 @@ export function GlassHeader({ phone, telHref }: { phone?: string | null; telHref
           </Link>
           <ul className="hidden items-center gap-6 lg:flex xl:gap-8">
             <li>
-              <FinancingMenu open={flyout} onOpenChange={setFlyout} />
+              <FinancingMenu open={flyout} onOpenChange={setFlyout} call={call} />
             </li>
             {PRIMARY_LINKS.map((n) => (
               <li key={n.href}>
@@ -224,7 +224,7 @@ function MobileMenu({ phone, telHref, onNavigate }: { phone?: string | null; tel
  * It is a disclosure (button + panel), not an ARIA menu, so Tab walks every
  * link. The panel stays in the DOM with `hidden` while closed.
  */
-function FinancingMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChange: (open: boolean) => void; call: NavLink }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
@@ -315,7 +315,7 @@ function FinancingMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (o
                 onNavigate={close}
               />
               <FlyoutColumn id={popularId} heading="Popular programs" links={POPULAR_PROGRAMS} offset={6} reduce={!!reduce} onNavigate={close} />
-              <FlyoutColumn id={startId} heading="Get started" links={GET_STARTED} offset={14} reduce={!!reduce} onNavigate={close} />
+              <FlyoutColumn id={startId} heading="Get started" links={getStarted(call)} offset={14} reduce={!!reduce} onNavigate={close} />
             </div>
           </motion.div>
         )}

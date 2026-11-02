@@ -13,6 +13,11 @@ function Row({ label, value, strong, muted }: { label: string; value: string; st
   );
 }
 
+// An ineligible card is marked by a flat canvas fill and a dashed outline, not by
+// fading: opacity dropped titanium text to 2.9:1 (WCAG 1.4.3). The utilities
+// layer overrides the white card and shadow that .bento gets on a canvas section.
+const INELIGIBLE = "bg-canvas shadow-none outline-1 outline-dashed outline-field-border -outline-offset-1";
+
 export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; index: number }) {
   return (
     <motion.article
@@ -21,13 +26,13 @@ export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; 
       // visitors and crawlers); layout keeps re-sorts animated.
       initial={false}
       transition={{ type: "spring", stiffness: 260, damping: 30, delay: index * 0.05 }}
-      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : "opacity-70"}`}
+      className={`bento relative flex flex-col p-6 ${best ? "ring-2 ring-accent-fill" : ""} ${q.eligible ? "" : INELIGIBLE}`}
       aria-label={`${q.name} quote`}
     >
       <div className="flex flex-wrap items-center gap-2">
         {best && <span className="badge-accent rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Best fit</span>}
         {q.accent === "gold" && <span className="badge rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{q.id.startsWith("HUD") ? "Non-recourse · Long-term" : "Institutional"}</span>}
-        {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-titanium">Not a fit</span>}
+        {!q.eligible && <span className="rounded-full bg-black/[0.05] px-2.5 py-0.5 text-[11px] font-medium text-graphite">Not a fit</span>}
       </div>
       <h3 className="mt-3 text-xl font-semibold">{q.name}</h3>
       <p className="text-[13px] text-titanium">{q.short}</p>

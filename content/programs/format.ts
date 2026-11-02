@@ -16,7 +16,11 @@ export const years = (n: number) => `${n}-year`;
 export const AS_OF = ASSUMPTIONS_REVIEWED;
 
 interface FactOptions {
-  /** Defaults to true: program rules change by notice, so every figure is marked for re-checking. */
+  /**
+   * Internal review flag, never rendered on public pages (the facts table states
+   * one caveat for every row). Defaults to true: program rules change by notice,
+   * so reviewers re-check every figure unless it is a fixed definition.
+   */
   verify?: boolean;
   asOf?: string;
 }
@@ -32,6 +36,7 @@ export const SRC = {
   hudMfMip: "Federal Register 2025-18379 (Sept 23, 2025)",
   sba: "SBA SOP 50 10 (confirm the revision in effect at application)",
   sbaStack: "Kubera modeling of the 2026 combined 7(a) + 504 structure; confirm against SOP 50 10",
-  kubera: "Kubera underwriting assumptions",
-  market: "Kubera market research notes",
+  // Public labels: they render in every facts table's source column.
+  kubera: "Kubera sizing estimate",
+  market: "Kubera estimate, varies by lender",
 } as const;

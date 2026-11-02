@@ -1,3 +1,4 @@
+import { callLink } from "@/content/contact";
 import { site } from "@/lib/site";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
@@ -13,6 +14,7 @@ const PROOF = [
 const divider = (i: number) => [i % 2 === 1 ? "border-l" : "", i === 2 ? "md:border-l" : ""].join(" ").trim();
 
 export function Hero() {
+  const call = callLink();
   return (
     <section className="bg-white">
       <div className="mx-auto max-w-[1280px] px-5 pb-20 pt-12 text-center md:px-8 md:pb-32 md:pt-24">
@@ -34,8 +36,8 @@ export function Hero() {
           </div>
           <p className="mt-4 text-[13px] text-titanium">About 60 seconds · No credit check to start · No obligation</p>
           <p className="mt-4">
-            <TrackedLink href="/contact#schedule" cta="book_call" section="hero" className="link-chevron text-[17px] max-md:min-h-9">
-              Prefer to talk? Book a call with an advisor
+            <TrackedLink href={call.href} cta={call.kind === "book" ? "book_call" : "email_advisor"} section="hero" className="link-chevron text-[17px] max-md:min-h-9">
+              {call.kind === "book" ? "Prefer to talk? Book a call with an advisor" : "Questions first? Email an advisor"}
             </TrackedLink>
           </p>
         </Reveal>

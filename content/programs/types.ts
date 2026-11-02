@@ -25,7 +25,10 @@ export interface ProgramFact {
   asOf: string;
   /** Where the figure comes from (program rule, notice, or Kubera's underwriting assumption). */
   source: string;
-  /** True when the figure rests on a rule that changes by notice and must be re-checked with a lender. */
+  /**
+   * Internal review flag: true when the figure rests on a rule that changes by
+   * notice and reviewers must re-check it with a lender. Not rendered publicly.
+   */
   verify: boolean;
 }
 

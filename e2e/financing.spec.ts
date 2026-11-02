@@ -20,10 +20,24 @@ test.describe("financing pages", () => {
     await page.keyboard.press("Enter");
     await expect(page.locator("details").first()).toHaveAttribute("open", "");
 
-    await expect(page.getByRole("link", { name: "Size this loan" }).first()).toHaveAttribute("href", "/#sizer");
-    await expect(page.getByRole("link", { name: "Get loan options" }).first()).toHaveAttribute("href", "/express");
+    // The page's own actions carry its family: the qualifier and the sizer open on multifamily.
+    const main = page.locator("main");
+    await expect(main.getByRole("link", { name: "Size my loan", exact: true }).first()).toHaveAttribute("href", "/?sizer=multifamily#sizer");
+    await expect(main.getByRole("link", { name: "Get loan options", exact: true }).first()).toHaveAttribute("href", "/express?family=multifamily");
     expect(errors).toEqual([]);
   });
+
+  for (const family of ["construction", "hard-money"]) {
+    test(`the ${family} hub's actions open the qualifier and the sizer on ${family}`, async ({ page }) => {
+      await page.goto(`/financing/${family}`);
+      const main = page.locator("main");
+      for (const link of await main.getByRole("link", { name: "Get loan options", exact: true }).all()) await expect(link).toHaveAttribute("href", `/express?family=${family}`);
+      for (const link of await main.getByRole("link", { name: "Size my loan", exact: true }).all()) await expect(link).toHaveAttribute("href", `/?sizer=${family}#sizer`);
+      await expect(main.getByRole("link", { name: "Get loan options", exact: true })).toHaveCount(2);
+      // The closing card is light, not a black band.
+      await expect(main.locator(".bento-pro")).toHaveCount(0);
+    });
+  }
 
   test("emits one canonical and FAQ, loan and breadcrumb JSON-LD", async ({ page }) => {
     await page.goto("/financing/rcfe");

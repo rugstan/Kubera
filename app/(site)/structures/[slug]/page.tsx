@@ -5,6 +5,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
 import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShell";
 import { webPageSchema } from "@/components/trust/schemas";
+import { callLink } from "@/content/contact";
 import { DEAL_STRUCTURES, formatUsd, getDealStructure, structurePath } from "@/content/deal-structures";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { ASSUMPTIONS_REVIEWED } from "@/lib/sizing/assumptions";
@@ -28,6 +29,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const s = getDealStructure(slug);
   if (!s) notFound();
+  const call = callLink();
   const path = structurePath(s.slug);
   const others = DEAL_STRUCTURES.filter((o) => o.slug !== s.slug);
 
@@ -143,7 +145,9 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
               {l.label}
             </Link>
           ))}
-          <Link href="/contact" className="pill pill-glass">Talk to an advisor</Link>
+          <Link href={call.href} className="pill pill-glass">
+            {call.label}
+          </Link>
         </div>
       </Section>
 

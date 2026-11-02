@@ -19,7 +19,8 @@ const POPULAR = [
   "Construction-to-permanent",
   "Fix-and-flip loans",
 ];
-const GET_STARTED = ["Get loan options", "Size my loan", "Book a call", "Today's rates"];
+// No scheduling handle in e2e: the call link is the email fallback (content/contact.ts callLink).
+const GET_STARTED = ["Get loan options", "Size my loan", "Email an advisor", "Today's rates"];
 
 async function headerMetrics(page: Page) {
   return page.evaluate(() => {
@@ -146,7 +147,7 @@ test.describe("primary header layout", () => {
     await expect(panel.getByRole("link", { name: "Construction", exact: true })).toHaveAttribute("href", "/financing/construction");
     await expect(panel.getByRole("link", { name: "Hard money and bridge", exact: true })).toHaveAttribute("href", "/financing/hard-money");
     await expect(panel.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
-    await expect(panel.getByRole("link", { name: "Book a call", exact: true })).toHaveAttribute("href", "/contact#schedule");
+    await expect(panel.getByRole("link", { name: "Email an advisor", exact: true })).toHaveAttribute("href", /^mailto:\S+@/);
 
     await page.keyboard.press("Escape");
     await expect(trigger).toHaveAttribute("aria-expanded", "false");

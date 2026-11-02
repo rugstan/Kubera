@@ -3,6 +3,7 @@
 // send-only addresses are deliberately not listed: documents go through the
 // secure upload link an advisor sends, and the rest are internal.
 
+import { CALL_LINK, type NavLink } from "@/components/site/nav";
 import { site } from "@/lib/site";
 
 export interface Mailbox {
@@ -89,4 +90,18 @@ export function contactDetails(env: Env = process.env): ContactDetails {
     telHref: telHref(phone),
     scheduling: handle ? calcomUrls(handle) : null,
   };
+}
+
+/** The fallback for "Book a call" while online scheduling is not configured. */
+export const EMAIL_ADVISOR_LABEL = "Email an advisor";
+
+/**
+ * The "talk to a person" action shown beside the primary call to action. It is
+ * "Book a call" (to the scheduler on /contact) once NEXT_PUBLIC_CALCOM_LINK is
+ * a valid handle, and "Email an advisor" until then, so no button lands on a
+ * page that cannot book. Client components receive the result as a prop:
+ * `process.env` is not populated in the browser.
+ */
+export function callLink(env: Env = process.env): NavLink & { kind: "book" | "email" } {
+  return calcomHandle(env) ? { ...CALL_LINK, kind: "book" } : { href: `mailto:${site.email}`, label: EMAIL_ADVISOR_LABEL, kind: "email" };
 }

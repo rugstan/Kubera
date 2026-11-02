@@ -13,9 +13,12 @@ export function legalApproved(env: Env = process.env): boolean {
  * Bumped whenever the privacy policy or the notice at collection changes. The
  * November 2 revision folds the separate assistant page into the policy and
  * describes the automated tools neutrally. Add a ".2" suffix for a second
- * revision on the same day.
+ * revision on the same day. "2026-11-02.2" scopes the automated-sending
+ * statement to what the code does (pre-approved templates send automatically;
+ * drafts and lender packages wait for an advisor) and adds call summaries and
+ * consent-only artificial-voice calls. Counsel to confirm.
  */
-export const PRIVACY_POLICY_VERSION = "2026-11-02";
+export const PRIVACY_POLICY_VERSION = "2026-11-02.2";
 export const LEGAL_EFFECTIVE_DATE = "November 2, 2026";
 
 export const LEGAL_PAGES = [
@@ -97,7 +100,7 @@ export const PI_CATEGORIES: readonly PiCategory[] = [
     id: "communications",
     ccpa: "Audio, electronic, or similar information",
     label: "Communications",
-    examples: "Emails, text messages, call notes, and questions you sent through our website's former Ask feature.",
+    examples: "Emails, text messages, call notes, recordings and transcripts of calls we tell you are recorded, and questions you sent through our website's former Ask feature.",
     sensitive: false,
     retention: "Three years after our last contact with you. Questions sent through our website's former Ask feature are kept for up to one year unless they became part of a loan file.",
   },
@@ -171,7 +174,7 @@ export const PURPOSES = [
   "Contact you by email, phone, or text when you have agreed to it.",
   "Send the newsletter you subscribe to, and keep a record of your consent and any unsubscribe.",
   "Review partner registrations and manage partner relationships.",
-  "Use automated tools for sizing estimates, program fit, follow-up priority, document reading, and email sorting, with an advisor reviewing the results.",
+  "Use automated tools for sizing estimates, program fit, follow-up priority, document reading, email sorting, and summaries of calls and call notes, with an advisor reviewing the results.",
   "Protect our sites and users, prevent fraud, and fix errors.",
   "Comply with law, respond to lawful requests, and enforce our terms.",
 ] as const;
@@ -224,7 +227,7 @@ export const SERVICE_PROVIDERS = [
   { name: "Vercel", role: "Website hosting" },
   { name: "Supabase", role: "Database and encrypted document storage" },
   { name: "Twenty", role: "Customer relationship management" },
-  { name: "Anthropic", role: "Automated document reading, email sorting, and drafting tools used by our advisors" },
+  { name: "Anthropic", role: "Automated document reading, call summaries, email sorting, and drafting tools used by our advisors" },
   { name: "Zoho", role: "Business email and electronic signatures" },
   { name: "Resend", role: "Transactional email and the newsletter" },
   { name: "Telnyx", role: "Text messages and calls" },

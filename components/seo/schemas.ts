@@ -20,7 +20,7 @@ const SERVICE_TYPES = [
 ];
 
 export const SITE_DESCRIPTION =
-  "Kubera Commercial arranges commercial real estate loans for senior living, hotel and multifamily owners as a licensed California real estate broker. It is not a lender.";
+  "Kubera Commercial arranges senior living, hotel, multifamily, construction and hard money loans as a licensed California real estate broker. It is not a lender.";
 
 function withoutEmpty<T extends JsonLdNode>(node: T): T {
   return Object.fromEntries(Object.entries(node).filter(([, v]) => v !== "" && v !== undefined && v !== null)) as T;

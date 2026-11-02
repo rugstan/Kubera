@@ -149,6 +149,33 @@ test.describe("express qualifier", () => {
     await expect(page.getByLabel(/after-repair value/i)).toBeVisible();
   });
 
+  test("without a family link, step 1 offers a hard money pick that reshapes the list and preselects Hard money", async ({ page }) => {
+    await gotoHydrated(page, "/express");
+    const picks = page.getByRole("group", { name: "Building or need fast private money?" });
+    const pick = picks.getByRole("button", { name: /^hard money, fix-and-flip or private bridge$/i });
+    await expect(pick).toHaveAttribute("aria-pressed", "false");
+    await pick.click();
+    await expect(pick).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("heading", { level: 2, name: /what property is the loan for\?/i })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Senior living and care" })).toHaveCount(0);
+    await pickAsset(page, /^2 to 4 unit rental$/i);
+    await expect(page.getByRole("radiogroup", { name: /^transaction/i }).getByRole("radio", { name: /^hard money or fix-and-flip$/i })).toBeChecked();
+  });
+
+  test("without a family link, the construction pick preselects Construction and can be undone", async ({ page }) => {
+    await gotoHydrated(page, "/express");
+    const pick = page.getByRole("button", { name: /^ground-up construction or heavy rehab$/i });
+    await pick.click();
+    await expect(page.getByRole("heading", { level: 2, name: /what are you building or renovating\?/i })).toBeVisible();
+    // Pressing it again goes back to the plain first question.
+    await pick.click();
+    await expect(pick).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByRole("heading", { level: 2, name: /what are you financing\?/i })).toBeVisible();
+    await pick.click();
+    await pickAsset(page, /^multifamily$/i);
+    await expect(page.getByRole("radiogroup", { name: /^transaction/i }).getByRole("radio", { name: /^construction$/i })).toBeChecked();
+  });
+
   for (const [family, group] of [
     ["senior-living", "Senior living and care"],
     ["hotels", "Hospitality"],
@@ -159,6 +186,7 @@ test.describe("express qualifier", () => {
       await expect(page.getByRole("heading", { level: 2, name: /what are you financing\?/i })).toBeVisible();
       const groups = page.locator("form [role='group'][aria-label]");
       await expect(groups.first()).toHaveAttribute("aria-label", group);
+      // The construction and hard money picks show only without a family link.
       await expect(groups).toHaveCount(3);
     });
   }

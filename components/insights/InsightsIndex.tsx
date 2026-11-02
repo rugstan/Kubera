@@ -31,6 +31,15 @@ export function InsightsIndex() {
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Insights on commercial real estate debt</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">
             Analysis of HUD, SBA, CMBS and bridge financing for senior living, hotels and multifamily, with the numbers behind each program. Written by a licensed California broker; every figure comes from the same assumptions as our loan sizer.
+            Building or buying with private money? Start with our{" "}
+            <Link href="/financing/construction" className="font-medium text-accent underline underline-offset-2">
+              construction loan
+            </Link>{" "}
+            and{" "}
+            <Link href="/financing/hard-money" className="font-medium text-accent underline underline-offset-2">
+              hard money loan
+            </Link>{" "}
+            guides.
           </p>
         </header>
 

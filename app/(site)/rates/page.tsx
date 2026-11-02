@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Breadcrumbs, CtaBand, ProgramDisclosures } from "@/components/program/parts";
+import { HEADER_CTA } from "@/components/site/nav";
 import { RatesData, RatesSkeleton } from "@/components/rates/RatesData";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
@@ -25,12 +26,12 @@ export default function RatesPage() {
           <p className="eyebrow">Rates</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Commercial real estate loan rates today</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-ink/85">
-            Commercial loan rates are a benchmark, such as the 10-year Treasury yield, plus a spread that depends on the program and the deal. This page shows the benchmarks lenders use, updated each business day, and the range Kubera assumes for HUD, SBA, agency, CMBS and bridge loans.
+            Commercial loan rates are a benchmark, such as the 10-year Treasury yield, plus a spread that depends on the program and the deal. This page shows the benchmarks lenders use, updated each business day, and the range Kubera assumes for HUD, SBA, agency, CMBS, bridge, construction and hard money loans.
           </p>
           <p className="mt-4 text-[15px] text-titanium">
             Rates here are indicative and are not a quote or a commitment to lend.{" "}
-            <Link href="/express" className="font-medium text-accent underline underline-offset-2">
-              Start the 60-second qualifier
+            <Link href={HEADER_CTA.href} className="font-medium text-accent underline underline-offset-2">
+              {HEADER_CTA.label}
             </Link>{" "}
             for an advisor&apos;s read on your deal.
           </p>

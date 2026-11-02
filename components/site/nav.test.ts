@@ -11,6 +11,8 @@ import {
   POPULAR_PROGRAMS,
   PRIMARY_LINKS,
   SIZER_LINK,
+  expressHrefFor,
+  sizerLinkFor,
 } from "./nav";
 
 const source = (file: string) => readFileSync(path.resolve(import.meta.dirname, file), "utf8");
@@ -58,6 +60,15 @@ describe("customer-first primary navigation", () => {
     expect(HEADER_CTA.shortLabel).toBe("Get options");
     expect(SIZER_LINK).toEqual({ href: "/#sizer", label: "Size my loan" });
     expect(CALL_LINK).toEqual({ href: "/contact#schedule", label: "Book a call" });
+  });
+
+  it("carries the family on a family page's actions, with the same labels", () => {
+    expect(expressHrefFor()).toBe("/express");
+    expect(sizerLinkFor()).toEqual(SIZER_LINK);
+    expect(expressHrefFor("construction")).toBe("/express?family=construction");
+    expect(expressHrefFor("hard-money")).toBe("/express?family=hard-money");
+    expect(sizerLinkFor("hard-money")).toEqual({ href: "/?sizer=hard-money#sizer", label: "Size my loan" });
+    for (const family of PROGRAM_FAMILIES) expect(sizerLinkFor(family).label).toBe(SIZER_LINK.label);
   });
 
   it("has no public AI wording in any nav label", () => {

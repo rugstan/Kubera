@@ -29,6 +29,9 @@ const [minInterestLo, minInterestHi] = span(hmRows.map((r) => r.minInterestMonth
 const [fannieTermLo, fannieTermHi] = span(AGENCY_GRID.fannie.terms);
 const agencyTop = AGENCY_GRID.tiers.TIER_2;
 
+/** Hard money note rates across the sizer's experience tiers, in percent. Fixed, not tied to a benchmark. */
+export const HARD_MONEY_RATE_BAND = (([lo, hi]) => ({ lo, hi }))(span(hmRows.map((r) => r.ratePct)));
+
 export const HARD_MONEY = {
   rate: percentRange(hmRows.map((r) => r.ratePct), false),
   points: "1–4 points",
@@ -41,8 +44,11 @@ export const HARD_MONEY = {
   defaultRate: `up to ${num(HM.defaultRatePct)}%`,
 } as const;
 
+/** Bank construction loan pricing over 30-day average SOFR, in percentage points. */
+export const CONSTRUCTION_BANK_SPREAD = { lo: 2.75, hi: 3.5 } as const;
+
 export const CONSTRUCTION_MARKET = {
-  bank: { ltc: "60%–65% of cost", pricing: "SOFR + 2.75%–3.50%" },
+  bank: { ltc: "60%–65% of cost", pricing: `SOFR + ${CONSTRUCTION_BANK_SPREAD.lo.toFixed(2)}%–${CONSTRUCTION_BANK_SPREAD.hi.toFixed(2)}%` },
   debtFund: { ltc: "65%–75% of cost", pricing: "SOFR + 4.25%–5.25%" },
   privateLender: { ltc: "85%–90% of cost", cap: "capped at 70%–75% of as-completed value" },
 } as const;

@@ -159,7 +159,7 @@ export function calculatorPath(slug: string): string {
 
 export const CALCULATORS_INDEX = {
   title: "Commercial loan calculators",
-  description: "Free calculators for DSCR, HUD mortgage insurance premium, SBA 504 structure and hotel debt yield, built on the same assumptions as the Kubera loan sizer.",
+  description: "Free calculators for DSCR, HUD mortgage insurance, SBA 504 and hotel debt yield, plus construction and hard money sizers on the same Kubera assumptions.",
 } as const;
 
 export const calculatorRoutes: SitemapRoute[] = [

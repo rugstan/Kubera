@@ -29,7 +29,7 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <button type="button" onClick={() => retry()} className="pill pill-primary">Try again</button>
-              <a href="/contact" className="pill pill-glass">Talk to an advisor</a>
+              <a href="/contact" className="pill pill-glass">Contact us</a>
               {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full reload is intended after a root-layout crash */}
               <a href="/" className="pill pill-glass">Go to the homepage</a>
             </div>

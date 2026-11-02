@@ -10,7 +10,7 @@ export const INSIGHTS_BASE = "/insights";
 
 export const INSIGHTS_INDEX = {
   title: "Insights",
-  description: "Plain-English analysis of HUD, SBA, CMBS and bridge financing for senior living, hotels and multifamily, with the numbers behind each program.",
+  description: "Plain-English analysis of HUD, SBA, CMBS and bridge loans for senior living, hotels and multifamily, plus guides to construction and hard money financing.",
 } as const;
 
 export function insightPath(slug: string): string {

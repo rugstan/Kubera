@@ -106,6 +106,12 @@ test.describe("calculators", () => {
       await expect(page.getByRole("link", { name: new RegExp(name) }).first()).toBeVisible();
     }
   });
+
+  test("the index opens the sizer on its construction and hard money tabs", async ({ page }) => {
+    await page.goto("/calculators");
+    await expect(page.getByRole("link", { name: /construction loan sizer/i })).toHaveAttribute("href", "/?sizer=construction#sizer");
+    await expect(page.getByRole("link", { name: /hard money and fix-and-flip sizer/i })).toHaveAttribute("href", "/?sizer=hard-money#sizer");
+  });
 });
 
 test.describe("rates", () => {
@@ -116,6 +122,8 @@ test.describe("rates", () => {
     await expect(page.getByRole("link", { name: "FRED DGS10" })).toHaveAttribute("href", "https://fred.stlouisfed.org/series/DGS10");
     await expect(page.getByText(/not endorsed or certified by the Federal Reserve Bank of St. Louis/)).toBeVisible();
     await expect(page.getByRole("row", { name: /HUD 232/ })).toBeVisible();
+    await expect(page.getByRole("row", { name: /bank construction loan/i })).toContainText("30-day SOFR");
+    await expect(page.getByRole("row", { name: /hard money, fix-and-flip/i })).toContainText(/fixed note rate/i);
     // Dataset markup describes live FRED figures only; fallbacks carry their fixed date and no Dataset.
     const live = (await page.getByText("Live data", { exact: true }).count()) > 0;
     expect(await ldTypes(page)).toEqual(expect.arrayContaining(live ? ["Dataset", "BreadcrumbList"] : ["BreadcrumbList"]));

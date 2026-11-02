@@ -23,7 +23,7 @@ export default function SiteError({ error, retry }: { error: unknown; retry: () 
       actions={
         <>
           <button type="button" onClick={() => retry()} className="pill pill-primary">Try again</button>
-          <Link href="/contact" className="pill pill-glass">Talk to an advisor</Link>
+          <Link href="/contact" className="pill pill-glass">Contact us</Link>
         </>
       }
     >

@@ -4,7 +4,7 @@
 // program's copy. components/trust/pages.test.ts reads this file as source, so
 // keep each href a literal `href: "/path"` property.
 
-import { FAMILY_LABELS, PROGRAM_FAMILIES } from "@/content/programs/types";
+import { FAMILY_LABELS, PROGRAM_FAMILIES, type ProgramFamily } from "@/content/programs/types";
 
 export type NavLink = { href: string; label: string };
 
@@ -41,7 +41,18 @@ export const HEADER_CTA = { href: "/express", label: "Get loan options", shortLa
 
 export const SIZER_LINK: NavLink = { href: "/#sizer", label: "Size my loan" };
 
+/** "Book a call" once online scheduling is configured; content/contact.ts `callLink()` picks this or the email fallback. */
 export const CALL_LINK: NavLink = { href: "/contact#schedule", label: "Book a call" };
+
+/** The primary call to action for a family's pages: the qualifier opens on that family's step 1. */
+export function expressHrefFor(family?: ProgramFamily): string {
+  return family ? `${HEADER_CTA.href}?family=${family}` : HEADER_CTA.href;
+}
+
+/** The sizer link for a family's pages: the homepage sizer opens on that family's tab (components/sizer/tabs.ts). */
+export function sizerLinkFor(family?: ProgramFamily): NavLink {
+  return family ? { href: `/?sizer=${family}#sizer`, label: SIZER_LINK.label } : SIZER_LINK;
+}
 
 /** Sign-in links in the footer. Both paths are noindex and robots-disallowed. */
 export const ACCOUNT_LINKS: NavLink[] = [

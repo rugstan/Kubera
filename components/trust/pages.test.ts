@@ -64,8 +64,14 @@ describe("trust pages render", () => {
     for (const box of ["deals", "lenders", "partners", "vendors", "compliance"]) expect(markup).toContain(`${box}@kuberacommercial.com`);
     expect(markup).toContain("<table");
     expect(markup).toMatch(/<caption[^>]*>/);
-    expect(text(markup)).toMatch(/Online scheduling is not set up yet/);
+    // Unconfigured scheduling and phone show an email path, never a "not set up" or "coming soon" placeholder.
+    expect(text(markup)).toMatch(/with two or three times that work for you/);
+    expect(text(markup)).not.toMatch(/not set up yet|coming soon/i);
+    expect(markup).toContain('id="schedule"');
     expect(markup).not.toContain("<iframe");
+    // The customer actions use the site-wide wording; partner registration is a quiet text link.
+    expect(markup).toMatch(/class="pill pill-primary"[^>]*>Get loan options</);
+    expect(markup).not.toMatch(/class="pill[^"]*"[^>]*>Register as a partner</);
     expect(jsonLd(markup).some((n) => n["@type"] === "ContactPage")).toBe(true);
   });
 

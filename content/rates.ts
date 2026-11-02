@@ -2,6 +2,7 @@
 // from getMarketSnapshot() (lib/rates), the same cached feed as the ticker;
 // the spread bands come from lib/sizing/assumptions.ts.
 
+import { CONSTRUCTION_BANK_SPREAD, HARD_MONEY, HARD_MONEY_RATE_BAND } from "@/content/programs/market-facts";
 import type { Benchmarks } from "@/lib/rates";
 import type { SitemapRoute } from "@/lib/seo/sitemap-routes";
 import { SPREADS } from "@/lib/sizing/assumptions";
@@ -10,7 +11,7 @@ export const RATES_PATH = "/rates";
 
 export const RATES_PAGE = {
   title: "Commercial real estate loan rates today",
-  description: "Dated benchmark rates (Treasuries, SOFR, Prime) and indicative HUD, SBA, CMBS and bridge loan rates, updated each business day from FRED.",
+  description: "Benchmark rates (Treasuries, SOFR, Prime) updated each business day from FRED, and indicative HUD, SBA, CMBS, bridge, construction and hard money rates.",
 } as const;
 
 export type SeriesMeta = {
@@ -91,6 +92,25 @@ export const SPREAD_ROWS: readonly SpreadRow[] = [
   { key: "sba7a", label: "SBA 7(a)", ...band(SPREADS.sba7a), note: "Variable, over Prime" },
   { key: "hotelCmbs", label: "Hotel CMBS", ...band(SPREADS.hotelCmbs), note: "Conduit fixed rate" },
   { key: "bridge", label: "Private bridge", ...band(SPREADS.bridge), note: "Floating over SOFR, interest-only" },
+  {
+    key: "constructionBank",
+    label: "Bank construction loan",
+    ...band({ ...CONSTRUCTION_BANK_SPREAD, base: "sofr30" }),
+    note: "Floating over SOFR, interest-only during construction",
+  },
+];
+
+/** Programs priced at a fixed note rate rather than a spread, so their range does not move with the benchmarks. */
+export type FixedRateRow = { key: string; label: string; lo: number; hi: number; basis: string; note: string };
+
+export const FIXED_RATE_ROWS: readonly FixedRateRow[] = [
+  {
+    key: "hardMoney",
+    label: "Hard money, fix-and-flip and private bridge",
+    ...HARD_MONEY_RATE_BAND,
+    basis: "Fixed note rate set by the private lender, not tied to a benchmark",
+    note: `${HARD_MONEY.term}, plus ${HARD_MONEY.points}`,
+  },
 ];
 
 function band(s: { lo: number; hi: number; base: keyof Benchmarks }) {

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { TableScroll } from "@/components/legal/LegalPage";
 import { pageCard } from "@/content/programs";
-import type { ProgramFact, ProgramFaq, ProgramSection } from "@/content/programs";
+import type { ProgramFact, ProgramFaq, ProgramFamily, ProgramSection } from "@/content/programs";
+import { HEADER_CTA, expressHrefFor, sizerLinkFor } from "@/components/site/nav";
 import { disclosures, licenseLine } from "@/lib/site";
 import type { BreadcrumbItem } from "@/components/seo/schemas";
 
@@ -31,14 +32,20 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   );
 }
 
-export function CtaLinks({ sizerLabel = "Size this loan" }: { sizerLabel?: string }) {
+/**
+ * The page's two actions, worded as everywhere else on the site. On a family's
+ * hub and program pages both carry the family, so the qualifier opens on that
+ * family's first step and the sizer on its tab; calculators and markets pass none.
+ */
+export function CtaLinks({ family }: { family?: ProgramFamily }) {
+  const sizer = sizerLinkFor(family);
   return (
     <div className="flex flex-wrap gap-3">
-      <Link href="/express" className="pill pill-primary max-w-full whitespace-normal text-center">
-        Get loan options
+      <Link href={expressHrefFor(family)} className="pill pill-primary max-w-full whitespace-normal text-center">
+        {HEADER_CTA.label}
       </Link>
-      <Link href="/#sizer" className="pill pill-secondary max-w-full whitespace-normal text-center">
-        {sizerLabel}
+      <Link href={sizer.href} className="pill pill-secondary max-w-full whitespace-normal text-center">
+        {sizer.label}
       </Link>
     </div>
   );
@@ -51,8 +58,9 @@ export function FactsTable({ facts, asOf, title = "Key facts" }: { facts: Progra
       <h2 id="facts-heading" className="text-2xl font-semibold md:text-3xl">
         {title}
       </h2>
+      {/* One caveat for the whole table: per-row `verify` flags are an internal review aid, not public copy. */}
       <p className="mt-2 text-[14px] text-titanium">
-        Figures as of {asOf}. Programs change by notice; an advisor confirms current terms with lenders before you rely on them.
+        Figures as of {asOf}. Program rules change by notice, so an advisor confirms current terms with lenders before you rely on any figure.
       </p>
       <div className="bento mt-5 p-2 md:p-4">
         <TableScroll label={`${title} table`}>
@@ -72,7 +80,6 @@ export function FactsTable({ facts, asOf, title = "Key facts" }: { facts: Progra
                   <td className="py-3 pr-4 align-top text-ink">{f.value}</td>
                   <td className="py-3 align-top text-[13px] text-titanium">
                     {f.source}; as of {f.asOf}
-                    {f.verify && <span className="ml-1 font-medium text-warning">Re-check before relying on it.</span>}
                   </td>
                 </tr>
               ))}
@@ -155,15 +162,16 @@ export function RelatedPages({ slugs, heading = "Related programs" }: { slugs: s
   );
 }
 
-export function CtaBand({ heading = "Talk through your deal with an advisor" }: { heading?: string }) {
+/** Closing call to action: a light card, as on apple.com, never a dark band. */
+export function CtaBand({ heading = "Talk through your deal with an advisor", family }: { heading?: string; family?: ProgramFamily }) {
   return (
-    <section className="bento-pro on-dark mt-14 p-6 text-white sm:p-8 md:p-10">
+    <section className="bento mt-14 p-6 sm:p-8 md:p-10">
       <h2 className="text-2xl font-semibold md:text-3xl">{heading}</h2>
-      <p className="mt-3 max-w-2xl text-[16px] text-white/80">
+      <p className="mt-3 max-w-2xl text-[16px] text-titanium">
         Send the basics and a licensed Kubera advisor reviews which programs and lenders may fit, or size the loan yourself first.
       </p>
       <div className="mt-6">
-        <CtaLinks />
+        <CtaLinks family={family} />
       </div>
     </section>
   );

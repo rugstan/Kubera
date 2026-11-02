@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MAILBOXES, calcomHandle, calcomUrls, contactDetails, mailboxAddress, telHref } from "./contact";
+import { CALL_LINK } from "@/components/site/nav";
+import { MAILBOXES, callLink, calcomHandle, calcomUrls, contactDetails, mailboxAddress, telHref } from "./contact";
 
 describe("mailbox routing table", () => {
   it("lists the five public mailboxes", () => {
@@ -71,6 +72,22 @@ describe("contactDetails", () => {
     expect(contactDetails({ NEXT_PUBLIC_CALCOM_LINK: "kubera/intro" }).scheduling?.page).toBe("https://cal.com/kubera/intro");
     expect(contactDetails({ NEXT_PUBLIC_CALCOM_LINK: "javascript:alert(1)" }).scheduling).toBeNull();
   });
+});
+
+describe("callLink", () => {
+  it("offers Book a call only once a valid scheduling handle is set", () => {
+    expect(callLink({ NEXT_PUBLIC_CALCOM_LINK: "kubera/intro" })).toEqual({ ...CALL_LINK, kind: "book" });
+    expect(CALL_LINK).toEqual({ href: "/contact#schedule", label: "Book a call" });
+  });
+
+  it.each([{}, { NEXT_PUBLIC_CALCOM_LINK: "" }, { NEXT_PUBLIC_CALCOM_LINK: "https://cal.com/kubera" }])(
+    "falls back to Email an advisor without one (%j), never a page that cannot book",
+    (env) => {
+      const link = callLink(env);
+      expect(link).toMatchObject({ label: "Email an advisor", kind: "email" });
+      expect(link.href).toMatch(/^mailto:\S+@\S+$/);
+    },
+  );
 });
 
 describe("telHref", () => {

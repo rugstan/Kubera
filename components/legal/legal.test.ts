@@ -6,7 +6,7 @@ import LicensingPage from "@/app/(site)/(legal)/licensing/page";
 import PrivacyPage from "@/app/(site)/(legal)/privacy/page";
 import TermsPage from "@/app/(site)/(legal)/terms/page";
 import { DraftNotice } from "./DraftNotice";
-import { categoriesSentence, categoryById, COLLECTION_POINTS, LEGAL_PAGES, legalApproved, PI_CATEGORIES, type CollectionPoint } from "./legal";
+import { categoriesSentence, categoryById, COLLECTION_POINTS, LEGAL_PAGES, legalApproved, PI_CATEGORIES, PURPOSES, type CollectionPoint } from "./legal";
 import { canonicalUrl } from "@/lib/seo/hosts";
 import { legalMetadata } from "./metadata";
 import { NoticeAtCollection } from "./NoticeAtCollection";
@@ -123,7 +123,28 @@ describe("legal pages", () => {
     expect(t).toContain("Make a request online");
     // The retired Ask feature stays disclosed through its retention window, and its provider stays listed.
     expect(t).toContain("former Ask feature");
-    expect(t).toContain("Anthropic: Automated document reading, email sorting, and drafting tools used by our advisors");
+    expect(t).toContain("Anthropic: Automated document reading, call summaries, email sorting, and drafting tools used by our advisors");
+  });
+
+  it("scopes the automated-sending statement to what the code does", () => {
+    const t = text(rendered.privacy);
+    // Speed-to-lead texts, confirmations and checklist reminders go out automatically from
+    // pre-approved templates (lib/agents/outreach), so an unscoped "nothing is sent" is false.
+    expect(t).not.toMatch(/Nothing is sent to you, a lender, or anyone else without an advisor/);
+    expect(t).not.toMatch(/nothing goes to (?:a lender or to you|you or a lender) without/i);
+    expect(t).toContain("use fixed templates a licensed broker approved in advance");
+    expect(t).toMatch(/Nothing goes to a lender without an advisor[’']s approval\./);
+    // Call summaries (lib/agents/crm/call-notes.ts) and consent-only artificial-voice calls are listed.
+    expect(t).toContain("summarize call recordings and call notes for an advisor");
+    expect(t).toContain("only if you have given separate consent to those calls");
+    expect(PURPOSES.some((p) => /summaries of calls/.test(p))).toBe(true);
+  });
+
+  it("the About page makes no unscoped promise that nothing reaches the borrower without review", async () => {
+    const { default: AboutPage } = await import("@/app/(site)/about/page");
+    const t = text(html(createElement(AboutPage)));
+    expect(t).not.toMatch(/nothing goes to a lender or to you without/i);
+    expect(t).toContain("Automatic confirmations and reminders use templates a broker approved in advance");
   });
 
   it("no legal page mentions AI or a separate AI-use page", () => {

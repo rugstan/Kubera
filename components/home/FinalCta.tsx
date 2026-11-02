@@ -1,4 +1,4 @@
-import { contactDetails } from "@/content/contact";
+import { callLink, contactDetails } from "@/content/contact";
 import { TEAM, isPlaceholderBio, licenseDisplay } from "@/content/team";
 import { site } from "@/lib/site";
 import { Reveal } from "./Reveal";
@@ -15,6 +15,7 @@ function advisorLine(): string | null {
 export function FinalCta() {
   const contact = contactDetails();
   const advisor = advisorLine();
+  const call = callLink();
   return (
     <section aria-labelledby="final-cta-title" className="bg-white py-20 md:py-32">
       <Reveal className="mx-auto max-w-[980px] px-5 text-center md:px-8">
@@ -26,7 +27,9 @@ export function FinalCta() {
         </p>
         <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
           <TrackedLink href="/express" cta="get_options" section="final" className="pill pill-primary">Get loan options</TrackedLink>
-          <TrackedLink href="/contact#schedule" cta="book_call" section="final" className="pill pill-secondary">Book a call</TrackedLink>
+          <TrackedLink href={call.href} cta={call.kind === "book" ? "book_call" : "email_advisor"} section="final" className="pill pill-secondary">
+            {call.label}
+          </TrackedLink>
         </div>
         <p className="mt-6 text-[15px] text-titanium">
           Or email{" "}

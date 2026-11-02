@@ -120,7 +120,7 @@ export const MARKETS: readonly MarketPage[] = [
     slug: "los-angeles",
     name: "Los Angeles",
     title: "Los Angeles commercial loans",
-    description: "How Los Angeles rent rules, licensing, seismic retrofit and transfer taxes change senior living, hotel and multifamily loan sizing, and the programs we arrange.",
+    description: "How Los Angeles rent rules, licensing, seismic retrofit and transfer taxes shape senior living, hotel, multifamily, construction and hard money loans.",
     summary: "Rent stabilization, care-facility licensing and seismic diligence in the City and County of Los Angeles.",
     definition:
       "Los Angeles commercial real estate financing is the arrangement of loans on apartments, care facilities and hotels in the City and County of Los Angeles, where local rent ordinances, state licensing of care facilities and seismic retrofit rules shape how much a lender will lend. Kubera Commercial arranges these loans as a licensed California real estate broker; lenders make the credit decisions.",
@@ -189,7 +189,7 @@ export const MARKETS: readonly MarketPage[] = [
       { question: "Can a Los Angeles assisted living facility get a HUD 232 loan?", answer: "Often, if it is licensed and in good standing, operated by an experienced operator, and stabilized. Newly built or recently acquired facilities usually need a bridge first. An advisor can review the facility against HUD's tests." },
       { question: "Does Kubera lend money in Los Angeles?", answer: "No. Kubera Commercial is a licensed California real estate broker. Lenders make the credit decision and fund the loan. Kubera never holds or disburses loan funds." },
     ],
-    relatedPrograms: ["hud-223f-multifamily", "hud-232", "bridge-to-hud", "hotel-cmbs", "sba-504-hotel", "fannie-mae-multifamily"],
+    relatedPrograms: ["hud-223f-multifamily", "hud-232", "bridge-to-hud", "hotel-cmbs", "sba-504-hotel", "fannie-mae-multifamily", "construction-loans", "hard-money"],
     relatedMarkets: ["orange-county", "bay-area"],
   },
   {

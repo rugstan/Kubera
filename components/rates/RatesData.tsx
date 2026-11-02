@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TableScroll } from "@/components/legal/LegalPage";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { FRED_ATTRIBUTION, RATES_PATH, SERIES, SPREAD_ROWS, fredSeriesUrl, programRange } from "@/content/rates";
+import { FIXED_RATE_ROWS, FRED_ATTRIBUTION, RATES_PATH, SERIES, SPREAD_ROWS, fredSeriesUrl, programRange } from "@/content/rates";
 import { datasetSchema } from "@/lib/growth/schemas";
 import { getMarketSnapshot } from "@/lib/rates";
 
@@ -85,6 +85,16 @@ export async function RatesData() {
                     </tr>
                   );
                 })}
+                {FIXED_RATE_ROWS.map((row) => (
+                  <tr key={row.key} className="border-b border-black/[0.06] last:border-0">
+                    <th scope="row" className="py-3 pr-4 align-top font-medium text-ink">{row.label}</th>
+                    <td className="py-3 pr-4 text-right align-top font-semibold tabular-nums text-ink">
+                      {pct(row.lo)} to {pct(row.hi)}
+                    </td>
+                    <td className="py-3 pr-4 align-top text-titanium">{row.basis}</td>
+                    <td className="py-3 align-top text-[13px] text-titanium">{row.note}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </TableScroll>
@@ -96,7 +106,7 @@ export async function RatesData() {
           Indicative loan rates by program
         </h2>
         <p className="mt-2 text-[15px] text-titanium">
-          Each range is the benchmark above plus the spread band Kubera assumes for the program. They are planning estimates, not quotes, and lenders price each loan individually.
+          Each range is the benchmark above plus the spread band Kubera assumes for the program; hard money is priced at a fixed rate, so its range does not move with the benchmarks. They are planning estimates, not quotes, and lenders price each loan individually.
         </p>
         <div className="bento mt-5 p-2 md:p-4">
           <TableScroll label="Indicative loan rates table">

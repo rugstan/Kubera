@@ -20,7 +20,7 @@ export type AnalyticsEvents = {
   sizer_quote_swiped: { index: number; count: number };
   /** A homepage call to action: which one, and the section it sits in. */
   home_cta_clicked: {
-    cta: "get_options" | "size_loan" | "book_call" | "family_hub" | "family_options";
+    cta: "get_options" | "size_loan" | "book_call" | "email_advisor" | "family_hub" | "family_options";
     section: "hero" | "programs" | "process" | "sizer" | "why" | "faq" | "final";
   };
 };

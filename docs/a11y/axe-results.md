@@ -51,10 +51,11 @@ Rules: axe-core 4.14.0, tags wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa.
 | /financing/hud-232 (mobile 390px) | 0 | 0 |
 | /pipeline (signed in) (desktop) | 0 | 0 |
 | /pipeline (signed in) (mobile 390px) | 0 | 0 |
-| / sizer tab: Hospitality & hotels | 0 | 0 |
-| / sizer tab: Multifamily & CRE | 0 | 0 |
-| / sizer tab: Hard money | 0 | 0 |
+| / sizer tab: Hotels | 0 | 0 |
+| / sizer tab: Multifamily | 0 | 0 |
 | / sizer tab: Construction | 0 | 0 |
+| / sizer tab: Hard money | 0 | 0 |
+| / sizer: ineligible quote card | 0 | 0 |
 | /partners tab: /Referral brokers/i | 0 | 0 |
 | /partners tab: /Operators/i | 0 | 0 |
 | /partners tab: /Third-party vendors/i | 0 | 0 |
@@ -66,6 +67,7 @@ Rules: axe-core 4.14.0, tags wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa.
 
 | Check | Result |
 | --- | --- |
+| sizer: non-recourse only shows a Not a fit card | pass |
 | no assistant entry points on the page | pass |
 | Ctrl+K opens no dialog | pass |
 | sizer tabs: ArrowRight selects the next tab | pass |

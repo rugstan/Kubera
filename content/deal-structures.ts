@@ -6,6 +6,8 @@
 // single sources for underwriting numbers) so these pages cannot drift from the
 // sizer. Dollar amounts below are the illustrative loan sizes only.
 
+import { HEADER_CTA, expressHrefFor, sizerLinkFor } from "@/components/site/nav";
+import type { ProgramFamily } from "@/content/programs/types";
 import { ASSUMPTIONS_REVIEWED, BRIDGE, HUD, SBA } from "@/lib/sizing/assumptions";
 import { CONSTRUCTION, HARD_MONEY, PROGRAM_ASSUMPTIONS_REVIEWED } from "@/lib/sizing/programs/assumptions";
 
@@ -58,7 +60,13 @@ export interface DealStructure {
   steps: readonly StructureStep[];
   /** What a lender and the advisor would diligence before relying on this structure. */
   watch: readonly string[];
+  /** The page's actions. The first is the primary call to action (`actions()`), the rest are secondary. */
   related: readonly StructureLink[];
+}
+
+/** Get loan options and Size my loan, both opened on the structure's family, as on every program page. */
+function actions(family: ProgramFamily): StructureLink[] {
+  return [{ href: expressHrefFor(family), label: HEADER_CTA.label }, sizerLinkFor(family)];
 }
 
 /** Percent with up to two decimals, no trailing zeros: 0.0065 -> "0.65%", 0.5 -> "50%". */
@@ -156,10 +164,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       "Whether the existing debt is eligible to be refinanced under SBA's rules.",
       "The prepayment schedule on the debenture, which declines over time.",
     ],
-    related: [
-      { href: "/#sizer", label: "Size a similar loan" },
-      { href: "/express", label: "Start the 60-second qualifier" },
-    ],
+    related: actions("senior-living"),
   },
   {
     slug: "flagged-hotel-sba-504-green-pip",
@@ -203,10 +208,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       "Trailing revenue per available room and market supply, which lenders read against the flag.",
       "SBA's equity and eligibility rules for acquisitions, which change by SOP revision.",
     ],
-    related: [
-      { href: "/#sizer", label: "Size a hotel loan" },
-      { href: "/express", label: "Start the 60-second qualifier" },
-    ],
+    related: actions("hotels"),
   },
   {
     slug: "memory-care-bridge-to-hud",
@@ -249,10 +251,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       "HUD's operator, licensing and environmental requirements, which are separate from the bridge's.",
       "Section 232 premium and loan limits, which change by notice.",
     ],
-    related: [
-      { href: "/#sizer", label: "Size a bridge and a HUD takeout" },
-      { href: "/express", label: "Start the 60-second qualifier" },
-    ],
+    related: [...actions("senior-living"), { href: "/financing/bridge-to-hud", label: "How bridge-to-HUD works" }],
   },
   {
     slug: "hotel-to-assisted-living-conversion-bridge",
@@ -291,10 +290,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       "Conversion cost overruns and schedule slippage against the bridge term.",
       "Whether the stabilized property meets the takeout lender's occupancy and income tests.",
     ],
-    related: [
-      { href: "/#sizer", label: "Size a bridge loan" },
-      { href: "/express", label: "Start the 60-second qualifier" },
-    ],
+    related: actions("hotels"),
   },
   {
     slug: "multifamily-construction-bank-cpace",
@@ -333,11 +329,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       "Floating-rate exposure during construction and the rate cap the bank requires.",
       "Whether lease-up reaches the rents and occupancy the takeout lender needs to pass its DSCR and debt-yield tests.",
     ],
-    related: [
-      { href: "/financing/construction", label: "Construction loan programs" },
-      { href: "/#sizer", label: "Size a construction loan" },
-      { href: "/express?family=construction", label: "Get loan options" },
-    ],
+    related: [...actions("construction"), { href: "/financing/construction", label: "Construction loan programs" }],
   },
   {
     slug: "investor-rehab-hard-money",
@@ -379,11 +371,7 @@ const STRUCTURE_LIST: DealStructure[] = [
       "Support for the after-repair value from comparable sales and rents.",
       "Whether the permanent loan's DSCR works at today's rates once the units are renovated and leased.",
     ],
-    related: [
-      { href: "/financing/hard-money", label: "Hard money loan programs" },
-      { href: "/#sizer", label: "Size a hard money loan" },
-      { href: "/express?family=hard-money", label: "Get loan options" },
-    ],
+    related: [...actions("hard-money"), { href: "/financing/hard-money", label: "Hard money loan programs" }],
   },
 ];
 

@@ -4,7 +4,9 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
 import { LicenseId } from "@/components/trust/LicenseId";
 import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShell";
+import { HEADER_CTA, SIZER_LINK } from "@/components/site/nav";
 import { aboutPageSchema } from "@/components/trust/schemas";
+import { callLink } from "@/content/contact";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine, site } from "@/lib/site";
@@ -24,7 +26,7 @@ const PRINCIPLES = [
   },
   {
     title: "Advisors lead every deal",
-    body: "Our tools produce first-pass sizing and summaries so advisors spend their time on structure and lenders. A licensed advisor reviews every engagement, and nothing goes to a lender or to you without a broker's review.",
+    body: "Our tools produce first-pass sizing and summaries so advisors spend their time on structure and lenders. A licensed advisor reviews every engagement. Automatic confirmations and reminders use templates a broker approved in advance, and nothing goes to a lender without an advisor's approval.",
   },
   {
     title: "Honest about what we know",
@@ -33,20 +35,22 @@ const PRINCIPLES = [
 ] as const;
 
 const STEPS = [
-  { title: "Tell us about the property", body: "Use the 60-second qualifier or book a call. We ask for the property, the plan and the loan you have in mind." },
-  { title: "We size and compare structures", body: "An advisor reviews the programs that may fit, such as HUD, SBA, CMBS, agency and bridge, and explains the trade-offs." },
+  { title: "Tell us about the property", body: "Send the basics in about a minute, or talk to an advisor. We ask for the property, the plan and the loan you have in mind." },
+  { title: "We size and compare structures", body: "An advisor reviews the programs that may fit, such as HUD, SBA, CMBS, agency, bridge, construction and hard money, and explains the trade-offs." },
   { title: "We take it to lenders", body: "With your go-ahead, we package the file and approach lenders that fit. Lenders underwrite and decide." },
   { title: "Disclosures and closing", body: "On loans secured by real property you receive a Mortgage Loan Disclosure Statement before you are obligated. The lender closes and funds the loan." },
 ] as const;
 
 export default function AboutPage() {
+  const call = callLink();
   return (
     <PageShell
       eyebrow="About Kubera Commercial"
       title="A licensed broker, not a lender."
       intro={
         <p>
-          {site.legalName} is a California real estate corporation. We arrange commercial real estate loans for owners and buyers of senior living, hospitality and multifamily properties.
+          {site.legalName} is a California real estate corporation. We arrange commercial real estate loans for owners, buyers and builders of senior living, hotel and
+          multifamily properties, including construction and hard money loans.
         </p>
       }
       breadcrumb={[{ href: meta.path, label: "About" }]}
@@ -135,12 +139,22 @@ export default function AboutPage() {
         </ol>
       </Section>
 
-      <Section id="next" title="Talk to an advisor">
+      <Section id="next" title="Tell us about your deal">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link href="/contact" className="pill pill-primary">Contact an advisor</Link>
-          <Link href="/express" className="pill pill-glass">Start the 60-second qualifier</Link>
-          <Link href="/structures" className="pill pill-glass">See representative structures</Link>
+          <Link href={HEADER_CTA.href} className="pill pill-primary">
+            {HEADER_CTA.label}
+          </Link>
+          <Link href={SIZER_LINK.href} className="pill pill-glass">
+            {SIZER_LINK.label}
+          </Link>
+          <Link href={call.href} className="pill pill-glass">
+            {call.label}
+          </Link>
         </div>
+        <p className="mt-5 text-[14px] text-titanium">
+          <Link href="/structures" className="font-medium text-accent underline underline-offset-2">See representative structures</Link> for how deals like yours are
+          typically arranged.
+        </p>
       </Section>
 
       <LicenseFootnote>{licenseLine()}</LicenseFootnote>

@@ -65,12 +65,14 @@ test.describe("homepage", () => {
     const hero = page.locator("main > section").first();
     await expect(hero.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
     await expect(hero.getByRole("link", { name: "Size my loan", exact: true })).toHaveAttribute("href", "/#sizer");
-    await expect(hero.getByRole("link", { name: /book a call/i })).toHaveAttribute("href", "/contact#schedule");
+    // Online scheduling is not configured in e2e, so the call action is "Email an advisor", never a page that cannot book.
+    await expect(hero.getByRole("link", { name: /email an advisor/i })).toHaveAttribute("href", /^mailto:\S+@/);
+    await expect(page.locator("main").getByRole("link", { name: /book a call/i })).toHaveCount(0);
     const process = page.locator("main > section", { has: page.getByRole("heading", { name: /tell us about the deal once/i }) });
     await expect(process.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
     const final = page.locator("main > section", { has: page.getByRole("heading", { name: /tell us about your deal\./i }) });
     await expect(final.getByRole("link", { name: "Get loan options", exact: true })).toHaveAttribute("href", "/express");
-    await expect(final.getByRole("link", { name: "Book a call", exact: true })).toHaveAttribute("href", "/contact#schedule");
+    await expect(final.getByRole("link", { name: "Email an advisor", exact: true })).toHaveAttribute("href", /^mailto:\S+@/);
     // One filled primary per homepage section (the sizer's own result bar is the sizer's).
     for (const section of await page.locator("main > section:not(#sizer)").all()) expect(await section.locator(".pill-primary").count()).toBeLessThanOrEqual(1);
   });

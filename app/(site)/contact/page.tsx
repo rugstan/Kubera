@@ -4,6 +4,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
 import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShell";
 import { SchedulerEmbed } from "@/components/trust/SchedulerEmbed";
+import { HEADER_CTA, SIZER_LINK } from "@/components/site/nav";
 import { contactPageSchema } from "@/components/trust/schemas";
 import { MAILBOXES, contactDetails, mailboxAddress } from "@/content/contact";
 import { TRUST_PAGES } from "@/content/trust-pages";
@@ -34,7 +35,8 @@ export default function ContactPage() {
       />
 
       <Section id="reach-us" title="Reach us">
-        <div className="grid gap-5 md:grid-cols-3">
+        {/* The phone card shows only once NEXT_PUBLIC_CONTACT_PHONE is set: no "coming soon" placeholders. */}
+        <div className={`grid gap-5 ${contact.phone ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
           <div className="bento p-7">
             <h3 className="text-lg font-semibold">Email</h3>
             <p className="mt-3 text-[15px]">
@@ -42,9 +44,9 @@ export default function ContactPage() {
             </p>
             <p className="mt-2 text-[14px] text-titanium">Best for new financing requests.</p>
           </div>
-          <div className="bento p-7">
-            <h3 className="text-lg font-semibold">Phone</h3>
-            {contact.phone ? (
+          {contact.phone && (
+            <div className="bento p-7">
+              <h3 className="text-lg font-semibold">Phone</h3>
               <p className="mt-3 text-[15px]">
                 {contact.telHref ? (
                   <a href={`tel:${contact.telHref}`} className="font-medium text-accent underline underline-offset-2">{contact.phone}</a>
@@ -52,10 +54,8 @@ export default function ContactPage() {
                   contact.phone
                 )}
               </p>
-            ) : (
-              <p className="mt-3 text-[15px] text-titanium">Phone number coming soon. Email or book a call for now.</p>
-            )}
-          </div>
+            </div>
+          )}
           <div className="bento p-7">
             <h3 className="text-lg font-semibold">Office</h3>
             {contact.address ? (
@@ -76,20 +76,23 @@ export default function ContactPage() {
         </div>
       </Section>
 
-      <Section id="schedule" title="Book a call" lead="Pick a time that works for you. A licensed advisor joins the call.">
-        {contact.scheduling ? (
+      {contact.scheduling ? (
+        <Section id="schedule" title="Book a call" lead="Pick a time that works for you. A licensed advisor joins the call.">
           <SchedulerEmbed embedUrl={contact.scheduling.embed} pageUrl={contact.scheduling.page} />
-        ) : (
+        </Section>
+      ) : (
+        // Without NEXT_PUBLIC_CALCOM_LINK the section keeps its #schedule anchor for old links and asks for times by email.
+        <Section id="schedule" title="Set up a call" lead="A licensed advisor will send you an invitation.">
           <div className="bento max-w-3xl p-7">
             <p className="text-[16px] leading-relaxed text-titanium">
-              Online scheduling is not set up yet. Email{" "}
+              Email{" "}
               <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]">{contact.email}</a>{" "}
-              with two or three times that work for you, or start with the{" "}
-              <Link href="/express" className="font-medium text-accent underline underline-offset-2">60-second qualifier</Link>.
+              with two or three times that work for you and a line about the property. To share the numbers first, use{" "}
+              <Link href={HEADER_CTA.href} className="font-medium text-accent underline underline-offset-2">{HEADER_CTA.label}</Link>.
             </p>
           </div>
-        )}
-      </Section>
+        </Section>
+      )}
 
       <Section id="mailboxes" title="Which address to use" lead="Writing to the right mailbox gets your message to the right person sooner.">
         <div role="region" aria-label="Mailbox routing" tabIndex={0} className="bento overflow-x-auto">
@@ -128,10 +131,17 @@ export default function ContactPage() {
 
       <Section id="not-sure" title="Not sure where to start?">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link href="/express" className="pill pill-primary">Start the 60-second qualifier</Link>
-          <Link href="/#sizer" className="pill pill-glass">Size a loan</Link>
-          <Link href="/partners" className="pill pill-glass">Register as a partner</Link>
+          <Link href={HEADER_CTA.href} className="pill pill-primary">
+            {HEADER_CTA.label}
+          </Link>
+          <Link href={SIZER_LINK.href} className="pill pill-glass">
+            {SIZER_LINK.label}
+          </Link>
         </div>
+        <p className="mt-5 text-[14px] text-titanium">
+          Lender, referral broker or vendor?{" "}
+          <Link href="/partners" className="font-medium text-accent underline underline-offset-2">Register as a partner</Link>.
+        </p>
       </Section>
 
       <LicenseFootnote>

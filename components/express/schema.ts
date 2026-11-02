@@ -315,6 +315,18 @@ export function assetsFor(group: AssetGroup, family?: ProgramFamily): typeof ASS
   return ASSETS.filter((a) => a.group === group && (family !== "hard-money" || offersHardMoney(a.value)));
 }
 
+/**
+ * Shown above the asset groups on a plain /express visit (no family link), so a
+ * construction or hard money borrower sees their project on step 1. A pick
+ * works like the family link: it reshapes the asset list and preselects the
+ * transaction once an asset is chosen. Pressing it again clears it.
+ */
+export const PROJECT_PICKS_LABEL = "Building or need fast private money?";
+export const PROJECT_PICKS: readonly { family: ProgramFamily; label: string }[] = [
+  { family: "construction", label: "Ground-up construction or heavy rehab" },
+  { family: "hard-money", label: "Hard money, fix-and-flip or private bridge" },
+];
+
 export function assetStepHeading(family?: ProgramFamily): string {
   if (family === "construction") return "What are you building or renovating?";
   if (family === "hard-money") return "What property is the loan for?";
