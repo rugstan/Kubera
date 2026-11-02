@@ -83,7 +83,7 @@ export function GlassHeader({ phone, telHref }: { phone?: string | null; telHref
           className="mx-auto flex h-12 max-w-[1024px] items-center justify-between gap-2 px-4 sm:gap-4 md:h-11 md:px-[22px]"
           aria-label="Primary"
         >
-          <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Kubera Commercial home">
+          <Link href="/" className="flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Kubera Commercial home">
             <Logo compact />
           </Link>
           <ul className="hidden items-center gap-6 lg:flex xl:gap-8">
@@ -229,9 +229,24 @@ function FinancingMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const reduce = useReducedMotion();
+  // Space left under the header, measured like the mobile panel: the rate
+  // ticker sits above the sticky header until the page scrolls, so the CSS
+  // max-height (100dvh less the bar) is only the first-frame fallback.
+  const [panelMax, setPanelMax] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bottom = Math.max(0, rootRef.current?.closest("header")?.getBoundingClientRect().bottom ?? 0);
+        setPanelMax(Math.max(0, Math.floor(window.innerHeight - bottom)));
+      });
+    };
+    measure();
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
     const onPointerDown = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) onOpenChange(false);
     };
@@ -243,6 +258,9 @@ function FinancingMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (o
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
@@ -283,6 +301,7 @@ function FinancingMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             initial={reduce ? false : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+            style={panelMax === null ? undefined : { maxHeight: panelMax }}
             className="max-h-[calc(100dvh-3rem)] overflow-y-auto border-b border-black/[0.08] bg-[rgb(250_250_252/0.98)] backdrop-blur-xl"
           >
             <div className="mx-auto grid max-w-[1024px] gap-10 px-[22px] py-10 md:grid-cols-[1.4fr_1fr_1fr]">

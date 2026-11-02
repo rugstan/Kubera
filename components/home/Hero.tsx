@@ -34,7 +34,7 @@ export function Hero() {
           </div>
           <p className="mt-4 text-[13px] text-titanium">About 60 seconds · No credit check to start · No obligation</p>
           <p className="mt-4">
-            <TrackedLink href="/contact#schedule" cta="book_call" section="hero" className="link-chevron text-[17px]">
+            <TrackedLink href="/contact#schedule" cta="book_call" section="hero" className="link-chevron text-[17px] max-md:min-h-9">
               Prefer to talk? Book a call with an advisor
             </TrackedLink>
           </p>

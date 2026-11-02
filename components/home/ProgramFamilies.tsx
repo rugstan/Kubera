@@ -51,10 +51,10 @@ export function ProgramFamilies() {
                   </ul>
                   {data.note && <p className="mt-4 text-[12px] text-titanium">{data.note}</p>}
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-3 pt-6">
-                    <TrackedLink href={hub} cta="family_hub" section="programs" className="link-chevron text-[15px]">
+                    <TrackedLink href={hub} cta="family_hub" section="programs" className="link-chevron text-[15px] max-md:min-h-9">
                       {`Explore ${title.toLowerCase()} financing`}
                     </TrackedLink>
-                    <TrackedLink href={`/express?family=${family}`} cta="family_options" section="programs" className="pill pill-secondary pill-sm">Get options<span className="sr-only"> for {title.toLowerCase()}</span></TrackedLink>
+                    <TrackedLink href={`/express?family=${family}`} cta="family_options" section="programs" className="pill pill-secondary pill-sm max-md:min-h-9">Get options<span className="sr-only"> for {title.toLowerCase()}</span></TrackedLink>
                   </div>
                 </article>
               </Reveal>

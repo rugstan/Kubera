@@ -9,7 +9,7 @@ export const metadata = legalMetadata(
   "Kubera Commercial's commitment to WCAG 2.2 AA accessibility, what we test, known limitations, and how to reach us if something does not work for you.",
 );
 
-const LAST_REVIEWED = "November 1, 2026";
+const LAST_REVIEWED = "November 2, 2026";
 
 export default function AccessibilityPage() {
   return (

@@ -152,7 +152,7 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
 
           {q.terms && q.terms.length > 0 && (
             <details className="group mt-4 text-[12px]">
-              <summary className="cursor-pointer list-none font-medium text-accent">
+              <summary className="cursor-pointer list-none font-medium text-accent max-md:flex max-md:min-h-9 max-md:items-center">
                 <span className="group-open:hidden">Show term sheet detail</span>
                 <span className="hidden group-open:inline">Hide term sheet detail</span>
               </summary>
@@ -168,7 +168,7 @@ export function ProgramCard({ q, best, index }: { q: SizerQuote; best: boolean; 
           )}
 
           <details className="group mt-3 text-[12px]">
-            <summary className="cursor-pointer list-none font-medium text-accent">
+            <summary className="cursor-pointer list-none font-medium text-accent max-md:flex max-md:min-h-9 max-md:items-center">
               <span className="group-open:hidden">Show closing cost detail</span>
               <span className="hidden group-open:inline">Hide closing cost detail</span>
             </summary>

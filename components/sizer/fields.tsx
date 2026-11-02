@@ -71,7 +71,7 @@ export function Segmented<T extends string>({ label, value, onChange, options }:
             type="button"
             onClick={() => onChange(o.value)}
             aria-pressed={value === o.value}
-            className={`relative z-10 flex-1 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors ${value === o.value ? "text-ink" : "text-graphite hover:text-ink"}`}
+            className={`relative z-10 flex-1 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors max-md:min-h-9 ${value === o.value ? "text-ink" : "text-graphite hover:text-ink"}`}
           >
             {value === o.value && (
               <motion.span layoutId={`seg-${group}`} className="absolute inset-0 -z-10 rounded-lg bg-white shadow-sm" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
@@ -86,7 +86,7 @@ export function Segmented<T extends string>({ label, value, onChange, options }:
 
 export function Toggle({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3">
+    <label className="flex min-h-9 cursor-pointer items-center justify-between gap-3">
       <span>
         <span className="block text-sm font-medium text-ink">{label}</span>
         {hint && <span className="block text-xs text-titanium">{hint}</span>}

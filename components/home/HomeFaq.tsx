@@ -30,7 +30,7 @@ export function HomeFaq() {
           ))}
         </div>
         <p className="mt-8 text-center">
-          <TrackedLink href="/financing" cta="family_hub" section="faq" className="link-chevron text-[17px]">
+          <TrackedLink href="/financing" cta="family_hub" section="faq" className="link-chevron text-[17px] max-md:min-h-9">
             See all financing programs
           </TrackedLink>
         </p>

@@ -72,15 +72,15 @@ export function Footer() {
               Commercial real estate loan brokerage for senior living, hotels, multifamily, construction and hard money. We arrange loans as a licensed California real estate broker; we are not the lender.
             </p>
             <div className="mt-5">
-              <Link href={HEADER_CTA.href} className="pill pill-primary pill-sm">
+              <Link href={HEADER_CTA.href} className="pill pill-primary pill-sm max-md:min-h-9">
                 {HEADER_CTA.label}
               </Link>
             </div>
-            <a href={`mailto:${site.email}`} className="mt-5 inline-block text-accent hover:underline">
+            <a href={`mailto:${site.email}`} className="mt-5 inline-flex items-center text-accent hover:underline max-md:min-h-9">
               {site.email}
             </a>
             {telHref ? (
-              <a href={`tel:${telHref}`} className="mt-1 block text-graphite hover:underline">
+              <a href={`tel:${telHref}`} className="mt-1 flex w-fit items-center text-graphite hover:underline max-md:min-h-9">
                 {phone}
               </a>
             ) : null}
@@ -88,10 +88,11 @@ export function Footer() {
           {COLUMNS.map((c) => (
             <div key={c.title}>
               <h2 className="text-[12px] font-semibold text-ink">{c.title}</h2>
-              <ul className="mt-4 space-y-2">
+              {/* On phones each link is a 36px row, so the footer stays easy to tap. */}
+              <ul className="mt-4 space-y-2 max-md:mt-2 max-md:space-y-0">
                 {c.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-graphite hover:underline">
+                    <Link href={l.href} className="text-graphite hover:underline max-md:flex max-md:min-h-9 max-md:items-center">
                       {l.label}
                     </Link>
                   </li>
@@ -117,7 +118,7 @@ export function Footer() {
             {ACCOUNT_LINKS.map((l, i) => (
               <li key={l.href} className="flex items-center gap-2">
                 {i > 0 ? <span aria-hidden>·</span> : null}
-                <a href={l.href} rel="nofollow" className="inline-flex min-h-6 items-center hover:underline">
+                <a href={l.href} rel="nofollow" className="inline-flex min-h-6 items-center hover:underline max-md:min-h-9">
                   {l.label}
                 </a>
               </li>

@@ -11,12 +11,12 @@ export function legalApproved(env: Env = process.env): boolean {
 
 /**
  * Bumped whenever the privacy policy or the notice at collection changes. The
- * ".2" marks the second revision published on the effective date (the separate
- * assistant page was folded into the policy). Use a new date when this ships on
- * a later day.
+ * November 2 revision folds the separate assistant page into the policy and
+ * describes the automated tools neutrally. Add a ".2" suffix for a second
+ * revision on the same day.
  */
-export const PRIVACY_POLICY_VERSION = "2026-11-01.2";
-export const LEGAL_EFFECTIVE_DATE = "November 1, 2026";
+export const PRIVACY_POLICY_VERSION = "2026-11-02";
+export const LEGAL_EFFECTIVE_DATE = "November 2, 2026";
 
 export const LEGAL_PAGES = [
   { href: "/privacy", label: "Privacy policy" },
