@@ -1,0 +1,510 @@
+{
+ "results": [
+  {
+   "ids": [
+    "HM-013"
+   ],
+   "name": "Lument (bridge lending)",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "contact_title": "Managing Director, Lument (led the $28M Greenfair Apartments, Sacramento bridge loan)",
+    "phone": "212-317-5700 (Lument NY HQ main line, 230 Park Ave)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.lument.com/lument-closes-28-million-bridge-loan-for-affordable-age-restricted-multifamily-community-in-sacramento/",
+    "https://www.citybiz.co/?p=90406",
+    "https://www.lument.com/lument-expands-debt-capital-markets-platform-with-addition-of-rob-bedwell/",
+    "https://hk.finance.yahoo.com/quote/LFT/profile",
+    "https://loopnet.com/commercial-real-estate-brokers/profile/nicholas-diamond/cmg0y0gb"
+   ],
+   "note": "Lument is still active (June 2026 hire release). Aaron Wooler is confirmed as a Lument Managing Director on the Sacramento bridge loan. 212-317-5700 is the HQ line; the $10M minimum loan is unverified."
+  },
+  {
+   "ids": [
+    "SL-005"
+   ],
+   "name": "Lument",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "contact_title": "Managing Director (per lument.com originator page); co-manages western region seniors housing & healthcare production team, San Diego"
+   },
+   "clear": [
+    "broker_signup_url"
+   ],
+   "evidence": [
+    "https://www.lument.com/loan-originators/casey-moore/",
+    "https://dev.lument.com/our-people",
+    "https://www.lument.com/lument-closes-38-8-million-freddie-mac-refinance-for-california-senior-living-communities",
+    "https://hk.finance.yahoo.com/quote/LFT/profile",
+    "https://www.lument.com/lument-expands-debt-capital-markets-platform-with-addition-of-rob-bedwell/"
+   ],
+   "note": "Phone 212.317.5700 checks out as the Lument HQ line, and Casey Moore led California Freddie refis (Fremont/San Jose). No Jan 2026 'Senior MD' promotion was found: lument.com lists him as Managing Director. The 'mortgage-banking-services' URL is not a broker sign-up page and could not be confirmed, so it is cleared."
+  },
+  {
+   "ids": [
+    "HM-014"
+   ],
+   "name": "MF1 Capital",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {
+    "hq_city": "Boston",
+    "hq_state": "MA",
+    "tier": "B"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.pulse.bot/finance/news/mf1-supplies-64m-construction-takeout-loan-for-fort-greene-apartments-7db19181-5e49-415f-958b-533fd0b69433",
+    "https://commercialobserver.com/2023/10/mf1-capital-refis-la-apartment-complex",
+    "https://pincusco.com/?p=340029",
+    "https://pulse2.com/berkshire-residential-investments-to-acquire-full-ownership-of-mf1/"
+   ],
+   "note": "MF1 is active (several April-May 2026 multifamily loans) and has lent in LA (Wyvernwood $163M, 2023). Berkshire Residential is taking full ownership. No search surfaced mf1capital.com, a phone, an email or any broker program, so the website is unconfirmed and there is no contact path; downgraded to B."
+  },
+  {
+   "ids": [
+    "HM-015"
+   ],
+   "name": "Red Oak Capital Holdings",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "website": "https://www.redoakcapitalholdings.com",
+    "phone": "980-288-6627",
+    "email": "info@redoakcapitalholdings.com",
+    "address": "5925 Carnegie Boulevard, Suite 110, Charlotte, NC 28209",
+    "hq_city": "Charlotte",
+    "hq_state": "NC"
+   },
+   "clear": [],
+   "evidence": [
+    "https://altswire.com/red-oak-capital-holdings-relocates-and-expands-in-the-southeast/",
+    "https://www.connectcre.com/?p=485929",
+    "https://ec2-54-162-104-4.compute-1.amazonaws.com/ro-lending/",
+    "https://rejournals.com/tag/red-oak-capital-holdings/"
+   ],
+   "note": "The HQ moved from Grand Rapids to Charlotte; Grand Rapids is now the Midwest office and there is also an Irvine, CA office. Bridge loans were reported in Jan and Jun 2026. Phone, email and domain come from a Red Oak lending page mirrored on an AWS host. The $1M-$15M range is unverified."
+  },
+  {
+   "ids": [
+    "HM-016"
+   ],
+   "name": "Velocity Mortgage Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "phone": "818-532-3700 (Velocity Financial HQ main line)",
+    "address": "30699 Russell Ranch Road, Suite 295, Westlake Village, CA 91362"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.sec.gov/Archives/edgar/data/0001692376/000119312526209674/vel-20260331.htm",
+    "https://www.fool.com/earnings/call-transcripts/2026/05/07/velocity-financial-vel-q1-2026-earnings-transcript/",
+    "https://dfpi.ca.gov/enforcement_action/velocity-commercial-capital-inc-603a366velocity-commercial-capital-inc-603g349velocity-commercial-capital-inc-603g350/",
+    "https://www.bbb.org/us/ca/westlake-village/profile/loans/velocity-mortgage-capital-1236-2000079",
+    "https://es-us.finanzas.yahoo.com/quote/VEL/profile"
+   ],
+   "note": "Active, with Q1/Q2 2026 originations of about $640M-$673M per quarter (NYSE: VEL). CFL #603A366 matches the DFPI record and a rate sheet naming 'Velocity Commercial Capital, LLC dba Velocity Mortgage Capital'. The broker URL is only the homepage; no dedicated broker page was found. BBB also lists (888) 822-3304."
+  },
+  {
+   "ids": [
+    "HM-017"
+   ],
+   "name": "Anchor Loans",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "broker_signup_url": "https://www.anchorloans.com/brokers",
+    "email": "brokers@anchorloans.com",
+    "contact_name": "Kate Zanobini",
+    "contact_title": "Vice President of National Broker Growth (anchorloans.com originator page)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.anchorloans.com/brokers",
+    "https://www.anchorloans.com/originators/kate-zanobini",
+    "https://www.anchorloans.com/blog/anchor-loans-launches-third-party-origination-tpo-channel-to-serve-brokers-banks-lenders-and-referral-partners",
+    "https://www.crowdfundedwealth.com/reviews/anchor-loans-review"
+   ],
+   "note": "Anchor (Pretium-backed) is still publishing in 2026 (May 2026 Housing Monitor) and lends in every state except SD and VT. The broker URL was a blog post; it is replaced by the on-domain /brokers page ('Become a Referral Partner' application, brokers@anchorloans.com). A claim that Pretium is shifting away from fix-and-flip is unverified. Licenses were not checked."
+  },
+  {
+   "ids": [
+    "HM-018"
+   ],
+   "name": "Civic Financial Services",
+   "active_2026": "Unclear",
+   "verdict": "flag",
+   "set": {
+    "broker_signup_url": "https://civicfs.com/brokers/"
+   },
+   "clear": [],
+   "evidence": [
+    "https://civicfs.com/brokers/",
+    "https://civicfs.com/blog",
+    "https://enterpriseleague.com/company/civic-financial-services",
+    "https://digital-release.nwahomepage.com/business/press-releases/cision/20260512NY56638/roc360-reaches-20-billion-in-loans-funded-to-residential-real-estate-investors-since-founding",
+    "https://privatelenderlink.com/profile/civic-financial-services/"
+   ],
+   "note": "CIVIC has been a Roc360 brand since the May 2023 asset purchase. civicfs.com has a live /brokers page (brochure dated Jan 2025), but no CIVIC-specific 2026 lending was found. The Gregg Kennedy appointment dates from July 2023 and his current role is unconfirmed. NMLS 1804080 is unverified (a directory lists 1099109). Confirm on NMLS before calling, or route through Roc Capital."
+  },
+  {
+   "ids": [
+    "HM-019"
+   ],
+   "name": "Constructive Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "address": "1801 South Meyers Road, Suite 400, Oakbrook Terrace, IL 60181"
+   },
+   "clear": [],
+   "evidence": [
+    "https://pitchbook.com/profiles/company/895361-41",
+    "https://www.crowdfundedwealth.com/reviews/constructive-loans-review",
+    "https://www.crowdfundedwealth.com/reviews/bpl-mortgage-review-2026-7255-rental-loans-ohio-hmda"
+   ],
+   "note": "Active per 2026 coverage: a captive originator for Adamas Trust with $6.5B lifetime volume. A review site says the phone 833-208-1442 is on Constructive's About page. BPL Mortgage, LLC (NMLS #2574042) is reported to originate in CA. CFL #60DBO-192818 and the /contact broker page could not be confirmed."
+  },
+  {
+   "ids": [
+    "HM-020"
+   ],
+   "name": "CoreVest Finance",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "phone": "(844) 223-2231",
+    "address": "1920 Main St., Suite 850, Irvine, CA 92614"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.corevestfinance.com/solutions/brokers",
+    "https://corevestfinance.com/brokers",
+    "https://corevestfinance.com/contact",
+    "https://mergr.com/corevest-american-finance-lender-overview",
+    "https://connectplex.ai/contact/john-prins-35523118",
+    "https://www.crowdfundedwealth.com/reviews/corevest-finance-review"
+   ],
+   "note": "Active as a Redwood Trust subsidiary (third-party report of $410M funded in Q2 2026). The /solutions/brokers page and broker/wholesale applications exist. No source shows (844) 223-7496; directory and staff listings consistently show (844) 223-2231 as the Irvine HQ line, so confirm it on the contact page."
+  },
+  {
+   "ids": [
+    "HM-021"
+   ],
+   "name": "Dunmor",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "hq_city": "Los Angeles",
+    "hq_state": "CA"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.businesswire.com/news/home/20250707761661/en",
+    "https://www.housingwire.com/articles/dunmor-launches-wholesale-broker-division-led-by-zeenat-zonte/",
+    "https://www.nationalmortgagenews.com/news/bridge-mortgage-lender-launches-tpo-division",
+    "https://www.businesswire.com/news/home/20260416475081/en/Dunmor-Appoints-Industry-Leader-Dana-Georgiou-as-Chief-Revenue-Officer"
+   ],
+   "note": "LA-based (with an Irvine office) and licensed to originate in CA. The wholesale broker division under EVP Zeenat Zonte launched July 2025, and a CRO (Dana Georgiou) was added Apr 2026; Zonte's current role was not reconfirmed. The /wholesalebroker URL was not surfaced by search."
+  },
+  {
+   "ids": [
+    "HM-022"
+   ],
+   "name": "Easy Street Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://easystreetcap.com/mortgage-broker-program/",
+    "https://smb.state-journal.com/article/Easy-Street-Capital-launches-borrower-and-broker-portals-to-streamline-investment-real-estate-lending/6a844d9ee2557832e110f5a7",
+    "https://rabbu.com/lenders/easy-street-capital"
+   ],
+   "note": "The broker program page is live (Broker / Signature Broker tiers; UT and NV excluded), and new broker and borrower portals launched Aug 2026. NMLS #2167568 and the CA DFPI licensing are confirmed. Phone 866-828-0062 appears only in a directory, which also lists (346) 398-6383."
+  },
+  {
+   "ids": [
+    "HM-023"
+   ],
+   "name": "Kiavi",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://kiavi.com/becoming-a-broker-partner",
+    "https://kiavi.com/broker",
+    "https://www.kiavi.com/legal/esign",
+    "https://www.kiavi.com/press/kiavi-closes-350m-rated-rtl-securitization-february-2026",
+    "https://cryptobriefing.com/figure-acquires-kiavi-717-million/"
+   ],
+   "note": "The broker-partner page is live and 844-415-4663 is Kiavi's toll-free line on its own pages. A $350M RTL securitization closed Feb 2026. Figure Technology agreed to acquire Kiavi ($717M, June 2026); the Kiavi brand continues ('Kiavi + Figure') and the record's Figure Lending NMLS fits this."
+  },
+  {
+   "ids": [
+    "HM-024"
+   ],
+   "name": "LendingOne",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "phone": "(888) 987-1276 (lending advisor line on lendingone.com)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://lendingone.com/brokers/",
+    "https://lendingone.com/insights-category/bridge",
+    "https://lendingone.com/insight/best-dscr-lenders-for-real-estate-investors/",
+    "https://www.prweb.com/releases/2023/4/prweb19285750.htm"
+   ],
+   "note": "The /brokers page is live (TPO and referral tracks). There is 2026 activity (Jan 2026 Stessa DSCR partnership) and no lending in AK, NV, ND or SD, so CA is covered. A 2023 broker release listed 866-794-0937. NMLS and CFL numbers were not rechecked."
+  },
+  {
+   "ids": [
+    "HM-025"
+   ],
+   "name": "Lima One Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.limaone.com/contact",
+    "https://www.businesswire.com/news/home/20260505669366/en/MFA-Financial-Inc.-Announces-First-Quarter-2026-Financial-Results",
+    "https://www.barchart.com/story/news/3662311/mfa-financial-inc-announces-second-quarter-2026-financial-results"
+   ],
+   "note": "Lima One's contact page lists Broker Sales (833) 315-4404, main (800) 390-4212 and hello@limaone.com. It is active as MFA Financial's subsidiary, with Q2 2026 originations up 44% to $316M."
+  },
+  {
+   "ids": [
+    "HM-026"
+   ],
+   "name": "RCN Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://rcncapital.com/broker-referral-program",
+    "https://rcncapital.com/blog/rcn-capital-celebrates-grand-opening-of-los-angeles-office",
+    "https://www.crowdfundedwealth.com/reviews/rcn-capital-review",
+    "https://www.zoominfo.com/c/rcn-capital-llc/356212671"
+   ],
+   "note": "The broker program page is live (application form) and RCN published 2026 content (#1 DSCR lender of 2025 per Scotsman). It has a Los Angeles office, which supports CA lending. Phone 860-432-5858 appears only on ZoomInfo and info@rcncapital.com was not confirmed; other directories list other numbers."
+  },
+  {
+   "ids": [
+    "HM-027"
+   ],
+   "name": "Roc Capital (Roc360)",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "phone": "212-607-8333 (per Roc Capital brochure, 2022)",
+    "email": "info@roccapital.com"
+   },
+   "clear": [],
+   "evidence": [
+    "https://digital-release.nwahomepage.com/business/press-releases/cision/20260512NY56638/roc360-reaches-20-billion-in-loans-funded-to-residential-real-estate-investors-since-founding",
+    "https://www.law360.com/real-estate-authority/articles/2427895",
+    "https://rgccap.com/wp-content/uploads/2022/11/Roc-Capital-Brochure.pdf",
+    "https://aaplonline.com/?p=17286"
+   ],
+   "note": "Active: Roc360 reported a $20B funded milestone in May 2026 and a $150M Temasek investment in Jan 2026. White-label table funding for brokers is confirmed by directories, but the exact /white-label-table-funding URL and DFPI #60DBO-69051 were not confirmed."
+  },
+  {
+   "ids": [
+    "HM-028"
+   ],
+   "name": "Silverback Capital",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {
+    "address": "301 Natoma St., Folsom, CA 95630",
+    "lends_in_california": "Unconfirmed",
+    "tier": "B"
+   },
+   "clear": [],
+   "evidence": [
+    "https://lifestyle.kbew98country.com/story/379999/silverback-capital-launches-broker-network-with-commission-protection-program-for-mortgage-professionals/",
+    "https://www.wboc.com/online_features/press_releases/silverback-capital-disrupts-private-lending-market-with-100-fix-flip-financing-program/article_a57fd582-af00-5010-b435-d7e95da91207.html",
+    "https://elementix.ai/lenders/silverback-capital-partners"
+   ],
+   "note": "The broker URL and 800-473-5132 match the Aug 2026 broker-network release. All evidence is self-published paid press releases, with no DFPI/DRE/NMLS license and no closed CA loan found. An unrelated Phoenix firm, 'Silverback Capital Partners', exists. Check licensing before engaging."
+  },
+  {
+   "ids": [
+    "HM-029"
+   ],
+   "name": "Temple View Capital",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "hq_city": "Bethesda",
+    "hq_state": "MD"
+   },
+   "clear": [],
+   "evidence": [
+    "https://prod.bbb.org/us/md/bethesda/profile/real-estate-investing/temple-view-capital-funding-lp-0241-236069133/complaints",
+    "https://privatelenderlink.com/upt_user/tvc-funding/",
+    "https://www.zoominfo.com/c/temple-view-capital-llc/371983959",
+    "https://asreport.americanbanker.com/news/residential-transition-loans-support-250-million-from-tvc-mortgage",
+    "https://www.abfjournal.com/temple-view-capital-forms-strategic-partnership-with-oaktree-to-support-private-lending-platform/"
+   ],
+   "note": "Active: a $250M RTL securitization in Feb 2026 and an Oaktree partnership in July 2026. BBB and other sources put Temple View Capital Funding, LP in Bethesda, MD, not Spokane. tvc-bpa@templeviewcap.com and CA finance lender/broker licensing match the TVC Funding wholesale listing. 844-232-7878 appears only on ZoomInfo and the tvcfunding.com URL is unconfirmed."
+  },
+  {
+   "ids": [
+    "HM-030"
+   ],
+   "name": "Avatar Financial Group",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {
+    "tier": "B"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.pulse.bot/real-estate/news/avatar-lends-on-vacant-industrial-campus-in-hawthornes-space-corridor-d4ef5929-e00d-4d5a-8596-abab6631fa9f",
+    "https://www.pulse.bot/hotels/news/avatar-financial-provides-51m-bridge-loan-for-hampton-inn-suites-denver-littleton-433eb8f9-a238-4539-8563-f9af2dcc1ce9/",
+    "https://www.connectcre.com/stories/avatar-provides-financing-to-overhaul-sonoma-coast-hotel/",
+    "https://www.yieldstreet.com/originator/avatar.financial.group/"
+   ],
+   "note": "This Seattle bridge lender is active (loans Jan, Mar and Apr 2026) and lends in CA (a $16.1M Hawthorne, CA loan in Mar 2026; about 20% of volume is CA). No website, phone, email or broker page could be confirmed, so the record has no contact path; downgraded to B."
+  },
+  {
+   "ids": [
+    "HM-031"
+   ],
+   "name": "Kennedy Funding",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "broker_signup_url": "https://www.kennedyfunding.com/loan-application-eu"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.kennedyfunding.com/loan-application-eu",
+    "https://re-nj.com/kennedy-funding-inks-2-7-million-loan-for-mixed-use-project-near-tacoma-washington/",
+    "https://re-nj.com/kennedy-funding-inks-3-6-million-land-loan-for-socal-commercial-condo-project/",
+    "https://briefglance.com/companies/kennedy-funding-llc/pulses/47902"
+   ],
+   "note": "Kennedy's own loan application page lists Edwin Urrego with direct 201-315-4440 and main 201-342-8500, and a $1M minimum. The broker URL is switched from '-jl' to the '-eu' page that names Urrego. CA land loans (Corona, Banning) are confirmed and ads ran in 2026; a toll-free 1-800-342-8500 also appears."
+  },
+  {
+   "ids": [
+    "SL-001"
+   ],
+   "name": "Bloomfield Capital",
+   "active_2026": "Unclear",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.berkadia.com/news/assisted-living-portfolio-ohio-and-pennsylvania-refinanced-by-berkadia-2026/",
+    "https://formds.com/issuers/bloomfield-capital-income-fund-v-llc-series-d",
+    "https://skillednursingnews.com/2023/03/bloomfield-capital-closes-12-0-million-senior-bridge-loan-for-southern-california-snf-pointclickcare-acquires-patient-pattern/",
+    "https://www.griinstitute.org/member-profile/0031R00002JRYtuQAH"
+   ],
+   "note": "Truscott and Lewis are named on a Nov 2025 Form D, and the firm made CA SNF ($12M, 2023) and CA commercial ($26M, 2023) bridge loans. The only 2026 deal (Feb 2026 Berkadia, $114M) names 'Bloomfield Capital Partners' and is far above the record's $30M max, so the entity match is uncertain. Phone 248-745-1700 was not confirmed."
+  },
+  {
+   "ids": [
+    "SL-002"
+   ],
+   "name": "Greystone (Healthcare Bridge)",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "contact_title": "Senior Managing Director (Greystone team page); originated Aug 2025 $64.9M PA healthcare bridge; Ryan Harkins (MD) also originates healthcare bridge loans"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.greystone.com/team-clare/",
+    "https://natlawreview.com/press-releases/greystone-provides-649-million-bridge-financing-healthcare-portfolio",
+    "https://rss.globenewswire.com/news-release/2025/06/09/3095938/30865/en/Greystone-Provides-26-Million-in-Bridge-Financing-for-Skilled-Nursing-Facility-in-California.html",
+    "https://www.globenewswire.com/news-release/2026/04/16/3275778/0/en/Greystone-Provides-49-Million-HUD-Loan-for-Two-Healthcare-Facilities-in-California.html",
+    "https://www.greystone.com/financing/healthcare/"
+   ],
+   "note": "The healthcare financing page exists. Greystone is active (Apr 2026 CA $49M HUD loan) and makes CA SNF bridge loans ($26M June 2025, $40.5M Mar 2025). Christopher Clare is listed as Senior Managing Director, so the title is updated. Fred Levine was not reconfirmed."
+  },
+  {
+   "ids": [
+    "SL-003"
+   ],
+   "name": "Cambridge Realty Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://news.cision.com/cambridge-realty-capital-companies/about",
+    "https://rejournals.com/?p=181775",
+    "https://www.abladvisor.com/press-releases/tags/12/17528/cambridge-realty-capital",
+    "https://www.multihousingnews.com/cambridge-realty-capital-gets-new-national-originations-manager/"
+   ],
+   "note": "Phone 312-357-1601 and info@cambridgecap.com match Cambridge's own release boilerplate, and it closed a HUD 232 loan in Apr 2026. Hymie Barber's last dated mention as National Originations Manager is 2022, so his role is unconfirmed for 2026; Brent Holman-Gomez (SVP) led the Apr 2026 deal."
+  },
+  {
+   "ids": [
+    "SL-004"
+   ],
+   "name": "Greystone",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "phone": "855-527-4381 (main line from the first pass; not re-confirmed). NY office per a directory: 212-649-9700",
+    "contact_title": "Senior Managing Director (Greystone team page); seniors housing & care team; originated Greystone's Mar 2025 $40.5M CA SNF bridge, refinanced via $49M HUD loan Apr 2026"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.walkerdunlop.com/about/people/brad-annis",
+    "https://www.greystone.com/team-clare/",
+    "https://www.globenewswire.com/news-release/2026/04/16/3275778/0/en/Greystone-Provides-49-Million-HUD-Loan-for-Two-Healthcare-Facilities-in-California.html",
+    "https://wealthmanagement.com/data-table/greystone-0"
+   ],
+   "note": "Brad Annis is now a Senior Director of FHA Finance at Walker & Dunlop, not Greystone, so his direct line is removed from the phone field. Search could not confirm 855-527-4381 or information@greyco.com (a directory lists 212-649-9700 for the NY office). Clare's title is updated to Senior MD. CA HUD/healthcare lending is confirmed for 2026."
+  },
+  {
+   "ids": [
+    "SL-006"
+   ],
+   "name": "TMC Financing",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "address": "1611 Telegraph Avenue, Suite 504, Oakland, CA 94612"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.tmcfinancing.com/2026-sba-lender-of-the-year-coleman-report/",
+    "https://www.tmcfinancing.com/number-one-504-lender-bay-area/",
+    "https://www.nosh.com/pr/2026/03/25/how-gorges-beer-co-refinanced-highcost-debt-with-the-sba-504-and-tmc-financing"
+   ],
+   "note": "Active: 2026 Coleman Report award, record FY25 of 548 loans, a Mar 2026 release, and Bay Area #1 504 lender. The toll-free 888-989-8855 and the Oakland address are confirmed; the 415 number was not seen. Founder Barbara Morrison is retiring."
+  },
+  {
+   "ids": [
+    "SL-007"
+   ],
+   "name": "Wilshire Quinn Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {
+    "address": "2550 Fifth Avenue, Suite 1070, San Diego, CA 92103"
+   },
+   "clear": [],
+   "evidence": [
+    "https://privatelenderlink.com/profile/wilshire-quinn-capital/",
+    "https://ground.news/article/wilshire-quinn-provides-10125-million-refinance-loan-on-savannah-office-park",
+    "https://prnewswire.com/news-releases/wilshire-quinn-issues-16-500-000-loan-on-newly-constructed-multi-family-property-in-san-diego-california-302061270.html"
+   ],
+   "note": "Active (Mar 2026 $10.1M refi) with CA lending ($16.5M San Diego loan, 2024). CFL #603J060 matches its lender profile. This is a bridge-fund lender, not an SBA lender, and the profile's stated $200K-$10M range conflicts with the record's $500K-$20M."
+  }
+ ]
+}
