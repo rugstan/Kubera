@@ -1,7 +1,7 @@
 /**
  * Monochrome mark: a white stroke on an ink tile (a light tile with an ink
  * stroke on dark surfaces). `compact` hides the " Commercial" half of the
- * wordmark visually below 380px so the primary header row fits at 320px
+ * wordmark visually below 420px so the primary header row fits at 320px
  * (WCAG 1.4.10 Reflow). It stays in the accessible name.
  */
 export function Logo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
@@ -12,7 +12,7 @@ export function Logo({ dark = false, compact = false }: { dark?: boolean; compac
         <path d="M8 6v12M8 12l7-6M10.5 10l5 8" stroke={dark ? "#1d1d1f" : "#ffffff"} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
       <span className="text-[15px] font-semibold">
-        Kubera<span className={`font-normal ${dark ? "text-white/80" : "text-graphite"}${compact ? " max-[379px]:sr-only" : ""}`}> Commercial</span>
+        Kubera<span className={`font-normal ${dark ? "text-white/80" : "text-graphite"}${compact ? " max-[419px]:sr-only" : ""}`}> Commercial</span>
       </span>
     </span>
   );

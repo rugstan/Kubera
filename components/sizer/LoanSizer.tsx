@@ -118,7 +118,7 @@ export function LoanSizer({ benchmarks, live }: { benchmarks: Benchmarks; live: 
           {tab === "hardMoney" && <HardMoneyForm v={hm} set={setHm} />}
           {tab === "construction" && <ConstructionForm v={build} set={setBuild} />}
           <div className="rounded-2xl bg-black/[0.03] p-4">
-            <p className="eyebrow !text-xs">Underwriting snapshot</p>
+            <p className="eyebrow !text-xs text-graphite">Underwriting snapshot</p>
             <dl className="mt-2 space-y-1 text-[13px]">
               <div className="flex justify-between"><dt className="text-ink/70">{result.valueEstimated ? "Est. value (from cap rate)" : "Value / cost basis"}</dt><dd className="tabular-nums">{usd(result.value)}</dd></div>
               {result.metrics.map((m) => (

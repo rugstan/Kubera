@@ -85,7 +85,7 @@ describe("trust pages render", () => {
     expect(jsonLd(markup).filter((n) => n["@type"] === "Person")).toHaveLength(0);
   });
 
-  it("structures index links all four detail pages", () => {
+  it("structures index links every detail page", () => {
     const markup = html(createElement(StructuresPage));
     for (const s of DEAL_STRUCTURES) expect(markup).toContain(`href="/structures/${s.slug}"`);
     expect(text(markup)).toContain(disclosures.illustrative);
@@ -120,7 +120,8 @@ describe("structure detail pages", () => {
     const withStack = await Promise.all(
       DEAL_STRUCTURES.map(async (s) => html(await StructurePage({ params: Promise.resolve({ slug: s.slug }) })).includes("CDC debenture (SBA 504)")),
     );
-    expect(withStack).toEqual([true, true, false, false]);
+    expect(withStack).toEqual(DEAL_STRUCTURES.map((s) => Boolean(s.stack)));
+    expect(withStack.filter(Boolean)).toHaveLength(2);
   });
 
   it("returns not-found for an unknown slug", async () => {

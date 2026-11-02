@@ -95,7 +95,6 @@ export function licenseLine(): string {
 export const disclosures = {
   indicative:
     "All rates, terms, and sizing are indicative estimates for discussion only, are not a commitment to lend, and are subject to lender underwriting, appraisal, credit approval, and program guidelines in effect at application. Kubera Commercial arranges loans as a licensed California real estate broker and is not the lender.",
-  ai: "Kubera AI responses are generated automatically for educational purposes and may contain errors. They are not legal, tax, or investment advice. A licensed Kubera Commercial advisor reviews every engagement.",
   illustrative:
     "Structures shown are illustrative examples of how these programs are typically arranged. They are not client testimonials or guarantees of results; actual terms vary by borrower, asset, and market.",
   timeline:

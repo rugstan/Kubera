@@ -325,7 +325,7 @@ function FlyoutColumn({
 }) {
   return (
     <div>
-      <h2 id={id} className="text-[12px] text-titanium">
+      <h2 id={id} className="text-[12px] text-graphite">
         {heading}
       </h2>
       <ul aria-labelledby={id} className={large ? "mt-4 space-y-3" : "mt-4 space-y-2"}>
@@ -351,14 +351,5 @@ function FlyoutColumn({
         ))}
       </ul>
     </div>
-  );
-}
-
-// Kept until components/ask/CommandBar.tsx stops importing it; removed after the ai workstream merges.
-export function SparkIcon({ className = "size-3.5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" className={className} fill="currentColor" aria-hidden>
-      <path d="M8 0c.4 3.9 2.1 5.6 6 6-3.9.4-5.6 2.1-6 6-.4-3.9-2.1-5.6-6-6 3.9-.4 5.6-2.1 6-6Zm5 10c.2 1.8 1 2.6 2.8 2.8-1.8.2-2.6 1-2.8 2.8-.2-1.8-1-2.6-2.8-2.8 1.8-.2 2.6-1 2.8-2.8Z" />
-    </svg>
   );
 }

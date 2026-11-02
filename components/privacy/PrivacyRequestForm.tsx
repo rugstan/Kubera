@@ -22,7 +22,7 @@ type FieldErrors = Partial<Record<"type" | "name" | "email" | "agentName" | "det
 function ErrorText({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="mt-1 text-[13px] font-medium text-red-700">
+    <p id={id} className="mt-1 text-[13px] font-medium text-danger">
       {message}
     </p>
   );
@@ -197,7 +197,7 @@ export function PrivacyRequestForm({ privacyEmail, defaultType = "human_review" 
       </div>
 
       <div ref={statusRef} tabIndex={-1} aria-live="assertive" className="outline-none">
-        {status.kind === "error" ? <p className="rounded-xl bg-red-50 px-4 py-3 text-[14px] font-medium text-red-800">{status.message}</p> : null}
+        {status.kind === "error" ? <p className="notice-danger rounded-xl px-4 py-3 text-[14px] font-medium">{status.message}</p> : null}
       </div>
 
       <NoticeAtCollection point="privacy_request" />

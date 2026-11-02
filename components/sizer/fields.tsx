@@ -71,7 +71,7 @@ export function Segmented<T extends string>({ label, value, onChange, options }:
             type="button"
             onClick={() => onChange(o.value)}
             aria-pressed={value === o.value}
-            className={`relative z-10 flex-1 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors ${value === o.value ? "text-ink" : "text-titanium hover:text-ink"}`}
+            className={`relative z-10 flex-1 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors ${value === o.value ? "text-ink" : "text-graphite hover:text-ink"}`}
           >
             {value === o.value && (
               <motion.span layoutId={`seg-${group}`} className="absolute inset-0 -z-10 rounded-lg bg-white shadow-sm" transition={{ type: "spring", stiffness: 500, damping: 38 }} />

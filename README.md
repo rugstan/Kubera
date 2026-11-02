@@ -16,11 +16,11 @@ AI-first commercial debt advisory platform for **kuberacommercial.com** and the 
 ## What's where
 
 ```
-app/(site)/page.tsx          Homepage: hero, AI loan sizer, bento, rate board, structures
+app/(site)/page.tsx          Homepage: hero, five program families, how it works, loan sizer, why a broker, structures, FAQ
 app/(site)/partners          Lender / referral / operator / vendor portal
 app/express                  60-second qualifier (served at kubera.loans/ by proxy.ts)
 app/api/qualify              Intake → Jev → Supabase → Twenty (after response)
-app/api/ask                  Streaming Claude advisor + term sheets
+app/api/ask                  Staff-only streaming Claude advisor + term sheets (no public entry point)
 app/api/partners             Partner registration → Supabase → Twenty
 app/api/documents            Signed upload URLs into the private document vault
 app/api/cron/rates           15-min cron: refresh rate cache, snapshot to Supabase
@@ -42,7 +42,7 @@ npm run dev
 npm test                     # sizing + Jev unit tests
 ```
 
-Without credentials, the sizer and qualifier still work: rates fall back to indicative values, leads return a decision but aren't persisted, and Ask Kubera AI returns 503.
+Without credentials, the sizer and qualifier still work: rates fall back to indicative values, leads return a decision but aren't persisted, and the staff-only assistant at /api/ask returns 503 (anonymous callers get 401, 403 or 503).
 
 ### Supabase
 

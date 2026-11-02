@@ -15,6 +15,7 @@ import { spawn, execSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { totp } from "../lib/auth/totp.ts";
 
 // ---- minimal structural types so this file type-checks without playwright ----
 type Locator = {
@@ -28,6 +29,8 @@ type Locator = {
   getAttribute(name: string): Promise<string | null>;
   boundingBox(): Promise<{ width: number; height: number } | null>;
   waitFor(opts?: { state?: string; timeout?: number }): Promise<void>;
+  fill(value: string): Promise<void>;
+  textContent(): Promise<string | null>;
 };
 type Page = {
   goto(url: string, opts?: { waitUntil?: string }): Promise<unknown>;
@@ -35,6 +38,9 @@ type Page = {
   evaluate<T>(fn: string | ((arg: never) => T), arg?: unknown): Promise<T>;
   locator(sel: string): Locator;
   getByRole(role: string, opts?: { name?: string | RegExp }): Locator;
+  getByLabel(text: string | RegExp): Locator;
+  getByTestId(id: string): Locator;
+  waitForURL(url: string | RegExp, opts?: { timeout?: number }): Promise<void>;
   keyboard: { press(key: string): Promise<void>; type(text: string): Promise<void> };
   waitForTimeout(ms: number): Promise<void>;
   setViewportSize(s: { width: number; height: number }): Promise<void>;
@@ -58,6 +64,9 @@ const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const SCAN_ROUTES = [
   "/",
   "/express",
+  "/rates",
+  "/login",
+  "/portal",
   "/partners",
   "/privacy",
   "/terms",
@@ -71,8 +80,13 @@ const SCAN_ROUTES = [
   "/structures/memory-care-bridge-to-hud",
   "/financing",
   "/financing/senior-living",
+  "/financing/construction",
+  "/financing/hard-money",
   "/financing/hud-232",
 ] as const;
+/** The demo broker in lib/auth/demo.ts (fake identity provider only). */
+const DEMO_BROKER_EMAIL = "broker@kubera.test";
+const DEMO_TOTP_SECRET = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
 
 function loadPlaywright(): Playwright {
   const req = createRequire(import.meta.url);
@@ -179,6 +193,34 @@ async function main() {
       scans.push(await scan(mpage, axeSource, `${route} (mobile 390px)`));
     }
     await mobile.close();
+
+    // Staff pipeline. With the fake identity provider (AUTH_PROVIDER=fake, as
+    // the e2e server runs) the scan signs in as the demo broker with an email
+    // code and TOTP; otherwise /pipeline is the sign-in redirect.
+    const fake = (await (await fetch(`${BASE}/login`)).text()).includes('data-auth-provider="fake"');
+    const staff = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const spage = await staff.newPage();
+    if (fake) {
+      await go(spage, `${BASE}/pipeline`);
+      await spage.getByLabel("Work email").fill(DEMO_BROKER_EMAIL);
+      await spage.getByRole("button", { name: "Email me a code" }).click();
+      await spage.waitForURL(/\/login\/verify$/);
+      const code = ((await spage.getByTestId("fake-code").textContent()) ?? "").trim();
+      await spage.getByLabel("6-digit code").fill(code);
+      await spage.getByRole("button", { name: "Sign in" }).click();
+      await spage.waitForURL(/\/mfa\?next=/);
+      await spage.getByLabel("Authenticator code").fill(totp(DEMO_TOTP_SECRET));
+      await spage.getByRole("button", { name: "Verify" }).click();
+      await spage.waitForURL(/\/pipeline$/);
+      await spage.getByRole("table", { name: /Deal pipeline/ }).waitFor({ state: "visible" });
+    }
+    const pipelineLabel = fake ? "/pipeline (signed in)" : "/pipeline (signed out: sign-in page)";
+    await go(spage, `${BASE}/pipeline`);
+    scans.push(await scan(spage, axeSource, `${pipelineLabel} (desktop)`));
+    await spage.setViewportSize({ width: 390, height: 844 });
+    await go(spage, `${BASE}/pipeline`);
+    scans.push(await scan(spage, axeSource, `${pipelineLabel} (mobile 390px)`));
+    await staff.close();
 
     // Each sizer tab, each partner tab.
     await go(page, `${BASE}/`);

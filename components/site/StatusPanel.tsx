@@ -20,7 +20,7 @@ export function StatusPanel({
     <div className="mx-auto max-w-[1280px] px-5 py-20 md:px-8 md:py-32">
       <div className="max-w-2xl">
         <p className="eyebrow">{eyebrow}</p>
-        <h1 className="mt-4 text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl">{title}</h1>
+        <h1 className="mt-4 text-4xl font-semibold leading-[1.08] md:text-6xl">{title}</h1>
         <div className="mt-5 text-lg leading-relaxed text-titanium md:text-xl">{children}</div>
         <div className="mt-10 flex flex-wrap gap-3">{actions}</div>
       </div>

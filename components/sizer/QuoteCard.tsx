@@ -69,7 +69,7 @@ export function QuoteCard({ q, best, index }: { q: ProgramQuote; best: boolean; 
               ["Debt yield", `${(q.debtYield * 100).toFixed(1)}%`],
             ].map(([k, v]) => (
               <div key={k} className="rounded-xl bg-black/[0.03] py-2">
-                <p className="text-[10px] uppercase tracking-wider text-titanium">{k}</p>
+                <p className="text-[10px] uppercase tracking-wider text-graphite">{k}</p>
                 <p className="text-sm font-medium tabular-nums">{v}</p>
               </div>
             ))}

@@ -13,7 +13,7 @@ import { site } from "@/lib/site";
 const NO_STORE = { "cache-control": "no-store" };
 
 function message(type: PrivacyRequestType, r: SubmitResult): string {
-  if (type === "human_review") return "Done. An advisor will handle your requests personally, and we will not send your personal information to AI tools.";
+  if (type === "human_review") return "Done. An advisor will handle your requests personally, without automated scoring and without sending your personal information to automated tools.";
   if (type === "opt_out_sale_share") return "Recorded. We do not sell or share personal information, and we have noted your opt-out.";
   if (r.verified) return `We received your request and verified it. We will respond by ${r.dueAt}.`;
   return `We received your request. To protect you, we will verify your identity before we act on it, usually by email. We will respond by ${r.dueAt}.`;

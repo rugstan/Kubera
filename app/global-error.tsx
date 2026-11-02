@@ -1,6 +1,6 @@
 "use client";
 
-import "@fontsource-variable/inter";
+import "@fontsource-variable/inter/opsz.css";
 import "./globals.css";
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
