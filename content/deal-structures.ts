@@ -1,12 +1,13 @@
-// The four illustrative debt structures shown on the home page and on
-// /structures. They are examples of how a program is typically arranged, never
-// closed transactions, and every page that renders them carries
-// `disclosures.illustrative`. Program parameters are imported from
-// `lib/sizing/assumptions.ts` (the single source for underwriting numbers) so
-// these pages cannot drift from the sizer. Dollar amounts below are the
-// illustrative loan sizes only.
+// The illustrative debt structures shown on /structures, four of them on the
+// home page (HOME_STRUCTURE_SLUGS). They are examples of how a program is
+// typically arranged, never closed transactions, and every page that renders
+// them carries `disclosures.illustrative`. Program parameters are imported from
+// `lib/sizing/assumptions.ts` and `lib/sizing/programs/assumptions.ts` (the
+// single sources for underwriting numbers) so these pages cannot drift from the
+// sizer. Dollar amounts below are the illustrative loan sizes only.
 
 import { ASSUMPTIONS_REVIEWED, BRIDGE, HUD, SBA } from "@/lib/sizing/assumptions";
+import { CONSTRUCTION, HARD_MONEY, PROGRAM_ASSUMPTIONS_REVIEWED } from "@/lib/sizing/programs/assumptions";
 
 export interface StackLine {
   label: string;
@@ -99,8 +100,17 @@ export function sba504Stack({ totalUsd, debentureCapUsd, specialPurpose }: Sba50
   ];
 }
 
+/** Spread or rate already in percentage points, up to three decimals: 3.125 -> "3.125%". */
+const pts = (n: number) => `${Number(n.toFixed(3))}%`;
+
 const SBA_ASSUMPTION_NOTE = `Modeled assumption, reviewed ${ASSUMPTIONS_REVIEWED}; confirm against the SBA SOP in effect at application.`;
 const HUD_ASSUMPTION_NOTE = `VERIFY against the current HUD handbook; modeled assumption reviewed ${ASSUMPTIONS_REVIEWED}.`;
+const PROGRAM_NOTE = `Modeled assumption, reviewed ${PROGRAM_ASSUMPTIONS_REVIEWED}; confirm with the lender.`;
+
+const BANK = CONSTRUCTION.boxes.BANK;
+const CPACE = CONSTRUCTION.cpace;
+const REHAB = HARD_MONEY.grid.FIX_AND_FLIP.EXPERIENCED;
+const HM_TERM = `${HARD_MONEY.minTermMonths} to ${HARD_MONEY.maxTermMonths} months`;
 
 const STRUCTURE_LIST: DealStructure[] = [
   {
@@ -286,9 +296,106 @@ const STRUCTURE_LIST: DealStructure[] = [
       { href: "/express", label: "Start the 60-second qualifier" },
     ],
   },
+  {
+    slug: "multifamily-construction-bank-cpace",
+    metaTitle: "Ground-up multifamily: bank + C-PACE",
+    amountUsd: 24_000_000,
+    amount: "$24M",
+    asset: "120-unit ground-up apartments",
+    program: "Bank construction loan + C-PACE",
+    summary: "A bank construction loan sized on cost, with C-PACE covering qualifying building systems and a permanent loan as the exit.",
+    tags: ["Bank 1st", "C-PACE", "Perm takeout"],
+    situation:
+      "A developer with land and entitlements for a 120-unit apartment project needs construction financing with a clear permanent exit.",
+    reasons: [
+      `A bank construction loan is usually the lowest-cost senior debt for an experienced developer. It is modeled at up to ${pct(BANK.maxLtc)} of total cost and no more than ${pct(BANK.maxAsCompletedLtv)} of the as-completed value.`,
+      `California C-PACE can pay for qualifying energy, water and seismic improvements, modeled at up to ${pct(CPACE.maxPctOfCost)} of project cost at a fixed rate over about ${CPACE.termYears} years. That reduces the equity the developer has to bring, if the bank consents.`,
+      `The bank sizes the loan against the permanent exit: stabilized income has to support a ${pct(BANK.minDebtYield)} debt yield and ${BANK.minDscrAtStabilization.toFixed(2)}x DSCR, so the takeout is tested before the construction loan closes.`,
+    ],
+    facts: [
+      { label: "Bank max loan-to-cost", value: pct(BANK.maxLtc), note: PROGRAM_NOTE },
+      { label: "Bank max loan-to-value, as completed", value: pct(BANK.maxAsCompletedLtv), note: PROGRAM_NOTE },
+      { label: "Bank spread", value: `SOFR + ${pts(BANK.spread)}`, note: "Indicative; set by the lender." },
+      { label: "Min debt yield at stabilization", value: pct(BANK.minDebtYield), note: PROGRAM_NOTE },
+      { label: "Min DSCR at stabilization", value: `${BANK.minDscrAtStabilization.toFixed(2)}x`, note: PROGRAM_NOTE },
+      { label: "C-PACE share of project cost", value: `Up to ${pct(CPACE.maxPctOfCost)}`, note: `Senior lender consent required. ${PROGRAM_NOTE}` },
+      { label: "C-PACE term", value: `${CPACE.termYears} years, fixed`, note: PROGRAM_NOTE },
+    ],
+    steps: [
+      { title: "Test the exit first", body: "The advisor sizes the permanent loan on projected stabilized rents and expenses, then works backward to a construction loan the takeout can repay." },
+      { title: "Size the budget and reserve", body: "Hard and soft costs, contingency, the developer fee and the interest reserve are budgeted together so the loan, C-PACE and equity cover the whole plan." },
+      { title: "Place the construction loan and C-PACE", body: "The bank funds the loan as lender of record and controls every funding during construction. Kubera never holds or moves loan funds." },
+      { title: "Lease up and refinance", body: "After completion and lease-up, the property is underwritten for a permanent loan, such as an agency, HUD or bank loan, that repays the construction loan." },
+    ],
+    watch: [
+      "Senior-lender consent to C-PACE, because the assessment is collected with property taxes and ranks ahead of the mortgage.",
+      "Cost overruns against the contingency, and who covers them if the contingency runs out.",
+      "Floating-rate exposure during construction and the rate cap the bank requires.",
+      "Whether lease-up reaches the rents and occupancy the takeout lender needs to pass its DSCR and debt-yield tests.",
+    ],
+    related: [
+      { href: "/financing/construction", label: "Construction loan programs" },
+      { href: "/#sizer", label: "Size a construction loan" },
+      { href: "/express?family=construction", label: "Get loan options" },
+    ],
+  },
+  {
+    slug: "investor-rehab-hard-money",
+    metaTitle: "Investor rehab: private hard money loan",
+    amountUsd: 2_100_000,
+    amount: "$2.1M",
+    asset: "8-unit apartment purchase and rehab",
+    program: "Private lender · purchase + rehab",
+    summary: "Short-term private loan for an investor buying and renovating an 8-unit building, sized on cost and after-repair value.",
+    tags: ["Interest-only", "Rehab holdback", "Refi or sale exit"],
+    situation:
+      "An experienced investor is buying an 8-unit building that needs renovation before it can qualify for a bank or agency loan.",
+    reasons: [
+      "The building needs work before its income can support a bank or agency loan, so a private lender sizes the loan on the purchase price, the rehab budget and the after-repair value instead.",
+      `For an experienced investor, the loan is modeled at up to ${pct(REHAB.maxLtc)} of purchase price plus rehab, capped at ${pct(REHAB.maxLtarv)} of after-repair value.`,
+      `Interest-only terms of ${HM_TERM} give time to renovate and lease the units before refinancing into longer-term debt or selling.`,
+    ],
+    facts: [
+      { label: "Max loan-to-cost, purchase + rehab", value: pct(REHAB.maxLtc), note: PROGRAM_NOTE },
+      { label: "Max loan-to-after-repair value", value: pct(REHAB.maxLtarv), note: PROGRAM_NOTE },
+      { label: "Note rate, experienced investor", value: pts(REHAB.ratePct), note: "Indicative; set by the lender." },
+      { label: "Lender points", value: `${REHAB.points} ${REHAB.points === 1 ? "point" : "points"}`, note: PROGRAM_NOTE },
+      { label: "Minimum interest", value: `${REHAB.minInterestMonths} months`, note: PROGRAM_NOTE },
+      { label: "Exit fee", value: pct(REHAB.exitFeePct), note: PROGRAM_NOTE },
+      { label: "Term", value: `${HM_TERM}, interest-only`, note: PROGRAM_NOTE },
+    ],
+    steps: [
+      { title: "Confirm the exit", body: "The advisor checks that renovated rents could support a permanent loan at today's rates, or that a sale would repay the loan and its costs." },
+      { title: "Build the rehab budget", body: "Contractor bids, scope and schedule become the rehab budget the lender reviews and inspects against." },
+      {
+        title: "Close with the private lender",
+        body: "The private lender funds the loan as lender of record and holds back the rehab budget, releasing it as work is completed. Kubera never holds or moves loan funds.",
+      },
+      { title: "Refinance or sell", body: "Once the work is done and the units are leased, a bank, agency or DSCR loan repays the private loan, or the property is sold." },
+    ],
+    watch: [
+      "Minimum-interest, extension and exit fees, which raise the cost if the loan is repaid early or runs long.",
+      "The rehab budget against the lender's inspections, which decide when each part of the holdback is released.",
+      "Support for the after-repair value from comparable sales and rents.",
+      "Whether the permanent loan's DSCR works at today's rates once the units are renovated and leased.",
+    ],
+    related: [
+      { href: "/financing/hard-money", label: "Hard money loan programs" },
+      { href: "/#sizer", label: "Size a hard money loan" },
+      { href: "/express?family=hard-money", label: "Get loan options" },
+    ],
+  },
 ];
 
 export const DEAL_STRUCTURES: readonly DealStructure[] = STRUCTURE_LIST;
+
+/** The four structures on the home page, one per kind of borrower: senior living, hotels, construction and hard money. */
+export const HOME_STRUCTURE_SLUGS = [
+  "memory-care-bridge-to-hud",
+  "flagged-hotel-sba-504-green-pip",
+  "multifamily-construction-bank-cpace",
+  "investor-rehab-hard-money",
+] as const;
 
 export function getDealStructure(slug: string): DealStructure | undefined {
   return DEAL_STRUCTURES.find((s) => s.slug === slug);

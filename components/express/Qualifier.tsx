@@ -11,11 +11,10 @@ import { AiUseNotice } from "@/components/privacy/AiUseNotice";
 import { TurnstileSlot, turnstileHeaders, useTurnstile } from "@/components/security/Turnstile";
 import { track } from "@/lib/analytics/client";
 import { CONSENT_TEXTS, CURRENT_CONSENT } from "@/lib/consent/texts";
+import type { ProgramFamily } from "@/content/programs/types";
 import { site } from "@/lib/site";
 import { QualifierResult, type QualifierResponse } from "./QualifierResult";
 import {
-  ASSETS,
-  ASSET_GROUPS,
   EMPTY_VALUES,
   FRANCHISE_TIERS,
   HARD_MONEY_PURPOSES,
@@ -23,12 +22,18 @@ import {
   STEPS,
   STEP_FIELDS,
   TIMELINES,
+  assetGroupsFor,
+  assetStepHeading,
+  assetsFor,
   buildQualifyPayload,
+  familyFromParams,
+  familyTransaction,
   isConversion,
   isHotel,
   isSenior,
   prefillFromParams,
   qualifierSchema,
+  transactionAfterAssetChoice,
   transactionOptions,
   unitLabel,
   valueLabel,
@@ -44,6 +49,9 @@ const FIELD_NAMES = Object.keys(EMPTY_VALUES);
 export function Qualifier() {
   const params = useSearchParams();
   const [prefill] = useState(() => prefillFromParams((k) => params.get(k)));
+  // ?family= from the homepage and program pages. Explicit asset and transaction parameters win.
+  const [family] = useState(() => familyFromParams((k) => params.get(k)));
+  const [initialTransaction] = useState(() => prefill.transaction ?? (prefill.assetType ? familyTransaction(prefill.assetType, family) : undefined));
   const [step, setStep] = useState(prefill.assetType ? 1 : 0);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<FormFailure | null>(null);
@@ -51,7 +59,7 @@ export function Qualifier() {
   const [done, setDone] = useState<QualifierResponse | null>(null);
   const [initialStep] = useState(step);
 
-  const form = useZodForm<QualifierValues>({ schema: (v) => qualifierSchema(v), defaultValues: { ...EMPTY_VALUES, ...prefill } });
+  const form = useZodForm<QualifierValues>({ schema: (v) => qualifierSchema(v), defaultValues: { ...EMPTY_VALUES, ...prefill, ...(initialTransaction ? { transaction: initialTransaction } : {}) } });
   const { trigger, setValue, setError, getValues, watch } = form;
   const turnstile = useTurnstile("qualify");
   const { requestFocus, headingRef } = useStepHeadingFocus();
@@ -90,9 +98,10 @@ export function Qualifier() {
 
   function chooseAsset(a: Asset) {
     setValue("assetType", a, { shouldValidate: true });
-    // "Construction" and "Conversion" are different options per asset; drop a pick that no longer exists.
-    const options = transactionOptions(a).map((o) => o.value as string);
-    if (transaction && !options.includes(transaction)) setValue("transaction", "");
+    // "Construction" and "Conversion" are different options per asset: keep a pick the asset still offers,
+    // otherwise use the family link's transaction when this asset offers it, otherwise clear it.
+    const next = transactionAfterAssetChoice(a, transaction, family);
+    if (next !== transaction) setValue("transaction", next);
     go(1);
   }
 
@@ -140,7 +149,7 @@ export function Qualifier() {
       <div className="bento p-6 md:p-8">
         <Form form={form} onSubmit={submit} onInvalid={onInvalid}>
           <motion.section key={step} initial={step === initialStep ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="space-y-5" aria-labelledby="qualifier-step-heading">
-            {step === 0 && <AssetStep headingRef={headingRef} selected={asset} onChoose={chooseAsset} />}
+            {step === 0 && <AssetStep headingRef={headingRef} selected={asset} onChoose={chooseAsset} family={family} />}
             {step === 1 && <DealStep headingRef={headingRef} asset={asset} transaction={transaction} />}
             {step === 2 && <TermsStep headingRef={headingRef} />}
             {step === 3 && <ContactStep headingRef={headingRef} turnstile={turnstile} />}
@@ -190,19 +199,22 @@ function StepHeading({ headingRef, n, children }: HeadingProps & { n: number; ch
   );
 }
 
-function AssetStep({ headingRef, selected, onChoose }: HeadingProps & { selected: Asset | ""; onChoose: (a: Asset) => void }) {
+function AssetStep({ headingRef, selected, onChoose, family }: HeadingProps & { selected: Asset | ""; onChoose: (a: Asset) => void; family?: ProgramFamily }) {
+  const groups = assetGroupsFor(family)
+    .map((g) => ({ group: g, assets: assetsFor(g, family) }))
+    .filter((g) => g.assets.length > 0);
   return (
     <>
       <StepHeading headingRef={headingRef} n={1}>
-        What are you financing?
+        {assetStepHeading(family)}
       </StepHeading>
-      {ASSET_GROUPS.map((g) => (
+      {groups.map(({ group: g, assets }) => (
         <div key={g} role="group" aria-label={g}>
           <p className="field-label" aria-hidden="true">
             {g}
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {ASSETS.filter((a) => a.group === g).map((a) => (
+            {assets.map((a) => (
               <button
                 key={a.value}
                 type="button"

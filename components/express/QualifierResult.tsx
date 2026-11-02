@@ -37,7 +37,7 @@ export function QualifierResult({ r, firstName, headingRef }: { r: QualifierResp
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       <div className="text-center">
         <p className="eyebrow">{x.qualified ? "Indicative match" : "Request received"}</p>
-        <h2 ref={headingRef} tabIndex={-1} className="mt-3 text-4xl font-semibold tracking-tight outline-none md:text-5xl">
+        <h2 ref={headingRef} tabIndex={-1} className="mt-3 text-4xl font-semibold outline-none md:text-5xl">
           {x.qualified ? `Thanks, ${firstName}. Here's your starting point.` : `Thanks, ${firstName}. An advisor will review this personally.`}
         </h2>
       </div>
