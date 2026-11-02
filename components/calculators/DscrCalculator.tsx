@@ -58,7 +58,7 @@ export function DscrCalculator({ benchmarks, asOf, live }: { benchmarks: Benchma
       results={
         outcome.ok ? (
           <div className="space-y-5">
-            <h2 className="text-lg font-semibold tracking-tight">Your coverage</h2>
+            <h2 className="text-lg font-semibold">Your coverage</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Stat
                 label="Debt service coverage"

@@ -18,7 +18,7 @@ export default function ProspectsPage({ searchParams }: { searchParams: Search }
     <>
       <div>
         <p className="eyebrow">Prospecting</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">Refinance-maturity prospects</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">Refinance-maturity prospects</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">
           Properties whose recorded mortgage matures soon, ranked by a score you can read factor by factor. The data is public record; the score ranks who to look at first and says nothing about what any lender would do.
           Outreach is drafted here and goes out only after a broker approves it.
@@ -46,7 +46,7 @@ async function ProspectsData({ searchParams }: { searchParams: Search }) {
   return (
     <>
       <Flash error={error} notice={notice} />
-      {rt.mode === "demo" ? <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Demo data: every property and owner here is invented.</p> : null}
+      {rt.mode === "demo" ? <p className="notice-warning rounded-2xl px-4 py-3 text-sm">Demo data: every property and owner here is invented.</p> : null}
 
       <section aria-label="Summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Active prospects" value={active} />

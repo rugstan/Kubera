@@ -34,7 +34,7 @@ export default function GlossaryPage() {
         <Breadcrumbs items={CRUMBS} />
         <header className="mt-8">
           <p className="eyebrow">Glossary</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Commercial real estate finance glossary</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Commercial real estate finance glossary</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">
             Plain-English definitions of the terms that decide how much you can borrow and what it costs, from DSCR and debt yield to HUD 232, SBA 504 and California&apos;s rent and property tax rules. Figures match the assumptions behind our loan sizer.
           </p>
@@ -44,7 +44,7 @@ export default function GlossaryPage() {
           <ul className="flex flex-wrap gap-2">
             {letters.map((l) => (
               <li key={l}>
-                <a href={`#letter-${l}`} className="pill pill-glass !min-h-11 !min-w-11 justify-center !px-3">
+                <a href={`#letter-${l}`} className="pill pill-quiet !min-h-11 !min-w-11 justify-center !px-3">
                   {l}
                 </a>
               </li>
@@ -55,7 +55,7 @@ export default function GlossaryPage() {
         <div className="mt-10">
           {letters.map((letter) => (
             <section key={letter} aria-labelledby={`letter-${letter}`} className="mt-10 first:mt-0">
-              <h2 id={`letter-${letter}`} className="scroll-mt-24 border-b border-black/10 pb-2 text-2xl font-semibold tracking-tight">
+              <h2 id={`letter-${letter}`} className="scroll-mt-24 border-b border-black/10 pb-2 text-2xl font-semibold">
                 {letter}
               </h2>
               <dl className="mt-4 space-y-6">

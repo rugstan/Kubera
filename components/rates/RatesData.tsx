@@ -33,8 +33,8 @@ export async function RatesData() {
       )}
 
       <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px]" data-rates-as-of={snap.asOf}>
-        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[13px] font-medium ${snap.live ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900"}`}>
-          <span aria-hidden="true" className={`size-1.5 rounded-full ${snap.live ? "bg-emerald-600" : "bg-amber-600"}`} />
+        <span className="inline-flex items-center gap-2 rounded-full bg-black/[0.05] px-3 py-1 text-[13px] font-medium text-ink">
+          <span aria-hidden="true" className={`size-1.5 rounded-full ${snap.live ? "bg-accent-fill" : "bg-quiet"}`} />
           {snap.live ? "Live data" : "Indicative values"}
         </span>
         <span className="text-ink">
@@ -42,13 +42,13 @@ export async function RatesData() {
         </span>
       </p>
       {!snap.live && (
-        <p role="note" className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-[14px] leading-relaxed text-amber-950">
+        <p role="note" className="notice-warning mt-3 rounded-xl px-4 py-3 text-[14px] leading-relaxed">
           One or more benchmark series could not be reached, so some figures below are Kubera&apos;s indicative fallbacks rather than the latest published values.
         </p>
       )}
 
       <section aria-labelledby="benchmarks-heading" className="mt-12">
-        <h2 id="benchmarks-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+        <h2 id="benchmarks-heading" className="text-2xl font-semibold md:text-3xl">
           Benchmark rates
         </h2>
         <p className="mt-2 text-[15px] text-titanium">The indexes commercial loans are priced from.</p>
@@ -92,7 +92,7 @@ export async function RatesData() {
       </section>
 
       <section aria-labelledby="programs-heading" className="mt-14">
-        <h2 id="programs-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+        <h2 id="programs-heading" className="text-2xl font-semibold md:text-3xl">
           Indicative loan rates by program
         </h2>
         <p className="mt-2 text-[15px] text-titanium">

@@ -45,7 +45,7 @@ export function SpendForm() {
         <input id={`${id}-note`} name="note" maxLength={300} className="field" placeholder="Campaign or invoice reference" autoComplete="off" />
       </div>
       {state.message ? (
-        <p id={messageId} role={state.ok ? "status" : "alert"} className={`text-[14px] sm:col-span-2 lg:col-span-5 ${state.ok ? "text-accent-hover" : "text-red-800"}`}>
+        <p id={messageId} role={state.ok ? "status" : "alert"} className={`text-[14px] sm:col-span-2 lg:col-span-5 ${state.ok ? "text-success" : "text-danger"}`}>
           {state.message}
         </p>
       ) : null}

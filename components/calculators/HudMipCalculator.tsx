@@ -52,7 +52,7 @@ export function HudMipCalculator({ benchmarks, asOf, live }: { benchmarks: Bench
       results={
         outcome.ok ? (
           <div className="space-y-5">
-            <h2 className="text-lg font-semibold tracking-tight">Mortgage insurance premium</h2>
+            <h2 className="text-lg font-semibold">Mortgage insurance premium</h2>
             <dl className="grid gap-3 sm:grid-cols-2">
               <Stat label="Year-one annual MIP" value={usd(outcome.result.yearOneMip)} note={`${usd(outcome.result.yearOneMonthlyMip)} a month on the average balance.`} />
               <Stat label="Upfront MIP" value={usd(outcome.result.upfrontMip)} note={`${pctOf(outcome.result.program.upfrontMip, 2)} of the loan, due at closing or financed.`} />

@@ -43,7 +43,7 @@ export default function ExtractionReviewPage({ searchParams }: { searchParams: S
             Documents
           </Link>
         </p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Extraction review</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">Extraction review</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">
           Figures read from borrower documents with low confidence, or that do not add up, wait here. Correct what is wrong, then approve: only approved or
           confident extractions feed the spreads and loan sizing.
@@ -89,12 +89,12 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
       {approvedId ? (
-        <p role="status" className="badge-emerald mb-5 rounded-xl px-4 py-3 text-[14px]">
+        <p role="status" className="notice-success mb-5 rounded-xl px-4 py-3 text-[14px]">
           Extraction approved. The spreads for its deal are recalculated from it.
         </p>
       ) : null}
       {rejectedId ? (
-        <p role="status" className="badge-emerald mb-5 rounded-xl px-4 py-3 text-[14px]">
+        <p role="status" className="notice-success mb-5 rounded-xl px-4 py-3 text-[14px]">
           Extraction rejected. It will not feed the spreads.
         </p>
       ) : null}
@@ -111,7 +111,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
               <li key={rec.id} className="min-w-0">
                 <article className="bento p-6" aria-labelledby={`extraction-${rec.id}`}>
                   <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                    <span className="badge-gold rounded-full px-2.5 py-0.5 font-medium">Needs review</span>
+                    <span className="badge-warning rounded-full px-2.5 py-0.5 font-medium">Needs review</span>
                     {rec.doc_type === "PFS" ? <span className="rounded-full border border-black/10 bg-canvas px-2.5 py-0.5 text-ink">Restricted · encrypted at rest</span> : null}
                     <span className="text-titanium">
                       Overall confidence {rec.overall_confidence === null ? "—" : `${Math.round(rec.overall_confidence * 100)}%`} · read{" "}
@@ -129,7 +129,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
                     </p>
                   ) : null}
                   {rec.warnings.length ? (
-                    <ul className="mt-3 list-disc pl-5 text-[14px] text-amber-900" aria-label="Checks that failed">
+                    <ul className="mt-3 list-disc pl-5 text-[14px] text-warning" aria-label="Checks that failed">
                       {rec.warnings.map((w) => (
                         <li key={w}>{warningLabel(w)}</li>
                       ))}
@@ -142,7 +142,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
                     </p>
                   ) : null}
                   {unavailable ? (
-                    <p className="mt-3 text-[14px] text-red-800">This statement is encrypted and the key is not available here, so it cannot be reviewed.</p>
+                    <p className="mt-3 text-[14px] text-danger">This statement is encrypted and the key is not available here, so it cannot be reviewed.</p>
                   ) : (
                     <ReviewForm id={rec.id} title={title} fields={fieldsFor(rec)} />
                   )}

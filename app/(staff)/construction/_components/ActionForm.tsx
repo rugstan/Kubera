@@ -31,7 +31,7 @@ export function ActionForm({
         <button type="submit" disabled={pending} className={`pill ${variant === "primary" ? "pill-primary" : "pill-glass"} !px-5 !py-2 !text-[15px] disabled:opacity-60`}>
           {pending ? pendingLabel : submitLabel}
         </button>
-        <p role={state.ok ? "status" : "alert"} aria-live="polite" className={`text-[14px] ${state.ok ? "text-accent-hover" : "text-rose-700"}`}>
+        <p role={state.ok ? "status" : "alert"} aria-live="polite" className={`text-[14px] ${state.ok ? "text-success" : "text-danger"}`}>
           {state.message}
         </p>
       </div>
@@ -56,7 +56,7 @@ function FieldShell({ name, label, hint, required, className = "", children }: F
     <div className={className}>
       <label htmlFor={id} className="field-label">
         {label}
-        {required && <span aria-hidden="true" className="text-rose-700"> *</span>}
+        {required && <span aria-hidden="true" className="text-danger"> *</span>}
       </label>
       {children({ id, describedBy, invalid: Boolean(error) })}
       {hint && (
@@ -65,7 +65,7 @@ function FieldShell({ name, label, hint, required, className = "", children }: F
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="mt-1.5 text-[13px] text-rose-700">
+        <p id={`${id}-error`} className="mt-1.5 text-[13px] text-danger">
           {error}
         </p>
       )}
@@ -88,7 +88,7 @@ export function TextField({ type = "text", inputMode, ...p }: FieldBase & { type
           min={type === "number" ? 0 : undefined}
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
-          className="field aria-[invalid=true]:border-rose-700"
+          className="field aria-[invalid=true]:border-danger"
         />
       )}
     </FieldShell>
@@ -100,7 +100,7 @@ export function SelectField({ options, ...p }: FieldBase & { options: readonly {
   return (
     <FieldShell {...p}>
       {({ id, describedBy, invalid }) => (
-        <select id={id} name={p.name} defaultValue={shown} required={p.required} aria-invalid={invalid || undefined} aria-describedby={describedBy} className="field aria-[invalid=true]:border-rose-700">
+        <select id={id} name={p.name} defaultValue={shown} required={p.required} aria-invalid={invalid || undefined} aria-describedby={describedBy} className="field aria-[invalid=true]:border-danger">
           {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -117,7 +117,7 @@ export function TextAreaField(p: FieldBase) {
   return (
     <FieldShell {...p}>
       {({ id, describedBy, invalid }) => (
-        <textarea id={id} name={p.name} rows={3} defaultValue={shown} aria-invalid={invalid || undefined} aria-describedby={describedBy} className="field aria-[invalid=true]:border-rose-700" />
+        <textarea id={id} name={p.name} rows={3} defaultValue={shown} aria-invalid={invalid || undefined} aria-describedby={describedBy} className="field aria-[invalid=true]:border-danger" />
       )}
     </FieldShell>
   );

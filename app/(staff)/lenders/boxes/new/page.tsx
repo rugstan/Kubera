@@ -15,7 +15,7 @@ export default function NewBoxPage({ searchParams }: { searchParams: Search }) {
     <>
       <div>
         <p className="eyebrow">Lender matching</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">New credit box</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">New credit box</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">A new box starts in review; a broker approves it before matching uses it.</p>
       </div>
       <Suspense fallback={<Loading label="form" />}>

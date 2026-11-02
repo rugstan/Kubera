@@ -12,7 +12,7 @@ export default function PipelinePage() {
     <>
       <div className="mb-6">
         <p className="eyebrow">Deal desk</p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Pipeline</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">Pipeline</h1>
       </div>
       <Suspense fallback={<div className="bento h-96 animate-pulse" aria-label="Loading pipeline" />}>
         <Pipeline />

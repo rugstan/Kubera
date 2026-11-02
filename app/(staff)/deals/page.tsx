@@ -17,7 +17,7 @@ export default function DealsPage({ searchParams }: { searchParams: Search }) {
     <>
       <div>
         <p className="eyebrow">Deal desk</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">Deals</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">Deals</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">Stage, lender outreach, compensation ledger and compliance records for every loan Kubera brokers.</p>
       </div>
       <Suspense fallback={<Loading label="deals" />}>

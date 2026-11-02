@@ -23,7 +23,7 @@ export default function RatesPage() {
         <Breadcrumbs items={[{ name: "Home", path: "/" }, { name: "Rates", path: RATES_PATH }]} />
         <header className="mt-8">
           <p className="eyebrow">Rates</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Commercial real estate loan rates today</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Commercial real estate loan rates today</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-ink/85">
             Commercial loan rates are a benchmark, such as the 10-year Treasury yield, plus a spread that depends on the program and the deal. This page shows the benchmarks lenders use, updated each business day, and the range Kubera assumes for HUD, SBA, agency, CMBS and bridge loans.
           </p>

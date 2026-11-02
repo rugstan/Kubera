@@ -44,7 +44,7 @@ export function LicenseSection({ project, checks, state }: { project: Constructi
       )}
 
       {latest && latest.issues.length > 0 && (
-        <ul className="mt-5 list-disc space-y-1 pl-5 text-[15px] text-rose-900">
+        <ul className="mt-5 list-disc space-y-1 pl-5 text-[15px] text-danger">
           {latest.issues.map((i) => (
             <li key={i}>{LICENSE_ISSUE_LABELS[i]}</li>
           ))}

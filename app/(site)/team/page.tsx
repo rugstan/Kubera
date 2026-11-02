@@ -31,7 +31,7 @@ export default function TeamPage() {
       />
 
       {!production && hasPlaceholders && (
-        <p role="note" className="max-w-3xl rounded-2xl border border-gold-ink/40 bg-white px-5 py-4 text-[14px] text-ink">
+        <p role="note" className="notice max-w-3xl rounded-2xl px-5 py-4 text-[14px]">
           Preview only: entries marked as placeholders are hidden on the production site until a bio and, for licensed advisors, a DRE license number are added in <code>content/team.ts</code> or the license variables.
         </p>
       )}
@@ -94,10 +94,10 @@ function AdvisorCard({ card }: { card: TeamCard }) {
   return (
     <article id={member.slug} className="bento flex h-full scroll-mt-24 flex-col p-7">
       {(placeholder || license.kind === "pending") && (
-        <p className="mb-4 w-fit rounded-full badge-gold px-2.5 py-1 text-[12px] font-medium">Placeholder, not public</p>
+        <p className="mb-4 w-fit rounded-full badge-warning px-2.5 py-1 text-[12px] font-medium">Placeholder, not public</p>
       )}
       <h3 className="text-xl font-semibold">{member.name}</h3>
-      <p className="text-[15px] font-medium text-accent">{member.title}</p>
+      <p className="text-[15px] font-medium text-graphite">{member.title}</p>
       <p className="mt-4 text-[15px] leading-relaxed text-titanium">{member.bio}</p>
       {member.focus.length > 0 && (
         <ul className="mt-4 flex flex-wrap gap-1.5">

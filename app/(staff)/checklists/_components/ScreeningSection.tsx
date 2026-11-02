@@ -11,9 +11,9 @@ export function ScreeningSection({ dealId, gate, screenings, holds, configured }
   const review = screenings.filter((s) => s.result === "potential_match" && (s.disposition === "pending_review" || s.disposition === "escalated"));
   return (
     <Card id="screening" title="Sanctions screening (OFAC and other lists)">
-      {!configured ? <p className="mb-3 text-[14px] text-amber-900">The screening provider is not configured (OPENSANCTIONS_API_KEY). Runs are recorded as failed and no one clears.</p> : null}
+      {!configured ? <p className="mb-3 text-[14px] text-warning">The screening provider is not configured (OPENSANCTIONS_API_KEY). Runs are recorded as failed and no one clears.</p> : null}
       {holds.length ? (
-        <div role="alert" className="mb-4 rounded-xl border border-red-700/40 bg-red-50 p-3 text-[14px] text-red-900">
+        <div role="alert" className="notice-danger mb-4 rounded-xl p-3 text-[14px]">
           <p className="font-semibold">This deal is on hold.</p>
           <ul className="mt-1 list-disc pl-5">
             {holds.map((h) => (
@@ -55,7 +55,7 @@ export function ScreeningSection({ dealId, gate, screenings, holds, configured }
       </form>
 
       {review.map((s) => (
-        <div key={s.id} className="mt-5 rounded-xl border border-red-700/40 p-4">
+        <div key={s.id} className="mt-5 rounded-xl border border-danger/40 p-4">
           <p className="text-[15px] font-semibold">
             Review: {s.subjectName} — score {s.matchScore ?? "n/a"} ({s.disposition.replace("_", " ")})
           </p>

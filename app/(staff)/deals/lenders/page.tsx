@@ -17,7 +17,7 @@ export default function LendersPage({ searchParams }: { searchParams: Search }) 
     <>
       <div>
         <p className="eyebrow">Deal desk</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">Lender panel</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">Lender panel</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">Program appetite, broker-friendly flag and fee splits. Appetite not verified in {LENDER_STALE_AFTER_DAYS} days is stale and needs acknowledgment before a submission.</p>
       </div>
       <Suspense fallback={<Loading label="lenders" />}>

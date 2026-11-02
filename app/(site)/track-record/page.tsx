@@ -34,9 +34,9 @@ export default function TrackRecordPage() {
             {records.map((r) => (
               <li key={r.id}>
                 <article className="bento flex h-full flex-col p-7">
-                  <p className="gold-text text-4xl font-semibold tracking-tight">{formatUsd(r.loanAmountUsd)}</p>
+                  <p className="text-4xl font-semibold">{formatUsd(r.loanAmountUsd)}</p>
                   <h3 className="mt-3 text-lg font-semibold">{r.assetType}</h3>
-                  <p className="text-[15px] font-medium text-accent">{r.program}</p>
+                  <p className="text-[15px] font-medium text-graphite">{r.program}</p>
                   <p className="mt-3 text-[14px] leading-relaxed text-titanium">{r.summary}</p>
                   <p className="mt-auto pt-6 text-[13px] text-titanium">
                     {r.location}, closed {r.closedYear}

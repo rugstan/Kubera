@@ -40,11 +40,11 @@ async function Conversation({ params }: { params: Params }) {
       </Link>
       <div className="mt-2 mb-6">
         <p className="eyebrow">AI conversation</p>
-        <h1 className="font-display text-[28px] font-semibold leading-tight tracking-tight text-ink">{c.preview || "(no messages)"}</h1>
+        <h1 className="font-display text-[28px] font-semibold leading-tight text-ink">{c.preview || "(no messages)"}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
-          {c.flagged ? <span className="badge-gold rounded-full px-2.5 py-0.5 font-medium">Flagged</span> : null}
-          {c.guardrailCount > 0 ? <span className="rounded-full bg-red-50 px-2.5 py-0.5 font-medium text-red-900">Guardrail hits: {c.guardrailCount}</span> : null}
-          <span className={`rounded-full px-2.5 py-0.5 font-medium ${c.reviewStatus === "reviewed" ? "badge-emerald" : "border border-black/10 bg-canvas text-ink"}`}>{REVIEW_STATUS_LABELS[c.reviewStatus]}</span>
+          {c.flagged ? <span className="badge-warning rounded-full px-2.5 py-0.5 font-medium">Flagged</span> : null}
+          {c.guardrailCount > 0 ? <span className="badge-danger rounded-full px-2.5 py-0.5 font-medium">Guardrail hits: {c.guardrailCount}</span> : null}
+          <span className={`rounded-full px-2.5 py-0.5 font-medium ${c.reviewStatus === "reviewed" ? "badge-success" : "badge"}`}>{REVIEW_STATUS_LABELS[c.reviewStatus]}</span>
           <span className="text-titanium">
             Started <time dateTime={c.createdAt}>{when(c.createdAt)}</time>
             {c.page ? ` from ${c.page}` : ""}
@@ -67,7 +67,7 @@ async function Conversation({ params }: { params: Params }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-labelledby="transcript-heading">
-          <h2 id="transcript-heading" className="mb-3 text-[18px] font-semibold tracking-tight text-ink">
+          <h2 id="transcript-heading" className="mb-3 text-[18px] font-semibold text-ink">
             Transcript
           </h2>
           <Transcript messages={c.messages} events={c.guardrailEvents} annotations={c.annotations} />

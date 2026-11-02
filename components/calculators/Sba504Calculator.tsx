@@ -51,7 +51,7 @@ export function Sba504Calculator({ benchmarks, asOf, live }: { benchmarks: Bench
       results={
         outcome.ok ? (
           <div className="space-y-5">
-            <h2 className="text-lg font-semibold tracking-tight">Indicative 504 structure</h2>
+            <h2 className="text-lg font-semibold">Indicative 504 structure</h2>
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Capital stack table">
               <table className="w-full min-w-[420px] border-collapse text-left text-[14px]">
                 <caption className="sr-only">Sources of funds for the project</caption>
@@ -91,7 +91,7 @@ export function Sba504Calculator({ benchmarks, asOf, live }: { benchmarks: Bench
               )}
             </dl>
             {outcome.result.capBinds && (
-              <p className="rounded-xl bg-amber-50 px-4 py-3 text-[14px] leading-relaxed text-amber-900">
+              <p className="notice-warning rounded-xl px-4 py-3 text-[14px] leading-relaxed">
                 The debenture cap of {usd(outcome.result.debentureCap)} binds, so equity is {usd(outcome.result.equityAboveMinimum)} above the program minimum. A larger bank loan or a 7(a) stack can change that; an advisor can model it.
               </p>
             )}

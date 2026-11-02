@@ -32,7 +32,7 @@ export function TickerMarquee({ primary, duplicate, label }: { primary: React.Re
         aria-pressed={paused}
         aria-controls={trackId}
         aria-label={paused ? "Play rates ticker" : "Pause rates ticker"}
-        className="mr-1 grid size-9 shrink-0 place-items-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white motion-reduce:hidden"
+        className="mr-1 grid size-9 shrink-0 place-items-center rounded-full text-ink/70 transition hover:bg-black/5 hover:text-ink motion-reduce:hidden"
       >
         {paused ? (
           <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden>

@@ -39,7 +39,7 @@ export function DecisionForm({
               </label>
               <textarea id={reasonId} name="reason" required maxLength={1000} rows={2} className="field" />
             </div>
-            <button type="submit" className="pill min-h-11 bg-red-700 px-5 py-2 text-[15px] text-white hover:bg-red-800" disabled={pending}>
+            <button type="submit" className="pill min-h-11 bg-danger px-5 py-2 text-[15px] text-white hover:bg-danger/90" disabled={pending}>
               Reject request
             </button>
             <button type="button" className="pill pill-glass min-h-11 px-5 py-2 text-[15px]" onClick={() => setRejecting(false)} disabled={pending}>
@@ -93,7 +93,7 @@ export function DecisionForm({
         </p>
       ) : null}
       {state.message ? (
-        <p role={state.ok ? "status" : "alert"} className={`mt-2 text-[14px] ${state.ok ? "text-accent-hover" : "text-red-800"}`}>
+        <p role={state.ok ? "status" : "alert"} className={`mt-2 text-[14px] ${state.ok ? "text-success" : "text-danger"}`}>
           {state.message}
         </p>
       ) : null}

@@ -93,7 +93,7 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
         <Link className="text-sm text-titanium hover:text-ink" href="/lenders">
           ← Lender matching
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">{deal.title}</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-ink">{deal.title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Badge>{DEAL_PROGRAM_LABELS[deal.program]}</Badge>
           <Badge>{money(p.loanAmountCents ?? deal.loanAmountCents)}</Badge>
@@ -105,7 +105,7 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
       </div>
       <Flash error={typeof sp.error === "string" ? sp.error : (metricsError ?? undefined)} notice={typeof sp.notice === "string" ? sp.notice : undefined} />
       {shareUrls.length ? (
-        <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status">
+        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="status">
           <p className="font-medium">Approved. Send each link to its lender from your mailbox now; they are shown only once. Then mark them sent on the deal desk.</p>
           <ul className="mt-1 space-y-1">
             {shareUrls.map((s) => (
@@ -146,7 +146,7 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
       </Section>
 
       <Section description="Only approved credit boxes are used. Scores weigh leverage cushion, relationship, verification, speed, size and recourse." title="Ranked lenders">
-        {match.untested.length ? <p className="mb-3 text-sm text-amber-900">Not tested (add them above): {match.untested.join(", ")}.</p> : null}
+        {match.untested.length ? <p className="mb-3 text-sm text-warning">Not tested (add them above): {match.untested.join(", ")}.</p> : null}
         {match.usedFallback ? (
           <div className="mb-4 rounded-xl bg-black/5 p-3 text-sm">
             <p className="font-medium">No approved credit box covers {DEAL_PROGRAM_LABELS[deal.program]}. Static routing suggests:</p>
@@ -276,7 +276,7 @@ function LenderTable({ candidates, readOnly }: { candidates: CandidateRow[]; rea
             <li key={r}>{r}</li>
           ))}
         </ul>,
-        <ul className={`list-disc pl-4 text-xs ${c.matched ? "text-amber-900" : "text-red-900"}`} key="w">
+        <ul className={`list-disc pl-4 text-xs ${c.matched ? "text-warning" : "text-danger"}`} key="w">
           {c.warnings.map((w) => (
             <li key={w}>{w}</li>
           ))}
@@ -348,7 +348,7 @@ function ReviewForm({ quote, lenders, dealId, returnQuery, write }: { quote: Quo
       <p className="font-medium text-ink">
         {quote.lenderName} <span className="text-sm font-normal text-titanium">· received {quote.receivedAt.slice(0, 10)} · parsed by {quote.parser}</span>
       </p>
-      <p className="mt-1 text-sm text-amber-900">Check: {flagged.join(", ") || "all terms"}.</p>
+      <p className="mt-1 text-sm text-warning">Check: {flagged.join(", ") || "all terms"}.</p>
       {quote.reviewNote ? <p className="mt-1 text-xs text-titanium">{quote.reviewNote}</p> : null}
       {write ? (
         <div className="mt-3 space-y-3">

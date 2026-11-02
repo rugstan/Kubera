@@ -61,7 +61,7 @@ export function Form<V extends FieldValues>({
         {!hydrated && <button type="submit" disabled hidden aria-hidden="true" tabIndex={-1} />}
         {!hydrated && (
           <noscript>
-            <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">This form needs JavaScript. Turn it on in your browser, then reload the page to send it.</p>
+            <p className="notice-danger rounded-xl px-4 py-3 text-sm">This form needs JavaScript. Turn it on in your browser, then reload the page to send it.</p>
           </noscript>
         )}
         {children}
@@ -73,7 +73,7 @@ export function Form<V extends FieldValues>({
 export function RequiredLegend({ className = "" }: { className?: string }) {
   return (
     <p className={`text-xs text-titanium ${className}`}>
-      <span aria-hidden="true" className="text-rose-700">
+      <span aria-hidden="true" className="text-danger">
         *
       </span>{" "}
       <span>indicates a required field.</span>
@@ -85,7 +85,7 @@ export function RequiredLegend({ className = "" }: { className?: string }) {
 export function FormAlert({ message, className = "" }: { message: string | null | undefined; className?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className={`rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800 ${className}`}>
+    <p role="alert" className={`notice-danger rounded-xl px-4 py-3 text-sm ${className}`}>
       {message}
     </p>
   );
@@ -136,7 +136,7 @@ export function ErrorSummary({ labels, focusSignal, subject = "submission" }: { 
 
   if (!show) return null;
   return (
-    <div ref={ref} tabIndex={-1} role="group" aria-labelledby="error-summary-title" className="rounded-2xl border border-rose-700/40 bg-rose-50 p-4 text-rose-900">
+    <div ref={ref} tabIndex={-1} role="group" aria-labelledby="error-summary-title" className="notice-danger rounded-2xl p-4">
       <h2 id="error-summary-title" className="text-[15px] font-semibold">
         {items.length === 1 ? `There is 1 problem with your ${subject}` : `There are ${items.length} problems with your ${subject}`}
       </h2>
@@ -170,7 +170,7 @@ export function Stepper({ steps, current, label = "Progress" }: { steps: readonl
           const state = i < current ? "completed" : i === current ? "current" : "upcoming";
           return (
             <li key={s} aria-current={i === current ? "step" : undefined}>
-              <div className={`h-1.5 rounded-full transition-colors ${i <= current ? "bg-accent" : "bg-black/15"}`} aria-hidden="true" />
+              <div className={`h-1.5 rounded-full transition-colors ${i <= current ? "bg-accent-fill" : "bg-black/15"}`} aria-hidden="true" />
               <p className={`mt-2 text-xs font-medium ${i === current ? "text-ink" : "text-titanium"}`}>
                 {s}
                 <span className="sr-only">

@@ -32,12 +32,12 @@ export function InviteForm({ dealId, principals }: { dealId: string; principals:
       </button>
       <div aria-live="polite" className="sm:col-span-3">
         {state.error ? (
-          <p role="alert" className="text-[14px] text-red-900">
+          <p role="alert" className="text-[14px] text-danger">
             {state.error}
           </p>
         ) : null}
         {state.url ? (
-          <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 text-[14px]">
+          <div className="notice-success rounded-xl p-3 text-[14px]">
             <p>{state.message}</p>
             <label className="field-label mt-2" htmlFor="inv-url">Portal link (single use)</label>
             <input id="inv-url" readOnly value={state.url} className="field font-mono text-[13px]" onFocus={(e) => e.currentTarget.select()} />

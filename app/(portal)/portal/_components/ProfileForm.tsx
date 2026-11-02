@@ -45,7 +45,7 @@ function Field({ id, label, error, hint, children }: { id: string; label: string
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} className="mt-1 text-[13px] text-red-900">
+        <p id={`${id}-error`} className="mt-1 text-[13px] text-danger">
           {error}
         </p>
       ) : null}
@@ -73,7 +73,7 @@ function SectionShell({ id, title, intro, status, onSubmit, children, submitLabe
           <button type="submit" className="pill pill-primary !py-2 !text-[15px]" disabled={status.kind === "saving"}>
             {status.kind === "saving" ? "Saving…" : submitLabel}
           </button>
-          <p role={status.kind === "error" ? "alert" : "status"} className={`text-[14px] ${status.kind === "error" ? "text-red-900" : "text-ink/80"}`}>
+          <p role={status.kind === "error" ? "alert" : "status"} className={`text-[14px] ${status.kind === "error" ? "text-danger" : "text-ink/80"}`}>
             {status.message ?? ""}
           </p>
         </div>
@@ -295,7 +295,7 @@ export function ProfileForm({ initial, sections, questions, creditText, creditVe
                     <input type="checkbox" checked={r.inDefault} onChange={(ev) => set({ inDefault: ev.target.checked })} /> Loan in default
                   </label>
                 </div>
-                <button type="button" className="mt-3 text-[14px] font-medium text-red-900 underline underline-offset-2" onClick={() => setReo(reo.filter((_, j) => j !== i))}>
+                <button type="button" className="mt-3 text-[14px] font-medium text-danger underline underline-offset-2" onClick={() => setReo(reo.filter((_, j) => j !== i))}>
                   Remove property {i + 1}
                 </button>
               </fieldset>
@@ -446,7 +446,7 @@ export function ProfileForm({ initial, sections, questions, creditText, creditVe
             void save("credit_authorization", { signatureName: credit.signatureName, textVersion: creditVersion, agree: true }, "credit-signatureName");
           }}
         >
-          <p className="rounded-2xl border border-black/10 bg-canvas p-4 text-[14px] leading-relaxed">{creditText}</p>
+          <p className="rounded-2xl border border-black/10 bg-white p-4 text-[14px] leading-relaxed">{creditText}</p>
           <label className="mt-4 flex items-start gap-2 text-[15px]">
             <input id="credit-agree" type="checkbox" className="mt-1" checked={credit.agree} onChange={(e) => setCredit({ ...credit, agree: e.target.checked })} /> I have read and agree to this authorization.
           </label>

@@ -40,7 +40,7 @@ async function DraftData({ params, searchParams }: { params: Params; searchParam
       </Link>
       <div>
         <p className="eyebrow">Market note · week of {d.weekStart} · version {d.version}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">{d.headline}</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">{d.headline}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Badge tone={d.status === "approved" ? "good" : d.status === "rejected" ? "bad" : d.status === "pending_review" ? "warn" : "neutral"}>{INTEL_STATUS_LABELS[d.status]}</Badge>
           <Badge>{d.generatedBy === "model" ? `Written by ${d.servedModel ?? d.model ?? "the market-intel model"}` : "Rules digest"}</Badge>

@@ -13,13 +13,13 @@ function FamilyList({ family, currentSlug, heading }: { family: ProgramEntry["fa
   if (members.length === 0) return null;
   return (
     <section aria-labelledby="family-heading" className="mt-14">
-      <h2 id="family-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+      <h2 id="family-heading" className="text-2xl font-semibold md:text-3xl">
         {heading}
       </h2>
       <ul className="mt-5 grid gap-4 sm:grid-cols-2">
         {members.map((p) => (
           <li key={p.slug}>
-            <Link href={financingPath(p.slug)} className="bento block h-full p-5 transition hover:shadow-md">
+            <Link href={financingPath(p.slug)} className="bento block h-full p-5">
               <span className="text-[17px] font-semibold text-ink">{p.name}</span>
               <span className="mt-1 block text-[14px] text-titanium">{p.summary}</span>
             </Link>
@@ -38,7 +38,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
         <Breadcrumbs items={programBreadcrumbs(entry)} />
         <header className="mt-8">
           <p className="eyebrow">{FAMILY_LABELS[entry.family]}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{entry.name}</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
             <CtaLinks />
@@ -64,7 +64,7 @@ export function HubPage({ entry }: { entry: HubEntry }) {
         <Breadcrumbs items={hubBreadcrumbs(entry)} />
         <header className="mt-8">
           <p className="eyebrow">{FAMILY_LABELS[entry.family]}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{entry.name}</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
             <CtaLinks sizerLabel="Size a loan" />

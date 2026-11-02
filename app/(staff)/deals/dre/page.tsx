@@ -17,7 +17,7 @@ export default function DrePage({ searchParams }: { searchParams: Search }) {
     <>
       <div>
         <p className="eyebrow">Deal desk</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">DRE reporting</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">DRE reporting</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">
           Threshold-broker monitor (B&amp;P §10232): {THRESHOLD_LOAN_COUNT} or more real-property loans aggregating over {money(THRESHOLD_AGGREGATE_CENTS)} negotiated in the past 12 months, or expected in the next 12. A threshold broker notifies the DRE within {NOTIFY_WITHIN_DAYS} days (RE 853). Criteria and form fields are pending counsel review.
         </p>

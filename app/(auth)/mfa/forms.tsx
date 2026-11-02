@@ -33,7 +33,7 @@ function CodeForm({ factorId, next, label }: { factorId: string; next: string; l
           aria-describedby={state.error ? "totp-error" : undefined}
         />
         {state.error ? (
-          <p id="totp-error" role="alert" className="mt-1.5 text-[13px] text-red-800">
+          <p id="totp-error" role="alert" className="mt-1.5 text-[13px] text-danger">
             {state.error}
           </p>
         ) : null}
@@ -62,7 +62,7 @@ export function MfaEnroll({ next }: { next: string }) {
           Set up an authenticator app (1Password, Google Authenticator, Microsoft Authenticator or similar) once. You will enter its code each time you sign in.
         </p>
         {state.status === "error" ? (
-          <p role="alert" className="rounded-xl border border-red-700/30 bg-red-50 px-4 py-3 text-[14px] text-red-800">
+          <p role="alert" className="notice-danger rounded-xl px-4 py-3 text-[14px]">
             {state.message}
           </p>
         ) : null}
@@ -81,7 +81,7 @@ export function MfaEnroll({ next }: { next: string }) {
         // eslint-disable-next-line @next/next/no-img-element -- data URL from the identity provider
         <img src={state.qrCode} alt="QR code for your authenticator app" width={180} height={180} className="mx-auto mt-5 rounded-xl border border-hairline bg-white p-2" />
       ) : null}
-      <div className="mt-5 rounded-xl bg-canvas p-4">
+      <div className="mt-5 rounded-xl bg-white p-4">
         <p className="field-label">Setup key</p>
         <code className="block break-all text-[15px] font-medium tracking-wider text-ink" data-testid="totp-secret">
           {state.secret}

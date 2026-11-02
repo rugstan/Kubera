@@ -20,12 +20,12 @@ export function Transcript({ messages, events, annotations }: { messages: Stored
               <span>Message {i + 1}</span>
               <time dateTime={m.at}>{when(m.at)}</time>
               {m.role === "assistant" && m.model ? <span>{m.model}</span> : null}
-              {m.role === "assistant" && m.stopReason !== "end_turn" ? <span className="badge-gold rounded-full px-2 py-0.5 text-[12px] font-medium">Stopped: {m.stopReason}</span> : null}
+              {m.role === "assistant" && m.stopReason !== "end_turn" ? <span className="badge-warning rounded-full px-2 py-0.5 text-[12px] font-medium">Stopped: {m.stopReason}</span> : null}
               {m.role === "user" && m.mode === "term_sheet" ? <span className="rounded-full bg-black/5 px-2 py-0.5 text-[12px] font-medium text-ink">Term sheet request</span> : null}
             </div>
             <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink">{m.content}</p>
             {m.role === "assistant" && m.guardrail ? (
-              <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-950" role="note">
+              <p className="notice-warning mt-3 rounded-xl px-3 py-2 text-[13px]" role="note">
                 Output guardrail {m.guardrail.mode === "enforce" ? "rewrote" : "flagged"} {m.guardrail.count} {m.guardrail.count === 1 ? "sentence" : "sentences"} in this reply:{" "}
                 {m.guardrail.categories.map((c) => GUARDRAIL_CATEGORY_LABELS[c as keyof typeof GUARDRAIL_CATEGORY_LABELS] ?? c).join(", ")}.
               </p>

@@ -51,7 +51,7 @@ export default function MailReviewPage({ searchParams }: { searchParams: SearchP
             Documents
           </Link>
         </p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Mail review</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">Mail review</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">
           Inbound email that could not be filed automatically: no matching deal, more than one match, a sender that did not authenticate, or a message that looks
           suspicious. File it to a deal or lead, or dismiss it. Attachments stay in quarantine until the message is filed, then they are scanned before anyone can
@@ -85,24 +85,24 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
       {assigned ? (
-        <p role="status" className="badge-emerald mb-5 rounded-xl px-4 py-3 text-[14px]">
+        <p role="status" className="notice-success mb-5 rounded-xl px-4 py-3 text-[14px]">
           Message filed.
           {registered ? ` ${registered} ${registered === 1 ? "attachment was" : "attachments were"} added to the vault and will be scanned before they can be opened.` : ""}
           {held ? ` ${held} ${held === 1 ? "attachment stays" : "attachments stay"} with the message (no lead to file ${held === 1 ? "it" : "them"} under, or this mailbox keeps attachments with the message).` : ""}
         </p>
       ) : null}
       {assigned && failed ? (
-        <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-800">
+        <p role="alert" className="notice-danger mb-5 rounded-xl px-4 py-3 text-[14px]">
           {failed} {failed === 1 ? "attachment" : "attachments"} could not be added to the vault and stayed in quarantine. Ask an administrator to check the documents log.
         </p>
       ) : null}
       {dismissed ? (
-        <p role="status" className="badge-emerald mb-5 rounded-xl px-4 py-3 text-[14px]">
+        <p role="status" className="notice-success mb-5 rounded-xl px-4 py-3 text-[14px]">
           Message dismissed.
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] text-red-800">
+        <p role="alert" className="notice-danger mb-5 rounded-xl px-4 py-3 text-[14px]">
           {error}
         </p>
       ) : null}
@@ -153,8 +153,8 @@ function MailCard({ mail: m, canFile }: { mail: ReviewMail; canFile: boolean }) 
   return (
     <article className="bento p-6" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-center gap-2 text-[13px]">
-        <span className="badge-gold rounded-full px-2.5 py-0.5 font-medium">{failed ? "Processing failed" : "Needs review"}</span>
-        {m.suspicious ? <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 font-medium text-red-800">Suspicious</span> : null}
+        <span className={`${failed ? "badge-danger" : "badge-warning"} rounded-full px-2.5 py-0.5 font-medium`}>{failed ? "Processing failed" : "Needs review"}</span>
+        {m.suspicious ? <span className="badge-danger rounded-full px-2.5 py-0.5 font-medium">Suspicious</span> : null}
         <span className="text-titanium">
           {m.mailbox}@ · received <time dateTime={m.receivedAt}>{dateFmt.format(new Date(m.receivedAt))}</time>
           {failed ? null : ` · ${m.category.replace(/_/g, " ")} · DMARC ${m.dmarc}`}
@@ -177,7 +177,7 @@ function MailCard({ mail: m, canFile }: { mail: ReviewMail; canFile: boolean }) 
         </>
       )}
       {m.reviewReasons.length ? (
-        <ul className="mt-3 list-disc pl-5 text-[14px] text-amber-900" aria-label="Why it needs review">
+        <ul className="mt-3 list-disc pl-5 text-[14px] text-warning" aria-label="Why it needs review">
           {m.reviewReasons.map((r) => (
             <li key={r}>{reviewReasonLabel(r)}</li>
           ))}

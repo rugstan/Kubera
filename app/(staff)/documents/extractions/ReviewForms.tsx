@@ -51,13 +51,13 @@ export function ReviewForm({ id, title, fields }: { id: string; title: string; f
               {fields.map((f) => {
                 const inputId = `${id}-${f.key}`;
                 return (
-                  <tr key={f.key} className={`border-b border-hairline align-top ${f.low ? "bg-amber-50" : ""}`}>
+                  <tr key={f.key} className={`border-b border-hairline align-top ${f.low ? "bg-warning-surface" : ""}`}>
                     <th scope="row" className="py-2 pr-3 font-medium text-ink">
                       <label htmlFor={inputId}>
                         {f.label}
                         {f.required ? <span className="sr-only"> (required)</span> : null}
                       </label>
-                      {f.low ? <span className="ml-2 rounded-full bg-amber-200 px-2 py-0.5 text-[12px] font-medium text-amber-950">Check</span> : null}
+                      {f.low ? <span className="badge-warning ml-2 rounded-full px-2 py-0.5 text-[12px] font-medium">Check</span> : null}
                     </th>
                     <td className="py-2 pr-3">
                       <input id={inputId} name={`f.${f.key}`} defaultValue={f.value} className="field min-w-40" autoComplete="off" />
@@ -87,7 +87,7 @@ export function ReviewForm({ id, title, fields }: { id: string; title: string; f
           ) : null}
         </div>
         {state.message ? (
-          <p role={state.ok ? "status" : "alert"} className={`mt-2 text-[14px] ${state.ok ? "text-accent-hover" : "text-red-800"}`}>
+          <p role={state.ok ? "status" : "alert"} className={`mt-2 text-[14px] ${state.ok ? "text-success" : "text-danger"}`}>
             {state.message}
           </p>
         ) : null}
@@ -102,7 +102,7 @@ export function ReviewForm({ id, title, fields }: { id: string; title: string; f
             <textarea id={reasonId} name="reason" required maxLength={1000} rows={2} className="field" />
           </div>
           <div className="flex flex-wrap gap-3">
-            <button type="submit" className="pill min-h-11 bg-red-700 px-5 py-2 text-[15px] text-white hover:bg-red-800" disabled={pending}>
+            <button type="submit" className="pill min-h-11 bg-danger px-5 py-2 text-[15px] text-white hover:bg-danger/90" disabled={pending}>
               Reject extraction
             </button>
             <button type="button" className="pill pill-glass min-h-11 px-5 py-2 text-[15px]" onClick={() => setShowReject(false)} disabled={pending}>
@@ -110,7 +110,7 @@ export function ReviewForm({ id, title, fields }: { id: string; title: string; f
             </button>
           </div>
           {rejectState.message ? (
-            <p role={rejectState.ok ? "status" : "alert"} className="text-[14px] text-red-800">
+            <p role={rejectState.ok ? "status" : "alert"} className="text-[14px] text-danger">
               {rejectState.message}
             </p>
           ) : null}

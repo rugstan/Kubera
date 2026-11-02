@@ -49,7 +49,7 @@ async function ProjectDetail({ searchParams }: Props) {
         return (
           <>
             <header className="mt-4">
-              <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">{project.name}</h1>
+              <h1 className="text-3xl font-semibold md:text-5xl">{project.name}</h1>
               <p className="mt-2 text-[17px] text-titanium">
                 {PROGRAM_LABELS[project.program]} · {ASSET_LABELS[project.assetType]}
                 {project.units ? ` · ${project.units} units` : ""}

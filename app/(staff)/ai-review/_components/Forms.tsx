@@ -7,7 +7,7 @@ import { annotateAction, flagAction, reviewStatusAction, type ReviewState } from
 function Message({ state, id }: { state: ReviewState; id: string }) {
   if (!state.message) return null;
   return (
-    <p id={id} role={state.ok ? "status" : "alert"} className={`mt-2 text-[14px] ${state.ok ? "text-accent-hover" : "text-red-800"}`}>
+    <p id={id} role={state.ok ? "status" : "alert"} className={`mt-2 text-[14px] ${state.ok ? "text-success" : "text-danger"}`}>
       {state.message}
     </p>
   );

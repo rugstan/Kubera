@@ -7,10 +7,10 @@ import { controlAria, fieldIds, formatNumeric, parseNumeric } from "./ids";
 // Accessible form controls bound to react-hook-form through context. Every
 // control gets a visible label, a programmatic name, aria-required when
 // required, aria-invalid plus aria-describedby (hint, then error) when
-// invalid, and a rose border that does not depend on colour alone (the error
+// invalid, and a red border that does not depend on colour alone (the error
 // text with its icon sits right under it).
 
-const INVALID = "aria-[invalid=true]:border-rose-700";
+const INVALID = "aria-[invalid=true]:border-danger";
 
 type Common = {
   name: string;
@@ -47,7 +47,7 @@ function Bind({ name, children }: { name: string; children: (b: Bound) => ReactN
 
 export function RequiredMark() {
   return (
-    <span aria-hidden="true" className="text-rose-700">
+    <span aria-hidden="true" className="text-danger">
       {" "}
       *
     </span>
@@ -56,7 +56,7 @@ export function RequiredMark() {
 
 function ErrorText({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-rose-700">
+    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-snug text-danger">
       <svg viewBox="0 0 16 16" className="mt-0.5 size-3.5 shrink-0" fill="currentColor" aria-hidden="true">
         <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm-.75 3.25h1.5v4h-1.5v-4Zm.75 6.5a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8Z" />
       </svg>
@@ -285,7 +285,7 @@ export function ChoiceField({ name, label, hint, required, className = "", optio
             className={layout === "cards" ? "grid grid-cols-1 gap-2 sm:grid-cols-2" : "flex flex-wrap gap-2"}
           >
             {options.map((o, i) => (
-              <label key={o.value} className={`${CHOICE_BASE} ${layout === "row" ? "flex-1 basis-24" : "justify-start text-left"} ${error ? "border-rose-700" : "border-black/30"}`}>
+              <label key={o.value} className={`${CHOICE_BASE} ${layout === "row" ? "flex-1 basis-24" : "justify-start text-left"} ${error ? "border-danger" : "border-black/30"}`}>
                 <input
                   ref={i === 0 ? field.ref : undefined}
                   type="radio"
@@ -330,7 +330,7 @@ export function ChipsField({ name, label, hint, required, className = "", option
                 return (
                   <label
                     key={o.value}
-                    className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 py-2 text-[14px] font-medium transition has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent ${on ? "border-accent bg-accent/10 text-accent-hover" : error ? "border-rose-700 text-ink/80" : "border-black/30 text-ink/80 hover:border-black/50"}`}
+                    className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 py-2 text-[14px] font-medium transition has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent ${on ? "border-accent bg-accent/10 text-accent-hover" : error ? "border-danger text-ink/80" : "border-black/30 text-ink/80 hover:border-black/50"}`}
                   >
                     <input
                       ref={i === 0 ? field.ref : undefined}
@@ -370,7 +370,7 @@ export function CheckboxField({ name, label, hint, required, className = "", box
     <Bind name={name}>
       {({ field, error }) => (
         <div className={className}>
-          <div className={boxed ? "rounded-2xl bg-black/[0.03] p-4" : ""}>
+          <div className={boxed ? "rounded-2xl bg-white p-4" : ""}>
             <label htmlFor={ids.id} className="flex min-h-11 cursor-pointer items-start gap-3 py-2.5 text-[13px] leading-relaxed text-ink/80">
               <input
                 {...controlAria({ name, hasHint: Boolean(hint), error, required })}

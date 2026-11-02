@@ -21,7 +21,7 @@ export default function ReportsPage({ searchParams }: { searchParams: SearchPara
     <>
       <div className="mb-6">
         <p className="eyebrow">Business reporting</p>
-        <h1 className="font-display text-[32px] font-semibold tracking-tight text-ink">Reports</h1>
+        <h1 className="font-display text-[32px] font-semibold text-ink">Reports</h1>
         <p className="mt-1 max-w-2xl text-[15px] text-titanium">Pipeline, fee forecast, lender hit rate and lead-source return, computed from the deal desk records.</p>
       </div>
       <Suspense fallback={<div className="bento h-96 animate-pulse" aria-label="Loading reports" />}>
@@ -47,7 +47,7 @@ async function Reports({ searchParams }: { searchParams: SearchParams }) {
   }
   if (result.status === "error") {
     return (
-      <div role="alert" className="bento p-8 text-red-800">
+      <div role="alert" className="bento p-8 text-danger">
         The reports could not be built. Try again in a moment; if it keeps happening, check the server log.
       </div>
     );

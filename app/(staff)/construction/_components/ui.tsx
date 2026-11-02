@@ -5,9 +5,9 @@ import { REPORT_STATUS_LABELS, type ReportStatus } from "@/lib/construction/type
 type Tone = "good" | "warn" | "bad" | "neutral";
 
 const TONES: Record<Tone, string> = {
-  good: "bg-emerald-50 text-emerald-900 ring-emerald-700/30",
-  warn: "bg-amber-50 text-amber-900 ring-amber-700/30",
-  bad: "bg-rose-50 text-rose-900 ring-rose-700/30",
+  good: "bg-success-surface text-success ring-success/30",
+  warn: "bg-warning-surface text-warning ring-warning/30",
+  bad: "bg-danger-surface text-danger ring-danger/30",
   neutral: "bg-black/5 text-ink ring-black/15",
 };
 
@@ -39,7 +39,7 @@ export function Card({ title, id, lead, children, action }: { title: string; id?
     <section id={id} aria-labelledby={id ? `${id}-title` : undefined} className="bento p-5 md:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={id ? `${id}-title` : undefined} className="text-xl font-semibold tracking-tight md:text-2xl">
+          <h2 id={id ? `${id}-title` : undefined} className="text-xl font-semibold md:text-2xl">
             {title}
           </h2>
           {lead && <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-titanium">{lead}</p>}

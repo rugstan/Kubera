@@ -60,7 +60,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
         <Breadcrumbs items={crumbs} />
         <header className="mt-8 max-w-3xl">
           <p className="eyebrow">Calculator</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{entry.name}</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
         </header>
 
@@ -74,7 +74,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
         </div>
 
         <section aria-labelledby="how-heading" className="mt-14 max-w-3xl">
-          <h2 id="how-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+          <h2 id="how-heading" className="text-2xl font-semibold md:text-3xl">
             How it works
           </h2>
           <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
@@ -82,7 +82,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
               <p key={p}>{p}</p>
             ))}
           </div>
-          <h2 className="mt-10 text-2xl font-semibold tracking-tight md:text-3xl">Reading the result</h2>
+          <h2 className="mt-10 text-2xl font-semibold md:text-3xl">Reading the result</h2>
           <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
             {entry.readingTheResult.map((p) => (
               <p key={p}>{p}</p>
@@ -96,13 +96,13 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
 
           {terms.length > 0 && (
             <section aria-labelledby="terms-heading" className="mt-14">
-              <h2 id="terms-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+              <h2 id="terms-heading" className="text-2xl font-semibold md:text-3xl">
                 Terms used here
               </h2>
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {terms.map((t) => (
                   <li key={t.slug}>
-                    <Link href={`/glossary#${t.slug}`} className="bento block h-full p-4 transition hover:shadow-md">
+                    <Link href={`/glossary#${t.slug}`} className="bento block h-full p-4">
                       <span className="text-[16px] font-semibold text-ink">{t.term}</span>
                       <span className="mt-1 line-clamp-2 block text-[14px] text-titanium">{t.definition}</span>
                     </Link>
@@ -113,13 +113,13 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
           )}
 
           <section aria-labelledby="more-calcs-heading" className="mt-14">
-            <h2 id="more-calcs-heading" className="text-2xl font-semibold tracking-tight md:text-3xl">
+            <h2 id="more-calcs-heading" className="text-2xl font-semibold md:text-3xl">
               More calculators
             </h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-3">
               {others.map((c) => (
                 <li key={c.slug}>
-                  <Link href={calculatorPath(c.slug)} className="bento block h-full p-4 transition hover:shadow-md">
+                  <Link href={calculatorPath(c.slug)} className="bento block h-full p-4">
                     <span className="text-[16px] font-semibold text-ink">{c.name}</span>
                     <span className="mt-1 block text-[14px] text-titanium">{c.summary}</span>
                   </Link>
@@ -148,16 +148,16 @@ export function CalculatorsIndex() {
         <Breadcrumbs items={crumbs} />
         <header className="mt-8">
           <p className="eyebrow">Calculators</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{CALCULATORS_INDEX.title}</h1>
+          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{CALCULATORS_INDEX.title}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{CALCULATORS_INDEX.description}</p>
         </header>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
           {CALCULATORS.map((c) => (
             <li key={c.slug}>
-              <Link href={calculatorPath(c.slug)} className="bento block h-full p-6 transition hover:shadow-md">
+              <Link href={calculatorPath(c.slug)} className="bento block h-full p-6">
                 <span className="text-xl font-semibold text-ink">{c.name}</span>
                 <span className="mt-2 block text-[15px] leading-relaxed text-titanium">{c.summary}</span>
-                <span className="mt-4 block text-[14px] font-medium text-accent">Open the calculator</span>
+                <span className="link-chevron mt-4 text-[14px]">Open the calculator</span>
               </Link>
             </li>
           ))}

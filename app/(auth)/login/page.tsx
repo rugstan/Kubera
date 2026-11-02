@@ -51,7 +51,7 @@ async function LoginForm({ searchParams }: { searchParams: SearchParams }) {
         <SubmitButton disabled={disabled}>Email me a code</SubmitButton>
       </form>
       {services?.mode === "fake" ? (
-        <p className="mt-4 rounded-xl bg-canvas p-3 text-[13px] text-titanium" data-testid="fake-auth-note">
+        <p className="mt-4 rounded-xl bg-white p-3 text-[13px] text-titanium" data-testid="fake-auth-note">
           Test sign-in (fake provider): use broker@kubera.test, analyst@kubera.test or admin@kubera.test.
         </p>
       ) : null}

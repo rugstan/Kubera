@@ -16,7 +16,7 @@ export function PrincipalsSection({ dealId, chart, views, obligations, canEdit }
   return (
     <Card id="principals" title="Principals and ownership">
       {chart.issues.length ? (
-        <ul role="list" className="mb-4 rounded-xl border border-amber-700/40 bg-amber-50 p-3 text-[14px] text-amber-900">
+        <ul role="list" className="notice-warning mb-4 rounded-xl p-3 text-[14px]">
           {chart.issues.map((i) => (
             <li key={i}>{i}</li>
           ))}
@@ -61,7 +61,7 @@ export function PrincipalsSection({ dealId, chart, views, obligations, canEdit }
                     </p>
                   ) : null}
                   {v?.flags.length ? (
-                    <ul className="mt-1 list-disc pl-5 text-[13px] text-amber-900">
+                    <ul className="mt-1 list-disc pl-5 text-[13px] text-warning">
                       {v.flags.map((f) => (
                         <li key={f}>{f}</li>
                       ))}
@@ -72,7 +72,7 @@ export function PrincipalsSection({ dealId, chart, views, obligations, canEdit }
                   <form action={removePrincipalAction}>
                     <input type="hidden" name="dealId" value={dealId} />
                     <input type="hidden" name="principalId" value={p.id} />
-                    <button type="submit" className="text-[14px] font-medium text-red-900 underline underline-offset-2">
+                    <button type="submit" className="text-[14px] font-medium text-danger underline underline-offset-2">
                       Remove<span className="sr-only"> {p.legalName}</span>
                     </button>
                   </form>

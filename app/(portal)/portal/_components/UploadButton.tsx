@@ -65,7 +65,7 @@ export function UploadButton({ itemId, itemTitle }: { itemId: string; itemTitle:
           }}
         />
       </label>
-      <p aria-live="polite" className={`mt-2 text-[13px] ${state.kind === "error" ? "text-red-900" : "text-ink/80"}`}>
+      <p aria-live="polite" className={`mt-2 text-[13px] ${state.kind === "error" ? "text-danger" : "text-ink/80"}`}>
         {state.message ?? ""}
       </p>
     </div>

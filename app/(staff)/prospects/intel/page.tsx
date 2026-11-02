@@ -17,7 +17,7 @@ export default function IntelPage({ searchParams }: { searchParams: Search }) {
     <>
       <div>
         <p className="eyebrow">Market intel</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">Weekly market note</h1>
+        <h1 className="mt-1 text-3xl font-semibold text-ink">Weekly market note</h1>
         <p className="mt-2 max-w-2xl text-sm text-titanium">
           A short note written from public signals only: rate benchmarks, HUD and SBA notices in the Federal Register, and public feeds. It never sees borrower, partner or deal data, and every bullet cites the signal it came
           from. Drafts wait here for review; nothing is published or sent.
