@@ -23,7 +23,9 @@ def g(r, h):
     v = r[ix[h]]
     return "" if v is None else v
 
-CATS = ["Construction", "Hard Money / Bridge", "Senior Living / Healthcare"]
+CATS_ORDER = ["Construction", "Hard Money / Bridge", "Senior Living / Healthcare", "Multifamily", "Hospitality",
+              "Institutional / Capital Markets", "Bank / SBA"]
+CATS = [c for c in CATS_ORDER if any(g(r, "Category") == c for r in rows)]
 tier = Counter((g(r, "Category"), g(r, "Tier")) for r in rows)
 ca = Counter(g(r, "Category") for r in rows if g(r, "Lends in CA") == "Yes")
 signup = Counter(g(r, "Category") for r in rows if g(r, "Broker sign-up / broker page"))
