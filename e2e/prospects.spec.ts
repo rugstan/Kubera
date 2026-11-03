@@ -46,6 +46,7 @@ test.beforeAll(async () => {
       XAI_API_KEY: "",
       ATTOM_API_KEY: "",
       RESEND_API_KEY: "",
+      CLOUDFLARE_EMAIL_TOKEN: "",
       ALLOWED_ORIGINS: base,
     },
     stdio: "ignore",

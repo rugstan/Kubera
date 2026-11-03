@@ -4,6 +4,8 @@ import { EmailError, type EmailClient, type EmailSendResult, type OutboundEmail 
 /** In-memory email client for tests and local development. */
 export class FakeEmailClient implements EmailClient {
   readonly name = "fake" as const;
+  /** Behaves like Resend by default; set false to test a provider without idempotency (Cloudflare). */
+  idempotent = true;
   readonly sent: (OutboundEmail & { providerMessageId: string })[] = [];
   /** When set, the next send rejects with this error. */
   failNext: EmailError | null = null;

@@ -16,7 +16,7 @@ export type NotificationRow = {
   recipient: string;
   subject: string | null;
   status: NotificationStatus;
-  provider: "resend" | "telnyx" | "fake" | null;
+  provider: "resend" | "cloudflare" | "telnyx" | "fake" | null;
   providerMessageId: string | null;
   idempotencyKey: string;
   leadId: string | null;

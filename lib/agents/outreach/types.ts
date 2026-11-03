@@ -39,6 +39,8 @@ export const REASON_CODES = [
   "approval_rejected",
   "approval_expired",
   "send_failed",
+  /** The email provider may have taken it (a timeout on a provider without idempotency); never resent automatically. */
+  "delivery_unknown",
   "invalid_recipient",
   "invalid_template_data",
   "duplicate",
@@ -86,7 +88,7 @@ export type OutreachMessageRow = {
   sequence: number;
   approvalId: string | null;
   consentEventId: string | null;
-  provider: "resend" | "telnyx" | "fake" | null;
+  provider: "resend" | "cloudflare" | "telnyx" | "fake" | null;
   providerMessageId: string | null;
   attempts: number;
   error: string | null;

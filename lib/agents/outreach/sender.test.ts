@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
+import { EmailError } from "@/lib/notify/email/types";
 import { DAYTIME, LEAD_EMAIL, LEAD_PHONE, makeHarness, NIGHT } from "./testing";
 
 const smsReq = (key = "k1", over = {}) => ({
@@ -127,6 +128,35 @@ describe("providers", () => {
     // A failed text is not retried automatically: the provider may have sent it.
     expect((await h.sender.send(smsReq())).status).toBe("duplicate");
     expect(h.sms.sent).toHaveLength(0);
+  });
+
+  it("retries a pre-approved email after a failure when the provider dedupes on the idempotency key (Resend)", async () => {
+    const h = makeHarness({ preApproved: ["document_reminder_email@1"] });
+    h.email.failNext = new EmailError("Resend 500: boom", 500);
+    expect(await h.sender.send(reminderReq("e1"))).toMatchObject({ status: "failed", reason: "send_failed" });
+    expect((await h.sender.send(reminderReq("e1"))).status).toBe("sent");
+    expect(h.email.sent).toHaveLength(1);
+  });
+
+  it("never resends a pre-approved email whose delivery is unknown on a provider without idempotency (Cloudflare)", async () => {
+    const h = makeHarness({ preApproved: ["document_reminder_email@1"] });
+    h.email.idempotent = false;
+    h.email.failNext = new EmailError("Cloudflare email: request failed (timed out); delivery unknown");
+    const out = await h.sender.send(reminderReq("e2"));
+    expect(out).toMatchObject({ status: "failed", reason: "delivery_unknown" });
+    expect(h.store.rows[0]).toMatchObject({ status: "failed", reasonCode: "delivery_unknown" });
+    expect(h.store.rows[0]?.error).toMatch(/^delivery unknown, not retried/);
+    expect(await h.sender.send(reminderReq("e2"))).toMatchObject({ status: "duplicate", previousStatus: "failed" });
+    expect(h.email.sent).toHaveLength(0);
+  });
+
+  it("retries a pre-approved email Cloudflare documented as not sent", async () => {
+    const h = makeHarness({ preApproved: ["document_reminder_email@1"] });
+    h.email.idempotent = false;
+    h.email.failNext = new EmailError("Cloudflare email 429: 10004 email.sending.error.throttled", 429, { notSent: true });
+    expect(await h.sender.send(reminderReq("e3"))).toMatchObject({ status: "failed", reason: "send_failed" });
+    expect((await h.sender.send(reminderReq("e3"))).status).toBe("sent");
+    expect(h.email.sent).toHaveLength(1);
   });
 
   it("the kill switch skips everything", async () => {

@@ -73,7 +73,7 @@ export async function lockPackageVersion(store: DealDeskStore, dealId: string, i
 // ---------------------------------------------------------------------------
 // Outreach
 
-/** Delivers the approved submission (WS-J Resend / Zoho Mail adapter). */
+/** Delivers the approved submission (WS-J transactional email client, lib/deals/mailer.ts). */
 export interface LenderMailer {
   send(msg: { to: string; subject: string; text: string; idempotencyKey: string }): Promise<{ messageId: string }>;
 }

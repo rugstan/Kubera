@@ -2,7 +2,8 @@
 // Inbox, fetch body + raw headers, download attachments. Mailflare is the
 // self-hosted mail server for corincommercial.com (github.com/hieunc229/mailflare;
 // written against v0.5.4). Corin never sends, moves, flags or deletes mail from
-// here; outbound mail goes through the approval gate and Resend.
+// here; outbound mail goes through the approval gate and the transactional
+// email client (lib/notify/email: Cloudflare Email Service or Resend).
 //
 // JMAP (RFC 8620/8621) over a fixed base URL (MAILFLARE_URL):
 //   GET  /jmap/session                                   account id

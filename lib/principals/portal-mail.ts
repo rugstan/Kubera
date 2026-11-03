@@ -1,7 +1,7 @@
 // Sends the borrower-portal invitation email once a broker approved it.
 //
 // The approval names the invite only (lib/principals/portal.ts), so the link
-// is minted here: the Resend `portal_invite` template goes out through
+// is minted here: the `portal_invite` email template goes out through
 // lib/notify (which still checks the recipient has not opted out and records
 // the notification) with a fresh token, and once it is sent that token
 // replaces the invite's token, so the link the issuing broker may have copied

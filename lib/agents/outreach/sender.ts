@@ -1,6 +1,6 @@
 import { isApproved, type ApprovalGate, type OutboundAction } from "@/lib/compliance/approval-gate";
 import { consentAllows, consentState, type ConsentReader } from "@/lib/notify/consent";
-import type { EmailClient } from "@/lib/notify/email/types";
+import { emailRetryIsSafe, type EmailClient } from "@/lib/notify/email/types";
 import { maskPhone, toE164 } from "@/lib/notify/phone";
 import { insideSmsWindow } from "@/lib/notify/quiet-hours";
 import type { SmsClient } from "@/lib/notify/sms/types";
@@ -18,7 +18,11 @@ import type { OutreachOutcome, OutreachRecipient, OutreachStatus, ReasonCode } f
 //   5. provider configured (otherwise skip, never crash)
 //   6. broker approval gate (pre-approved template, or the broker approves;
 //      pending, rejected and expired decisions never send)
-//   7. send, then record the provider id or the failure
+//   7. send, then record the provider id or the failure. A pre-approved email
+//      that failed is sent again on a later call with the same key only when
+//      that cannot deliver it twice (emailRetryIsSafe): Cloudflare takes no
+//      idempotency key, so a timeout there is recorded as "delivery_unknown"
+//      and never resent automatically.
 // Each stop writes its status and reason code to outreach_messages and to the
 // audit sink. What the broker approves is exactly what is sent: the rendered
 // data is stored on the first attempt and reused on every retry.
@@ -112,7 +116,7 @@ export class OutreachSender {
 
     if (!fresh) {
       const retryable = new Set<OutreachStatus>(RETRY_ANY);
-      if (template.channel === "email" && preApproved) retryable.add("failed");
+      if (template.channel === "email" && preApproved && row.reasonCode !== "delivery_unknown") retryable.add("failed");
       if (!retryable.has(row.status)) {
         return { status: "duplicate", reason: "duplicate", messageId: id, previousStatus: row.status, providerMessageId: row.providerMessageId ?? undefined };
       }
@@ -236,6 +240,10 @@ export class OutreachSender {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`outreach: ${template.channel} send failed (${template.id})`, message);
+      if (built.channel === "email" && !emailRetryIsSafe(this.deps.email, err)) {
+        // The provider may have accepted it and takes no idempotency key: never resend automatically.
+        return stop("failed", "delivery_unknown", `delivery unknown, not retried: ${message}`.slice(0, 1000), { ...(approvalId ? { approvalId } : {}) });
+      }
       return stop("failed", "send_failed", message.slice(0, 1000), { ...(approvalId ? { approvalId } : {}) });
     }
   }

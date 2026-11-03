@@ -52,6 +52,7 @@ test.beforeAll(async () => {
       SUPABASE_SERVICE_ROLE_KEY: "",
       SUPABASE_ANON_KEY: "",
       RESEND_API_KEY: "",
+      CLOUDFLARE_EMAIL_TOKEN: "",
       ESIGN_PROVIDER: "",
       CSLB_LOOKUP_ENABLED: "",
       PORTAL_SESSION_SECRET: "",

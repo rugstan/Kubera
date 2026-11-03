@@ -43,7 +43,7 @@ export type DealDeskRuntime = {
   /** workflow_effects: claims each e-sign send so it creates at most one envelope. */
   effects: IdempotencyStore;
   esign: EsignProvider | null;
-  /** Outbound mail (Resend, WS-J) for approved lender submissions, lender notices and invoices; null = broker sends manually. */
+  /** Outbound mail (WS-J transactional email: Cloudflare Email Service or Resend) for approved lender submissions, lender notices and invoices; null = broker sends manually. */
   mailer: LenderMailer | null;
   baseUrl: string;
   now: () => Date;

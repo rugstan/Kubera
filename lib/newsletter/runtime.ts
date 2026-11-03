@@ -1,7 +1,7 @@
 import "server-only";
 import { approvalGate } from "@/lib/approvals/server";
 import { consentLedger } from "@/lib/consent/ledger";
-import { emailClientFromEnv } from "@/lib/notify/email";
+import { resendEmailClientFromEnv } from "@/lib/notify/email";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { site } from "@/lib/site";
 import { audienceClientFromEnv } from "./audience";
@@ -35,7 +35,8 @@ export function newsletterService(): NewsletterService {
   instance = new NewsletterService({
     store,
     ledger: consentLedger(),
-    email: emailClientFromEnv(),
+    // Resend only: Cloudflare Email Service does not allow newsletter mail.
+    email: resendEmailClientFromEnv(),
     audience: audienceClientFromEnv(),
     gate: approvalGate(),
     tokenSecret,
