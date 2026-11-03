@@ -1,0 +1,48 @@
+# Corin Commercial web app (Next.js standalone server), installed by ops/vps/setup.sh.
+# nginx in front proxies to 127.0.0.1:3000. Settings come from two files:
+#   /etc/corin/generated.env  secrets generated on the server (setup.sh)
+#   /etc/corin/app.env        your settings (the CORIN_ENV GitHub secret, written on deploy)
+# Values in app.env win over generated.env.
+[Unit]
+Description=Corin Commercial web app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=corin
+Group=corin
+WorkingDirectory=/srv/corin/current
+Environment=NODE_ENV=production
+Environment=DEPLOY_ENV=production
+Environment=PORT=3000
+# Listen on all interfaces; the firewall (ufw, setup.sh) only opens 22, 80 and
+# 443, so port 3000 is reachable from the server itself (nginx) only. Do not use
+# 127.0.0.1 here: Next then sees its own proxy rewrites (the express domain,
+# unknown slugs) as another origin and proxies them out (308 loops, 500s).
+Environment=HOSTNAME=0.0.0.0
+Environment=NEXT_TELEMETRY_DISABLED=1
+EnvironmentFile=-/etc/corin/generated.env
+EnvironmentFile=-/etc/corin/app.env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+LimitNOFILE=65536
+
+# Hardening: the app can write only to its cache and to the folders of its
+# releases it owns (.next/server, where revalidated pages are stored).
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/corin/shared /srv/corin/releases
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

@@ -3,6 +3,9 @@ import { STAFF_ROUTE_PREFIXES } from "./lib/auth/staff-routes";
 import { securityHeaders } from "./lib/csp";
 
 const nextConfig: NextConfig = {
+  // The VPS deploy (.github/workflows/vps.yml) builds a self-contained server
+  // (.next/standalone/server.js). Vercel and CI builds keep the default output.
+  ...(process.env.NEXT_OUTPUT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   // Cache Components is Next 16's stable Partial Prerendering: a static shell
   // ships from the edge and dynamic holes (the rate ticker) stream in.
   cacheComponents: true,

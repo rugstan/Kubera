@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Calls one Corin scheduled-job route on the local app, the way Vercel Cron
+# would: GET with "Authorization: Bearer $CRON_SECRET". Used by /etc/cron.d/corin.
+#   corin-cron /api/cron/rates
+set -uo pipefail
+
+path="${1:?usage: corin-cron /api/path}"
+[[ "$path" =~ ^/api/[A-Za-z0-9/_-]+$ ]] || { echo "bad path: $path" >&2; exit 2; }
+
+secret=""
+for f in /etc/corin/generated.env /etc/corin/app.env; do
+  [ -r "$f" ] || continue
+  v="$(grep -E '^CRON_SECRET=' "$f" | tail -n 1 | cut -d= -f2-)"
+  v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"
+  [ -n "$v" ] && secret="$v"
+done
+if [ -z "$secret" ]; then
+  logger -t corin-cron "$path skipped: CRON_SECRET is not set"
+  exit 1
+fi
+
+code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 300 \
+  -H "Authorization: Bearer $secret" -H "Host: corincommercial.com" \
+  "http://127.0.0.1:3000$path")" || code="000"
+logger -t corin-cron "$path -> HTTP $code"
+[ "$code" -ge 200 ] 2>/dev/null && [ "$code" -lt 400 ]

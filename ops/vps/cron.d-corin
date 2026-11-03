@@ -1,0 +1,18 @@
+# Corin Commercial scheduled jobs, installed by ops/vps/setup.sh as /etc/cron.d/corin.
+# Times are UTC. Each line calls the job's own route on the local app with the
+# CRON_SECRET bearer (corin-cron). These are the frequencies the app was built
+# for; on Vercel Hobby they ran once a day (vercel.json) plus the Inngest relay
+# (lib/workflows/cron-relay.ts). The handlers tolerate overlapping runs, so the
+# Inngest relay can stay on as well.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+*/15 * * * *   corin  corin-cron /api/cron/rates
+7,37 * * * *   corin  corin-cron /api/cron/crm-retry
+4,19,34,49 * * * * corin corin-cron /api/cron/approvals-expire
+* * * * *      corin  corin-cron /api/notify/sweep
+* * * * *      corin  corin-cron /api/documents/scan
+2-59/5 * * * * corin  corin-cron /api/outreach/sweep
+53 * * * *     corin  corin-cron /api/cron/mlds-clock
+23 10 * * *    corin  corin-cron /api/cron/retention
+41 13 * * *    corin  corin-cron /api/cron/construction-takeouts
