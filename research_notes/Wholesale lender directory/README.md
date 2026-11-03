@@ -13,30 +13,50 @@ Source data for `reports/Wholesale lender directory.xlsx` and its summary, `repo
 | `research/lenders_D_investor_wholesale.json` | Wholesale investor lenders: ground-up, fix and flip, DSCR take-out |
 | `research/lenders_E_california_private.json` | California private and hard money lenders |
 | `research/lenders_F_national_bridge.json` | National commercial bridge, hard money, small-balance and hospitality bridge |
+| `research2/SCHEMA_ADDENDUM.md` | Round 2's brief: the new categories and subcategories, and how institutional lenders count as broker-reachable |
+| `research2/KNOWN_LENDERS.md` | The skip list round 2 checked against (round 1, plus wave 1 of round 2) |
+| `research2/lenders_G_multifamily.json` | Round 2: Fannie / Freddie, HUD multifamily, bridge, small-balance and bank multifamily lenders |
+| `research2/lenders_H_lifeco_cmbs.json` | Round 2: life insurance companies and CMBS conduits |
+| `research2/lenders_I_hedge_reit.json` | Round 2: hedge funds, private credit, mortgage REITs and family offices |
+| `research2/lenders_J_hospitality.json` | Round 2: SBA hotel lenders, hotel bridge / PIP and hotel construction |
+| `research2/lenders_K_ca_banks_sba.json` | Round 2: California community banks and credit unions, SBA 504 CDCs and 7(a) lenders |
+| `research2/lenders_L_construction_hm_gaps.json` | Round 2: construction and hard money lenders round 1 missed |
+| `research2/lenders_M_senior_gaps.json` | Round 2: senior living lenders round 1 missed |
+| `research2/lenders_N_wave1_followup.json` | Round 2: names wave 1 found but could not verify |
 | `second_check/verify_in_*.json`, `verify_out_*.json` | The Tier A rows as sent for an independent re-check, and the checker's findings and corrections |
 | `overrides.json` | Decisions made while merging: rows dropped (with reason), field patches, and reconciliations between the two checkers |
 | `build_workbook.py` | Builds the workbook from everything above |
 | `gen_report.py` | Writes the markdown summary from the finished workbook |
+| `gen_seed_sql.py` | Writes a database migration that loads the workbook into the staff Lender panel and Credit boxes |
 
 Each JSON file has `lenders` and `excluded` lists. Some also carry the analyst's notes and any names left unresearched.
 
-## How it was produced (2026-11-02)
+## How it was produced
 
-Six research passes covered one segment each, and a second pass worked through the names the first left unverified. The research environment's network policy blocked lender websites, so every value comes from search-engine extracts of lender pages and trade press, not from pages opened directly. Confidence grades reflect that. A separate pair of checkers then re-verified every Tier A lender's activity in 2026, website, broker page, phone, contact and California lending. Their corrections apply in the build, and their finding shows in the workbook's "Second check" column.
+**Round 1 (2026-11-02):** six research passes covered one segment each, and a second pass worked through the names the first left unverified.
+
+**Round 2 (2026-11-03):** eight more passes looked only for lenders not already listed. They covered multifamily; life insurance companies and CMBS; hedge funds, REITs and family offices; hospitality and SBA hotel lenders; California banks, credit unions and SBA lenders; construction and hard money gaps; senior living gaps; and a follow-up on unverified names. That added 206 lender desks in four new categories (Multifamily, Hospitality, Institutional / Capital Markets, Bank / SBA) plus the gaps. The workbook's "Added" column shows each row's round. When both rounds found the same lender in the same category, the round-1 row keeps its name and desk.
+
+In both rounds, the research environment's network policy blocked lender websites, so every value comes from search-engine extracts of lender pages and trade press, not from pages opened directly. Confidence grades reflect that. Separate checkers then re-verified every Tier A lender's activity in 2026, website, broker page, phone, contact and California lending. Their corrections apply in the build, and their finding shows in the workbook's "Second check" column.
 
 The build merges duplicate rows for the same lender within a category. Senior living HUD/agency desks stay separate from bridge and bank desks. Rows are cross-referenced when the same lender appears under another category, and lenders already in `lib/ai/lenders.ts` are flagged as existing relationships.
 
 ## Loaded into the staff backend
 
-`supabase/migrations/20261105090000_int_lender_directory_seed.sql` loads the directory into the staff backend when migrations are applied (`supabase db push`). `gen_seed_sql.py` generates it from the workbook.
+Two data migrations load the directory into the staff backend. On the VPS they are applied by hand, and they are generated from the workbook by `gen_seed_sql.py`:
 
-- **Lender panel** (`/deals/lenders`): one row per firm, 188 in all. Every row is inactive and never verified, with category `UNKNOWN` (so the usury gate still applies) and no fee split. Each row holds the programs, loan size range, property types, contact and a research summary in its appetite notes.
-- **Credit boxes** (`/lenders`): one box per lending desk, 212 in all. Each is `pending_review` and linked to its firm's panel row. Programs, asset classes and loan size are filled in, plus leverage, rate, recourse and lien position wherever the research stated them plainly. The full research text, including the second-check finding, is in the box notes.
-- **Not loaded:** the 16 desks of lenders already in `lib/ai/lenders.ts`. Any firm already on the panel under the same name keeps its row; the new boxes attach to it.
+- `supabase/migrations/20261105090000_int_lender_directory_seed.sql` (round 1, applied 2026-11-03): 188 firms and 212 credit boxes.
+- `supabase/migrations/20261105100000_int_lender_directory_seed_round2.sql` (round 2): 186 new firms and 205 credit boxes. Eight of those boxes are new desks of round-1 firms, such as Live Oak Bank's hospitality team. The load was generated with `--after` the round-1 file and `--only-added "Round 2"`, so it only adds: no round-1 id or firm name is reused.
+
+Both loads together give 374 firms and 417 credit boxes. Both follow the same rules:
+
+- **Lender panel** (`/deals/lenders`): one row per firm. Every row is inactive and never verified, with category `UNKNOWN` (so the usury gate still applies) and no fee split. Each row holds the programs, loan size range, property types, contact and a research summary in its appetite notes.
+- **Credit boxes** (`/lenders`): one box per lending desk. Each is `pending_review` and linked to its firm's panel row. Programs, asset classes and loan size are filled in, plus leverage, rate, recourse and lien position wherever the research stated them plainly. The full research text, including the second-check finding, is in the box notes.
+- **Not loaded:** desks of lenders already in `lib/ai/lenders.ts` (16 in round 1, plus Waterfall Asset Management in round 2, which manages Ready Capital). Any firm already on the panel under the same name keeps its row; the new boxes attach to it.
 
 To bring a lender live, open the account, then verify its appetite on the box review page and approve the box. Set the panel row's category (with its charter or licence evidence) and fee split, mark it verified and reactivate it. Approved boxes on active lenders are what the matcher ranks. `lib/agents/lenders/directory-seed.test.ts` checks the load against PGlite.
 
-For a later refresh, rerun `gen_seed_sql.py` into a new migration file with a later timestamp; never edit the applied one. Existing rows are skipped, so a refresh only adds new lenders and desks.
+For a later round, put its files in a new `research3/` folder (the build tags rows by folder; extend `ROUND_LABEL` in `build_workbook.py`). Then rebuild and run `gen_seed_sql.py` into a new migration with a later timestamp, passing every earlier seed file with `--after` and the new round with `--only-added`. Never edit an applied migration.
 
 ## Rebuild
 

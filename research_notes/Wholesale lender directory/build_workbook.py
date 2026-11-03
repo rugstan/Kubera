@@ -23,7 +23,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 RESEARCH_DIR = Path(sys.argv[1])
 OUT = Path(sys.argv[2])
-AS_OF = "2026-11-02"
+AS_OF = "2026-11-03"
 
 FONT = "Arial"
 NAVY = "1F3864"
@@ -33,8 +33,10 @@ GREY = "F2F2F2"
 THIN = Side(style="thin", color="BFBFBF")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
-CATEGORY_ORDER = ["Construction", "Hard Money / Bridge", "Senior Living / Healthcare"]
-CATEGORY_PREFIX = {"Construction": "CN", "Hard Money / Bridge": "HM", "Senior Living / Healthcare": "SL"}
+CATEGORY_ORDER = ["Construction", "Hard Money / Bridge", "Senior Living / Healthcare", "Multifamily", "Hospitality",
+                  "Institutional / Capital Markets", "Bank / SBA"]
+CATEGORY_PREFIX = {"Construction": "CN", "Hard Money / Bridge": "HM", "Senior Living / Healthcare": "SL", "Multifamily": "MF",
+                   "Hospitality": "HO", "Institutional / Capital Markets": "IN", "Bank / SBA": "BK"}
 TIER_ORDER = {"A": 0, "B": 1, "C": 2}
 
 STATUSES = [
@@ -118,10 +120,13 @@ def first_url(v):
 
 # ---------------------------------------------------------------- load
 records, excluded = [], []
+ROUND_LABEL = {1: "Round 1 (2026-11-02)", 2: "Round 2 (2026-11-03)"}
 for path in sorted(RESEARCH_DIR.rglob("lenders_*.json")):
     data = json.loads(path.read_text())
+    rnd = 2 if path.parent.name == "research2" else 1
     for r in data.get("lenders", []):
         r["_file"] = path.name
+        r["_round"] = rnd
         records.append(r)
     for x in data.get("excluded", []):
         x["_file"] = path.name
@@ -204,6 +209,8 @@ BRAND_STOP = {"and", "capital", "real", "estate", "realty", "trust", "financial"
 BRAND_ALIAS = {"roc360": "roc", "orix": "orix", "lancaster pollard": "orix"}
 
 def brand_key(name):
+    # "Hanmi Bank - SBA Lending" and "Hanmi Bank" are the same firm: drop a " - desk" suffix.
+    name = re.split(r"\s+[-\u2013\u2014]\s+", name or "", maxsplit=1)[0]
     n = norm(name)
     for k, v in BRAND_ALIAS.items():
         if re.search(r"\b" + re.escape(k) + r"\b", n):
@@ -223,6 +230,14 @@ for r in records:
             cat = "Senior Living / Healthcare"
         elif "construct" in low:
             cat = "Construction"
+        elif "multifamily" in low or "multi-family" in low:
+            cat = "Multifamily"
+        elif "hospitality" in low or "hotel" in low:
+            cat = "Hospitality"
+        elif "institutional" in low or "capital markets" in low:
+            cat = "Institutional / Capital Markets"
+        elif "bank" in low or "sba" in low:
+            cat = "Bank / SBA"
         else:
             cat = "Hard Money / Bridge"
         r["category"] = cat
@@ -235,7 +250,11 @@ for r in records:
         CONF = {"High": 2, "Medium": 1, "Low": 0}
         a, b = by_key[key], r
         score = lambda x: (CONF.get(x.get("confidence"), 0), filled(x))
-        keep, other = (a, b) if score(a) >= score(b) else (b, a)
+        if a.get("_round", 1) != b.get("_round", 1):
+            # An earlier round's row keeps its name and desk, so ids already loaded stay stable.
+            keep, other = (a, b) if a.get("_round", 1) < b.get("_round", 1) else (b, a)
+        else:
+            keep, other = (a, b) if score(a) >= score(b) else (b, a)
         if other.get("subcategory") and other.get("subcategory") != keep.get("subcategory"):
             extra = f"Also fits: {other['subcategory']}."
             if extra not in (keep.get("fit_notes") or ""):
@@ -268,6 +287,16 @@ SUB_ORDER = [
     "HUD 232 / Agency (permanent & construction)", "Healthcare bridge / bridge-to-HUD",
     "Healthcare bank / balance sheet", "Senior housing construction", "Healthcare mezz / pref equity",
     "SBA / small care facility (RCFE, assisted living)",
+    # Multifamily
+    "Agency multifamily (Fannie / Freddie)", "HUD multifamily (221(d)(4) / 223(f))", "Multifamily bridge / value-add",
+    "Small-balance multifamily (5-50 units)", "Multifamily bank / credit union",
+    # Hospitality
+    "SBA hotel lender (7(a) / 504)", "Hotel bridge / PIP", "Hotel construction",
+    # Institutional / capital markets
+    "Life insurance company", "CMBS conduit", "Mortgage REIT / large-balance debt fund", "Hedge fund / private credit",
+    "Family office / private capital",
+    # Bank / SBA
+    "Community bank / credit union CRE", "SBA 504 CDC", "SBA 7(a) lender",
 ]
 def _sub_rank(sub):
     return SUB_ORDER.index(sub) if sub in SUB_ORDER else len(SUB_ORDER)
@@ -285,11 +314,16 @@ for r in lenders:
     r["_existing"] = existing_match(r.get("name"), r.get("parent_or_aka"))
 
 # cross-reference: same lender listed under another category or subcategory
+def firm_key(r):
+    # A researcher can mark a desk "Other desk of <known lender>"; link it to that firm.
+    m = re.match(r"\s*Other desk of ([^.(;]+)", r.get("fit_notes") or "")
+    return brand_key(m.group(1).strip()) if m else brand_key(r.get("name"))
+
 name_ids = {}
 for r in lenders:
-    name_ids.setdefault(brand_key(r.get("name")), []).append(r["_id"])
+    name_ids.setdefault(firm_key(r), []).append(r["_id"])
 for r in lenders:
-    others = [i for i in name_ids[brand_key(r.get("name"))] if i != r["_id"]]
+    others = [i for i in name_ids[firm_key(r)] if i != r["_id"]]
     r["_also"] = ", ".join(others)
 
 # ---------------------------------------------------------------- styles
@@ -350,6 +384,7 @@ COLS = [
     ("Confidence", 11, lambda r: r.get("confidence"), "center"),
     ("Second check", 30, lambda r: r.get("_qa"), "wrap"),
     ("Last verified", 12, lambda r: r.get("last_verified") or AS_OF, "center"),
+    ("Added", 14, lambda r: ROUND_LABEL[r.get("_round", 1)], "center"),
     ("Primary source", 26, lambda r: (r.get("sources") or [""])[0], "link"),
     ("# sources", 9, lambda r: len(r.get("sources") or []), "center"),
     # --- outreach tracking (user inputs)
@@ -510,6 +545,14 @@ SEGMENT = {
     "lenders_D_investor_wholesale.json": "Investor wholesale (construction / fix & flip)",
     "lenders_E_california_private.json": "California private money",
     "lenders_F_national_bridge.json": "National commercial bridge / hard money",
+    "lenders_G_multifamily.json": "Round 2: multifamily",
+    "lenders_H_lifeco_cmbs.json": "Round 2: life companies and CMBS",
+    "lenders_I_hedge_reit.json": "Round 2: hedge funds, REITs, family offices",
+    "lenders_J_hospitality.json": "Round 2: hospitality and SBA hotel",
+    "lenders_K_ca_banks_sba.json": "Round 2: California banks, credit unions, SBA",
+    "lenders_L_construction_hm_gaps.json": "Round 2: construction and hard money gaps",
+    "lenders_M_senior_gaps.json": "Round 2: senior living gaps",
+    "lenders_N_wave1_followup.json": "Round 2: wave 1 follow-up",
     "verify": "Second check",
     "review": "Merge review",
 }
@@ -548,7 +591,7 @@ db = wb.create_sheet("Dashboard", 0)
 db.sheet_view.showGridLines = False
 db.column_dimensions["A"].width = 50
 db.column_dimensions["B"].width = 26
-for c in "CDEFGH":
+for c in "CDEFGHIJ":
     db.column_dimensions[c].width = 16
 
 L = "Lenders"
@@ -604,7 +647,9 @@ for c in range(2, 9):
     L_ = get_column_letter(c)
     body(tot, c, f"=SUM({L_}{r0 + 2}:{L_}{tot - 1})", bold=True, fill=GREY)
 
-# --- Table 2: outreach pipeline
+# --- Table 2: outreach pipeline (one column per category, then the total)
+TOT_COL = 2 + len(CATEGORY_ORDER)
+LAST_CAT = get_column_letter(TOT_COL - 1)
 r1 = tot + 3
 title(f"A{r1}", "Outreach pipeline (edit Status on the Lenders sheet)", 12)
 hdr_row(r1 + 1, ["Status"] + CATEGORY_ORDER + ["Total"])
@@ -613,25 +658,24 @@ for i, s in enumerate(STATUSES):
     body(rr, 1, s)
     for j, cat in enumerate(CATEGORY_ORDER):
         body(rr, 2 + j, f'=COUNTIFS({R_STATUS},$A{rr},{R_CAT},"{cat}")')
-    body(rr, 5, f"=SUM(B{rr}:D{rr})", bold=True)
+    body(rr, TOT_COL, f"=SUM(B{rr}:{LAST_CAT}{rr})", bold=True)
 ptot = r1 + 2 + len(STATUSES)
 body(ptot, 1, "Total", bold=True, fill=GREY)
-for c in range(2, 6):
+for c in range(2, TOT_COL + 1):
     L_ = get_column_letter(c)
     body(ptot, c, f"=SUM({L_}{r1 + 2}:{L_}{ptot - 1})", bold=True, fill=GREY)
 rr = ptot + 1
 body(rr, 1, "Accounts open (approved + existing) as % of total", bold=True)
-for j in range(3):
-    L_ = get_column_letter(2 + j)
-    approved_row = r1 + 2 + STATUSES.index("Approved - account open")
-    existing_row = r1 + 2 + STATUSES.index("Existing relationship")
-    body(rr, 2 + j, f"=IF({L_}{ptot}=0,0,({L_}{approved_row}+{L_}{existing_row})/{L_}{ptot})", fmt="0.0%")
-body(rr, 5, f"=IF(E{ptot}=0,0,(E{r1 + 2 + STATUSES.index('Approved - account open')}+E{r1 + 2 + STATUSES.index('Existing relationship')})/E{ptot})", fmt="0.0%", bold=True)
+approved_row = r1 + 2 + STATUSES.index("Approved - account open")
+existing_row = r1 + 2 + STATUSES.index("Existing relationship")
+for c in range(2, TOT_COL + 1):
+    L_ = get_column_letter(c)
+    body(rr, c, f"=IF({L_}{ptot}=0,0,({L_}{approved_row}+{L_}{existing_row})/{L_}{ptot})", fmt="0.0%", bold=(c == TOT_COL))
 rr += 1
 body(rr, 1, "Broker / fee agreements signed (Yes)")
 for j, cat in enumerate(CATEGORY_ORDER):
     body(rr, 2 + j, f'=COUNTIFS({R_AGREE},"Yes",{R_CAT},"{cat}")')
-body(rr, 5, f"=SUM(B{rr}:D{rr})", bold=True)
+body(rr, TOT_COL, f"=SUM(B{rr}:{LAST_CAT}{rr})", bold=True)
 
 # --- Table 3: subcategory
 r2 = rr + 3
@@ -747,7 +791,7 @@ sh.sheet_view.showGridLines = False
 sh.column_dimensions["A"].width = 3
 sh.column_dimensions["B"].width = 30
 sh.column_dimensions["C"].width = 100
-sh["B1"] = "Wholesale Lender Directory: Construction, Hard Money / Bridge, Senior Living"
+sh["B1"] = "Wholesale Lender Directory: construction, hard money, senior living, multifamily, hospitality and institutional capital"
 sh["B1"].font = font(bold=True, size=16, color=NAVY)
 sh["B2"] = f"Prepared for Corin Commercial, Inc.  |  Public-source research as of {AS_OF}"
 sh["B2"].font = font(italic=True, color="595959")

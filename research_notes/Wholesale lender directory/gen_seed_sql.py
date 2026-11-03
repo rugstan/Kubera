@@ -2,8 +2,12 @@
 
 Usage (from the repo root):
   python3 "research_notes/Wholesale lender directory/gen_seed_sql.py" \
-      "reports/Wholesale lender directory.xlsx" \
-      supabase/migrations/20261105090000_int_lender_directory_seed.sql
+      "reports/Wholesale lender directory.xlsx" <new migration .sql> \
+      [--after <already-applied seed .sql> ...] [--actor <updated_by value>] [--label <header label>]
+
+  The first load was supabase/migrations/20261105090000_int_lender_directory_seed.sql. Later loads
+  pass every earlier seed file with --after, so the new migration holds only lenders and desks
+  that are not in an earlier one (ids are derived from names, so they match across runs).
 
 What it loads (decided with the desk on 2026-11-03):
   * public.lender_panel: one row per firm (desks of the same firm grouped by the workbook's
@@ -26,6 +30,25 @@ from openpyxl import load_workbook
 
 XLSX, OUT = sys.argv[1], sys.argv[2]
 ACTOR = "seed:lender-directory-2026-11-02"
+LABEL = "the wholesale lender directory"
+AFTER = []
+ONLY_ADDED = None  # e.g. "Round 2": load only rows whose "Added" column starts with this
+_args = sys.argv[3:]
+while _args:
+    flag = _args.pop(0)
+    if flag == "--after":
+        AFTER.append(_args.pop(0))
+    elif flag == "--actor":
+        ACTOR = _args.pop(0)
+    elif flag == "--label":
+        LABEL = _args.pop(0)
+    elif flag == "--only-added":
+        ONLY_ADDED = _args.pop(0)
+    else:
+        sys.exit(f"unknown argument {flag}")
+PRIOR_IDS = set()
+for _f in AFTER:
+    PRIOR_IDS |= set(re.findall(r"'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'::uuid", open(_f).read()))
 NS = uuid.uuid5(uuid.NAMESPACE_URL, "https://corincommercial.com/lender-directory")
 
 wb = load_workbook(XLSX, data_only=True)
@@ -65,6 +88,23 @@ SUB_PROGRAMS = {
     "Senior housing construction": ["CONSTRUCTION"],
     "Healthcare mezz / pref equity": ["PRIVATE_BRIDGE"],
     "SBA / small care facility (RCFE, assisted living)": [],
+    # Round 2 categories
+    "Agency multifamily (Fannie / Freddie)": ["AGENCY"],
+    "HUD multifamily (221(d)(4) / 223(f))": ["HUD_MULTIFAMILY"],
+    "Multifamily bridge / value-add": ["PRIVATE_BRIDGE"],
+    "Small-balance multifamily (5-50 units)": [],
+    "Multifamily bank / credit union": ["BANK_LIFE_CO"],
+    "SBA hotel lender (7(a) / 504)": [],
+    "Hotel bridge / PIP": ["PIP_BRIDGE", "PRIVATE_BRIDGE"],
+    "Hotel construction": ["CONSTRUCTION"],
+    "Life insurance company": ["BANK_LIFE_CO"],
+    "CMBS conduit": [],
+    "Mortgage REIT / large-balance debt fund": ["PRIVATE_BRIDGE"],
+    "Hedge fund / private credit": ["PRIVATE_BRIDGE"],
+    "Family office / private capital": ["PRIVATE_BRIDGE"],
+    "Community bank / credit union CRE": ["BANK_LIFE_CO"],
+    "SBA 504 CDC": ["SBA_504"],
+    "SBA 7(a) lender": ["SBA_7A"],
 }
 PROGRAM_ORDER = ["HUD_232", "HUD_MULTIFAMILY", "SBA_7A", "SBA_504", "HOTEL_CMBS", "PIP_BRIDGE", "AGENCY",
                  "BANK_LIFE_CO", "PRIVATE_BRIDGE", "HARD_MONEY", "CONSTRUCTION"]
@@ -74,6 +114,24 @@ def programs_for(r):
     sub = s(r, "Subcategory")
     text = " ".join([s(r, "Loan programs"), s(r, "Lender")]).lower()
     out = set(SUB_PROGRAMS.get(sub, []))
+    cat = s(r, "Category")
+    if cat == "Multifamily":
+        if re.search(r"fannie|freddie|optigo|\bdus\b|agency", text):
+            out.add("AGENCY")
+        if re.search(r"221\(d\)\(4\)|223\(f\)|\bhud\b|\bfha\b", text):
+            out.add("HUD_MULTIFAMILY")
+        if re.search(r"bridge|value[- ]add|transitional", text):
+            out.add("PRIVATE_BRIDGE")
+        if not out:
+            out.add("BANK_LIFE_CO")
+    if sub == "CMBS conduit":
+        if re.search(r"hotel|hospitality|lodging", " ".join([text, s(r, "Property types").lower()])):
+            out.add("HOTEL_CMBS")
+    if sub == "SBA hotel lender (7(a) / 504)":
+        if re.search(r"\b504\b", text):
+            out.add("SBA_504")
+        if re.search(r"7\s*\(\s*a\s*\)|\b7a\b", text) or "SBA_504" not in out:
+            out.add("SBA_7A")
     if sub.startswith("HUD 232"):
         if re.search(r"fannie|freddie|optigo|\bdus\b|agency", text):
             out.add("AGENCY")
@@ -102,6 +160,10 @@ def asset_classes_for(r):
         out.add("CONSTRUCTION")
     elif cat.startswith("Senior"):
         out.add("SENIOR_LIVING")
+    elif cat == "Multifamily":
+        out.add("MULTIFAMILY")
+    elif cat == "Hospitality":
+        out.add("HOSPITALITY")
     else:
         out.add("COMMERCIAL")
     if re.search(r"multifamily|apartment|\b5\+|multi-family", text):
@@ -221,8 +283,10 @@ for key, rs in groups.items():
     if any(s(r, "Existing Corin relationship") == "Yes" for r in rs):
         skipped_existing.extend(s(r, "ID") + " " + s(r, "Lender") for r in rs)
         continue
-    # panel name: the shortest base name in the group, made unique
-    name = min((base_name(s(r, "Lender")) for r in rs), key=len)
+    # panel name: the shortest base name in the group, made unique. Rows outside --only-added
+    # (already loaded) name the firm when present, so its panel id matches the earlier load.
+    older = [r for r in rs if ONLY_ADDED and not s(r, "Added").startswith(ONLY_ADDED)] if "Added" in ix else []
+    name = min((base_name(s(r, "Lender")) for r in (older or rs)), key=len)
     if name.lower() in used:
         name = f"{name} ({s(rs[0], 'HQ') or s(rs[0], 'ID')})"
     used.add(name.lower())
@@ -248,7 +312,12 @@ def arr(vals):
 TIER_RANK = {"A": 0, "B": 1, "C": 2}
 panel_values, box_values = [], []
 n_boxes = 0
+n_new_panel = 0
 for name, rs in firms:
+    if ONLY_ADDED:
+        rs = [r for r in rs if s(r, "Added").startswith(ONLY_ADDED)]
+        if not rs:
+            continue
     rs = sorted(rs, key=lambda r: (TIER_RANK.get(s(r, "Tier"), 3), s(r, "ID")))
     lead = rs[0]
     pid = uuid.uuid5(NS, "panel/" + name.lower())
@@ -272,7 +341,7 @@ for name, rs in firms:
     email = next((first_email(s(r, "Email")) for r in rs if first_email(s(r, "Email"))), None)
     desks = "; ".join(f"{s(r, 'ID')} {s(r, 'Subcategory')} (tier {s(r, 'Tier')}, {s(r, 'Confidence').lower()} confidence)" for r in rs)
     notes = " | ".join(x for x in [
-        "From the wholesale lender directory (public-source research, 2026-11-02; values are search extracts, so verify with the lender). Inactive until a broker opens the account and verifies appetite.",
+        f"From the wholesale lender directory (public-source research, {s(lead, 'Last verified') or '2026-11-02'}; values are search extracts, so verify with the lender). Inactive until a broker opens the account and verifies appetite.",
         f"Desks: {desks}",
         f"Website: {s(lead, 'Website')}" if s(lead, "Website") else "",
         f"Broker page: {s(lead, 'Broker sign-up / broker page')}" if s(lead, "Broker sign-up / broker page") else "",
@@ -283,15 +352,19 @@ for name, rs in firms:
         f"Licences (unverified): {clip(s(lead, 'Licenses / approvals'), 240)}" if s(lead, "Licenses / approvals") else "",
         f"Parent / AKA: {clip(s(lead, 'Parent / also known as'), 200)}" if s(lead, "Parent / also known as") else "",
     ] if x)
-    panel_values.append("  (" + ", ".join([
-        sql(str(pid)) + "::uuid", sql(clip(name, 160)), "'UNKNOWN'", arr(progs),
-        (sql(pmin) if pmin is not None else "null") + "::bigint", (sql(pmax) if pmax is not None else "null") + "::bigint",
-        "'{}'::text[]", arr(asset_types), sql(clip(notes, 2000)), sql(broker_friendly),
-        sql(clip(s(contact, "Public contact"), 120) if contact else None) + "::text", sql(email) + "::text",
-    ]) + ")")
+    if str(pid) not in PRIOR_IDS:
+        n_new_panel += 1
+        panel_values.append("  (" + ", ".join([
+            sql(str(pid)) + "::uuid", sql(clip(name, 160)), "'UNKNOWN'", arr(progs),
+            (sql(pmin) if pmin is not None else "null") + "::bigint", (sql(pmax) if pmax is not None else "null") + "::bigint",
+            "'{}'::text[]", arr(asset_types), sql(clip(notes, 2000)), sql(broker_friendly),
+            sql(clip(s(contact, "Public contact"), 120) if contact else None) + "::text", sql(email) + "::text",
+        ]) + ")")
 
     for r in rs:
         bid = uuid.uuid5(NS, "box/" + "/".join([s(r, "Lender"), s(r, "Category"), s(r, "Subcategory")]).lower())
+        if str(bid) in PRIOR_IDS:
+            continue
         ltv = max_pct(s(r, "Max leverage"), "LTV")
         ltc = max_pct(s(r, "Max leverage"), "LTC")
         rmin, rmax = rate_range(s(r, "Rate range"))
@@ -332,39 +405,45 @@ for name, rs in firms:
         ]) + ")")
         n_boxes += 1
 
-header = f"""-- Integrator data load: the wholesale lender directory (reports/Wholesale lender directory.xlsx)
+prior_note = (f"-- Adds only lenders and desks that are not in an earlier load ({', '.join(f.rsplit('/', 1)[-1] for f in AFTER)}).\n"
+              if AFTER else "")
+header = f"""-- Integrator data load: {LABEL} (reports/Wholesale lender directory.xlsx)
 -- into the staff Lender panel and Credit boxes. Generated by
 -- research_notes/Wholesale lender directory/gen_seed_sql.py; do not edit by hand.
---
--- {len(firms)} firms -> public.lender_panel: inactive, never verified, category UNKNOWN (the usury
+{prior_note}--
+-- {n_new_panel} firms -> public.lender_panel: inactive, never verified, category UNKNOWN (the usury
 --   gate keeps applying until a broker evidences the category), no fee split. A broker reactivates a
 --   lender on /deals/lenders once its account is open and its appetite is verified.
 -- {n_boxes} lender desks -> public.credit_boxes: source 'staff', status 'pending_review', linked to the
 --   firm's panel row. The matcher uses approved boxes only; each box's notes carry the research.
--- Skipped: {len(skipped_existing)} desks of lenders already in Corin's routing table, and any firm already on
---   the panel under the same name (its boxes attach to that existing row instead).
+-- Skipped: desks of lenders already in Corin's routing table, and any firm already on the panel under
+--   the same name (its boxes attach to that existing row instead).
 --
--- Values come from public-source research done from search-engine extracts on 2026-11-02 and are
--- graded for confidence in the workbook. Idempotent: fixed ids with on conflict do nothing.
+-- Values come from public-source research done from search-engine extracts and are graded for
+-- confidence in the workbook. Idempotent: fixed ids with on conflict do nothing.
 -- Data only: no schema change, no funds fields.
 """
 
 out = [header]
-out.append("insert into public.lender_panel (id, name, category, programs, min_loan_cents, max_loan_cents, states, asset_types, appetite_notes, broker_friendly, contact_name, contact_email, active, updated_by)")
-out.append("select v.id, v.name, v.category, v.programs, v.min_loan_cents, v.max_loan_cents, v.states, v.asset_types, v.appetite_notes, v.broker_friendly, v.contact_name, v.contact_email, false, " + sql(ACTOR))
-out.append("from (values")
-out.append(",\n".join(panel_values))
-out.append(") as v (id, name, category, programs, min_loan_cents, max_loan_cents, states, asset_types, appetite_notes, broker_friendly, contact_name, contact_email)")
-out.append("where not exists (select 1 from public.lender_panel p where lower(p.name) = lower(v.name))")
-out.append("on conflict (id) do nothing;\n")
-out.append("insert into public.credit_boxes (id, lender_id, source, status, label, programs, asset_classes, states, min_loan_cents, max_loan_cents, max_ltv_pct, max_ltc_pct, lien_positions, recourse, notes, rate_min_pct, rate_max_pct, updated_by)")
-out.append("select v.id, coalesce(own.id, named.id), 'staff', 'pending_review', v.label, v.programs, v.asset_classes, '{}'::text[], v.min_loan_cents, v.max_loan_cents, v.max_ltv_pct, v.max_ltc_pct, v.lien_positions, v.recourse, v.notes, v.rate_min_pct, v.rate_max_pct, " + sql(ACTOR))
-out.append("from (values")
-out.append(",\n".join(box_values))
-out.append(") as v (id, panel_id, panel_name, label, programs, asset_classes, min_loan_cents, max_loan_cents, max_ltv_pct, max_ltc_pct, lien_positions, recourse, rate_min_pct, rate_max_pct, notes)")
-out.append("left join public.lender_panel own on own.id = v.panel_id")
-out.append("left join lateral (select p.id from public.lender_panel p where lower(p.name) = lower(v.panel_name) order by p.created_at limit 1) named on true")
-out.append("where coalesce(own.id, named.id) is not null")
-out.append("on conflict (id) do nothing;\n")
+if panel_values:
+    out.append("insert into public.lender_panel (id, name, category, programs, min_loan_cents, max_loan_cents, states, asset_types, appetite_notes, broker_friendly, contact_name, contact_email, active, updated_by)")
+    out.append("select v.id, v.name, v.category, v.programs, v.min_loan_cents, v.max_loan_cents, v.states, v.asset_types, v.appetite_notes, v.broker_friendly, v.contact_name, v.contact_email, false, " + sql(ACTOR))
+    out.append("from (values")
+    out.append(",\n".join(panel_values))
+    out.append(") as v (id, name, category, programs, min_loan_cents, max_loan_cents, states, asset_types, appetite_notes, broker_friendly, contact_name, contact_email)")
+    out.append("where not exists (select 1 from public.lender_panel p where lower(p.name) = lower(v.name))")
+    out.append("on conflict (id) do nothing;\n")
+if box_values:
+    out.append("insert into public.credit_boxes (id, lender_id, source, status, label, programs, asset_classes, states, min_loan_cents, max_loan_cents, max_ltv_pct, max_ltc_pct, lien_positions, recourse, notes, rate_min_pct, rate_max_pct, updated_by)")
+    out.append("select v.id, coalesce(own.id, named.id), 'staff', 'pending_review', v.label, v.programs, v.asset_classes, '{}'::text[], v.min_loan_cents, v.max_loan_cents, v.max_ltv_pct, v.max_ltc_pct, v.lien_positions, v.recourse, v.notes, v.rate_min_pct, v.rate_max_pct, " + sql(ACTOR))
+    out.append("from (values")
+    out.append(",\n".join(box_values))
+    out.append(") as v (id, panel_id, panel_name, label, programs, asset_classes, min_loan_cents, max_loan_cents, max_ltv_pct, max_ltc_pct, lien_positions, recourse, rate_min_pct, rate_max_pct, notes)")
+    out.append("left join public.lender_panel own on own.id = v.panel_id")
+    out.append("left join lateral (select p.id from public.lender_panel p where lower(p.name) = lower(v.panel_name) order by p.created_at limit 1) named on true")
+    out.append("where coalesce(own.id, named.id) is not null")
+    out.append("on conflict (id) do nothing;\n")
+if not panel_values and not box_values:
+    out.append("-- Nothing new to load.\nselect 1;\n")
 open(OUT, "w").write("\n".join(out))
-print(f"firms={len(firms)} boxes={n_boxes} skipped_existing_desks={len(skipped_existing)} -> {OUT}")
+print(f"firms={n_new_panel} boxes={n_boxes} skipped_existing_desks={len(skipped_existing)} -> {OUT}")
