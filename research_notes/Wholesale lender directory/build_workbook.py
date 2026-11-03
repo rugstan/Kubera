@@ -552,6 +552,7 @@ SEGMENT = {
     "lenders_K_ca_banks_sba.json": "Round 2: California banks, credit unions, SBA",
     "lenders_L_construction_hm_gaps.json": "Round 2: construction and hard money gaps",
     "lenders_M_senior_gaps.json": "Round 2: senior living gaps",
+    "lenders_N_wave1_followup.json": "Round 2: wave 1 follow-up",
     "verify": "Second check",
     "review": "Merge review",
 }

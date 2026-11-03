@@ -58,7 +58,7 @@ def short(s, n=160):
     return cut + "…"
 
 L = []
-L.append("# Wholesale lender directory: construction, hard money and senior living\n")
+L.append("# Wholesale lender directory\n")
 L.append(
     f"Corin Commercial now has a working list of **{len(rows)} lender desks** ({unique} distinct lenders) it can approach "
     f"for broker accounts, in [`{LINK}`](./{LINK.replace(' ', '%20')}). "
@@ -121,10 +121,14 @@ for (cat, sub), rs in subs.items():
 
 L.append("## How the research was done\n")
 L.append(
-    "Six research passes covered one segment each: HUD 232 and agency seniors housing; senior-living bridge, bank, construction "
+    "**Round 1 (2026-11-02)** covered six segments: HUD 232 and agency seniors housing; senior-living bridge, bank, construction "
     "and SBA; commercial construction debt funds and banks; wholesale investor lenders for ground-up and fix-and-flip; California "
     "private money; and national commercial bridge and hard money. A second pass worked through every name the first pass left "
-    "unverified. Each record follows one schema (`research_notes/Wholesale lender directory/SCHEMA.md`), with a no-guessing rule: "
+    "unverified. **Round 2 (2026-11-03)** looked only for lenders not already listed, in eight more passes: multifamily; life "
+    "insurance companies and CMBS conduits; hedge funds, private credit, mortgage REITs and family offices; hospitality and SBA "
+    "hotel lenders; California community banks, credit unions, SBA 504 CDCs and 7(a) lenders; more construction and hard money; "
+    "more senior living; and a follow-up on names the first wave could not verify. The \"Added\" column shows each row's round. "
+    "Each record follows one schema (`research_notes/Wholesale lender directory/SCHEMA.md`), with a no-guessing rule: "
     "a blank cell means the value was not published, and phone numbers, emails, URLs and licence numbers appear only where a "
     "source showed them verbatim. Duplicate rows for the same lender were merged, conflicting findings were resolved in "
     "`overrides.json` with the reason recorded, and the workbook is rebuilt by `build_workbook.py` from those files.\n"
@@ -147,8 +151,9 @@ L.append(
     "1. Filter the Lenders sheet to Tier A and Lends in CA = Yes, and start with the segments where Corin has live files.\n"
     "2. Send the Account Setup package with each broker application, using the email template on that sheet.\n"
     "3. Log each touch in the yellow tracker columns; the Dashboard rolls them up.\n"
-    "4. The directory is already loaded into the staff backend by "
-    "`supabase/migrations/20261105090000_int_lender_directory_seed.sql`: each firm is an inactive Lender panel entry "
+    "4. The directory is loaded into the staff backend by "
+    "`supabase/migrations/20261105090000_int_lender_directory_seed.sql` (round 1, applied 2026-11-03) and "
+    "`supabase/migrations/20261105100000_int_lender_directory_seed_round2.sql` (round 2, which only adds): each firm is an inactive Lender panel entry "
     "(`/deals/lenders`) and each desk a pending-review credit box (`/lenders`), and existing relationships are left as they "
     "are. When an account opens, verify and approve its box, set the lender's category, evidence and fee split, and "
     "reactivate it. Add it to `LENDER_ROUTING` in `lib/ai/lenders.ts` too, which should stay aligned with signed "

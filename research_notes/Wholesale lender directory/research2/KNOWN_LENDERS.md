@@ -1,0 +1,422 @@
+# Lenders already researched (do NOT add these again)
+
+## Already in the directory and the database
+- 3650 Capital
+- 818 Capital Partners
+- A10 Capital
+- ACORE Capital
+- ACRES Capital
+- AVANA Capital
+- Access Point Financial
+- Acra Lending
+- Affinius Capital
+- Anchor Loans
+- Angel Oak Mortgage Solutions
+- Arbor Realty Trust
+- Archway Capital
+- Archwest Capital
+- Arixa Capital
+- Asset Based Lending
+- Avant Capital Partners
+- Avatar Financial Group
+- Axos Bank - CRE Specialty Bridge & Construction Lending
+- BMO Healthcare Real Estate Finance
+- Banc of California
+- Bank OZK - Real Estate Specialties Group
+- Bank of the Sierra
+- Bayview PACE
+- Bellwether Enterprise Real Estate Capital
+- Benefit Street Partners
+- Berkadia
+- Berkadia Seniors Housing & Healthcare
+- Blackburne & Sons Realty Capital
+- Bloomfield Capital
+- Bravo Capital
+- Bridge Investment Group
+- BridgeInvest
+- BridgeWell Capital
+- Builders Capital
+- Byline Bank
+- CALCAP Lending
+- CBRE Multifamily Capital
+- CIBC Bank USA
+- California Private Lenders
+- Calmwater Capital
+- Cambridge Realty Capital
+- Canyon Partners Real Estate
+- Capital Funding Group
+- Capital One
+- Capital One Healthcare
+- CareTrust REIT
+- Cathay Bank
+- Centennial Mortgage, Inc.
+- Center Street Lending
+- Champions Funding
+- Churchill Real Estate
+- Civic Financial Services
+- Columbia Bank
+- Columbia Pacific Advisors
+- Constructive Capital
+- CoreVest Finance
+- Counterpointe Sustainable Real Estate
+- Deephaven Mortgage
+- Delancey Street
+- Dominion Financial Services
+- Dunmor
+- Dwight Capital
+- Dwight Mortgage Trust
+- East West Bank
+- Easy Street Capital
+- F.E. Forbes Company
+- FNB Small Business Finance
+- Fairbridge Asset Management
+- Fidelis Private Fund
+- Fidelity Bancorp Funding
+- Fidelity Mortgage Lenders
+- First Bank of the Lake
+- First Bridge Lending
+- First Citizens Healthcare Finance
+- Foley Mortgage
+- Forbright Bank
+- Fremont Bank
+- GW Private Capital
+- Genesis Capital
+- Gershman Investment Corp.
+- Gradient Mortgage Capital
+- Grandbridge Real Estate Capital
+- Greystone
+- Groundfloor
+- Hamilton Ridge Capital
+- Hankey Capital
+- Hanmi Bank
+- Hanover Mortgage Company
+- Harvest Small Business Finance
+- Herzer Financial Services
+- Hudson Realty Capital
+- Huntington Healthcare Banking
+- Ignite Funding
+- Inland Mortgage Capital
+- JLL Real Estate Capital
+- Kayne Anderson Real Estate Debt
+- Kennedy Funding
+- Kennedy Wilson
+- KeyBank Healthcare
+- KeyBank Real Estate Capital
+- Kiavi
+- LBC Mortgage / LBC Capital Income Fund
+- LTC Properties
+- Ladder Capital
+- LendSure Mortgage
+- LendingOne
+- Liberty SBF
+- Lightstone Capital
+- Lima One Capital
+- Live Oak Bank
+- LoanCore Capital
+- LoanStream Mortgage
+- Locust Point Capital
+- Lone Oak Fund
+- Lument
+- M&T Realty Capital
+- MF1 Capital
+- MONTICELLOAM
+- Mack Real Estate Credit Strategies
+- Madison Realty Capital
+- Mavik Capital Management
+- Maxim Capital Group
+- Merchants Capital
+- Merchants Mortgage & Trust
+- Mesa West Capital
+- Mid Valley Financial
+- MidCap Financial
+- Money360
+- Mortgage Vintage
+- Mosaic Real Estate Investors
+- Mountain Pacific Financial
+- New Silver
+- NewPoint Real Estate Capital
+- Newmark
+- North Coast Financial
+- Northwind Group
+- Nuveen Green Capital
+- Omega Healthcare Investors
+- Oxford Finance
+- PACE Equity
+- PB Financial Group Corporation
+- PCCP
+- PGIM Real Estate
+- PNC Real Estate
+- Park Place Finance
+- Parkview Financial
+- Peachtree Group
+- Preferred Bank
+- Prime Finance
+- QuadReal Property Group
+- RCN Capital
+- ReProp Financial
+- Ready Capital
+- Red Oak Capital Holdings
+- Redwood Mortgage
+- Regions Bank Healthcare Real Estate
+- Regions Real Estate Capital Markets
+- Rehab Financial Group
+- Residential Capital Partners
+- Roc Capital
+- Rockport Mortgage Corporation
+- Rodeo Lending
+- Royal Business Bank
+- Rubicon Mortgage Fund
+- SDC Capital
+- Sabra Health Care REIT
+- Saxe Mortgage Company
+- Security Financial Services
+- Seven Hills Realty Trust
+- Sharestates
+- Silverback Capital
+- Socotra Capital
+- Source Capital
+- Stonecrest Financial
+- Stormfield Capital
+- Synovus Senior Housing Group
+- TMC Financing
+- TaliMar Financial
+- Temple View Capital
+- Terra Capital Partners
+- The Norris Group
+- Thorofare Capital
+- Top California Lender, LLC
+- Trez Capital
+- Tryperion
+- Twain Financial Partners / Twain Capital Partners
+- VIUM Capital
+- Vanguard Hard Money
+- Velocity Mortgage Capital
+- Visio Lending
+- Walker & Dunlop
+- Wells Fargo Multifamily Capital
+- West Bay Capital, LLC
+- Western Alliance Bank
+- Wilshire Finance Partners
+- Wilshire Quinn Capital
+- X-Caliber Capital
+- Ziegler Financing Corporation
+
+## Already researched and excluded (skip unless their status changed in 2026)
+- 5th Street Capital
+- BRT Apartments
+- BWE (Bellwether Enterprise)
+- Bain Capital Real Estate (credit)
+- Bay Sierra Financial
+- Blueprint Healthcare Real Estate Advisors
+- BridgeCore Capital
+- Broadmark Realty Capital
+- Busey Bank (Senior Care Lending)
+- CV3 Financial Services
+- California Health Facilities Financing Authority (CHFFA)
+- California Public Finance Authority
+- Capitol Seniors Housing
+- CastleGreen Finance
+- CleanFund
+- Cohen Financial
+- Colliers Mortgage
+- Crawford Real Estate Services
+- Crescent Lenders
+- Domo Capital
+- EBSC Lending
+- Eastern Bank
+- Equity Cap Lending
+- Express Capital Financing
+- Fairbridge Credit / Fairbridge Asset Management
+- Fifth Third Bank (Healthcare)
+- Forest City Capital
+- Fund That Flip / Upright
+- Golden Gate Lending Group
+- Grandview
+- HJ Sims
+- Harborview Capital Partners
+- Hard Money Bankers
+- Harrison Street
+- Hartford (Hartford Investment Management / The Hartford)
+- Housing & Healthcare Finance (HHC Finance)
+- Hunt Real Estate Capital
+- Integrity Capital Inc (San Diego)
+- Kerberos Capital Management
+- Lancaster Pollard / OREC Structured Finance
+- Loan Funder LLC / LoanFunders.com
+- Lodging Capital Partners
+- Love Funding
+- Manhattan Bridge Capital
+- Mason Joseph
+- Mechanics Bank
+- Noble Mortgage
+- Northmarq
+- ORIX Real Estate Capital (incl. Lancaster Pollard; RED Capital / Red Mortgage Capital per brief)
+- Oak Grove Capital
+- Pacific Enterprise Bank
+- Pacific Premier Bank
+- Pacific Private Money
+- Pacific Western
+- Pacific Western Bank (PacWest)
+- Patch of Land (Patch Lending / Patch Funding)
+- Petros PACE Finance
+- Rialto Capital
+- S3 Capital
+- Sabal Capital Partners
+- Sachem Capital
+- Secured Capital Lending
+- Secured Real Estate Income Strategies (SREIS)
+- Shopoff Realty Investments
+- Silver Arch Capital Partners
+- Silver Hill Funding
+- Silvergate Bank
+- Silverpeak
+- Square Mile Capital Management
+- Toorak Capital Partners
+- Truist / Grandbridge (Seniors Housing)
+- Twin Rivers Capital (Sacramento)
+- Unlimited Funding
+- Varde Partners
+- Vaster
+- Vision Capital Funding (Sacramento)
+- WT Capital Lender Services
+- Westwood Funding Solutions
+
+## Added in round 2, wave 1 (also skip these)
+- AGM Financial Services
+- AllianceBernstein Commercial Real Estate Debt (AB CRED) / AB CarVal
+- American National Insurance Company (Mortgage Loan & Real Estate Investments)
+- Ameritas Life Insurance Corp. (Commercial Mortgage & Real Estate)
+- Apollo Commercial Real Estate Finance (ARI)
+- Arena Investors
+- Arena Investors (Real Estate Private Investments)
+- Ares Commercial Real Estate / Ares Real Estate Credit
+- Argentic Real Estate Finance
+- Arriba Capital
+- Atalaya Capital Management
+- Athene Annuity & Life Company (commercial mortgage loans)
+- Axos Bank - Small Balance Commercial Multifamily Lending
+- BDT & MSD Partners (real estate credit)
+- BGO (BentallGreenOak) US debt
+- Bank of Hope
+- Barings Real Estate Debt
+- Barings Real Estate Debt (MassMutual commercial mortgage loans)
+- Basis Investment Group
+- Basis Multifamily Finance
+- Bay Federal Credit Union
+- Beach Point Capital Management
+- Blackstone Real Estate Debt Strategies (BREDS) / Blackstone Mortgage Trust
+- Bonneville Multifamily Capital
+- BrightSpire Capital
+- CBB Bank
+- CIM Group (real estate credit) / CIM Real Estate Finance Trust
+- CIM Real Estate Debt Solutions
+- California Community Reinvestment Corporation (CCRC)
+- Cathay Bank - SBA Lending
+- Celtic Bank
+- CenterSquare Investment Management (real estate debt)
+- Churchill Stateside Group (CSG)
+- Citi Community Capital
+- Citi Real Estate Funding Inc. (CREFI)
+- City First Bank, N.A.
+- Claros Mortgage Trust
+- Commonwealth Business Bank
+- Draper and Kramer Commercial Mortgage Corporation
+- Driftwood Lending Partners
+- Ellington Financial (commercial mortgage bridge)
+- Equitable Financial Life Insurance Company (commercial mortgage loans)
+- Extensia Financial (AVANA CUSO)
+- Fifth Third Bank - Fannie Mae DUS Multifamily (former Mechanics Bank DUS team)
+- First Foundation Bank
+- First General Bank
+- First Internet Bank - SBA Lending
+- First Western SBLC
+- Forman Capital
+- Fortress Investment Group (real estate credit)
+- Forward Lending
+- Franklin BSP Realty Trust
+- GBank
+- Genworth Life Insurance Company (commercial mortgage loans)
+- Goldman Sachs Alternatives (real estate credit)
+- Granite Point Mortgage Trust
+- H.I.G. Realty Partners (real estate credit)
+- HALL Structured Finance
+- Hanmi Bank - SBA Lending
+- Heitman Real Estate Debt
+- Herring Bank - Hospitality Lending
+- Hines Rialto Credit Partners
+- HomeXpress Mortgage Corp. (HomeX)
+- Hotel.Bank
+- Invesco Real Estate (real estate credit) / Invesco Commercial Real Estate Finance Trust
+- JPMorgan Chase - Commercial Term Lending (Multifamily)
+- John Hancock / Manulife Investment Management (commercial mortgage loans)
+- Juniper Square
+- KKR Real Estate Finance Trust
+- KSL Capital Partners (KSL Credit)
+- Kansas City Life Insurance Company (commercial mortgage loans)
+- LMF Commercial
+- LendingPros
+- Lendz Financial
+- Leste Group (Leste Real Estate Credit)
+- Lincoln Financial Group (Lincoln National Life commercial mortgage loans)
+- Live Oak Bank - Hospitality
+- Lument Finance Trust
+- Malaga Bank
+- MetLife Investment Management (Real Estate Investments / commercial mortgage loans)
+- Millennium Bank
+- Mission Valley Bank
+- National Life Group (commercial mortgage loans)
+- Nationwide Life Insurance Company (commercial mortgage loans)
+- New York Life Real Estate Investors (commercial mortgage loans)
+- Newtek Bank
+- NexPoint Real Estate Finance
+- Northwestern Mutual Real Estate (commercial mortgage loans)
+- Nuveen Real Estate (US debt)
+- Oaktree Capital Management (real estate debt)
+- Open Bank
+- Orange County's Credit Union
+- PCB Bank
+- PCCP (Pacific Coast Capital Partners), Kennedy Wilson, Kayne Anderson Real Estate Debt, Prime Finance, Seven Hills Realty Trust
+- PMC (PMC Commercial Trust / CMCT SBA lending)
+- PPM America (Jackson National Life commercial mortgage loans)
+- Pacific City Bank
+- Pacific Life Insurance Company (Real Estate Investments / commercial mortgage loans)
+- Pearlmark Real Estate
+- Pebblebrook Hotel Trust
+- Pembrook Capital Management
+- Pinnacle Real Estate Capital Markets - Small Balance Lending
+- Principal Real Estate (Principal Life commercial & multifamily mortgage loans)
+- Protective Life Insurance Company (Commercial Mortgages)
+- Provident Savings Bank (Provident Bank Mortgage)
+- R4 Capital Funding (R4CF)
+- Related Fund Management (Related Real Estate Debt Funds)
+- Rockbridge
+- Sabal Capital Partners
+- Sachem Capital, Varde Partners, Bain Capital Real Estate
+- Seacoast Commerce Bank
+- Securian Financial (Minnesota Life commercial mortgage loans)
+- Self-Help Federal Credit Union - Multifamily Housing Loans
+- Square Mile / Affinius Capital
+- Standard Insurance Company (StanCorp Mortgage Investors)
+- Starwood Property Trust
+- Symetra Life Insurance Company (Commercial Mortgage Loans)
+- T Bank
+- TPG Angelo Gordon (real estate credit)
+- TPG RE Finance Trust
+- The Bancorp Bank - Real Estate Bridge Lending (REBL)
+- The Children's Investment Fund (TCI)
+- Thomas Financial Group
+- Thrivent Financial (commercial mortgage loans)
+- Tishman Speyer (credit platform)
+- Torchlight Investors
+- UFT (family office capital)
+- US Metro Bank
+- Ullico / Union Labor Life Insurance Company (J for Jobs)
+- United Midwest Savings Bank
+- Veleta Capital Partners (VCP)
+- WaFd Bank (Washington Federal)
+- Wallis Bank
+- Waterfall Asset Management (commercial real estate lending)
+- Western Asset Mortgage Capital
+- WoodmenLife (Mortgage Loan & Real Estate Investment)
+- Woori America Bank
+- theLender (Hometown Equity Mortgage, LLC)
