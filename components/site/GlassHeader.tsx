@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Logo } from "./Logo";
 import {
   ALL_FINANCING,
@@ -141,48 +140,37 @@ export function GlassHeader({ phone, telHref, call }: { phone?: string | null; t
             </button>
           </div>
         </nav>
-        <AnimatePresence>
-          {open && (
-            // The outer box animates its height; the inner box caps the panel at
-            // the space under the bar and scrolls, so every link stays
-            // reachable on short viewports and at high zoom (WCAG 1.4.10, 2.4.11).
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 380, damping: 36 }}
-              className="overflow-hidden lg:hidden"
+        {open && (
+          // Opens with one short opacity/transform animation (.menu-drop). The
+          // inner box caps the panel at the space under the bar and scrolls, so
+          // every link stays reachable on short viewports and at high zoom
+          // (WCAG 1.4.10, 2.4.11).
+          <div className="menu-drop lg:hidden">
+            <div
+              data-mobile-nav-scroll
+              style={panelMax === null ? undefined : { maxHeight: panelMax }}
+              className="max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain border-t border-black/[0.08] bg-[rgb(250_250_252)]"
             >
-              <div
-                data-mobile-nav-scroll
-                style={panelMax === null ? undefined : { maxHeight: panelMax }}
-                className="max-h-[calc(100dvh-3rem)] overflow-y-auto overscroll-contain border-t border-black/[0.08] bg-[rgb(250_250_252)]"
-              >
-                <MobileMenu phone={phone} telHref={telHref} onNavigate={() => setOpen(false)} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <MobileMenu phone={phone} telHref={telHref} onNavigate={() => setOpen(false)} />
+            </div>
+          </div>
+        )}
       </header>
       {/*
         The scrim is a sibling of the header, not a child: the header's
         backdrop-filter would make a fixed child cover only the header box.
         z-30 sits under the header (z-40, which holds the panel) and over the page.
       */}
-      <AnimatePresence>
-        {flyout && (
-          <motion.div
-            aria-hidden
-            data-nav-scrim
-            onClick={() => setFlyout(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-0 z-30 bg-[rgb(232_232_237/0.4)] backdrop-blur-[20px]"
-          />
-        )}
-      </AnimatePresence>
+      {flyout && (
+        // A plain tint, no backdrop blur: blurring the whole viewport (with the
+        // rate ticker moving underneath) repainted the page on every frame.
+        <div
+          aria-hidden
+          data-nav-scrim
+          onClick={() => setFlyout(false)}
+          className="menu-fade fixed inset-0 z-30 bg-[rgb(232_232_237/0.7)]"
+        />
+      )}
     </>
   );
 }
@@ -240,7 +228,6 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
-  const reduce = useReducedMotion();
   // Space left under the header, measured like the mobile panel: the rate
   // ticker sits above the sticky header until the page scrolls, so the CSS
   // max-height (100dvh less the bar) is only the first-frame fallback.
@@ -316,12 +303,9 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
       {/* Positioned against the sticky header, so the panel spans the full viewport width. */}
       <div id={panelId} hidden={!open} className="absolute inset-x-0 top-full">
         {open && (
-          <motion.div
-            initial={reduce ? false : { height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+          <div
             style={panelMax === null ? undefined : { maxHeight: panelMax }}
-            className="max-h-[calc(100dvh-3rem)] overflow-y-auto border-b border-black/[0.08] bg-[rgb(250_250_252/0.98)] backdrop-blur-xl"
+            className="menu-drop max-h-[calc(100dvh-3rem)] overflow-y-auto border-b border-black/[0.08] bg-[rgb(250_250_252)]"
           >
             <div className="mx-auto grid max-w-[1024px] gap-10 px-[22px] py-10 md:grid-cols-[1.4fr_1fr_1fr]">
               <FlyoutColumn
@@ -329,14 +313,12 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
                 heading={"What you're financing"}
                 links={[...FINANCING_FAMILIES, ALL_FINANCING]}
                 large
-                offset={0}
-                reduce={!!reduce}
                 onNavigate={close}
               />
-              <FlyoutColumn id={popularId} heading="Popular programs" links={POPULAR_PROGRAMS} offset={6} reduce={!!reduce} onNavigate={close} />
-              <FlyoutColumn id={startId} heading="Get started" links={getStarted(call)} offset={14} reduce={!!reduce} onNavigate={close} />
+              <FlyoutColumn id={popularId} heading="Popular programs" links={POPULAR_PROGRAMS} onNavigate={close} />
+              <FlyoutColumn id={startId} heading="Get started" links={getStarted(call)} onNavigate={close} />
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
@@ -348,17 +330,12 @@ function FlyoutColumn({
   heading,
   links,
   large = false,
-  offset,
-  reduce,
   onNavigate,
 }: {
   id: string;
   heading: string;
   links: NavLink[];
   large?: boolean;
-  /** Index of the column's first link in the whole panel, for the rise stagger. */
-  offset: number;
-  reduce: boolean;
   onNavigate: () => void;
 }) {
   return (
@@ -367,13 +344,8 @@ function FlyoutColumn({
         {heading}
       </h2>
       <ul aria-labelledby={id} className={large ? "mt-4 space-y-3" : "mt-4 space-y-2"}>
-        {links.map((l, i) => (
-          <motion.li
-            key={`${l.href}-${l.label}`}
-            initial={reduce ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut", delay: reduce ? 0 : 0.04 + (offset + i) * 0.02 }}
-          >
+        {links.map((l) => (
+          <li key={`${l.href}-${l.label}`}>
             <Link
               href={l.href}
               onClick={onNavigate}
@@ -385,7 +357,7 @@ function FlyoutColumn({
             >
               {l.label}
             </Link>
-          </motion.li>
+          </li>
         ))}
       </ul>
     </div>
