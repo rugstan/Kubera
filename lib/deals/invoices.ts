@@ -93,7 +93,15 @@ export type IssueInvoiceResult = { issued: boolean; invoice: Invoice; decision?:
  * recorded as executed without a send.
  */
 export async function issueInvoice(
-  deps: { store: DealDeskStore; gate: ApprovalGate; now: Clock; mailer?: InvoiceMailer | null },
+  deps: {
+    store: DealDeskStore;
+    gate: ApprovalGate;
+    now: Clock;
+    /** Sends invoices billed to the borrower. */
+    mailer?: InvoiceMailer | null;
+    /** Sends invoices billed to a lender; null or absent while email to lenders is off (LENDER_EMAIL_ENABLED). */
+    lenderMailer?: InvoiceMailer | null;
+  },
   id: string,
   actor: string,
 ): Promise<IssueInvoiceResult> {
@@ -102,7 +110,9 @@ export async function issueInvoice(
   if (inv.status === "issued" || inv.status === "settled") return { issued: true, invoice: inv };
   if (inv.status === "void") throw new InvoiceError("Invoice is void");
   if (!inv.billToEmail) throw new InvoiceError("Add the bill-to email before issuing");
-  if (!deps.mailer) throw new InvoiceError("Invoice email is not configured (CLOUDFLARE_EMAIL_ACCOUNT_ID + CLOUDFLARE_EMAIL_TOKEN, or RESEND_API_KEY); nothing was requested or sent. Send the invoice from your mailbox, then record it as settled against the closing statement.");
+  const mailer = inv.billToKind === "lender" ? (deps.lenderMailer ?? null) : (deps.mailer ?? null);
+  if (!mailer && inv.billToKind === "lender") throw new InvoiceError("Email to lenders is turned off (LENDER_EMAIL_ENABLED); nothing was requested or sent. Send the invoice from your mailbox, then record it as settled against the closing statement.");
+  if (!mailer) throw new InvoiceError("Invoice email is not configured (CLOUDFLARE_EMAIL_ACCOUNT_ID + CLOUDFLARE_EMAIL_TOKEN, or RESEND_API_KEY); nothing was requested or sent. Send the invoice from your mailbox, then record it as settled against the closing statement.");
   const deal = await deps.store.getDeal(inv.dealId);
   const key = `email:invoice:${inv.id}:${inv.documentSha256}`;
   const text = invoiceText(inv, deal?.title ?? inv.dealId);
@@ -123,7 +133,7 @@ export async function issueInvoice(
     const invoice = await deps.store.updateInvoice(inv.id, { status, approvalKey: key, approvalId }, actor, now);
     return { issued: false, invoice, decision };
   }
-  await deps.mailer.send({ to: inv.billToEmail, subject: `Corin Commercial invoice ${inv.number}`, text, idempotencyKey: key });
+  await mailer.send({ to: inv.billToEmail, subject: `Corin Commercial invoice ${inv.number}`, text, idempotencyKey: key });
   const invoice = await deps.store.updateInvoice(inv.id, { status: "issued", issuedAt: now.toISOString(), approvalKey: key, approvalId: decision.approvalId }, actor, now);
   return { issued: true, invoice, decision };
 }

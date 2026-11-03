@@ -19,7 +19,7 @@ import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 import { demoDesks, type DemoDesks } from "./demo";
 import type { BrokerIdentity } from "./dre";
 import type { Form159Data } from "./form159";
-import { emailLenderMailer } from "./mailer";
+import { emailLenderMailer, lenderEmailEnabled } from "./mailer";
 import type { LenderMailer } from "./packages";
 import type { DealDeskDeps } from "./service";
 import { notifierStageSink, type DealStageEventSink } from "./stage-events";
@@ -43,8 +43,15 @@ export type DealDeskRuntime = {
   /** workflow_effects: claims each e-sign send so it creates at most one envelope. */
   effects: IdempotencyStore;
   esign: EsignProvider | null;
-  /** Outbound mail (WS-J transactional email: Cloudflare Email Service or Resend) for approved lender submissions, lender notices and invoices; null = broker sends manually. */
+  /** Desk mail to borrowers (invoices billed to the borrower) on the WS-J transactional email client; null = staff send it from their mailbox. */
   mailer: LenderMailer | null;
+  /**
+   * Desk mail to lenders: approved submissions, gate-H lender notices, invoices
+   * billed to a lender, and the lender-matching agent's outreach. Null unless
+   * LENDER_EMAIL_ENABLED=true and an email provider is configured; null = staff
+   * send it from their mailbox. Never use `mailer` for a lender.
+   */
+  lenderMailer: LenderMailer | null;
   baseUrl: string;
   now: () => Date;
   /** WS-U checklist / screening services: sanctions holds and the closing gate. */
@@ -56,6 +63,12 @@ export type DealDeskRuntime = {
 };
 
 let warned = false;
+
+/** The borrower-facing mailer, and the lender-facing one only when email to lenders is switched on. */
+function deskMailers(): Pick<DealDeskRuntime, "mailer" | "lenderMailer"> {
+  const mailer = emailLenderMailer(emailClientFromEnv());
+  return { mailer, lenderMailer: lenderEmailEnabled() ? mailer : null };
+}
 
 export function dealDeskRuntime(): DealDeskRuntime | null {
   const demo = demoDesks();
@@ -75,7 +88,7 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     gate: approvalGate(),
     effects: supabaseIdempotencyStore(db),
     esign: esignProvider(),
-    mailer: emailLenderMailer(emailClientFromEnv()),
+    ...deskMailers(),
     baseUrl: site.siteUrl,
     now: () => new Date(),
     checklist: checklistFromDesk(),
@@ -115,7 +128,7 @@ function demoRuntime(demo: DemoDesks): DealDeskRuntime {
     gate: approvalGate(),
     effects: demo.effects,
     esign: esignProvider(),
-    mailer: emailLenderMailer(emailClientFromEnv()),
+    ...deskMailers(),
     baseUrl: site.siteUrl,
     now: () => new Date(),
     checklist: checklistFromDesk(),

@@ -36,10 +36,11 @@ Set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`; `LANGFUSE_BASE_URL` default
 ## Email (Cloudflare Email Service) and Telnyx (SMS)
 
 1. Set `CLOUDFLARE_EMAIL_ACCOUNT_ID` and `CLOUDFLARE_EMAIL_TOKEN` (and optionally `EMAIL_FROM`, `EMAIL_PROVIDER=cloudflare`) once `notify.corincommercial.com` is ready under Email Sending (`dns-email.md`). `EMAIL_PROVIDER=resend` with `RESEND_*` switches transactional email back to Resend. The newsletter and prospect outreach only ever use Resend and stay off without `RESEND_API_KEY`.
-2. Cloudflare takes no idempotency key. A send that times out or gets an unreadable answer is recorded as delivery unknown and never resent automatically; staff in `NOTIFY_STAFF_EMAILS` get an alert to check the Email Sending activity log. A refusal Cloudflare documents as "no email was sent" (for example 429 throttled, or 409 while setup is in progress) stays retryable.
-3. Set the `TELNYX_*` variables from `.env.example`.
-4. In the Telnyx messaging profile, turn **off** the automatic STOP/HELP replies (Corin answers them and records the opt-out in the consent ledger), point the webhook URL at `https://<host>/api/webhooks/telnyx`, and set `TELNYX_PUBLIC_KEY` so webhook signatures verify. **VERIFY** all three after every profile change.
-5. Send a test SMS to a staff phone, reply STOP, and confirm the reply and the consent-ledger row. Send a test lead confirmation to a staff address and confirm the notification row shows provider `cloudflare` and a message id.
+2. Email to lenders stays off until `LENDER_EMAIL_ENABLED=true` (owner decision 2026-11-03: no email to lenders for now). That covers deal submissions, gate-H lender notices, invoices billed to a lender and the lender-matching agent; while it is off, an approved item hands staff the link or text to send from their own mailbox. Borrower email is unaffected.
+3. Cloudflare takes no idempotency key. A send that times out or gets an unreadable answer is recorded as delivery unknown and never resent automatically; staff in `NOTIFY_STAFF_EMAILS` get an alert to check the Email Sending activity log. A refusal Cloudflare documents as "no email was sent" (for example 429 throttled, or 409 while setup is in progress) stays retryable.
+4. Set the `TELNYX_*` variables from `.env.example`.
+5. In the Telnyx messaging profile, turn **off** the automatic STOP/HELP replies (Corin answers them and records the opt-out in the consent ledger), point the webhook URL at `https://<host>/api/webhooks/telnyx`, and set `TELNYX_PUBLIC_KEY` so webhook signatures verify. **VERIFY** all three after every profile change.
+6. Send a test SMS to a staff phone, reply STOP, and confirm the reply and the consent-ledger row. Send a test lead confirmation to a staff address and confirm the notification row shows provider `cloudflare` and a message id.
 
 ## Construction desk CSLB lookup
 

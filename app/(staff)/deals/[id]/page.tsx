@@ -513,7 +513,7 @@ async function LedgerPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntim
           </Badge>,
           write && inv.status !== "settled" && inv.status !== "void" ? (
             <div className="flex flex-wrap gap-2" key="a">
-              {rt.mailer && inv.billToEmail ? (
+              {(inv.billToKind === "lender" ? rt.lenderMailer : rt.mailer) && inv.billToEmail ? (
                 <form action={invoiceAction}>
                   <input name="dealId" type="hidden" value={deal.id} />
                   <input name="invoiceId" type="hidden" value={inv.id} />
@@ -521,7 +521,13 @@ async function LedgerPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntim
                   <Submit tone="glass">{inv.status === "pending_approval" ? "Check approval and email" : "Email (needs approval)"}</Submit>
                 </form>
               ) : (
-                <p className="self-center text-xs text-titanium">{rt.mailer ? "No bill-to email; send it from your mailbox." : "Invoice email is not configured; send it from your mailbox."}</p>
+                <p className="self-center text-xs text-titanium">
+                  {inv.billToKind === "lender" && !rt.lenderMailer
+                    ? "Email to lenders is turned off; send it from your mailbox."
+                    : rt.mailer
+                      ? "No bill-to email; send it from your mailbox."
+                      : "Invoice email is not configured; send it from your mailbox."}
+                </p>
               )}
               <form action={invoiceAction} className="flex flex-wrap gap-2">
                 <input name="dealId" type="hidden" value={deal.id} />

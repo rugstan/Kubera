@@ -127,6 +127,28 @@ describe("invoices", () => {
     await expect(voidInvoice({ store, now }, inv.id, "oops", "a")).rejects.toThrow(/settled/);
   });
 
+  it("never emails an invoice billed to a lender while email to lenders is off, and requests no approval", async () => {
+    const { store, now, deal, lenderPaid } = await earned();
+    await store.updateFeeEntry(lenderPaid.id, { status: "earned" }, "a", now());
+    const service = new ApprovalService(new MemoryApprovalStore(), now);
+    const gate = queueApprovalGate(service);
+    const inv = await createInvoice({ store, now }, { dealId: deal.id, feeEntryIds: [lenderPaid.id], billTo: { kind: "lender", name: "Cambridge", email: "loans@cambridge.example" }, actor: "a" });
+    const sent: string[] = [];
+    const mailer = { async send(m: { to: string }) { sent.push(m.to); return { messageId: "1" }; } };
+
+    // The borrower mailer is configured, but it is never used for a lender.
+    await expect(issueInvoice({ store, gate, now, mailer }, inv.id, "a")).rejects.toThrow(/Email to lenders is turned off/);
+    await expect(issueInvoice({ store, gate, now, mailer, lenderMailer: null }, inv.id, "a")).rejects.toThrow(/Email to lenders is turned off/);
+    expect(sent).toHaveLength(0);
+    expect(await service.getByKey(`email:invoice:${inv.id}:${inv.documentSha256}`)).toBeNull();
+    expect((await store.getInvoice(inv.id))!.status).toBe("draft");
+
+    // Switched on, it goes through the lender mailer after approval like any other invoice.
+    const pending = await issueInvoice({ store, gate, now, mailer: null, lenderMailer: mailer }, inv.id, "a");
+    expect(pending.invoice.status).toBe("pending_approval");
+    expect(sent).toHaveLength(0);
+  });
+
   it("on the real approval queue: no mailer is refused before any approval is requested or claimed", async () => {
     const { store, now, deal, fee } = await earned();
     const service = new ApprovalService(new MemoryApprovalStore(), now);

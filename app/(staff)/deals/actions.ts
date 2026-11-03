@@ -236,7 +236,7 @@ export async function invoiceAction(f: FormData): Promise<never> {
     const invoiceId = str(f, "invoiceId");
     switch (str(f, "op")) {
       case "issue": {
-        return issueInvoiceMessage(await issueInvoice({ store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer }, invoiceId, staff.actor));
+        return issueInvoiceMessage(await issueInvoice({ store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer, lenderMailer: rt.lenderMailer }, invoiceId, staff.actor));
       }
       case "settle":
         await settleInvoice({ store: rt.store, now: rt.now }, invoiceId, { settledOn: str(f, "settledOn"), closingStatementRef: str(f, "closingStatementRef") }, staff.actor);
@@ -259,7 +259,7 @@ export async function sendPackageAction(f: FormData): Promise<never> {
     if (!deal?.leadId) throw new DealError("Link the deal to its lead so vault documents can be packaged");
     const items = await rt.vaultItems(deal.leadId, ids(f, "documentId"));
     const r = await sendPackageToLender(
-      { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer, holds: rt.checklist?.holds ?? null },
+      { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null },
       { dealId: id, lenderId: str(f, "lenderId"), items, actor: staff.actor, ttlDays: num(f, "ttlDays"), allowStaleLender: bool(f, "allowStale"), note: opt(f, "note") ?? undefined },
     );
     await rememberShareUrl(id, r);
@@ -279,7 +279,7 @@ export async function outreachAction(f: FormData): Promise<never> {
     const outreachId = str(f, "outreachId");
     switch (str(f, "op")) {
       case "check": {
-        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.mailer, holds: rt.checklist?.holds ?? null }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
+        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
         await rememberShareUrl(id, r);
         return outreachMessage(r);
       }
@@ -425,7 +425,7 @@ export async function submitModificationAction(f: FormData): Promise<never> {
       },
     };
     const m = await submitModification(
-      { store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer },
+      { store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.lenderMailer },
       { dealId: id, facts, actor: staff.actor, ...(arrangedBy === "corin" && compUsd ? { fee: { principalCents: (await rt.store.getDeal(id))?.loanAmountCents ?? 0, flatCents: Math.round(compUsd * 100), payer: (str(f, "payer") || "borrower") as "borrower" | "lender" } } : {}) },
     );
     return `${m.kind[0]!.toUpperCase()}${m.kind.slice(1)} recorded: ${m.status.replace(/_/g, " ")}.`;
@@ -436,7 +436,7 @@ export async function modificationAction(f: FormData): Promise<never> {
   const id = str(f, "dealId");
   const op = str(f, "op");
   return run(dealPath(id), op === "officer_approve" ? "officer" : "write", async ({ staff, rt }) => {
-    const deps = { store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.mailer };
+    const deps = { store: rt.store, gate: rt.gate, now: rt.now, mailer: rt.lenderMailer };
     const modId = str(f, "modificationId");
     switch (op) {
       case "officer_approve":

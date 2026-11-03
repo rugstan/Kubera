@@ -19,8 +19,10 @@ import { SupabaseLenderMatchStore, SupabasePartnerSource, SupabaseTermSheetMailS
 // (lib/deals/demo.ts); otherwise, without Supabase the lenders desk renders
 // "not configured"; without an Anthropic
 // key term sheets are parsed by rules and all land in the review queue; the
-// approval gate and mailer come from the deal desk runtime, so with no
-// approvals queue every submission stays pending and nothing is sent.
+// approval gate and mailer come from the deal desk runtime (its lenderMailer,
+// null unless LENDER_EMAIL_ENABLED=true), so with no approvals queue every
+// submission stays pending and nothing is sent, and while email to lenders is
+// off an approved submission's link goes to staff to send by hand.
 
 export type LenderRuntime = {
   desk: DealDeskRuntime;
@@ -74,7 +76,7 @@ export function lenderRuntime(): LenderRuntime | null {
       mail: demo.termSheetMail,
       attachments: null,
       spreads: demo.spreads,
-      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
+      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.lenderMailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
     };
   }
   const db = supabaseAdmin();
@@ -86,7 +88,7 @@ export function lenderRuntime(): LenderRuntime | null {
     mail: new SupabaseTermSheetMailSource(db),
     attachments: vaultTermSheetAttachments({ documents: supabaseDocumentStore(db), extractions: supabaseExtractionStore(db) }),
     spreads: supabaseSpreadStore(db),
-    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.mailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
+    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.lenderMailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
   };
 }
 
