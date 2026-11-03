@@ -10,9 +10,10 @@ import { demoReviewDeps } from "./demo";
 import type { InboundDeps } from "./inbound";
 import { reviewAlertContent, supabaseReviewTargets, type ReviewAlertInput, type ReviewDeps } from "./review";
 import { supabaseDealDirectory, supabaseMailStore } from "./store";
-import { ZohoMailClient, zohoMailConfigFromEnv } from "./zoho";
+import { mailProviderFromEnv } from "./provider";
 
-// Production wiring for the inbound mail pipeline: Zoho Mail + Supabase.
+// Production wiring for the inbound mail pipeline: the mailbox connector
+// chosen from env (Mailflare or Zoho Mail, see ./provider) + Supabase.
 // Null (pipeline off, logged once) unless both are configured.
 
 let warned = false;
@@ -46,18 +47,18 @@ export async function sendMailReviewAlert(a: ReviewAlertInput): Promise<void> {
 
 export function inboundMailDeps(): InboundDeps | null {
   if (override !== undefined) return override;
-  const config = zohoMailConfigFromEnv();
+  const choice = mailProviderFromEnv();
   const db = supabaseAdmin();
-  if (!config || !db) {
+  if (!choice.provider || !db) {
     if (!warned) {
       warned = true;
-      console.info(`[mail] inbound mail disabled (${!config ? "ZOHO_MAIL_CLIENT_ID/SECRET/REFRESH_TOKEN not set" : "Supabase not configured"}).`);
+      console.info(`[mail] inbound mail disabled (${!choice.provider ? choice.reason : "Supabase not configured"}).`);
     }
     return null;
   }
   const privacy = privacyServices();
   return {
-    provider: new ZohoMailClient(config),
+    provider: choice.provider,
     store: supabaseMailStore(db),
     directory: supabaseDealDirectory(db),
     sink: supabaseAttachmentSink(db),

@@ -110,6 +110,28 @@ export function dmarcVerdict(h: Map<string, string[]>): AuthVerdict {
   return "unknown";
 }
 
+/**
+ * DMARC verdict from the Authentication-Results headers of trusted receivers
+ * only, for a raw message whose headers a sender may have written too. Each
+ * header's authserv-id (the token before the first ";") must be in
+ * `trustedAuthServIds`; all others are ignored. A fail in any trusted header
+ * wins; otherwise the topmost trusted header decides, because the receiver
+ * prepends its own and a pass forged further down must not override it.
+ */
+export function trustedDmarcVerdict(h: Map<string, string[]>, trustedAuthServIds: readonly string[]): AuthVerdict {
+  const trusted = new Set(trustedAuthServIds.map((id) => id.trim().toLowerCase()).filter(Boolean));
+  const verdicts: AuthVerdict[] = [];
+  for (const value of h.get("authentication-results") ?? []) {
+    const authServId = (value.split(";")[0] ?? "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+    if (!trusted.has(authServId)) continue;
+    const results = [...value.matchAll(/\bdmarc=(pass|fail|none|bestguesspass|temperror|permerror)\b/gi)].map((m) => m[1]!.toLowerCase());
+    if (results.includes("fail")) return "fail";
+    const v = results[0];
+    verdicts.push(v === "pass" || v === "bestguesspass" ? "pass" : v === "none" ? "none" : "unknown");
+  }
+  return verdicts[0] ?? "unknown";
+}
+
 /** "Pat Lee <pat@example.com>" → { name, address }. */
 export function parseAddress(value: string): { name: string | null; address: string } {
   const m = /^\s*"?([^"<]*?)"?\s*<([^<>\s]+@[^<>\s]+)>\s*$/.exec(value);
