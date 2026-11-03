@@ -229,24 +229,40 @@ const isSet = (v: string | undefined) => Boolean(v?.trim());
 
 /** Service providers that receive personal information on every deployment. */
 const CORE_SERVICE_PROVIDERS = [
-  { name: "Vercel", role: "Website hosting" },
-  { name: "Supabase", role: "Database and encrypted document storage" },
+  { name: "Contabo", role: "Server hosting for the website, the database, and document storage" },
   { name: "Twenty", role: "Customer relationship management" },
   { name: "Anthropic", role: "Automated document reading, call summaries, email sorting, and drafting tools used by our advisors" },
-  { name: "Zoho", role: "Business email and electronic signatures" },
-  { name: "Resend", role: "Transactional email and the newsletter" },
+  { name: "Zoho", role: "Electronic signatures" },
   { name: "Telnyx", role: "Text messages and calls" },
-  { name: "Cloudflare", role: "Bot protection" },
+  { name: "Cloudflare", role: "Bot protection, business email hosting, and transactional email delivery" },
   { name: "Sentry", role: "Error monitoring, with personal details removed" },
 ] as const;
 
 export type ServiceProvider = { name: string; role: string };
+
+/** True when SUPABASE_URL points at Supabase's hosted platform rather than our own server. */
+function hostedSupabase(url: string | undefined): boolean {
+  try {
+    const host = new URL(url?.trim() ?? "").hostname.toLowerCase();
+    return host.endsWith(".supabase.co") || host.endsWith(".supabase.com");
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Service providers that process personal information for us on this
  * deployment: the core list, plus the providers whose integration an
  * environment variable switches on, so the privacy policy and the access
  * request export name exactly who receives data here.
+ * - Contabo hosts the production server, which runs the site and a
+ *   self-hosted Supabase (open-source software, so Supabase the company
+ *   receives nothing). Business email runs on Mailflare on Cloudflare, and
+ *   transactional email goes out through Cloudflare Email Service.
+ * - Vercel: only on a deployment Vercel hosts (VERCEL is set there).
+ * - Supabase: only when SUPABASE_URL is on Supabase's hosted platform.
+ * - Resend: only with RESEND_API_KEY (the newsletter, prospect outreach, and
+ *   transactional email when Cloudflare is not configured).
  * - NVIDIA: document text and table extraction (NVIDIA_NEMO_RETRIEVER_URL,
  *   lib/agents/documents/nemo.ts) and NVIDIA-hosted models and embeddings
  *   (NVIDIA_API_KEY, lib/ai/gateway.ts and lib/ai/embeddings.ts).
@@ -262,6 +278,9 @@ export function serviceProviders(env: Env = process.env): ServiceProvider[] {
   const voyage = isSet(env.VOYAGE_API_KEY) && !embeddingsOff;
   return [
     ...CORE_SERVICE_PROVIDERS,
+    ...(isSet(env.VERCEL) ? [{ name: "Vercel", role: "Website hosting" }] : []),
+    ...(hostedSupabase(env.SUPABASE_URL) ? [{ name: "Supabase", role: "Database and encrypted document storage" }] : []),
+    ...(isSet(env.RESEND_API_KEY) ? [{ name: "Resend", role: "Email delivery, including the newsletter" }] : []),
     ...(nvidia ? [{ name: "NVIDIA", role: "Reading text and tables from some uploaded documents, and automated tools used by our advisors" }] : []),
     ...(voyage ? [{ name: "Voyage (MongoDB)", role: "Search indexing for the reference library our advisors use" }] : []),
   ];
