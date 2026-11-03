@@ -209,6 +209,8 @@ BRAND_STOP = {"and", "capital", "real", "estate", "realty", "trust", "financial"
 BRAND_ALIAS = {"roc360": "roc", "orix": "orix", "lancaster pollard": "orix"}
 
 def brand_key(name):
+    # "Hanmi Bank - SBA Lending" and "Hanmi Bank" are the same firm: drop a " - desk" suffix.
+    name = re.split(r"\s+[-\u2013\u2014]\s+", name or "", maxsplit=1)[0]
     n = norm(name)
     for k, v in BRAND_ALIAS.items():
         if re.search(r"\b" + re.escape(k) + r"\b", n):
@@ -312,11 +314,16 @@ for r in lenders:
     r["_existing"] = existing_match(r.get("name"), r.get("parent_or_aka"))
 
 # cross-reference: same lender listed under another category or subcategory
+def firm_key(r):
+    # A researcher can mark a desk "Other desk of <known lender>"; link it to that firm.
+    m = re.match(r"\s*Other desk of ([^.(;]+)", r.get("fit_notes") or "")
+    return brand_key(m.group(1).strip()) if m else brand_key(r.get("name"))
+
 name_ids = {}
 for r in lenders:
-    name_ids.setdefault(brand_key(r.get("name")), []).append(r["_id"])
+    name_ids.setdefault(firm_key(r), []).append(r["_id"])
 for r in lenders:
-    others = [i for i in name_ids[brand_key(r.get("name"))] if i != r["_id"]]
+    others = [i for i in name_ids[firm_key(r)] if i != r["_id"]]
     r["_also"] = ", ".join(others)
 
 # ---------------------------------------------------------------- styles
