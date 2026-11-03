@@ -1,0 +1,56 @@
+{
+ "drop": [
+  {
+   "name": "Hunt Real Estate Capital",
+   "reason": "Reviewed: Hunt Real Estate Capital was acquired by ORIX in 2020 and combined with RED Capital Group and Lancaster Pollard to form Lument. The bridge terms found were dated 2016-2020. Use the Lument rows instead."
+  },
+  {
+   "name": "Love Funding (Bridge-to-HUD)",
+   "reason": "Reviewed: Love Funding was reported acquired by Dwight Capital in 2020, and its bridge-to-HUD examples date from 2015-2018. Use the Dwight rows instead."
+  },
+  {
+   "name": "Express Capital Financing",
+   "reason": "Watchlist: two researchers could not confirm its identity, its 2026 activity, California lending or a broker channel; directory data conflicts."
+  }
+ ],
+ "patch": [
+  {
+   "name": "Civic Financial Services",
+   "set": {
+    "tier": "B",
+    "fit_notes": "CIVIC has been a Roc360 brand since its May 2023 asset purchase. civicfs.com still has a broker page, but no CIVIC-branded 2026 lending was found. Corin already works with Roc Capital (Roc360), so ask that relationship about CIVIC's wholesale products rather than opening a separate account. NMLS numbers conflict across sources; confirm on NMLS Consumer Access."
+   }
+  }
+ ],
+ "add_excluded": [],
+ "excluded_reason": {
+  "Sabal Capital Partners": "Outside the three categories: agency small-balance multifamily permanent lender (Fannie Mae Small Loans, Freddie Mac small balance), which brokers reach through its SNAP online portal. Owned by Regions Bank since 2021; HQ Irvine, CA. Worth adding separately as a multifamily take-out lender. 2026 broker terms not confirmed."
+ },
+ "post_patch": [
+  {
+   "name": "Kennedy Funding",
+   "set": {
+    "broker_signup_url": "https://www.kennedyfunding.com/loan-application/"
+   }
+  },
+  {
+   "name": "Redwood Mortgage",
+   "set": {
+    "phone": "(650) 365-5341 (first pass, from redwoodmortgage.com/contact; not re-confirmed). Toll-free per a directory: 800-659-6593",
+    "contact_title": "Account Executive, San Francisco/Oakland/Marin/San Jose (first pass, from redwoodmortgage.com/contact; not re-confirmed by the second check)"
+   }
+  },
+  {
+   "name": "PB Financial Group Corporation",
+   "set": {
+    "phone": "877.700.3707 (a press release shows 877-700-3703; confirm)"
+   }
+  },
+  {
+   "name": "Security Financial Services",
+   "set": {
+    "phone": "(800) 982-5945 per one directory; other listings show 415-981-8060 and 415-433-3588"
+   }
+  }
+ ]
+}

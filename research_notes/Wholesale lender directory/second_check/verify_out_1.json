@@ -1,0 +1,486 @@
+{
+ "results": [
+  {
+   "ids": [
+    "CN-001"
+   ],
+   "name": "Nuveen Green Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.globest.com/amp/2026/04/06/how-c-pace-went-from-niche-financing-tool-to-capital-stack-staple/",
+    "https://www.nuveen.com/greencapital/news-and-blog/nuveen-green-capital-closes-second-largest-c-pace-financed-transaction-to-date-on-200-park",
+    "https://commercialobserver.com/?p=503394"
+   ],
+   "note": "2026 trade press quotes Cory Jubran as NGC's West Coast head (>$1B West Coast C-PACE in 2 yrs; LA/Bay Area/SD); nuveen.com/greencapital domain confirmed; $220M San Jose C-PACE confirms CA lending; no broker page (direct C-PACE lender)."
+  },
+  {
+   "ids": [
+    "CN-002"
+   ],
+   "name": "PACE Equity",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "hq_city": "Milwaukee",
+    "hq_state": "WI"
+   },
+   "clear": [],
+   "evidence": [
+    "https://am920theanswer.com/news/business/pace-equity-and-aquarian-real-estate-partners-close-first-integrated-senior-cons/a232e1d4891e4b5a9acf3f6233faabc2",
+    "https://www.cmfa-ca.com/wp-content/uploads/2018/06/Board-Package-06-29-2018-2.pdf",
+    "https://coverager.com/?p=211084",
+    "https://app.dealroom.co/companies/pace_equity"
+   ],
+   "note": "Closed $23.5M C-PACE (Celina TX) with Aquarian in Jan 2026; pace-equity.com domain cited in CMFA (CA) Open PACE admission docs; HQ Milwaukee WI per directories; no 2026 CA-specific deal surfaced."
+  },
+  {
+   "ids": [
+    "CN-003"
+   ],
+   "name": "Bank OZK - Real Estate Specialties Group (RESG)",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.connectcre.com/stories/bank-ozk-furnishes-construction-loan-for-perris-logistics-facility/",
+    "https://commercialobserver.com/?p=524879",
+    "https://therealdeal.com/la/2026/01/07/strategic-value-partners-buys-life-sciences-building-loan"
+   ],
+   "note": "Active CA construction lender (Perris $65.1M loan with construction starting early 2026; $117M Thousand Oaks multifamily); note Jan 2026 sale of a distressed $265M San Diego loan; direct bank lender, no broker page."
+  },
+  {
+   "ids": [
+    "CN-004"
+   ],
+   "name": "ACORE Capital",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "hq_city": "San Francisco",
+    "hq_state": "CA"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.jonesday.com/de/practices/experience/2026/02/affiliates-of-acore-capital-management-provide-128-million-financing-secured-by-10-industrial-properties-located-in-six",
+    "https://feb-02-2024--archive-gatsby.netlify.app/leadership/arsineh-baghdasarian",
+    "https://feb-02-2024--archive-gatsby.netlify.app/leadership/kyle-jeffers",
+    "https://www.loopnet.ca/company/acore-capital/san-francisco-ca/nwy21cnl",
+    "https://www.recapitalnews.com/acore-provides-222m-los-angeles-office-properties/"
+   ],
+   "note": "Feb 2026 $128M deal confirms activity; 424.346.6100 not found verbatim but ACORE's own (archived) leadership pages list LA directs 424.346.6105/6110, so it is very likely the LA office line; HQ San Francisco per directories; LA $222M deal confirms CA lending."
+  },
+  {
+   "ids": [
+    "CN-005"
+   ],
+   "name": "Affinius Capital",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "website": "https://www.affiniuscapital.com",
+    "contact_name": "Michael Lavipour",
+    "contact_title": "Senior Managing Director, Head of Lending (Jeff Fastov: Senior MD, Head of Credit Strategies)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://commercialobserver.com/?p=509137",
+    "https://pincusco.com/?p=564083",
+    "https://www.griinstitute.org/realestate/member-profile/jeff-fastov_35236",
+    "https://commercialobserver.com/?p=544842"
+   ],
+   "note": "Co-originated $107M Ontario CA construction loan with Bank OZK and $92M Culver City loan (2025); official domain affiniuscapital.com per profiles; head of lending is Michael Lavipour (Jeff Fastov heads Credit Strategies). Note: on the Apr 2026 $144M Carina loan Affinius was the borrower/sponsor, not lender."
+  },
+  {
+   "ids": [
+    "CN-006"
+   ],
+   "name": "Kennedy Wilson (debt investment platform)",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.kennedywilson.com/baker",
+    "https://www.businesswire.com/news/home/20260506726764/en/",
+    "https://ir.kennedywilson.com/press-releases/2026/06-16-2026-134216957"
+   ],
+   "note": "Jason Baker confirmed on kennedywilson.com as SMD, Debt Investment Group (Western U.S. originations); Q1 2026 debt platform $10.5B; NOTE company was taken private by Fairfax/McMorrow consortium on Jun 16, 2026 (NYSE delisted) but lending continues."
+  },
+  {
+   "ids": [
+    "CN-007"
+   ],
+   "name": "Mack Real Estate Credit Strategies",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "contact_name": "Brett Kaplan; Regina Lubin",
+    "contact_title": "Managing Directors and Co-Heads of Credit Strategies, MRECS (effective Jul 1, 2026)",
+    "hq_city": "New York",
+    "hq_state": "NY"
+   },
+   "clear": [],
+   "evidence": [
+    "https://secure.businesswire.com/news/home/20260715811781/en/Mack-Real-Estate-Group-Announces-Senior-Leadership-Promotions-and-Transitions",
+    "https://wealthmanagement.com/node/130841",
+    "https://commercialobserver.com/2022/02/mack-real-estate-credit-strategies-provides-263m-in-construction-financing-for-cali-apartments"
+   ],
+   "note": "July 2026 release names Brett Kaplan and Regina Lubin Co-Heads of Credit Strategies (succeeding Priyanka Garg, eff. Jul 1 2026); mackregroup.com confirmed; credit@mackregroup.com NOT found in any source (unverified); HQ 60 Columbus Circle, NYC."
+  },
+  {
+   "ids": [
+    "CN-008"
+   ],
+   "name": "Madison Realty Capital",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {},
+   "clear": [
+    "contact_name",
+    "contact_title"
+   ],
+   "evidence": [
+    "https://benefitstreetpartners.com/team-members/peter-touhill/",
+    "https://theregistrysocal.com/construction-loan-for-277-unit-apartment-project-in-los-angeles-koreatown-upsized-to-115mm/",
+    "https://commercialobserver.com/tag/madison-realty-capital"
+   ],
+   "note": "Active CA construction lender (Koreatown $115M upsized construction loan; 2025 PERE Credit Awards construction lender of year); no source links Peter Touhill to Madison - the only profile found lists him as MD at Benefit Street Partners (NY), so contact cleared pending confirmation."
+  },
+  {
+   "ids": [
+    "CN-009"
+   ],
+   "name": "Parkview Financial",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://lite.aol.com/sports/motorracing/story/0022/20260526/9725605.htm",
+    "https://traded.co/agent/brad-ross-2/",
+    "https://futern.com/companies/Parkview-Financial/449dbbaa8ce3c791"
+   ],
+   "note": "May 2026 $10.6M Studio City CA construction loan with Brad Ross (Managing Director) named; 310-996-8999 matches directory; lending@parkviewfinancial.com not found (directory shows marketing@), so email is unverified."
+  },
+  {
+   "ids": [
+    "CN-010"
+   ],
+   "name": "PCCP",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "contact_title": "Managing Director - acquisitions, debt originations & asset management (Southern California, Phoenix, Las Vegas)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.pulse.bot/construction/news/pccp-provides-130m-construction-loan-for-mott-haven-mixed-use-project-e565ac11-80c7-419b-8710-4f0e1f38548d/",
+    "https://www.multifamilypress.com/categories/other-multifamily-news/5913-pccp-provides-76-million-loan-for-the-cash-in-refinance-of-overall-creek-a-384-unit-class-a-multifamily-community-in-murfreesboro-tennessee",
+    "https://events.globest.com/Multifamily-Fall-Owners-Forum/speaker/2453565/michael-johnson",
+    "https://theorg.com/org/pccp/org-chart/michael-johnson",
+    "https://www.zoominfo.com/c/pccp-llc/46858628"
+   ],
+   "note": "2026 loans (Bronx $130M Apr 2026, TN refi Jan 2026) confirm activity; Michael Johnson listed as Managing Director (since 2012; SoCal/Phoenix/Las Vegas); (310) 414-7870 and inquiry@pccpllc.com match directories/SEC filing; HQ 10100 Santa Monica Blvd, LA."
+  },
+  {
+   "ids": [
+    "CN-011"
+   ],
+   "name": "Thorofare Capital",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "contact_title": "Director, Originations - co-leads California, Utah, Arizona & Nevada origination from Los Angeles (direct 424.486.3507, unverified)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://commercialobserver.com/2025/07/felix-gutnikov-thorofare-capital/",
+    "https://commercialobserver.com/?p=574164",
+    "https://www.businesswire.com/news/home/20200325005162/en/Thorofare-Capital-Funds-%2423800000-Acquisition-Loan-for-Beverly-Hills-Portfolio",
+    "https://online.flippingbook.com/view/151987/74/"
+   ],
+   "note": "Mar 2026 SoCal loans name Paul Hachigian as originator (~$700M/22 loans in 2025); per Jul 2025 CO he co-leads CA/UT/AZ/NV origination from LA; 213-873-4000 confirmed, deals@ only in a 2018 ad; Callodine-owned, CEO Kevin Miller and Felix Gutnikov have exited; HQ listed as 633 W Fifth St LA in some sources vs El Segundo."
+  },
+  {
+   "ids": [
+    "CN-012"
+   ],
+   "name": "Archwest Capital",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {
+    "email": "archteam@archwestcapital.com"
+   },
+   "clear": [],
+   "evidence": [
+    "https://lifestyle.capitalcityrock.com/story/202867/archwest-adds-senior-executives-as-platform-surpasses-2-5-billion-in-funding/",
+    "https://leadiq.com/c/archwest-capital/6239ad68af7fcf8853242670",
+    "https://mergr.com/company/archwest-capital",
+    "https://www.businesswire.com/news/home/20240708438024/en/Archwest-Capital-Leading-National-Residential-Lender-Secures-Strategic-Growth-Investment-from-Bain-Capital"
+   ],
+   "note": "Apr 30 2026 release (>$2.5B funded, Bain-backed) confirms activity and Irvine HQ; (844) 922-2724 and the /broker-form/ URL could not be found in any source (directory shows (833) 654-0383); site text gives archteam@archwestcapital.com for lending inquiries."
+  },
+  {
+   "ids": [
+    "CN-013"
+   ],
+   "name": "Genesis Capital",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "hq_city": "Sherman Oaks",
+    "hq_state": "CA"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.businesswire.com/news/home/20211220005641/en/New-Residential-Investment-Corp.-Completes-Previously-Announced-Acquisition-of-Genesis-Capital-LLC",
+    "https://www.mediabistro.com/jobs/2616445928-relationship-associate",
+    "https://www.career.com/job/newrez-and-careers/account-executive-express-wholesale-lending/j202512310110108381232",
+    "https://www.crowdfundedwealth.com/reviews/genesis-capital-review"
+   ],
+   "note": "Rithm Capital-owned (bought from Goldman 2021) Sherman Oaks CA lender; 2026 wholesale-AE hiring for broker-sourced fix/flip, bridge and ground-up loans; NMLS 1454907 confirmed in its licensing disclaimer; broker URL is just the homepage (no dedicated broker page found); don't confuse with genesis-capital.com."
+  },
+  {
+   "ids": [
+    "CN-014"
+   ],
+   "name": "Builders Capital",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.goskagit.com/as-u-s-housing-supply-stalls-builders-capital-exchange-commits-2b-annually-to-accelerate-homebuilding/article_dd283c1f-29c0-5fef-aad9-fd0e373a88be.html",
+    "https://www.cbinsights.com/investor/builders-capital",
+    "https://www.newswire.com/news/builders-capital-empowering-brokers-with-new-technology-and-portal-21383698",
+    "https://hardmoneyhome.com/lenders/view/builders-capital",
+    "https://commercialobserver.com/?p=468775"
+   ],
+   "note": "Puyallup WA lender active May 2026 (Builders Capital Exchange); (888) 540-9009 confirmed; broker portal is at my.builders-capital.com and /broker-loan-request not confirmed; NMLS conflict (1453731 vs 1829563 in other listings); SoCal condo loan with Nuveen shows CA lending but CA license unconfirmed; beware unrelated Temecula 'Builders Capital'."
+  },
+  {
+   "ids": [
+    "CN-015"
+   ],
+   "name": "Kennedy Funding",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "broker_signup_url": "https://www.kennedyfunding.com/loan-application/",
+    "phone": "201-342-8500 (main)",
+    "contact_name": "Edwin Urrego",
+    "contact_title": "Executive Loan Officer (direct 201-315-4440)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.kennedyfunding.com/loan-application/",
+    "https://www.kennedyfunding.com/kennedy-funding-closes-land-loan-in-banning-california/",
+    "https://njbiz.com/kennedy-funding-closes-3-6m-land-loan"
+   ],
+   "note": "Apr 28 2026 $1.16M Banning CA land loan confirms activity and CA lending; Kennedy's loan inquiry form invites brokers ('brokers protected') and lists Edwin Urrego with 201-315-4440 direct / 201-342-8500 main; the 'loan-application-2022end' URL was not found; Corona 85% LTC deal is from 2022."
+  },
+  {
+   "ids": [
+    "HM-001"
+   ],
+   "name": "Fidelity Bancorp Funding",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.newsworthy.ai/curated/fidelity-bancorp-funding-secures-300-million-tcw-investment-doub/202523137",
+    "https://www.connectcre.com/stories/fidelity-bancorp-adds-svp-of-construction-financing/",
+    "https://fbfloans.squarespace.com/insights/fidelity-bancorp-funding-announces-john-omori-as-senior-vice-president-of-construction-financing",
+    "https://elementix.ai/lenders/fidelity-bancorp-funding"
+   ],
+   "note": "Active ($300M TCW commitment Oct 2025; ~$203M volume to Jun 2026); John Omori hire as SVP Construction confirmed only as of Jul 2023 (current role unverified); broker URL is on the Squarespace mirror domain (use fbfloans.com equivalent); HQ given as Santa Ana in trade press vs Costa Mesa in record; direct-lending range stated as $1M-$20M, so $200M max looks doubtful."
+  },
+  {
+   "ids": [
+    "HM-002"
+   ],
+   "name": "PB Financial Group Corporation",
+   "active_2026": "Unclear",
+   "verdict": "flag",
+   "set": {
+    "hq_city": "Los Angeles"
+   },
+   "clear": [],
+   "evidence": [
+    "https://www.hardmoneyhome.com/lenders/view/pb-financial-group",
+    "https://privatelenderlink.com/profile/pb-financial-group/",
+    "https://www.prweb.com/releases/pb_financial_group_premier_hard_money_lender_launches_a_newly_designed_website/prweb14304250.htm"
+   ],
+   "note": "DRE 01522495 / NMLS 357614 match two directories and calhardmoney.com is its site, but phone conflicts (877-700-3703 in a press release vs 877-700-3707), no wholesale/broker page or 2025-26 activity could be confirmed; office on Wilshire Blvd, Los Angeles."
+  },
+  {
+   "ids": [
+    "HM-003"
+   ],
+   "name": "Redwood Mortgage",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://pubt.io/view/DFCF623E30F1F64EAAD30F7E8B2F599879F1D9C8",
+    "https://privatelenderlink.com/profile/redwood-mortgage/"
+   ],
+   "note": "Redwood Mortgage Investors IX filed a Q1 2026 10-Q (active); DRE 00619104 / NMLS 232587 confirmed; but Curtis Gaspard, curtis@ email and (650) 365-5341 were not found anywhere (directory lists toll-free 800-659-6593; office 177 Bovet Rd, San Mateo) - verify contact before calling."
+  },
+  {
+   "ids": [
+    "HM-004"
+   ],
+   "name": "Rodeo Lending",
+   "active_2026": "Unclear",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://privatelenderlink.com/profile/rodeo-lending/",
+    "https://www.bouncewatch.com/explore/startup/rodeo-lending"
+   ],
+   "note": "310.400.5903 and Brentwood/LA base match directory listings (loans $100K-$20M); no 2025-26 deals found and CFL #60DB0-79857 could not be confirmed; related/similar entities (Rodeo Capital Inc, Rodeo Drive Capital) share founders - confirm entity name."
+  },
+  {
+   "ids": [
+    "HM-005"
+   ],
+   "name": "Security Financial Services",
+   "active_2026": "Unclear",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://brandfetch.com/secfin.com",
+    "https://prospeo.io/c/security-financial-services-email-format",
+    "https://www.hardmoneyhome.com/lenders/view/security-financial-services"
+   ],
+   "note": "secfin.com confirmed as SF private lender (since 1943) that works with brokers; 800-982-5945 appears in one directory while others list 415-981-8060 / 415-433-3588; /mortgage-brokers page and 2025-26 activity could not be confirmed."
+  },
+  {
+   "ids": [
+    "HM-006"
+   ],
+   "name": "Socotra Capital",
+   "active_2026": "Unclear",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://socotracapital.com/mortgage-broker-approval-form",
+    "https://www.socotracapital.com/who-we-serve-brokers?hsLang=en",
+    "https://socotracapital.com/staff",
+    "https://socotracapital.com/wp-content/uploads/Newsletter_Q3_2022.pdf"
+   ],
+   "note": "855-889-7626 is on Socotra's own site/newsletter; mortgage-broker-approval-form and a 'For Brokers' page exist on socotracapital.com; Sacramento HQ (2208 29th St) confirmed; no dated 2025-26 news surfaced, so current activity rests on the site footer only."
+  },
+  {
+   "ids": [
+    "HM-007"
+   ],
+   "name": "Source Capital (HardMoneyFirst.com)",
+   "active_2026": "Unclear",
+   "verdict": "corrected",
+   "set": {
+    "broker_signup_url": "https://hardmoneyfirst.com/brokers/"
+   },
+   "clear": [],
+   "evidence": [
+    "https://hardmoneyfirst.com/brokers/",
+    "https://hardmoneyfirst.com/where-we-lend/california-hard-money-lender/san-diego/",
+    "https://hardmoneyfirst.com/blog/source-capital-direct-premier-hard-money-lender"
+   ],
+   "note": "Own site confirms 888.334.6636, San Diego base, CA/AZ lending, up to 65% LTV, and a brokers page at hardmoneyfirst.com/brokers/; DRE/NMLS numbers and 2025-26 activity not confirmed by search."
+  },
+  {
+   "ids": [
+    "HM-008"
+   ],
+   "name": "Wilshire Quinn Capital",
+   "active_2026": "Yes",
+   "verdict": "corrected",
+   "set": {
+    "email": "loans@wilshirequinn.com"
+   },
+   "clear": [],
+   "evidence": [
+    "https://savannahceo.com/news/2026/03/wilshire-quinn-provides-10125-million-refinance-loan-savannah-office-park",
+    "https://wilshirequinn.com",
+    "https://privatelenderlink.com/profile/wilshire-quinn-capital/"
+   ],
+   "note": "Mar 2026 $10.1M loan confirms activity; site lists 619-872-6000 and loans@wilshirequinn.com and a Broker Referral Program (broker fees paid from escrow); CFL #603J060 per profile; loans $500K-$20M; exact /hard-money-loan-brokers/ URL not confirmed."
+  },
+  {
+   "ids": [
+    "HM-009"
+   ],
+   "name": "A10 Capital",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://traded.co/lender/a10-capital",
+    "https://traded.co/deals/california/industrial/loan/fremont-2/",
+    "https://www.privateequitywire.co.uk/gemspring-capital-acquires-a10-capital/"
+   ],
+   "note": "Multiple 2026 loans (Apr-Jul 2026) and own profile 'as of 7/2/2026'; $61.5M Fremont CA bridge (Oct 2025) confirms CA; $5M-$100M (to $200M portfolios) and Boise HQ match; note A10 is now owned by Gemspring Capital."
+  },
+  {
+   "ids": [
+    "HM-010"
+   ],
+   "name": "Bloomfield Capital",
+   "active_2026": "Unclear",
+   "verdict": "flag",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://www.newswire.com/news/bloomfield-capital-provides-26-0-million-senior-bridge-loan-in-22173907",
+    "https://www.griinstitute.org/member-profile/0031R00002JRYtuQAH",
+    "https://prnewswire.com/news-releases/direct-lender-closes-loan-on-indiana-industrial-building-301598389.html"
+   ],
+   "note": "Brent Truscott (Partner) and 877-690-7111 confirmed in Bloomfield releases (his email btruscott@bloomfieldcapital.com); deals@ inbox not found; $26M CA bridge loan (Nov 2023) shows CA lending, but no 2025-26 closing surfaced."
+  },
+  {
+   "ids": [
+    "HM-011"
+   ],
+   "name": "Columbia Pacific Advisors (Bridge Lending)",
+   "active_2026": "Yes",
+   "verdict": "flag",
+   "set": {
+    "contact_title": "Senior Vice President, Real Estate Lending (as of 2021 Hyatt Hotel Nue loan; current role unverified)"
+   },
+   "clear": [],
+   "evidence": [
+    "https://lodgingmagazine.com/hyatt-hotel-nue-receives-bridge-loan-from-columbia-pacific-advisors/",
+    "https://rebusinessonline.com/columbia-pacific-advisors-provides-27m-loan-for-hyatt-hotel-nue-in-los-angeles",
+    "https://elementix.ai/lenders/columbia-pacific-advisors"
+   ],
+   "note": "Seattle bridge lender with ~$191M originations in the 12 months to Dec 2025 (public records); Eric Jordan was SVP Real Estate Lending on the 2021 LA Hyatt Hotel Nue loan but current role unverified; no website confirmed; platform loan range cited as $5M-$75M vs record $10M-$100M."
+  },
+  {
+   "ids": [
+    "HM-012"
+   ],
+   "name": "Greystone (bridge lending platform)",
+   "active_2026": "Yes",
+   "verdict": "verified",
+   "set": {},
+   "clear": [],
+   "evidence": [
+    "https://rss.globenewswire.com/news-release/2025/05/06/3075452/30865/en/Richard-L-Dugoff-Appointed-Head-of-Greystone-s-Bridge-Lending-Platform.html",
+    "https://commercialobserver.com/power-series/2026-power-finance/player/stephen-rosenberg-3/"
+   ],
+   "note": "Dugoff appointed Head of Bridge Lending / PM of Greystone Senior Debt Fund (May 2025); Apr 2026 CO profile has CEO raising capital to expand bridge lending; greystone.com confirmed."
+  }
+ ]
+}
