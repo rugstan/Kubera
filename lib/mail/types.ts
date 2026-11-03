@@ -1,4 +1,5 @@
-// Mail connector contract (Zoho Mail in production, FakeMailProvider in tests).
+// Mail connector contract (Mailflare or Zoho Mail in production, chosen in
+// ./provider; FakeMailProvider in tests).
 
 import type { InboundMailbox } from "./mailboxes";
 

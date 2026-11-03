@@ -102,7 +102,7 @@ export async function issueInvoice(
   if (inv.status === "issued" || inv.status === "settled") return { issued: true, invoice: inv };
   if (inv.status === "void") throw new InvoiceError("Invoice is void");
   if (!inv.billToEmail) throw new InvoiceError("Add the bill-to email before issuing");
-  if (!deps.mailer) throw new InvoiceError("Invoice email is not configured (RESEND_API_KEY); nothing was requested or sent. Send the invoice from your mailbox, then record it as settled against the closing statement.");
+  if (!deps.mailer) throw new InvoiceError("Invoice email is not configured (CLOUDFLARE_EMAIL_ACCOUNT_ID + CLOUDFLARE_EMAIL_TOKEN, or RESEND_API_KEY); nothing was requested or sent. Send the invoice from your mailbox, then record it as settled against the closing statement.");
   const deal = await deps.store.getDeal(inv.dealId);
   const key = `email:invoice:${inv.id}:${inv.documentSha256}`;
   const text = invoiceText(inv, deal?.title ?? inv.dealId);

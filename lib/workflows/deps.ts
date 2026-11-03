@@ -18,7 +18,7 @@ export type WorkflowDeps = {
   gate: ApprovalGate;
   effects: IdempotencyStore;
   runs: AgentRunStore;
-  /** Inbound mail pipeline; null when Zoho Mail or Supabase is not configured. */
+  /** Inbound mail pipeline; null when no mailbox connector (Mailflare or Zoho Mail) or Supabase is configured. */
   mail: InboundDeps | null;
   /** Executors by action kind (email, sms, crm_update, …). Kinds without one are never sent. */
   executors: Partial<Record<string, OutboundExecutor>>;

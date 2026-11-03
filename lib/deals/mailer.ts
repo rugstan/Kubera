@@ -1,7 +1,14 @@
 // Outbound mail for the deal desk (lender submissions, gate-H lender notices,
-// invoices) on the WS-J transactional email client (Resend). Plain-text
-// messages; the HTML part is the same text, escaped. Without RESEND_API_KEY
-// there is no mailer and the desk falls back to broker-sent mail.
+// invoices) on the WS-J transactional email client (Cloudflare Email Service
+// or Resend, chosen from env in lib/notify/email). Plain-text messages; the
+// HTML part is the same text, escaped. Without an email provider there is no
+// mailer and the desk falls back to broker-sent mail.
+//
+// Each of these sends claims its broker approval first, so a failed or
+// timed-out send is never repeated automatically: the next check reports the
+// approval as used and hands the text to staff. Before sending it by hand
+// after an error, check the provider's log (Cloudflare takes no idempotency
+// key, so a timed-out send may already have been delivered).
 
 import type { EmailClient } from "@/lib/notify/email";
 import type { LenderMailer } from "./packages";

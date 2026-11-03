@@ -1,6 +1,6 @@
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import { consentAllows, consentState, type ConsentReader } from "./consent";
-import type { EmailClient } from "./email/types";
+import { EmailError, emailRetryIsSafe, maskEmail, type EmailClient } from "./email/types";
 import { authorizeSend, type Authorization } from "./gate";
 import { maskPhone, toE164 } from "./phone";
 import { insideSmsWindow } from "./quiet-hours";
@@ -26,12 +26,14 @@ import { type Audience, type NotificationStatus, type Recipient, type SendOutcom
 // calls sendApproved, which runs steps 3 to 7 with that claimed approval as the
 // authorization; the notify sweep (lib/notify/approved.ts) is the backstop.
 //
-// Step 7 keeps the provider call apart from the bookkeeping. A text is marked
-// "failed" (and so retryable) only when the provider certainly did not take it:
-// Telnyx /v2/messages has no idempotency key, so retrying after a timeout,
-// network error or 5xx that Telnyx in fact accepted would send a second text.
-// Those end as "send_unknown", which is never retried, and staff are told to
-// check. A carrier receipt saying a text was not delivered ends as
+// Step 7 keeps the provider call apart from the bookkeeping. A message is marked
+// "failed" (and so retryable) only when sending it again cannot deliver it
+// twice: the provider certainly did not take it, or (Resend) it dedupes on the
+// idempotency key. Telnyx /v2/messages and Cloudflare Email Service take no
+// idempotency key, so retrying after a timeout, network error or 5xx that the
+// provider in fact accepted would send a second text or email. Those end as
+// "send_unknown", which is never retried, and staff are told to check (except
+// for a staff alert itself, which is only logged). A carrier receipt saying a text was not delivered ends as
 // "undelivered" (lib/notify/store.ts), also never retried. A database error
 // after a successful send is retried as bookkeeping and logged; it never turns
 // a sent message into "failed".
@@ -44,7 +46,7 @@ export type NotifierDeps = {
   gate: ApprovalGate;
   /** Extra "<template>@<version>" entries the broker pre-approved (NOTIFY_PREAPPROVED_TEMPLATES). */
   preApproved?: ReadonlySet<string>;
-  /** Staff mailboxes told when a text may or may not have gone out (status send_unknown). */
+  /** Staff mailboxes told when a text or email may or may not have gone out (status send_unknown). */
   staffEmails?: readonly string[];
   now?: () => Date;
 };
@@ -63,10 +65,10 @@ export type SendRequest = {
 
 /**
  * Statuses a later call with the same key may pick up again. "failed" is only
- * written when nothing reached the provider, or for email, where Resend's
- * idempotency key makes a resend safe. "send_unknown" and "undelivered" are
- * deliberately absent: a text the provider may have (or did) take is never
- * sent again automatically.
+ * written when nothing reached the provider, or when the provider dedupes on
+ * the idempotency key (Resend), so a resend is safe. "send_unknown" and
+ * "undelivered" are deliberately absent: a message the provider may have (or
+ * did) take is never sent again automatically.
  */
 export const RETRYABLE: readonly NotificationStatus[] = ["pending_approval", "deferred_quiet_hours", "skipped_no_consent", "skipped_unconfigured", "failed"];
 
@@ -283,7 +285,7 @@ export class Notifier {
     let providerMessageId: string;
     try {
       if (built.channel === "email") {
-        if (!this.deps.email) throw new Error("email provider is not configured");
+        if (!this.deps.email) throw new EmailError("email provider is not configured", undefined, { notSent: true });
         ({ providerMessageId } = await this.deps.email.send({
           to: address,
           subject: built.subject,
@@ -299,11 +301,12 @@ export class Notifier {
     } catch (err) {
       const message = (err instanceof Error ? err.message : String(err)).slice(0, 1000);
       console.error(`notify: ${template.channel} send failed (${template.id})`, message);
-      if (template.channel === "sms" && !smsFailureIsDefinitive(err)) {
-        // Telnyx may have accepted the text; sending again could deliver it twice.
+      const retrySafe = template.channel === "sms" ? smsFailureIsDefinitive(err) : emailRetryIsSafe(this.deps.email, err);
+      if (!retrySafe) {
+        // The provider may have accepted it and takes no idempotency key; sending again could deliver it twice.
         const reason = `delivery unknown, not retried: ${message}`.slice(0, 1000);
         await this.bookkeeping(id, "record send_unknown", () => this.deps.store.update(id, { status: "send_unknown", provider: client.name, error: reason }));
-        await this.alertUnknownSms(id, template.id, address);
+        await this.alertUnknownDelivery(id, template.id, template.channel, address);
         return { status: "send_unknown", notificationId: id, reason: reason.slice(0, 300) };
       }
       await this.bookkeeping(id, "record the failure", () => this.deps.store.update(id, { status: "failed", error: message }));
@@ -346,23 +349,30 @@ export class Notifier {
     return false;
   }
 
-  /** Tells staff a text may or may not have gone out (pre-approved staff_alert; masked number and ids only). Never throws. */
-  private async alertUnknownSms(id: string, templateId: TemplateId, phone: string): Promise<void> {
+  /**
+   * Tells staff a text or email may or may not have gone out (pre-approved
+   * staff_alert; masked address and ids only). A staff alert whose own delivery
+   * is unknown is only logged, so alerts never chain. Never throws.
+   */
+  private async alertUnknownDelivery(id: string, templateId: TemplateId, channel: "email" | "sms", address: string): Promise<void> {
+    const masked = channel === "sms" ? maskPhone(address) : maskEmail(address);
+    const what = channel === "sms" ? "text" : "email";
     const emails = this.deps.staffEmails ?? [];
-    if (emails.length === 0) {
-      console.error(`notify: text ${id} (${templateId}) to ${maskPhone(phone)} may or may not have been delivered; no staff mailbox to alert`);
+    if (templateId === "staff_alert" || emails.length === 0) {
+      console.error(`notify: ${what} ${id} (${templateId}) to ${masked} may or may not have been delivered; ${templateId === "staff_alert" ? "not alerting about an alert" : "no staff mailbox to alert"}`);
       return;
     }
+    const log = channel === "sms" ? "the Telnyx message log" : `the ${this.deps.email?.name === "cloudflare" ? "Cloudflare Email Sending activity log" : "email provider's log"}`;
     await Promise.all(
       emails.map((email) =>
         this.send({
           templateId: "staff_alert",
           to: { audience: "staff", email },
           data: {
-            title: "Text message delivery unknown",
+            title: channel === "sms" ? "Text message delivery unknown" : "Email delivery unknown",
             lines: [
-              `A ${templateId} text to ${maskPhone(phone)} hit a timeout or provider error, so it may or may not have been delivered.`,
-              "It will not be resent automatically. Check the Telnyx message log before sending it again by hand.",
+              `A ${templateId} ${what} to ${masked} hit a timeout or provider error, so it may or may not have been delivered.`,
+              `It will not be resent automatically. Check ${log} before sending it again by hand.`,
               `Notification ${id}`,
             ],
           },
@@ -370,7 +380,7 @@ export class Notifier {
           requestedBy: "system:notify",
           metadata: { notificationId: id },
         }).catch((err) => {
-          console.error("notify: could not alert staff about a text with unknown delivery", err instanceof Error ? err.message : err);
+          console.error(`notify: could not alert staff about ${channel === "sms" ? "a text" : "an email"} with unknown delivery`, err instanceof Error ? err.message : err);
         }),
       ),
     );

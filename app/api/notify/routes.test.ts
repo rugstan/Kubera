@@ -14,7 +14,7 @@ const telnyx = await import("../webhooks/telnyx/route");
 
 const saved = { ...process.env };
 beforeEach(() => {
-  for (const k of ["NOTIFY_INTERNAL_SECRET", "CRON_SECRET", "TELNYX_PUBLIC_KEY", "TELNYX_API_KEY", "RESEND_API_KEY"]) delete process.env[k];
+  for (const k of ["NOTIFY_INTERNAL_SECRET", "CRON_SECRET", "TELNYX_PUBLIC_KEY", "TELNYX_API_KEY", "RESEND_API_KEY", "CLOUDFLARE_EMAIL_TOKEN"]) delete process.env[k];
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(() => {

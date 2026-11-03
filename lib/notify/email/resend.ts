@@ -36,6 +36,8 @@ export function resendTags(tags: Record<string, string>): { name: string; value:
 
 export class ResendEmailClient implements EmailClient {
   readonly name = "resend" as const;
+  /** Resend dedupes on the Idempotency-Key header (24 hours), so a resend after any failure is safe. */
+  readonly idempotent = true;
 
   constructor(private readonly config: ResendConfig) {}
 

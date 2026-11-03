@@ -208,7 +208,32 @@ describe("service providers", () => {
   const names = (env: Record<string, string | undefined>) => serviceProviders(env).map((p) => p.name);
 
   it("names only the core providers when no optional integration is switched on", () => {
-    expect(names({})).toEqual(["Vercel", "Supabase", "Twenty", "Anthropic", "Zoho", "Resend", "Telnyx", "Cloudflare", "Sentry"]);
+    expect(names({})).toEqual(["Contabo", "Twenty", "Anthropic", "Zoho", "Telnyx", "Cloudflare", "Sentry"]);
+  });
+
+  it("names Cloudflare for email and Zoho for signatures only", () => {
+    const roles = Object.fromEntries(serviceProviders({}).map((p) => [p.name, p.role]));
+    expect(roles.Cloudflare).toMatch(/bot protection/i);
+    expect(roles.Cloudflare).toMatch(/business email/i);
+    expect(roles.Cloudflare).toMatch(/transactional email/i);
+    expect(roles.Zoho).toBe("Electronic signatures");
+  });
+
+  it("adds Vercel only on a Vercel-hosted deployment", () => {
+    expect(names({ VERCEL: "1" })).toContain("Vercel");
+    expect(names({ VERCEL: "" })).not.toContain("Vercel");
+  });
+
+  it("adds Supabase only when the database is on Supabase's hosted platform, not self-hosted", () => {
+    expect(names({ SUPABASE_URL: "https://abcdefghijkl.supabase.co" })).toContain("Supabase");
+    expect(names({ SUPABASE_URL: "https://db.corincommercial.com" })).not.toContain("Supabase");
+    expect(names({ SUPABASE_URL: "http://127.0.0.1:8000" })).not.toContain("Supabase");
+    expect(names({ SUPABASE_URL: "not a url" })).not.toContain("Supabase");
+  });
+
+  it("adds Resend only when RESEND_API_KEY is set", () => {
+    expect(names({ RESEND_API_KEY: "re_k" })).toContain("Resend");
+    expect(names({ RESEND_API_KEY: " " })).not.toContain("Resend");
   });
 
   it("adds NVIDIA when document extraction or NVIDIA-hosted models are configured", () => {
@@ -223,7 +248,7 @@ describe("service providers", () => {
   });
 
   it("never lists a provider twice and keeps the public copy free of AI wording", () => {
-    const all = serviceProviders({ NVIDIA_API_KEY: "k", NVIDIA_NEMO_RETRIEVER_URL: "u", VOYAGE_API_KEY: "k" });
+    const all = serviceProviders({ NVIDIA_API_KEY: "k", NVIDIA_NEMO_RETRIEVER_URL: "u", VOYAGE_API_KEY: "k", VERCEL: "1", SUPABASE_URL: "https://x.supabase.co", RESEND_API_KEY: "k" });
     expect(new Set(all.map((p) => p.name)).size).toBe(all.length);
     for (const p of all) expect(`${p.name} ${p.role}`).not.toMatch(/\bAI\b/);
   });

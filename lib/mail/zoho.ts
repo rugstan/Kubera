@@ -1,7 +1,7 @@
 // Zoho Mail REST connector (read-only): OAuth refresh-token flow, list new
 // messages in a mailbox's Inbox, fetch body + headers, list and download
 // attachments. Corin never sends mail from here; outbound mail goes through
-// the approval gate and Resend (WS-J).
+// the approval gate and the transactional email client (lib/notify/email).
 //
 // Each inbound mailbox (deals@, docs@, …) is its own Zoho account. A mailbox
 // uses ZOHO_MAIL_REFRESH_TOKEN_<MAILBOX> when set (token minted while signed

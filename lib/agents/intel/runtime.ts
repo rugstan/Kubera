@@ -7,7 +7,7 @@ import { approvalGate } from "@/lib/approvals/server";
 import { resolveAuthMode } from "@/lib/auth/config";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { ConsentReader } from "@/lib/notify/consent";
-import { emailClientFromEnv } from "@/lib/notify/email";
+import { resendEmailClientFromEnv } from "@/lib/notify/email";
 import type { EmailClient } from "@/lib/notify/email/types";
 import { notifyRuntime } from "@/lib/notify/runtime";
 import { getMarketSnapshot } from "@/lib/rates";
@@ -99,7 +99,8 @@ export async function intelRuntime(): Promise<IntelRuntime | null> {
     sources: signalSources(demo, now),
     gateway: modelGateway(),
     gate: approvalGate(),
-    email: emailClientFromEnv(),
+    // Resend only: prospect outreach is a first contact, which Cloudflare Email Service does not allow.
+    email: resendEmailClientFromEnv(),
     consent: notifyRuntime().consent,
     events: safety.events,
     autonomy: safety.autonomy,

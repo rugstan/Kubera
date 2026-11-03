@@ -1,7 +1,8 @@
-// Inbound Zoho Mail mailboxes the workflow polls (docs/BUILD_PLAN.md, Mailboxes).
-// Advisor mailboxes, partners@, compliance@ and admin@ are not processed here:
-// compliance@ and admin@ never sync, and partners@ / advisor mail sync to
-// Twenty over IMAP directly.
+// Inbound mailboxes the workflow polls (docs/BUILD_PLAN.md, Mailboxes), on
+// Mailflare (or Zoho Mail; see ./provider). Advisor mailboxes, partners@,
+// compliance@ and admin@ are not processed here: compliance@ and admin@ never
+// sync. partners@ and advisor mail were to sync to Twenty over IMAP; Mailflare
+// has no IMAP server, so that sync is unavailable on Mailflare.
 
 export const INBOUND_MAILBOXES = ["deals", "docs", "lenders", "vendors", "closing"] as const;
 export type InboundMailbox = (typeof INBOUND_MAILBOXES)[number];
@@ -11,7 +12,7 @@ export type MailboxConfig = {
   /** Staff queue a message lands in when it needs review. */
   queue: string;
   description: string;
-  /** Mirrors to Twenty over IMAP (the workflow never writes the CRM directly). */
+  /** Mirrors to Twenty over IMAP (the workflow never writes the CRM directly). Unavailable on Mailflare, which has no IMAP server. */
   crmSync: boolean;
   /**
    * Accepted attachments are registered as borrower documents in the vault

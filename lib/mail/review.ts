@@ -121,7 +121,7 @@ export async function assignReviewedMail(deps: ReviewDeps, id: string, reviewer:
   const now = deps.now ?? (() => new Date());
   const mail = await deps.store.getReview(id, { maxAttempts: MAX_MAIL_ATTEMPTS });
   if (!mail) return { ok: false, code: "not_in_queue", message: "This message is no longer waiting for review." };
-  if (mail.status === "failed") return { ok: false, code: "not_assignable", message: "This message was never read successfully. Open it in Zoho Mail, then dismiss it here." };
+  if (mail.status === "failed") return { ok: false, code: "not_assignable", message: "This message was never read successfully. Open it in the mailbox, then dismiss it here." };
   const resolved = await resolveTarget(target, deps.targets);
   if (!resolved) return { ok: false, code: "unknown_target", message: "No single deal or lead matches that reference. Use a CC- deal reference, a deal ID or a lead ID." };
 

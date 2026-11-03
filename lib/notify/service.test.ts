@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
+import { CloudflareEmailClient } from "./email/cloudflare";
 import { EmailError } from "./email/types";
 import { Notifier } from "./service";
 import { TelnyxSmsClient } from "./sms/telnyx";
@@ -293,6 +294,78 @@ describe("idempotency and failure handling", () => {
     expect((await h.notifier.send(staffSms("u-1"))).status).toBe("duplicate");
     spy.mockRestore();
     expect(h.calls.n).toBe(1);
+  });
+
+  /** A Notifier on the real Cloudflare email client with a scripted fetch, counting POSTs that reach "Cloudflare". */
+  const cloudflareHarness = (respond: (call: number) => Promise<Response>) => {
+    const h = makeHarness({ preApproved: ["milestone_update@1"], staffEmails: ["deals@corincommercial.com"] });
+    const calls = { n: 0, bodies: [] as { to: unknown; text: string }[] };
+    const fetchMock = (async (_url: unknown, init?: RequestInit) => {
+      calls.bodies.push(JSON.parse(String(init?.body)) as { to: unknown; text: string });
+      return respond(++calls.n);
+    }) as typeof fetch;
+    const email = new CloudflareEmailClient({ accountId: "0123456789abcdef0123456789abcdef", apiToken: "t", from: "Corin Commercial <notifications@notify.corincommercial.com>", replyTo: "deals@corincommercial.com", fetch: fetchMock });
+    const notifier = new Notifier({ email, sms: h.sms, store: h.store, consent: h.consent, gate: h.gate, preApproved: new Set(["milestone_update@1"]), staffEmails: ["deals@corincommercial.com"], now: () => h.clock.now });
+    return { ...h, notifier, calls };
+  };
+  const cfOk = () => Promise.resolve(new Response(JSON.stringify({ success: true, errors: [], messages: [], result: { message_id: "cf_1", delivered: ["x@example.com"], queued: [], permanent_bounces: [], suppressed_recipients: [] } }), { status: 200 }));
+  const cfRefused = (status: number, message: string) => Promise.resolve(new Response(JSON.stringify({ success: false, errors: [{ code: null, message }], messages: [], result: null }), { status }));
+
+  it("never resends an email whose Cloudflare call timed out (no idempotency key); staff are told instead", async () => {
+    const h = cloudflareHarness((n) => (n === 1 ? timeout() : cfOk()));
+    h.grant({ email: EMAIL });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const first = await h.notifier.send(milestoneEmail("cf-1"));
+    expect(first.status).toBe("send_unknown");
+    expect(first.reason).toMatch(/timed out/);
+    const row = h.store.notifications.find((n) => n.idempotencyKey === "cf-1");
+    expect(row).toMatchObject({ status: "send_unknown", provider: "cloudflare", attempts: 1 });
+
+    // A later call with the same key never reaches the provider again.
+    const again = await h.notifier.send(milestoneEmail("cf-1"));
+    spy.mockRestore();
+    expect(again).toMatchObject({ status: "duplicate", previousStatus: "send_unknown" });
+
+    // Two POSTs in all: the timed-out email and one staff alert (masked address only).
+    expect(h.calls.n).toBe(2);
+    expect(h.calls.bodies[1]?.to).toBe("deals@corincommercial.com");
+    expect(h.calls.bodies[1]?.text).toContain("milestone_update email");
+    expect(h.calls.bodies[1]?.text).toContain("Cloudflare Email Sending activity log");
+    expect(h.calls.bodies[1]?.text).not.toContain(EMAIL);
+  });
+
+  it("does not chain alerts when a staff alert email itself times out", async () => {
+    const h = cloudflareHarness(() => timeout());
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const req = { templateId: "staff_alert" as const, to: { audience: "staff" as const, email: "deals@corincommercial.com" }, data: { title: "Hi", lines: [] }, idempotencyKey: "alert-1" };
+    expect((await h.notifier.send(req)).status).toBe("send_unknown");
+    spy.mockRestore();
+    expect(h.calls.n).toBe(1);
+    expect(h.store.notifications).toHaveLength(1);
+  });
+
+  it.each([
+    ["a 429 throttle", () => cfRefused(429, "email.sending.error.throttled")],
+    ["a 500 Cloudflare says sent nothing", () => cfRefused(500, "email.sending.error.internal_server")],
+    ["a 409 while setup is in progress", () => cfRefused(409, "email.sending.error.email.sending_not_ready")],
+  ])("retries an email after %s (documented as nothing sent)", async (_label, first) => {
+    const h = cloudflareHarness((n) => (n === 1 ? first() : cfOk()));
+    h.grant({ email: EMAIL });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect((await h.notifier.send(milestoneEmail("cf-r"))).status).toBe("failed");
+    spy.mockRestore();
+    expect((await h.notifier.send(milestoneEmail("cf-r"))).status).toBe("sent");
+    expect(h.calls.n).toBe(2);
+    expect(h.store.notifications[0]).toMatchObject({ status: "sent", provider: "cloudflare", providerMessageId: "cf_1" });
+  });
+
+  it("treats a gateway page without Cloudflare's error envelope as unknown delivery", async () => {
+    const h = cloudflareHarness((n) => (n === 1 ? Promise.resolve(new Response("<html>bad gateway</html>", { status: 502 })) : cfOk()));
+    h.grant({ email: EMAIL });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect((await h.notifier.send(milestoneEmail("cf-g"))).status).toBe("send_unknown");
+    expect((await h.notifier.send(milestoneEmail("cf-g"))).status).toBe("duplicate");
+    spy.mockRestore();
   });
 
   it("retries a text Telnyx definitively refused (4xx)", async () => {
