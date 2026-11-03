@@ -1,0 +1,350 @@
+{
+  "results": [
+    {
+      "ids": [
+        "HM-086"
+      ],
+      "name": "American Heritage Lending",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "licenses": "NMLS 93735; CA DFPI California Financing Law 603G668; CA DRE corporation license 01844643 (per lender site)",
+        "address": "19800 MacArthur Blvd, Suite 950, Irvine, CA 92612",
+        "hq_city": "Irvine",
+        "hq_state": "CA"
+      },
+      "clear": [],
+      "evidence": [
+        "https://ahlend.com/?p=12425",
+        "https://ahlend.com/?p=1229",
+        "https://www.crowdfundedwealth.com/reviews/american-heritage-lending-review-2026",
+        "https://www-ahlend-com.careerplug.com/jobs/2124519"
+      ],
+      "note": "Domain, (800) 745-9280 and the ahlendtpo.com wholesale/TPO portal are confirmed, 2025-2026 wholesale AE hiring shows it is active, and the site footer gives NMLS 93735, CA CFL and DRE licenses plus an Irvine HQ."
+    },
+    {
+      "ids": [
+        "HM-118"
+      ],
+      "name": "A&D Mortgage",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "licenses": "NMLS 958660; CA CFL 60D8053270; CA CRMLA 41DB0-58930 (per company flyers)",
+        "hq_city": "Fort Lauderdale",
+        "hq_state": "FL",
+        "address": "899 W Cypress Creek Rd, Fort Lauderdale, FL 33309",
+        "phone": "(855) 710-7100",
+        "email": "sales@admortgage.com",
+        "broker_signup_url": "https://admortgage.com/wp-content/uploads/Become_a_Preferred_Broker_AD_Products.pdf"
+      },
+      "clear": [],
+      "evidence": [
+        "https://admortgage.com/wp-content/uploads/Become_a_Preferred_Broker_AD_Products.pdf",
+        "https://admortgage.com/wp-content/uploads/Why_Partner_with_AD_Mortgage_AD_Products-4.pdf",
+        "https://www.businesswire.com/news/home/20250320229054/en",
+        "https://admortgage.com/wp-content/uploads/Products_Hard_Money.pdf"
+      ],
+      "note": "Active wholesale lender with 8,500+ broker partners (2026 flyers); the listed CA state page is not a broker page, so the broker recruitment flyer, its sales line/email (a 2026 flyer also lists partner support 855-510-5100), NMLS 958660 and the Fort Lauderdale HQ were added."
+    },
+    {
+      "ids": [
+        "HM-119"
+      ],
+      "name": "Mega Capital Funding",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "licenses": "NMLS 303203; CA DFPI (DBO) 603-A486; CA DRE (BRE) 01233872 (per mcfunding.com)",
+        "address": "26637 Agoura Road, Ste 100, Calabasas, CA 91302",
+        "hq_city": "Calabasas",
+        "hq_state": "CA"
+      },
+      "clear": [],
+      "evidence": [
+        "https://mcfunding.com/about-us/",
+        "https://mpowers.mcfunding.com",
+        "https://mcfunding.com/wp-content/uploads/2026/07/Broker-Quick-Reference-Guide-04-8-2026-1.pdf",
+        "https://mcfunding.com/2025/12/15/celebrating-our-success-in-2025/"
+      ],
+      "note": "mpowers.mcfunding.com is the lender's 'Become an Approved Broker' portal, an April 2026 broker quick reference guide shows it is active, and the site gives NMLS 303203, CA licenses and a Calabasas HQ; the DSCR max loan was not re-verified."
+    },
+    {
+      "ids": [
+        "MF-001"
+      ],
+      "name": "Pinnacle Real Estate Capital Markets - Small Balance Lending",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "tier": "B"
+      },
+      "clear": [],
+      "evidence": [
+        "https://recm.pnfp.com/small-balance-lending/",
+        "https://www.pnfp.com/personnel/jim-going",
+        "https://pnfp.com/news/news-releases/pinnacle-financial-partners-selected-as-freddie-mac-sellerservicer-for-new-conventional-small-loan-program/",
+        "https://www.sec.gov/Archives/edgar/data/2082866/000208286626000008/pnfp992_4q25pnfpearningsre.htm"
+      ],
+      "note": "Pinnacle survived its Synovus merger (closed Jan 1, 2026; holding company now in Atlanta, bank in Nashville), and Jim Going is confirmed as head of the agency SBL team now in Freddie's Optigo Conventional Small; no broker or correspondent program was found, so the tier is downgraded to B."
+    },
+    {
+      "ids": [
+        "MF-012"
+      ],
+      "name": "Veleta Capital Partners (VCP)",
+      "active_2026": "Unclear",
+      "verdict": "flag",
+      "set": {
+        "website": "https://www.veletacapital.com",
+        "tier": "B"
+      },
+      "clear": [],
+      "evidence": [
+        "https://www.businesswire.com/news/home/20220405005453/en/Veleta-Capital-and-Oaktree-Form-Joint-Venture",
+        "https://www.finanzen.net/nachricht/aktien/veleta-capital-secures-strategic-investment-from-tripost-capital-partners-14497308",
+        "https://theregistrysocal.com/veleta-capital-partners-secures-12-6mm-bridge-loan-for-42-unit-multifamily-project-in-northridge/"
+      ],
+      "note": "The latest news is the May 2025 TriPost investment anchoring Veleta Fund II, the newest CA loan found is the Jan 2023 Northridge bridge loan, and no broker program or broker-arranged 2024-2026 loan was found; press@veletacapital.com could not be confirmed (only recruiting@ appeared)."
+    },
+    {
+      "ids": [
+        "MF-017"
+      ],
+      "name": "Axos Bank - Small Balance Commercial Multifamily Lending",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://www.axosbank.com/Partners/Small-Balance-Commercial",
+        "https://www.axosbank.com/Partners/Small-Balance-Commercial/Multifamily-Lending",
+        "https://www.sec.gov/Archives/edgar/data/0001299709/000129970925000119/aug2025deck.htm"
+      ],
+      "note": "Axos's own Partners pages are aimed at mortgage brokers, offer 'premium broker rebates' and confirm up to $20M and 75% LTV on 2-200 unit multifamily nationwide; HQ was left blank because sources disagree."
+    },
+    {
+      "ids": [
+        "MF-024"
+      ],
+      "name": "Provident Savings Bank (Provident Bank Mortgage)",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "tier": "B"
+      },
+      "clear": [],
+      "evidence": [
+        "https://www.sec.gov/Archives/edgar/data/0001010470/000101047026000010/prov-20260630x10k.htm",
+        "https://visbanking.com/call-report/provident-savings-bank-fsb-reports-631570/loans/multifamily"
+      ],
+      "note": "The FY2026 10-K (June 30, 2026) confirms it is active and lends in Southern and Northern California, with multifamily about 40% of loans, but no broker or referral program for multifamily was found, so the tier is downgraded to B."
+    },
+    {
+      "ids": [
+        "HO-001"
+      ],
+      "name": "Celtic Bank",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://www.celticbank.com/partner",
+        "https://celticbank.com/referral-form",
+        "https://www.celticbank.com/hotel",
+        "https://www.pulse.bot/banking/news/celtic-bank-teams-with-ai-firm-casca-to-speed-sba-loan-approvals-a95c1f90-62e9-4677-a193-5a8b9f4d4a42/"
+      ],
+      "note": "The referral-partner application and partner page (referral fees, broker portal, dedicated BDO) are on celticbank.com, the bank was active in 2026 (FY2026 7(a) volume, April 2026 Casca deal), and it lends in CA (2024 Torrance hotel loan)."
+    },
+    {
+      "ids": [
+        "HO-002"
+      ],
+      "name": "Live Oak Bank - Hospitality",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://www.liveoak.bank/commercial/project-finance/real-estate/hospitality/",
+        "https://theorg.com/org/live-oak-bank/org-chart/jamie-bourgeois",
+        "https://s3images.coroflot.com/user_files/individual_files/original_pdf_370540_ler3nxsdihjjvmxisemwwf5vu.pdf"
+      ],
+      "note": "Live Oak's own hospitality page lists Jamie Bourgeois as Managing Director, Hospitality (theorg.com still shows her older energy & infrastructure role), and a referral agreement paying fees on funded loans exists; CA lending was not specifically confirmed."
+    },
+    {
+      "ids": [
+        "IN-001"
+      ],
+      "name": "PPM America (Jackson National Life commercial mortgage loans)",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://www.connectcre.com/stories/slatt-capital-arranges-life-company-loan-for-novato-multifamily/",
+        "https://www.businesswire.com/news/home/20260805987101/en/",
+        "https://www.citybiz.co/?p=884952"
+      ],
+      "note": "In July 2026 Slatt Capital (an outside broker) arranged a $21M PPM America loan on Novato multifamily, and an Aug 2026 release shows PPM growing its CRE origination team with more than $8B of loans; no website or contact was confirmed."
+    },
+    {
+      "ids": [
+        "IN-002"
+      ],
+      "name": "Symetra Life Insurance Company (Commercial Mortgage Loans)",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "broker_signup_url": "https://financialprofessionals.symetra.com/SymetraMortgage/MortgageBankers/"
+      },
+      "clear": [],
+      "evidence": [
+        "https://financialprofessionals.symetra.com/SymetraMortgage/",
+        "https://financialprofessionals.symetra.com/SymetraMortgage/MortgageBankers/",
+        "https://traded.co/deals/california/industrial/loan/3225-executive-ridge/",
+        "https://www.pincusco.com/company/symetra-life-insurance-company"
+      ],
+      "note": "Symetra lends only through mortgage-banker correspondents (its Mortgage Bankers page was added), made a Dec 2025 loan, and has a Dec 2023 $16.25M Vista CA loan; no 2025-2026 CA loan was found, and the brokerage may need to go through a Symetra correspondent."
+    },
+    {
+      "ids": [
+        "IN-030"
+      ],
+      "name": "Argentic Real Estate Finance",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "tier": "B"
+      },
+      "clear": [],
+      "evidence": [
+        "https://www.pincusco.com/company/argentic-investment-management",
+        "https://traded.co/lender/argentic-real-estate-investment",
+        "https://www.sec.gov/Archives/edgar/data/0002136440/000153949726001717/n5926_x10-ipts.htm"
+      ],
+      "note": "Argentic is active in 2026 (March 2026 loan, affiliate in WFCM 2026-5C10) and Traded lists CA industrial loans through Jan 2026, but no broker program or named broker-arranged loan was found, so the tier is downgraded to B; no website or contact was confirmed."
+    },
+    {
+      "ids": [
+        "IN-032"
+      ],
+      "name": "Torchlight Investors",
+      "active_2026": "Unclear",
+      "verdict": "flag",
+      "set": {
+        "website": "https://www.torchlight.com"
+      },
+      "clear": [],
+      "evidence": [
+        "https://commercialobserver.com/2024/03/la-torchlight-pacific-equity-cross-creek-ranch-retail-malibu/",
+        "https://rebusinessonline.com/jll-arranges-135m-in-financing-for-cross-creek-ranch-mixed-use-property-in-malibu-california/",
+        "https://www.similarweb.com/zh-tw/company/torchlight.com/",
+        "https://www.perenews.com/torchlight-investors-raises-1-13bn/"
+      ],
+      "note": "JLL arranged Torchlight's $135M Malibu loan (March 2024), which supports a broker channel and CA lending, but no dated 2025-2026 loan or fund close was found, so 2026 activity is unconfirmed (website from a traffic-profile listing)."
+    },
+    {
+      "ids": [
+        "IN-050"
+      ],
+      "name": "Fortress Investment Group (real estate credit)",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://www.fortress.com/news/2026-01-28-fortress-investment-group-closes-112-million-senior-secured-financing-for-residential-and-retail-development-in-brea-california",
+        "https://rebusinessonline.com/jll-secures-112m-in-financing-for-redevelopment-project-in-brea-california/",
+        "https://www.fortress.com/news/2026-09-02-fortress-investment-group-announces-closing-of-900-million-commercial-real-estate-clo"
+      ],
+      "note": "fortress.com confirms the Jan 2026 $112M Brea CA loan, which JLL arranged for the borrower (broker channel), and a Sept 2026 $900M CRE CLO."
+    },
+    {
+      "ids": [
+        "BK-027"
+      ],
+      "name": "CDC Small Business Finance",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "phone": "(800) 611-5170"
+      },
+      "clear": [],
+      "evidence": [
+        "https://cdcloans.com/?p=14284",
+        "https://cdcloans.com/lender",
+        "https://labusinessjournal.com/wp-content/uploads/2026/01/LA-SBA-504-104_081-106_BOL26_FINANCE.pdf"
+      ],
+      "note": "The cdcloans.com 'Refer a Client' page exists, but it says CDC generally does not pay referral fees unless agreed in writing in advance; the lender page lists 800-611-5170, and the LA Business Journal's 2026 list shows 2025 SBA 504 loans in CA."
+    },
+    {
+      "ids": [
+        "BK-033"
+      ],
+      "name": "CalPrivate Bank",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://calprivate.bank/lending/sba/",
+        "https://www.barchart.com/story/news/1365312/private-bancorp-of-america-inc-announces-continued-strong-net-income-for-first-quarter-2026",
+        "https://calprivate.bank/calprivate-bank-announces-two-new-small-business-lending-divisions",
+        "https://gosbaloans.com/ranking/calprivate-bank/"
+      ],
+      "note": "Active (Q1 2026 results; about $96M in 2025 SBA 7(a)), a CA bank and an SBA Preferred Lender; its broker channel rests on a 2018 release (Private Business Capital division 'primarily services our broker network') and SBA BDO job posts, with no published referral-fee terms, and the $350K-$5M range was not re-verified."
+    },
+    {
+      "ids": [
+        "BK-034"
+      ],
+      "name": "Leader Bank - National SBA (Lords of Lending)",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://www.leaderbank.com/sba-loans",
+        "https://www.leaderbank.com/news/leader-bank-continues-expansion-addition-national-sba-team",
+        "https://www.scotsmanguide.com/sponsored-content/leader-bank/"
+      ],
+      "note": "A March 2026 release confirms the national Lords of Lending SBA team (PLP since 2010); referral partners sign up at learn.lordsoflending.com and are paid on funded loans of $250K-$5M nationwide, though no CA-specific loan was found."
+    },
+    {
+      "ids": [
+        "BK-035"
+      ],
+      "name": "Plumas Bank",
+      "active_2026": "Yes",
+      "verdict": "corrected",
+      "set": {
+        "website": "https://www.plumasbank.com",
+        "tier": "B"
+      },
+      "clear": [],
+      "evidence": [
+        "https://comstocksmag.com/sponsored/sba-expertise-ensures-lending-success",
+        "https://sbalenderdata.pages.dev/sba-lender/plumas-bank"
+      ],
+      "note": "A July 2026 article confirms Plumas is an active SBA Preferred Lender in nine states (CA-based, plumasbank.com/sba) with SBA volume into FY2026, but no broker or referral program was found, so the tier is downgraded to B."
+    },
+    {
+      "ids": [
+        "BK-036"
+      ],
+      "name": "Shoreham Bank",
+      "active_2026": "Yes",
+      "verdict": "verified",
+      "set": {},
+      "clear": [],
+      "evidence": [
+        "https://shoreham.bank/brokers-overview",
+        "https://www.shoreham.bank/standard-sba-loans",
+        "https://peersense.com/sba-lenders/shoreham-bank-ri"
+      ],
+      "note": "shoreham.bank/brokers-overview is a live broker page with (401) 773-9509 and a 2026 Preferred Broker Program; the bank says it lends in all 50 states with SBA 7(a) up to $5M, but no CA-specific loan was found."
+    }
+  ]
+}

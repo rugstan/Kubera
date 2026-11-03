@@ -23,7 +23,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 RESEARCH_DIR = Path(sys.argv[1])
 OUT = Path(sys.argv[2])
-AS_OF = "2026-11-02"
+AS_OF = "2026-11-03"
 
 FONT = "Arial"
 NAVY = "1F3864"

@@ -91,8 +91,8 @@ L.append(
 L.append(
     "A lender with more than one relevant desk (for example Greystone's HUD 232 group and its bridge group) has one row per "
     "desk, linked through the \"Same lender, other desk\" column. "
-    f"{excluded} lenders that were researched and left out (acquired, wound down, no broker channel, outside the three "
-    f"categories, or unverifiable) are on the Excluded & Watchlist sheet with the reason. The Sources sheet lists all {n_sources} URLs.\n"
+    f"{excluded} lenders that were researched and left out (acquired, wound down, no broker channel, outside the directory's "
+    "categories, or unverifiable) are on the Excluded & Watchlist sheet with the reason. The Sources sheet lists all {n_sources} URLs.\n"
 )
 
 L.append("## Where to start: Tier A by segment\n")
