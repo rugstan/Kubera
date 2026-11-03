@@ -3,7 +3,7 @@
 Usage (from the repo root):
   python3 "research_notes/Wholesale lender directory/gen_seed_sql.py" \
       "reports/Wholesale lender directory.xlsx" \
-      supabase/migrations/20261105070000_int_lender_directory_seed.sql
+      supabase/migrations/20261105090000_int_lender_directory_seed.sql
 
 What it loads (decided with the desk on 2026-11-03):
   * public.lender_panel: one row per firm (desks of the same firm grouped by the workbook's

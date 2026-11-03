@@ -146,7 +146,7 @@ L.append(
     "2. Send the Account Setup package with each broker application, using the email template on that sheet.\n"
     "3. Log each touch in the yellow tracker columns; the Dashboard rolls them up.\n"
     "4. The directory is already loaded into the staff backend by "
-    "`supabase/migrations/20261105070000_int_lender_directory_seed.sql`: each firm is an inactive Lender panel entry "
+    "`supabase/migrations/20261105090000_int_lender_directory_seed.sql`: each firm is an inactive Lender panel entry "
     "(`/deals/lenders`) and each desk a pending-review credit box (`/lenders`), and existing relationships are left as they "
     "are. When an account opens, verify and approve its box, set the lender's category, evidence and fee split, and "
     "reactivate it. Add it to `LENDER_ROUTING` in `lib/ai/lenders.ts` too, which should stay aligned with signed "

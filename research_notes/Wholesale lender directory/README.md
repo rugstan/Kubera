@@ -28,7 +28,7 @@ The build merges duplicate rows for the same lender within a category. Senior li
 
 ## Loaded into the staff backend
 
-`supabase/migrations/20261105070000_int_lender_directory_seed.sql` loads the directory into the staff backend when migrations are applied (`supabase db push`). `gen_seed_sql.py` generates it from the workbook.
+`supabase/migrations/20261105090000_int_lender_directory_seed.sql` loads the directory into the staff backend when migrations are applied (`supabase db push`). `gen_seed_sql.py` generates it from the workbook.
 
 - **Lender panel** (`/deals/lenders`): one row per firm, 188 in all. Every row is inactive and never verified, with category `UNKNOWN` (so the usury gate still applies) and no fee split. Each row holds the programs, loan size range, property types, contact and a research summary in its appetite notes.
 - **Credit boxes** (`/lenders`): one box per lending desk, 212 in all. Each is `pending_review` and linked to its firm's panel row. Programs, asset classes and loan size are filled in, plus leverage, rate, recourse and lien position wherever the research stated them plainly. The full research text, including the second-check finding, is in the box notes.
