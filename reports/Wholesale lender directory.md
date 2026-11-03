@@ -148,5 +148,5 @@ Six research passes covered one segment each: HUD 232 and agency seniors housing
 1. Filter the Lenders sheet to Tier A and Lends in CA = Yes, and start with the segments where Corin has live files.
 2. Send the Account Setup package with each broker application, using the email template on that sheet.
 3. Log each touch in the yellow tracker columns; the Dashboard rolls them up.
-4. As agreements are signed, add the lender to `LENDER_ROUTING` in `lib/ai/lenders.ts`, which by its own comment should stay aligned with signed correspondent and fee-protection agreements.
+4. The directory is already loaded into the staff backend by `supabase/migrations/20261105070000_int_lender_directory_seed.sql`: each firm is an inactive Lender panel entry (`/deals/lenders`) and each desk a pending-review credit box (`/lenders`), and existing relationships are left as they are. When an account opens, verify and approve its box, set the lender's category, evidence and fee split, and reactivate it. Add it to `LENDER_ROUTING` in `lib/ai/lenders.ts` too, which should stay aligned with signed correspondent and fee-protection agreements.
 5. To re-verify from lenders' own pages, allow lender domains under Network access in the environment settings and re-run the research passes; `build_workbook.py` rebuilds the workbook from the JSON.

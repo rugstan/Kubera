@@ -26,6 +26,18 @@ Six research passes covered one segment each, and a second pass worked through t
 
 The build merges duplicate rows for the same lender within a category. Senior living HUD/agency desks stay separate from bridge and bank desks. Rows are cross-referenced when the same lender appears under another category, and lenders already in `lib/ai/lenders.ts` are flagged as existing relationships.
 
+## Loaded into the staff backend
+
+`supabase/migrations/20261105070000_int_lender_directory_seed.sql` loads the directory into the staff backend when migrations are applied (`supabase db push`). `gen_seed_sql.py` generates it from the workbook.
+
+- **Lender panel** (`/deals/lenders`): one row per firm, 188 in all. Every row is inactive and never verified, with category `UNKNOWN` (so the usury gate still applies) and no fee split. Each row holds the programs, loan size range, property types, contact and a research summary in its appetite notes.
+- **Credit boxes** (`/lenders`): one box per lending desk, 212 in all. Each is `pending_review` and linked to its firm's panel row. Programs, asset classes and loan size are filled in, plus leverage, rate, recourse and lien position wherever the research stated them plainly. The full research text, including the second-check finding, is in the box notes.
+- **Not loaded:** the 16 desks of lenders already in `lib/ai/lenders.ts`. Any firm already on the panel under the same name keeps its row; the new boxes attach to it.
+
+To bring a lender live, open the account, then verify its appetite on the box review page and approve the box. Set the panel row's category (with its charter or licence evidence) and fee split, mark it verified and reactivate it. Approved boxes on active lenders are what the matcher ranks. `lib/agents/lenders/directory-seed.test.ts` checks the load against PGlite.
+
+For a later refresh, rerun `gen_seed_sql.py` into a new migration file with a later timestamp; never edit the applied one. Existing rows are skipped, so a refresh only adds new lenders and desks.
+
 ## Rebuild
 
 From the repo root:
