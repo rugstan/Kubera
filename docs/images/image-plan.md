@@ -1,6 +1,6 @@
 # Site imagery plan
 
-Status: **planned, not generated yet.** This is the record of every generated
+Status: **1 of 13 placed** (multifamily, 2026-11-04). The rest are being regenerated in ChatGPT from `docs/images/chatgpt-prompts.md`. This is the record of every generated
 image on corincommercial.com: what it shows, where it goes, the exact prompt,
 and the settings used. Keep this file in step with `content/images.ts`.
 
@@ -41,8 +41,12 @@ and the settings used. Keep this file in step with `content/images.ts`.
   credits per image.
 - **Masters:** keep the subject in the central ~45% of the width and the middle
   ~75% of the height, so one master crops cleanly to 2:1, 16:9, 3:2 and 4:3.
-- **Delivery:** WebP masters around 2400px wide, stored under
-  `assets/images/` and served through `next/image` static imports.
+- **Delivery:** WebP masters (as large as the source allows; ChatGPT gives
+  1536 × 1024), stored under `assets/images/`, listed in `content/images.ts`
+  and served through `next/image` static imports, which make every smaller
+  size. Crops are done in CSS (`aspect-*` with `object-cover`), not as
+  separate files. The settings above were for Higgsfield; the images now
+  come from ChatGPT with the prompts in `chatgpt-prompts.md`.
 - **Review:** look at the whole set on a contact sheet before publishing.
   Check each image at 100% for:
   - stray lettering

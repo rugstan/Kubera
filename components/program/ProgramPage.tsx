@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { familyImage } from "@/content/images";
 import { AS_OF } from "@/content/programs/format";
 import { FAMILY_LABELS, financingPath, programsInFamily } from "@/content/programs";
 import type { HubEntry, ProgramEntry } from "@/content/programs";
@@ -60,6 +62,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
 }
 
 export function HubPage({ entry }: { entry: HubEntry }) {
+  const image = familyImage(entry.family);
   return (
     <>
       <JsonLd data={hubJsonLd(entry)} />
@@ -73,6 +76,19 @@ export function HubPage({ entry }: { entry: HubEntry }) {
             <CtaLinks family={entry.family} />
           </div>
         </header>
+        {image ? (
+          <figure className="mt-10 overflow-hidden rounded-2xl bg-hairline" data-family-image={entry.family}>
+            <Image
+              src={image.src}
+              alt={image.alt}
+              placeholder="blur"
+              loading="eager"
+              sizes="(min-width: 768px) 704px, calc(100vw - 40px)"
+              className="aspect-[2/1] h-auto w-full object-cover"
+              style={image.position ? { objectPosition: image.position } : undefined}
+            />
+          </figure>
+        ) : null}
         <FamilyList family={entry.family} heading="Programs we arrange" />
         <Sections sections={entry.sections} />
         <FaqList faq={entry.faq} />

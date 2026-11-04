@@ -111,6 +111,20 @@ test.describe("financing pages", () => {
     }
   });
 
+  test("the multifamily hub shows its illustrative image, loaded and described, with the disclosure in the footer", async ({ page }) => {
+    await page.goto("/financing/multifamily");
+    const img = page.locator("[data-family-image=multifamily] img");
+    await expect(img).toHaveAttribute("alt", /apartment buildings/);
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    await expect(page.locator("footer")).toContainText("Images on this site are illustrative and digitally created.");
+  });
+
+  test("hubs without an image yet render without one", async ({ page }) => {
+    await page.goto("/financing/hotels");
+    await expect(page.locator("[data-family-image]")).toHaveCount(0);
+  });
+
   test("unknown slugs return 404", async ({ request }) => {
     // Request twice: a first render of an unlisted path can stream before it is cached.
     await request.get("/financing/not-a-program");
