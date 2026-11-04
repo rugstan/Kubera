@@ -59,6 +59,7 @@ describe("homepage families", () => {
     expect(fact("senior-living")).toBe("HUD 232: up to 35-year fixed, non-recourse terms");
     expect(fact("hotels")).toContain("equity from 15% on hotels");
     expect(fact("multifamily")).toBe("HUD 223(f): up to 87% LTV, 35-year fixed");
+    expect(fact("commercial")).toBe("CMBS conduit: 10-year fixed, non-recourse terms");
     expect(fact("construction")).toMatch(/^From .+ at banks to .+ with private lenders$/);
     expect(fact("hard-money")).toMatch(/^\d+–\d+ months, interest-only, sized on the property and your exit$/);
   });

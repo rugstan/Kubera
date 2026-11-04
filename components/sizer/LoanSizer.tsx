@@ -16,7 +16,7 @@ import type { HospitalityInputs, SeniorInputs } from "@/lib/sizing/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { MoneyField, RangeField, Segmented, SelectField, Toggle } from "./fields";
 import { ConstructionForm } from "./programs/ConstructionForm";
-import { CONSTRUCTION_DEFAULT, HARD_MONEY_DEFAULT, MULTIFAMILY_DEFAULT } from "./programs/defaults";
+import { COMMERCIAL_DEFAULT, CONSTRUCTION_DEFAULT, HARD_MONEY_DEFAULT, MULTIFAMILY_DEFAULT } from "./programs/defaults";
 import { upd, type FormProps } from "./programs/form";
 import { HardMoneyForm } from "./programs/HardMoneyForm";
 import { MultifamilyForm } from "./programs/MultifamilyForm";
@@ -71,6 +71,7 @@ export function LoanSizer({ benchmarks, live, call }: { benchmarks: Benchmarks; 
   const [senior, setSenior] = useState(SENIOR_DEFAULT);
   const [hotel, setHotel] = useState(HOTEL_DEFAULT);
   const [mf, setMf] = useState(MULTIFAMILY_DEFAULT);
+  const [cre, setCre] = useState(COMMERCIAL_DEFAULT);
   const [hm, setHm] = useState(HARD_MONEY_DEFAULT);
   const [build, setBuild] = useState(CONSTRUCTION_DEFAULT);
 
@@ -79,14 +80,27 @@ export function LoanSizer({ benchmarks, live, call }: { benchmarks: Benchmarks; 
     if (tab === "hospitality") return sizeHospitality(hotel, benchmarks);
     if (tab === "hardMoney") return sizeHardMoney(hm, benchmarks);
     if (tab === "construction") return sizeConstruction(build, benchmarks);
+    // Commercial and mixed-use size exactly as on the multifamily tab; 223(a)(7) is for HUD apartments only.
+    if (tab === "commercial") return sizeMultifamilyPlus(cre, benchmarks, { hud223a7: false });
     return sizeMultifamilyPlus(mf, benchmarks, { hud223a7: HUD_223A7_ENABLED });
-  }, [tab, senior, hotel, mf, hm, build, benchmarks]);
+  }, [tab, senior, hotel, mf, cre, hm, build, benchmarks]);
 
-  const inputs = { senior, hospitality: hotel, multifamily: mf, hardMoney: hm, construction: build }[tab];
+  const inputs = { senior, hospitality: hotel, multifamily: mf, commercial: cre, hardMoney: hm, construction: build }[tab];
   const best = result.quotes.find((q) => q.id === result.bestFit);
 
   const expressHref = useMemo(() => {
-    const noi = tab === "senior" ? senior.noi : tab === "hospitality" ? hotel.noi : tab === "multifamily" ? mf.noi : tab === "construction" ? build.stabilizedNoi : (hm.stabilizedNoi ?? 0);
+    const noi =
+      tab === "senior"
+        ? senior.noi
+        : tab === "hospitality"
+          ? hotel.noi
+          : tab === "multifamily"
+            ? mf.noi
+            : tab === "commercial"
+              ? cre.noi
+              : tab === "construction"
+                ? build.stabilizedNoi
+                : (hm.stabilizedNoi ?? 0);
     const p = new URLSearchParams({ loan: String(inputs.loanAmount), noi: String(noi) });
     if (tab === "senior") p.set("asset", senior.facilityType === "RCFE" ? "RCFE" : senior.facilityType);
     else if (tab === "hospitality") p.set("asset", hotel.tier === "BOUTIQUE_INDEPENDENT" ? "HOTEL_BOUTIQUE" : "HOTEL_FLAGGED");
@@ -96,17 +110,18 @@ export function LoanSizer({ benchmarks, live, call }: { benchmarks: Benchmarks; 
     } else if (tab === "construction") {
       p.set("asset", build.assetType === "HOTEL" ? "HOTEL_FLAGGED" : build.assetType);
       p.set("transaction", "CONSTRUCTION");
-    } else p.set("asset", mf.assetType === "MULTIFAMILY" && mf.units < 5 ? "RESIDENTIAL_2_4" : mf.assetType);
+    } else if (tab === "commercial") p.set("asset", cre.assetType);
+    else p.set("asset", mf.assetType === "MULTIFAMILY" && mf.units < 5 ? "RESIDENTIAL_2_4" : mf.assetType);
     return `/express?${p}`;
-  }, [tab, inputs.loanAmount, senior.facilityType, senior.noi, hotel.tier, hotel.noi, mf.assetType, mf.units, mf.noi, hm.propertyType, hm.stabilizedNoi, build.assetType, build.stabilizedNoi]);
+  }, [tab, inputs.loanAmount, senior.facilityType, senior.noi, hotel.tier, hotel.noi, mf.assetType, mf.units, mf.noi, cre.assetType, cre.noi, hm.propertyType, hm.stabilizedNoi, build.assetType, build.stabilizedNoi]);
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
       <Suspense fallback={null}>
         <TabFromQuery onTab={setTab} />
       </Suspense>
-      {/* Phones wrap the five tabs onto two rows, so none is cut off or needs a sideways scroll. */}
-      <TabsList className="mx-auto flex w-fit max-w-full flex-wrap justify-center gap-1 rounded-[1.375rem] bg-black/[0.05] p-1 md:flex-nowrap md:gap-0 md:rounded-full" aria-label="Asset class">
+      {/* Phones and tablets wrap the six tabs onto two rows, so none is cut off or needs a sideways scroll. */}
+      <TabsList className="mx-auto flex w-fit max-w-full flex-wrap justify-center gap-1 rounded-[1.375rem] bg-black/[0.05] p-1 lg:flex-nowrap lg:gap-0 lg:rounded-full" aria-label="Asset class">
         {SIZER_TABS.map((t) => (
           <TabsTrigger
             key={t.id}
@@ -126,6 +141,7 @@ export function LoanSizer({ benchmarks, live, call }: { benchmarks: Benchmarks; 
           {tab === "senior" && <SeniorForm v={senior} set={setSenior} />}
           {tab === "hospitality" && <HotelForm v={hotel} set={setHotel} />}
           {tab === "multifamily" && <MultifamilyForm v={mf} set={setMf} hud223a7={HUD_223A7_ENABLED} />}
+          {tab === "commercial" && <MultifamilyForm v={cre} set={setCre} hud223a7={false} assets="commercial" />}
           {tab === "hardMoney" && <HardMoneyForm v={hm} set={setHm} />}
           {tab === "construction" && <ConstructionForm v={build} set={setBuild} />}
           <div className="rounded-2xl bg-black/[0.03] p-4">

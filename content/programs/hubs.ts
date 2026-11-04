@@ -137,6 +137,57 @@ export const hubs: HubEntry[] = [
     related: ["hard-money", "senior-living", "hotels", "construction"],
   },
   {
+    slug: "commercial",
+    family: "commercial",
+    name: "Commercial property financing",
+    title: "Commercial property financing",
+    description:
+      "Compare bank, life company, CMBS, debt fund bridge and mezzanine options for office, industrial, retail, self-storage and more. Licensed broker, not a lender.",
+    summary: "Bank, life company, CMBS, bridge and mezzanine options for income property.",
+    definition:
+      "Commercial property financing is commercial real estate debt secured by income-producing buildings such as office, industrial, retail, self-storage, medical office, mixed-use and manufactured housing communities. Lenders size the loan to the property's net operating income, its value and the strength of its leases, then weigh the sponsor's experience and the exit.",
+    sections: [
+      {
+        heading: "How to choose a path",
+        paragraphs: [
+          "The property's stability, the size of the loan and how long you plan to hold decide the lender. Stabilized property with strong leases can borrow long-term fixed-rate debt; property with vacancy, renovation or a near-term deadline usually starts with a bridge loan and refinances later.",
+        ],
+        bullets: [
+          "Stabilized, lower leverage, long hold: life company loan",
+          "Stabilized, non-recourse, fixed rate: CMBS conduit loan",
+          "Relationship pricing and flexibility: bank or credit union loan",
+          "Lease-up, renovation or a maturing loan: debt fund bridge loan",
+          "Gap between the senior loan and your equity: mezzanine or preferred equity",
+          "Owner-user businesses: SBA 504 or a bank loan, subject to SBA rules",
+        ],
+      },
+      {
+        heading: "What every lender wants to see",
+        paragraphs: [
+          "A current rent roll, the leases, trailing operating statements, recent capital spending, third-party reports, and the sponsor's financial statements and real estate experience. A complete file shortens every timeline, though timelines are not guaranteed.",
+        ],
+      },
+      {
+        heading: "California considerations",
+        paragraphs: [
+          "Property taxes are reassessed on a change of ownership under Proposition 13, so lenders underwrite a purchase on the new tax bill, not the seller's. Lenders often ask for a seismic report on older California buildings, and rent rules apply to the residential units in mixed-use property and to many mobile home parks.",
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: "What is the best loan for a commercial property?",
+        answer:
+          "It depends on how stable the property is, how much leverage you need and how long you plan to hold. Life companies and CMBS conduits fit stabilized property, banks fit relationship borrowers, and bridge lenders fit property in transition.",
+      },
+      {
+        question: "Is Corin the lender on commercial property loans?",
+        answer: disclosures.brokerNotLender,
+      },
+    ],
+    related: ["multifamily", "construction-to-permanent", "private-bridge", "hotel-cmbs", "construction"],
+  },
+  {
     slug: "construction",
     family: "construction",
     name: "Construction financing",

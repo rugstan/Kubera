@@ -190,6 +190,7 @@ test.describe("express qualifier", () => {
     ["senior-living", "Senior living and care"],
     ["hotels", "Hospitality"],
     ["multifamily", "Multifamily and CRE"],
+    ["commercial", "Commercial property"],
   ] as const) {
     test(`a ${family} family link shows the ${group} group first`, async ({ page }) => {
       await gotoHydrated(page, `/express?family=${family}`);
@@ -197,9 +198,18 @@ test.describe("express qualifier", () => {
       const groups = page.locator("form [role='group'][aria-label]");
       await expect(groups.first()).toHaveAttribute("aria-label", group);
       // The construction and hard money picks show only without a family link.
-      await expect(groups).toHaveCount(3);
+      await expect(groups).toHaveCount(4);
     });
   }
+
+  test("offers the commercial property types, with the unit count optional as for Commercial", async ({ page }) => {
+    await gotoHydrated(page, "/express?family=commercial");
+    const group = page.getByRole("group", { name: "Commercial property" });
+    for (const name of ["Office", "Industrial", "Retail", "Self-storage", "Medical office", "Manufactured housing"]) await expect(group.getByRole("button", { name, exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mixed-use", exact: true })).toBeVisible();
+    await pickAsset(page, /^office$/i);
+    await expect(page.getByLabel(/^tenants \(optional\)/i)).toBeVisible();
+  });
 
   test("the sizer's explicit asset and transaction win over the family link", async ({ page }) => {
     await gotoHydrated(page, "/express?family=hard-money&asset=MULTIFAMILY&transaction=CONSTRUCTION&loan=5000000");

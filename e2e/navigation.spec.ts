@@ -33,7 +33,7 @@ test.describe("primary navigation", () => {
     await nav.getByRole("button", { name: "Financing" }).click();
     await expect(nav.locator('a[href="/financing/construction"]')).toBeVisible();
     await expect(nav.locator('a[href="/financing/hard-money"]')).toBeVisible();
-    for (const family of ["senior-living", "hotels", "multifamily"]) await expect(nav.locator(`a[href="/financing/${family}"]`)).toBeVisible();
+    for (const family of ["senior-living", "hotels", "multifamily", "commercial"]) await expect(nav.locator(`a[href="/financing/${family}"]`)).toBeVisible();
   });
 
   test("the flyout's links open the family hubs", async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe("primary navigation", () => {
 });
 
 test.describe("footer", () => {
-  test("carries what the menu dropped, all five families and the sign-in links", async ({ page }) => {
+  test("carries what the menu dropped, all six families and the sign-in links", async ({ page }) => {
     await gotoHydrated(page, "/");
     const footer = page.getByRole("contentinfo");
     for (const [name, href] of [
@@ -63,6 +63,7 @@ test.describe("footer", () => {
       ["Senior living", "/financing/senior-living"],
       ["Hotels", "/financing/hotels"],
       ["Multifamily", "/financing/multifamily"],
+      ["Commercial property", "/financing/commercial"],
       ["Construction", "/financing/construction"],
       ["Hard money and bridge", "/financing/hard-money"],
     ] as const) {

@@ -17,7 +17,8 @@ import { guardPost, signLeadToken } from "@/lib/security";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { sendWorkflowEvent } from "@/lib/workflows/client";
 import { EVENTS } from "@/lib/workflows/events";
-import { leadSchema } from "@/lib/validation";
+import { financingPath, getFinancingPage } from "@/content/programs";
+import { intakeFromQuick, parseQualifySubmission, type Intake } from "@/lib/validation";
 
 export async function POST(req: Request) {
   const guard = await guardPost(req, {
@@ -28,11 +29,23 @@ export async function POST(req: Request) {
   });
   if (!guard.ok) return guard.response;
 
-  const parsed = leadSchema.safeParse(guard.body);
+  // Two forms post here: the qualifier's full intake and the short form on
+  // every financing page (`kind: "quick"`). Both take the same path below.
+  const parsed = parseQualifySubmission(guard.body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid submission", issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) }, { status: 400 });
   }
-  const { intake, contact } = parsed.data;
+  const quick = parsed.data.kind === "quick";
+  let intake: Intake;
+  if (parsed.data.kind === "quick") {
+    // The page is resolved here, never taken from the client, so the CRM shows a real page.
+    const page = getFinancingPage(parsed.data.quick.slug);
+    if (!page) return NextResponse.json({ error: "Invalid submission", issues: [{ path: "quick.slug", message: "Unknown financing page" }] }, { status: 400 });
+    intake = intakeFromQuick(parsed.data.quick, { slug: page.entry.slug, path: financingPath(page.entry.slug), name: page.entry.name });
+  } else {
+    intake = parsed.data.intake;
+  }
+  const { contact } = parsed.data;
   const meta = readConsentMeta(guard.body);
 
   // Advisor-only handling (POST /api/privacy/request type human_review) means
@@ -75,7 +88,7 @@ export async function POST(req: Request) {
         phone: contact.phone,
         ip: guard.ip,
         userAgent: req.headers.get("user-agent"),
-        page: consentPage(req, meta.page, "/express"),
+        page: consentPage(req, meta.page, intake.origin?.path ?? "/express"),
         leadId,
       }),
     ))?.id ?? null;
@@ -148,11 +161,13 @@ export async function POST(req: Request) {
     }
   });
 
+  // The short form shows no automated result: an advisor reviews every financing-page lead,
+  // and it has no document upload step, so it gets no upload token.
   return NextResponse.json(
     {
       leadId,
-      uploadToken: leadId && process.env.LEAD_TOKEN_SECRET ? signLeadToken(leadId) : null,
-      result: jev ? publicSummary(jev) : humanReviewSummary(),
+      uploadToken: !quick && leadId && process.env.LEAD_TOKEN_SECRET ? signLeadToken(leadId) : null,
+      result: jev && !quick ? publicSummary(jev) : humanReviewSummary(),
     },
     { headers: { "cache-control": "no-store" } },
   );

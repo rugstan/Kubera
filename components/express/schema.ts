@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PROGRAM_FAMILIES, type ProgramFamily } from "@/content/programs/types";
+import { isCommercialProperty } from "@/lib/property-types";
 import type { Intake } from "@/lib/validation";
 
 // The express qualifier's form model: option lists, per-step field groups, the
@@ -25,9 +26,15 @@ export const ASSETS: { value: Asset; label: string; group: string }[] = [
   { value: "MIXED_USE", label: "Mixed-use", group: "Multifamily and CRE" },
   { value: "COMMERCIAL", label: "Commercial / bridge", group: "Multifamily and CRE" },
   { value: "RESIDENTIAL_2_4", label: "2 to 4 unit rental", group: "Multifamily and CRE" },
+  { value: "OFFICE", label: "Office", group: "Commercial property" },
+  { value: "INDUSTRIAL", label: "Industrial", group: "Commercial property" },
+  { value: "RETAIL", label: "Retail", group: "Commercial property" },
+  { value: "SELF_STORAGE", label: "Self-storage", group: "Commercial property" },
+  { value: "MEDICAL_OFFICE", label: "Medical office", group: "Commercial property" },
+  { value: "MANUFACTURED_HOUSING", label: "Manufactured housing", group: "Commercial property" },
 ];
 
-export const ASSET_GROUPS = ["Senior living and care", "Hospitality", "Multifamily and CRE"] as const;
+export const ASSET_GROUPS = ["Senior living and care", "Hospitality", "Multifamily and CRE", "Commercial property"] as const;
 export type AssetGroup = (typeof ASSET_GROUPS)[number];
 
 export const TIMELINES = [
@@ -80,9 +87,14 @@ export function valueLabel(t: Transaction | ""): string {
 export function unitLabel(a: Asset | ""): string {
   if (isSenior(a)) return "Licensed beds";
   if (isHotel(a) || isConversion(a)) return "Rooms / keys";
-  if (a === "COMMERCIAL") return "Tenants";
+  if (a === "SELF_STORAGE") return "Storage units";
+  if (a === "MANUFACTURED_HOUSING") return "Homesites";
+  if (a !== "" && isCommercialProperty(a)) return "Tenants";
   return "Units";
 }
+
+/** Commercial property (office, retail, industrial and the rest) needs no unit count, as "Commercial / bridge" never did. */
+export const unitCountOptional = (a: Asset | "") => a !== "" && isCommercialProperty(a);
 
 /** Short-term private loans are offered for investor property, not licensed care facilities or conversions. */
 export const offersHardMoney = (a: Asset | "") => a !== "" && !isSenior(a) && !isConversion(a);
@@ -165,7 +177,7 @@ const phoneDigits = (s: string) => s.replace(/\D/g, "");
 export function qualifierSchema(values: Pick<QualifierValues, "assetType" | "consent">) {
   const asset = values.assetType;
   const hotel = isHotel(asset);
-  const commercial = asset === "COMMERCIAL";
+  const commercial = unitCountOptional(asset);
   const phone = z
     .string()
     .trim()
@@ -296,6 +308,7 @@ const FAMILY_GROUP: Partial<Record<ProgramFamily, AssetGroup>> = {
   "senior-living": "Senior living and care",
   hotels: "Hospitality",
   multifamily: "Multifamily and CRE",
+  commercial: "Commercial property",
 };
 
 /** Transaction a family link preselects once the visitor picks an asset that offers it. */

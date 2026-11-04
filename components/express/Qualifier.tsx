@@ -38,6 +38,7 @@ import {
   transactionAfterAssetChoice,
   transactionAfterFamilyChange,
   transactionOptions,
+  unitCountOptional,
   unitLabel,
   valueLabel,
   type Asset,
@@ -310,7 +311,7 @@ function DealStep({ headingRef, asset, transaction }: HeadingProps & { asset: As
           <NumericField name="pipBudget" label={`${isConversion(asset) ? "Conversion budget" : "PIP or renovation budget"} (optional)`} format="money" placeholder="e.g. 1,200,000" />
         )}
         {hotel && <NumericField name="adr" label="Average daily rate (ADR)" format="money" required placeholder="e.g. 145" />}
-        <NumericField name="unitCount" label={`${unitLabel(asset)}${asset === "COMMERCIAL" ? " (optional)" : ""}`} format="integer" required={asset !== "COMMERCIAL"} placeholder="e.g. 60" />
+        <NumericField name="unitCount" label={`${unitLabel(asset)}${unitCountOptional(asset) ? " (optional)" : ""}`} format="integer" required={!unitCountOptional(asset)} placeholder="e.g. 60" />
         <NumericField name="occupancyPct" label={isSenior(asset) ? "Occupancy (census)" : "Occupancy"} format="decimal" suffix="%" required placeholder="e.g. 88" />
         {hotel && <SelectField name="franchiseTier" label="Franchise tier" required placeholder="Select a tier" options={FRANCHISE_TIERS} className="sm:col-span-2" />}
       </div>

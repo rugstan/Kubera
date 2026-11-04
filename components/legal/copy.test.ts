@@ -173,6 +173,7 @@ describe("notice at collection placement", () => {
     ["components/express/DocumentUpload.tsx", "upload"],
     ["components/partners/PartnerPortal.tsx", "partner"],
     ["components/privacy/PrivacyRequestForm.tsx", "privacy_request"],
+    ["components/program/LeadForm.tsx", "qualifier"],
   ])("%s renders the %s notice", (file, point) => {
     const src = read(file);
     expect(src).toContain('from "@/components/legal/NoticeAtCollection"');
@@ -186,6 +187,13 @@ describe("notice at collection placement", () => {
     expect(src).toContain("{step === 3 && <ContactStep");
     // The submit button belongs to the last step only.
     expect(src).toMatch(/step === 3 \? \(\s*<button[^>]*type="submit"/);
+  });
+
+  it("places the financing-page request notice before the submit button, with the qualifier's consent wording", () => {
+    const src = read("components/program/LeadForm.tsx");
+    expect(src.indexOf('<NoticeAtCollection point="qualifier" />')).toBeLessThan(src.indexOf('type="submit"'));
+    expect(src).toContain("CONSENT_TEXTS[CURRENT_CONSENT.qualifier]");
+    expect(src).toContain("<CheckboxField name=\"consent\" label={CONSENT.text} />");
   });
 
   it("places the partner notice before the submit button", () => {

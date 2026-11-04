@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NEW_PROGRAM_IDS } from "@/lib/sizing/programs/types";
-import { intakeSchema } from "@/lib/validation";
+import { intakeFromQuick, intakeSchema } from "@/lib/validation";
 import {
   JEV_REMOTE_MODEL,
   NEW_BOX_ROUTING,
@@ -351,6 +351,82 @@ describe("Jev: remote decision is validated against the local sizing", () => {
     const sizing = { ...local.sizing, quotes: local.sizing.quotes.map((q) => (q.id === "HUD_221D4_223F_MULTIFAMILY" ? { ...q, eligible: false } : q)) };
     const out = reconcileRemoteDecision({ ...local, sizing }, { ...local.decision, primaryProgramFit: "HUD_221D4_223F_MULTIFAMILY" });
     expect(out).toBeNull();
+  });
+});
+
+describe("Jev: commercial property types", () => {
+  const NEW_TYPES = ["OFFICE", "INDUSTRIAL", "RETAIL", "SELF_STORAGE", "MEDICAL_OFFICE", "MANUFACTURED_HOUSING"] as const;
+  const base = { transaction: "PURCHASE", loanAmount: 6_000_000, noi: 700_000, value: 9_500_000 } as const;
+
+  it("sizes each new type on the general commercial (CRE) boxes, exactly as Commercial", () => {
+    const commercial = decideWithRules(intakeSchema.parse({ ...base, assetType: "COMMERCIAL" }), rates);
+    for (const assetType of NEW_TYPES) {
+      const intake = intakeSchema.parse({ ...base, assetType });
+      const r = decideWithRules(intake, rates);
+      expect(verticalFor(intake), assetType).toBe("GENERAL_CRE_OR_CONSTRUCTION");
+      expect(r.sizing.quotes.map((q) => [q.id, q.eligible, q.loanAmount]), assetType).toEqual(commercial.sizing.quotes.map((q) => [q.id, q.eligible, q.loanAmount]));
+      expect(r.decision.primaryProgramFit, assetType).toBe(commercial.decision.primaryProgramFit);
+      expect(intakeAssumptions(intake).join(" "), assetType).toMatch(/sized on the general commercial boxes/);
+    }
+  });
+
+  it("routes ground-up office to the construction channels like ground-up commercial", () => {
+    const intake = intakeSchema.parse({ assetType: "OFFICE", transaction: "CONSTRUCTION", loanAmount: 15_000_000, noi: 1_650_000 });
+    expect(decideWithRules(intake, rates).sizing.quotes.map((q) => q.id)).toEqual(["CONSTRUCTION_BANK", "CONSTRUCTION_DEBT_FUND", "CONSTRUCTION_PRIVATE"]);
+  });
+});
+
+describe("Jev: financing-page leads (partial intake)", () => {
+  const ALL_TYPES = intakeSchema.shape.assetType.options;
+  const partial = (assetType: (typeof ALL_TYPES)[number], transaction: "PURCHASE" | "REFINANCE" | "CONSTRUCTION" | "OTHER") =>
+    intakeFromQuick(
+      { assetType, transaction, loanAmount: 4_000_000, timelineDays: 90, notes: "", slug: "office-loans" },
+      { slug: "office-loans", path: "/financing/office-loans", name: "Office building loans" },
+    );
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("never crashes and marks every property and transaction for broker review", () => {
+    for (const assetType of ALL_TYPES) {
+      for (const transaction of ["PURCHASE", "REFINANCE", "CONSTRUCTION", "OTHER"] as const) {
+        const intake = partial(assetType, transaction);
+        const r = decideWithRules(intake, rates);
+        const label = `${assetType} ${transaction}`;
+        expect(jevDecisionSchema.safeParse(r.decision).success, label).toBe(true);
+        expect(r.decision.sizingOptimizationFlag, label).toBe("NEEDS_BROKER_REVIEW");
+        expect(r.decision.leadUrgencyTier, label).toBe("TIER_3_NURTURE");
+        expect(r.decision.estimatedBrokerCommissionUsd, label).toBe(0);
+        expect(r.primaryQuote, label).toBeNull();
+        expect(r.rationale[0], label).toMatch(/^Broker review: short form on \/financing\/office-loans/);
+        for (const line of r.rationale) expect(line, label).not.toMatch(/NaN|Infinity|undefined/);
+      }
+    }
+  });
+
+  it("says when an 'Other' transaction was sized as a refinance", () => {
+    const intake = partial("RETAIL", "OTHER");
+    expect(intake.transaction).toBe("REFINANCE");
+    expect(decideWithRules(intake, rates).rationale.join(" ")).toMatch(/Transaction "Other": sized as a refinance/);
+  });
+
+  it("flags a quick call on a short timeline, and never asks the remote model", async () => {
+    vi.stubEnv("JEV_API_URL", "https://jev.example.test/decide");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await decide({ ...partial("OFFICE", "PURCHASE"), timelineDays: 21 }, rates);
+    expect(r.decision.requiresImmediateBrokerCall).toBe(true);
+    expect(r.engine).toBe("rules");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(decideWithRules(partial("OFFICE", "PURCHASE"), rates).decision.requiresImmediateBrokerCall).toBe(false);
+  });
+
+  it("shows no sized quote to the visitor", () => {
+    const summary = publicSummary({ ...decideWithRules(partial("OFFICE", "PURCHASE"), rates), engine: "rules", latencyMs: 0 });
+    expect(summary.indicativeLoan).toBe(0);
+    expect(summary.program).toBeNull();
   });
 });
 

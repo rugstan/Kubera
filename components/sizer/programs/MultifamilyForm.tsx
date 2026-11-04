@@ -8,7 +8,19 @@ import { CreditBandField, FieldGroup, PercentField, upd, type FormProps } from "
 
 type Existing = NonNullable<MultifamilyPlusInputs["existingHud"]>;
 
-export function MultifamilyForm({ v, set, hud223a7 }: FormProps<MultifamilyPlusInputs> & { hud223a7: boolean }) {
+const ASSET_OPTIONS = [
+  { value: "MULTIFAMILY", label: "Multifamily" },
+  { value: "MIXED_USE", label: "Mixed-use" },
+  { value: "COMMERCIAL", label: "Commercial (office, retail, industrial)" },
+] as const;
+
+/** The commercial tab offers the two non-apartment options and sizes them exactly as this tab does. */
+const COMMERCIAL_ASSET_OPTIONS = [
+  { value: "COMMERCIAL", label: "Commercial (office, retail, industrial, storage)" },
+  { value: "MIXED_USE", label: "Mixed-use" },
+] as const;
+
+export function MultifamilyForm({ v, set, hud223a7, assets = "all" }: FormProps<MultifamilyPlusInputs> & { hud223a7: boolean; assets?: "all" | "commercial" }) {
   const u = upd(set);
   const construction = v.transaction === "CONSTRUCTION";
   const small = v.assetType === "MULTIFAMILY" && v.units < 5;
@@ -18,11 +30,7 @@ export function MultifamilyForm({ v, set, hud223a7 }: FormProps<MultifamilyPlusI
   const optional = (k: "monthlyRent" | "monthlyTaxesInsuranceHoa" | "stabilizedNoi") => (n: number) => set((p) => ({ ...p, [k]: n || undefined }));
   return (
     <>
-      <SelectField label="Asset type" value={v.assetType} onChange={u("assetType")} options={[
-        { value: "MULTIFAMILY", label: "Multifamily" },
-        { value: "MIXED_USE", label: "Mixed-use" },
-        { value: "COMMERCIAL", label: "Commercial (office, retail, industrial)" },
-      ]} />
+      <SelectField label="Asset type" value={v.assetType} onChange={u("assetType")} options={[...(assets === "commercial" ? COMMERCIAL_ASSET_OPTIONS : ASSET_OPTIONS)]} />
       <Segmented label="Transaction" value={v.transaction} onChange={u("transaction")} options={[
         { value: "PURCHASE", label: "Purchase" },
         { value: "REFINANCE", label: "Refi" },

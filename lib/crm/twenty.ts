@@ -200,6 +200,28 @@ const PROBABILITY: Record<JevResult["decision"]["leadUrgencyTier"], number> = {
 
 export type CrmRefs = { personId: string; companyId?: string; opportunityId?: string };
 
+/** "Office — /financing/office-loans": the property and the financing page a short-form lead came from. */
+export function leadSourceLabel(intake: Intake): string | null {
+  return intake.origin ? `${humanize(intake.assetType)} — ${intake.origin.path}` : null;
+}
+
+/** Note section naming the financing page a lead came from, and what that short form did not ask. */
+function sourceSection(intake: Intake): string[] {
+  const o = intake.origin;
+  if (!o) return [];
+  return [
+    "## Source",
+    `- Financing page form: ${o.page} — ${o.path}`,
+    `- Property type: ${humanize(intake.assetType)} · Transaction chosen: ${humanize(o.transaction)}`,
+    "- Not collected on this form: NOI, value, unit count and occupancy. Broker review: confirm the numbers before quoting.",
+  ];
+}
+
+/** The broker's next step for a short-form lead: confirm the numbers first, then the usual step. */
+function sourcedNextStep(intake: Intake, step: string): string {
+  return intake.origin ? `Broker review: confirm NOI, value and units — ${step}` : step;
+}
+
 /**
  * Pushes a qualifier submission. `jev` is null when the person asked for
  * advisor-only handling (privacy_preferences.human_review_only): the deal is
@@ -217,14 +239,17 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult 
   const d = jev.decision;
   const q = jev.primaryQuote;
 
+  const source = leadSourceLabel(intake);
   const opportunityId = await cp.step("opportunityId", () => create("opportunities", {
-    name: `${programLabel(d.primaryProgramFit)} · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
+    name: source
+      ? `Broker review · ${source} · ${money(intake.loanAmount)}`
+      : `${programLabel(d.primaryProgramFit)} · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
     amount: { amountMicros: Math.round(intake.loanAmount * 1_000_000), currencyCode: "USD" },
     expectedRevenue: { amountMicros: Math.round(d.estimatedBrokerCommissionUsd * 1_000_000), currencyCode: "USD" },
     stage: "QUALIFICATION",
     probability: PROBABILITY[d.leadUrgencyTier],
     dealType: "NEW_BUSINESS",
-    nextStep: leadNextStep(reach, d.requiresImmediateBrokerCall),
+    nextStep: sourcedNextStep(intake, leadNextStep(reach, d.requiresImmediateBrokerCall)),
     closeDate: closeDate(intake),
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
@@ -232,6 +257,7 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult 
 
   const md = [
     `## Contact\n- ${consentLine(contact, cc, opts?.consentEventId)}`,
+    ...sourceSection(intake),
     `## Jev decision (${jev.engine}, ${jev.latencyMs}ms)`,
     "```json",
     JSON.stringify(d, null, 2),
@@ -244,7 +270,7 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult 
     JSON.stringify(intake, null, 2),
     "```",
   ].join("\n");
-  await attachNote(cp, `Jev intake — ${d.leadUrgencyTier}`, md, { targetOpportunityId: opportunityId });
+  await attachNote(cp, source ? `Financing page lead — broker review — ${source}` : `Jev intake — ${d.leadUrgencyTier}`, md, { targetOpportunityId: opportunityId });
 
   return { personId, companyId, opportunityId };
 }
@@ -257,8 +283,9 @@ export function reviewNextStep(contact: Contact): string {
 }
 
 async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake, contact: Contact, cc: CrmConsent, personId: string, companyId: string | undefined, opts?: PushOptions): Promise<CrmRefs> {
+  const source = leadSourceLabel(intake);
   const opportunityId = await cp.step("opportunityId", () => create("opportunities", {
-    name: `Advisor review · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
+    name: source ? `Advisor review · ${source} · ${money(intake.loanAmount)}` : `Advisor review · ${money(intake.loanAmount)} · ${humanize(intake.assetType)}`,
     amount: { amountMicros: Math.round(intake.loanAmount * 1_000_000), currencyCode: "USD" },
     stage: "QUALIFICATION",
     dealType: "NEW_BUSINESS",
@@ -269,6 +296,7 @@ async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake,
   }));
   const md = [
     `## Contact\n- ${consentLine(contact, cc, opts?.consentEventId)}`,
+    ...sourceSection(intake),
     "## Advisor-only handling",
     "- This person asked that an advisor handle their requests personally (privacy request: human review).",
     "- No automated scoring was run. Do not paste their details into AI tools.",
@@ -277,7 +305,7 @@ async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake,
     JSON.stringify(intake, null, 2),
     "```",
   ].join("\n");
-  await attachNote(cp, "Qualifier intake — advisor review", md, { targetOpportunityId: opportunityId });
+  await attachNote(cp, source ? `Financing page lead — advisor review — ${source}` : "Qualifier intake — advisor review", md, { targetOpportunityId: opportunityId });
   return { personId, companyId, opportunityId };
 }
 

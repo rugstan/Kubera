@@ -48,10 +48,10 @@ test.describe("homepage", () => {
     await expect(page.locator("main .bg-pro h2")).toHaveText(/we work for you/i);
   });
 
-  test("shows all five families with hub links, deep-link ids and qualifier links", async ({ page }) => {
+  test("shows all six families with hub links, deep-link ids and qualifier links", async ({ page }) => {
     await page.goto("/");
     const programs = page.locator("#programs");
-    for (const family of ["senior-living", "hotels", "multifamily", "construction", "hard-money"]) {
+    for (const family of ["senior-living", "hotels", "multifamily", "commercial", "construction", "hard-money"]) {
       await expect(programs.locator(`#${family}`)).toHaveCount(1);
       const hub = programs.locator(`#${family}`).getByRole("link", { name: /^explore /i });
       await expect(hub).toBeVisible();
@@ -59,7 +59,7 @@ test.describe("homepage", () => {
       const options = programs.locator(`#${family}`).getByRole("link", { name: /^get options/i });
       await expect(options).toHaveAttribute("href", `/express?family=${family}`);
     }
-    await expect(programs.getByRole("heading", { level: 3 })).toHaveCount(5);
+    await expect(programs.getByRole("heading", { level: 3 })).toHaveCount(6);
   });
 
   test("uses one primary call to action, worded the same everywhere", async ({ page }) => {
@@ -117,6 +117,7 @@ test.describe("homepage", () => {
       ["Senior living", "/financing/senior-living"],
       ["Hotels", "/financing/hotels"],
       ["Multifamily", "/financing/multifamily"],
+      ["Commercial property", "/financing/commercial"],
       ["Construction", "/financing/construction"],
       ["Hard money and bridge", "/financing/hard-money"],
     ] as const) {
@@ -130,14 +131,15 @@ test.describe("homepage", () => {
     expect(facts.y + facts.height).toBeLessThanOrEqual(900);
   });
 
-  test("on a phone all five family cards fit in about a screen and a half", async ({ page }) => {
+  test("on a phone all six family cards fit in under two screens", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoHydrated(page, "/");
     const cards = page.locator("#programs article");
-    await expect(cards).toHaveCount(5);
+    await expect(cards).toHaveCount(6);
     const first = (await cards.first().boundingBox())!;
     const last = (await cards.last().boundingBox())!;
-    expect(last.y + last.height - first.y).toBeLessThanOrEqual(844 * 1.6);
+    // Five cards fit in 1.6 screens; the sixth (commercial property) adds one card's height.
+    expect(last.y + last.height - first.y).toBeLessThanOrEqual(844 * 1.92);
     // Each card shows its lead program and a link to the rest.
     await expect(page.locator("#multifamily").getByRole("link", { name: /^\+\d+ more multifamily programs$/ })).toBeVisible();
     // The card footers share one layout: the link and the pill on one row.

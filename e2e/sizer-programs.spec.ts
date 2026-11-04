@@ -60,37 +60,55 @@ test.describe("sizer: hard money and construction tabs", () => {
     await expect(bank.getByText(/take-out test/i)).toBeVisible();
   });
 
-  test("tabs stay keyboard reachable with arrow keys across all five", async ({ page }) => {
+  test("tabs stay keyboard reachable with arrow keys across all six", async ({ page }) => {
     await gotoHydrated(page, "/");
     const tabs = page.locator("#sizer").getByRole("tablist").first().getByRole("tab");
-    await expect(tabs).toHaveCount(5);
+    await expect(tabs).toHaveCount(6);
     await tabs.first().focus();
     await expect(tabs.first()).toBeFocused();
-    for (let i = 1; i < 5; i++) {
+    for (let i = 1; i < 6; i++) {
       await page.keyboard.press("ArrowRight");
       await expect(tabs.nth(i)).toBeFocused();
       await expect(tabs.nth(i)).toHaveAttribute("aria-selected", "true");
     }
   });
 
-  test("at 390px all five tabs show in menu order with no sideways scroll", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoHydrated(page, "/");
-    const list = page.locator("#sizer").getByRole("tablist").first();
-    const tabs = list.getByRole("tab");
-    await expect(tabs).toHaveText(["Senior living", "Hotels", "Multifamily", "Construction", "Hard money"]);
-    for (const tab of await tabs.all()) {
-      const box = (await tab.boundingBox())!;
-      expect(box.x, await tab.innerText()).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width, await tab.innerText()).toBeLessThanOrEqual(390);
-    }
-    expect(await list.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+  for (const width of [390, 768, 1024]) {
+    test(`at ${width}px all six tabs show in menu order with no sideways scroll`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await gotoHydrated(page, "/");
+      const list = page.locator("#sizer").getByRole("tablist").first();
+      const tabs = list.getByRole("tab");
+      await expect(tabs).toHaveText(["Senior living", "Hotels", "Multifamily", "Commercial", "Construction", "Hard money"]);
+      for (const tab of await tabs.all()) {
+        const box = (await tab.boundingBox())!;
+        expect(box.x, await tab.innerText()).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width, await tab.innerText()).toBeLessThanOrEqual(width);
+      }
+      expect(await list.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+    });
+  }
+
+  test("commercial tab sizes office, retail and industrial on the commercial boxes and links to the qualifier", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await gotoHydrated(page, "/?sizer=commercial#sizer");
+    const sizer = page.locator("#sizer");
+    await expect(sizer.getByRole("tab", { name: "Commercial", exact: true })).toHaveAttribute("aria-selected", "true");
+    const asset = sizer.getByLabel("Asset type");
+    await expect(asset).toHaveValue("COMMERCIAL");
+    await expect(asset.locator("option")).toHaveText(["Commercial (office, retail, industrial, storage)", "Mixed-use"]);
+    await expect(sizer.getByRole("article").first()).toBeVisible();
+    await expect(sizer.getByRole("link", { name: "Send this to an advisor" })).toHaveAttribute("href", /asset=COMMERCIAL/);
+    expect(await sizerViolations(page)).toEqual([]);
+    expect(errors).toEqual([]);
   });
 
   for (const [family, name] of [
     ["construction", "Construction"],
     ["hard-money", "Hard money"],
     ["hotels", "Hotels"],
+    ["commercial", "Commercial"],
   ] as const) {
     test(`a program page's ?sizer=${family} link opens the ${name} tab`, async ({ page }) => {
       await gotoHydrated(page, `/?sizer=${family}#sizer`);

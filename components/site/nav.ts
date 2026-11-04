@@ -8,7 +8,7 @@ import { FAMILY_LABELS, PROGRAM_FAMILIES, type ProgramFamily } from "@/content/p
 
 export type NavLink = { href: string; label: string };
 
-/** The five family hubs, in the order of PROGRAM_FAMILIES. */
+/** The family hubs, in the order of PROGRAM_FAMILIES. */
 export const FINANCING_FAMILIES: NavLink[] = PROGRAM_FAMILIES.map((f) => ({
   href: `/financing/${f}`,
   label: FAMILY_LABELS[f],

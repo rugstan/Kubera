@@ -66,11 +66,18 @@ test.describe("financing pages", () => {
     await expect(page.getByRole("link", { name: /Fix-and-flip loans/ }).first()).toBeVisible();
   });
 
-  test("the index shows all five families above the fold at 1440px", async ({ page }) => {
+  test("the index shows all six families above the fold at 1440px", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/financing");
     const tiles = page.getByRole("navigation", { name: "Financing by family" });
-    for (const [family, name] of [["senior-living", "senior living"], ["hotels", "hotels"], ["multifamily", "multifamily"], ["construction", "construction"], ["hard-money", "hard money and bridge"]] as const) {
+    for (const [family, name] of [
+      ["senior-living", "senior living"],
+      ["hotels", "hotels"],
+      ["multifamily", "multifamily"],
+      ["commercial", "commercial property"],
+      ["construction", "construction"],
+      ["hard-money", "hard money and bridge"],
+    ] as const) {
       const explore = tiles.getByRole("link", { name: `Explore ${name} financing`, exact: true });
       await expect(explore).toHaveAttribute("href", `/financing/${family}`);
       const box = (await explore.boundingBox())!;
@@ -100,7 +107,7 @@ test.describe("financing pages", () => {
   });
 
   test("hub pages never repeat their own programs under related links", async ({ page }) => {
-    for (const family of ["senior-living", "hotels", "multifamily", "construction", "hard-money"]) {
+    for (const family of ["senior-living", "hotels", "multifamily", "commercial", "construction", "hard-money"]) {
       await page.goto(`/financing/${family}`);
       const own = await page.locator('section[aria-labelledby="family-heading"] a').evaluateAll((as) => as.map((a) => a.getAttribute("href")));
       const related = await page.locator('section[aria-labelledby="related-heading"] a').evaluateAll((as) => as.map((a) => a.getAttribute("href")));

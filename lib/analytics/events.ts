@@ -12,6 +12,9 @@ export type AnalyticsEvents = {
   qualifier_submitted: { asset: string; transaction: string; qualified: boolean; consent: boolean };
   qualifier_failed: { reason: string; status?: number };
   qualifier_validation_blocked: { step: number; fields: number };
+  /** The short request form on a /financing page. */
+  lead_form_submitted: { family: string; asset: string; transaction: string; consent: boolean };
+  lead_form_failed: { family: string; reason: string; status?: number };
   partner_tab_selected: { type: string };
   partner_submitted: { type: string; consent: boolean };
   partner_failed: { type: string; reason: string; status?: number };
@@ -32,6 +35,8 @@ export const EVENT_NAMES = [
   "qualifier_submitted",
   "qualifier_failed",
   "qualifier_validation_blocked",
+  "lead_form_submitted",
+  "lead_form_failed",
   "partner_tab_selected",
   "partner_submitted",
   "partner_failed",

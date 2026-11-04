@@ -33,7 +33,7 @@ export function Hero() {
           </p>
           <h1 className="mt-4 text-tile font-semibold md:text-hero">We help you find the right lender for your commercial real estate loan.</h1>
           <p className="mx-auto mt-6 max-w-3xl text-[17px] text-titanium md:text-lede">
-            Corin Commercial is a licensed California real estate broker. We arrange senior living, hotel, multifamily, construction and hard money loans,
+            Corin Commercial is a licensed California real estate broker. We arrange senior living, hotel, multifamily, commercial property, construction and hard money loans,
             comparing HUD, SBA, CMBS, agency, bank and private lenders for you. We are not a lender, so we are not tied to one lender&apos;s loans.
           </p>
         </Reveal>
@@ -49,7 +49,7 @@ export function Hero() {
             </TrackedLink>
           </p>
           {/* Every family has an entry point above the fold, construction and hard money included. */}
-          <nav aria-label="What we finance" className="mx-auto mt-8 max-w-3xl border-t border-hairline pt-6">
+          <nav aria-label="What we finance" className="mx-auto mt-8 max-w-4xl border-t border-hairline pt-6">
             <ul className="flex flex-wrap justify-center gap-2">
               {PROGRAM_FAMILIES.map((family) => (
                 <li key={family}>

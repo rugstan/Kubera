@@ -19,6 +19,7 @@ import { sizeHardMoney, type HardMoneyPropertyType } from "@/lib/sizing/programs
 import { sizeMultifamilyPlus } from "@/lib/sizing/programs/multifamily";
 import { NEW_PROGRAM_IDS, type NewProgramId, type SizerProgramId, type SizerQuote, type SizerResult } from "@/lib/sizing/programs/types";
 import type { ProgramId } from "@/lib/sizing/types";
+import { isCommercialProperty } from "@/lib/property-types";
 import type { Intake } from "@/lib/validation";
 import { LENDER_ROUTING, WHOLESALE_LENDERS, type WholesaleLender } from "./lenders";
 import { prepareForRoute } from "./routing";
@@ -59,6 +60,8 @@ export const OPTIMIZATION_FLAGS = [
   "OPTIMAL_AS_STRUCTURED",
   // A bridge, hard money or construction loan whose exit (sale, refinance or take-out) does not cover the payoff.
   "EXIT_SHORTFALL_NEEDS_RESTRUCTURE",
+  // A financing-page lead: the short form collects no NOI, value or unit count, so an advisor sizes it.
+  "NEEDS_BROKER_REVIEW",
 ] as const;
 
 export const URGENCY_TIERS = ["TIER_1_INSTITUTIONAL_HOT", "TIER_2_QUALIFIED_MIDMARKET", "TIER_3_NURTURE", "UNQUALIFIED"] as const;
@@ -120,7 +123,22 @@ const DEFAULT_FICO = 700;
 const ASSUMED_LTC_WITHOUT_BUDGET = CONSTRUCTION.boxes.BANK.maxLtc;
 
 const constructionRouted = (intake: Intake) =>
-  intake.transaction === "CONSTRUCTION" && ["MULTIFAMILY", "MIXED_USE", "COMMERCIAL", "RESIDENTIAL_2_4"].includes(intake.assetType);
+  intake.transaction === "CONSTRUCTION" && (["MULTIFAMILY", "MIXED_USE", "RESIDENTIAL_2_4"].includes(intake.assetType) || isCommercialProperty(intake.assetType));
+
+/** Office, industrial, retail and the other commercial types size on the general commercial (CRE) boxes. */
+const sizingAsset = (intake: Intake): "MULTIFAMILY" | "MIXED_USE" | "COMMERCIAL" =>
+  isCommercialProperty(intake.assetType) ? "COMMERCIAL" : intake.assetType === "MIXED_USE" ? "MIXED_USE" : "MULTIFAMILY";
+
+/**
+ * A lead from the short form on a financing page. It names the property,
+ * transaction, amount and timing only, so the rules give it a placeholder
+ * structure and mark it for broker review instead of scoring it.
+ */
+export function isPartialIntake(intake: Intake): boolean {
+  return intake.origin?.form === "financing_page";
+}
+
+const assetWords = (asset: string) => asset.toLowerCase().replace(/_/g, " ");
 
 /**
  * Ground-up care facilities and hotels size on the senior / hospitality boxes, which apply
@@ -185,6 +203,16 @@ function hardMoneyPropertyType(intake: Intake): HardMoneyPropertyType {
 /** What Jev had to assume about a thin intake, written to the CRM rationale. */
 export function intakeAssumptions(intake: Intake): string[] {
   const out: string[] = [];
+  if (intake.origin?.form === "financing_page") {
+    out.push(
+      `Broker review: short form on ${intake.origin.path} (${intake.origin.page}). NOI, value, unit count and occupancy were not collected, so the structure below is a placeholder and the tier is provisional.`,
+    );
+    if (intake.origin.transaction === "OTHER") out.push('Transaction "Other": sized as a refinance until an advisor confirms the deal.');
+  }
+  if (isCommercialProperty(intake.assetType) && intake.assetType !== "COMMERCIAL") {
+    const words = assetWords(intake.assetType);
+    out.push(`${words.charAt(0).toUpperCase()}${words.slice(1)}: sized on the general commercial boxes; property-specific programs need a desk review.`);
+  }
   if (intake.transaction === "HARD_MONEY" && !intake.hardMoney) out.push("Hard money intake without rehab or ARV detail: sized as a no-rehab purchase on the stated value.");
   if (intake.transaction === "HARD_MONEY" && !intake.value) out.push("No purchase price or value: estimated as the request at 75% of value.");
   if (constructionRouted(intake) && !intake.construction)
@@ -256,7 +284,7 @@ function sizeConstructionIntake(intake: Intake, rates: Benchmarks): SizerResult 
   const hardCosts = c?.hardCosts ?? Math.max(0, intake.loanAmount / ASSUMED_LTC_WITHOUT_BUDGET - land);
   return sizeConstruction(
     {
-      assetType: intake.assetType === "COMMERCIAL" ? "COMMERCIAL" : intake.assetType === "MIXED_USE" ? "MIXED_USE" : "MULTIFAMILY",
+      assetType: sizingAsset(intake),
       units: intake.unitCount,
       landCost: land,
       hardCosts,
@@ -330,7 +358,7 @@ export function sizeIntake(intake: Intake, rates: Benchmarks): SizerResult {
   const value = isConversion ? conversionValue(intake) : intake.value;
   const result = sizeMultifamilyPlus(
     {
-      assetType: isConversion || smallResidential ? "MULTIFAMILY" : intake.assetType === "MIXED_USE" ? "MIXED_USE" : intake.assetType === "COMMERCIAL" ? "COMMERCIAL" : "MULTIFAMILY",
+      assetType: isConversion || smallResidential ? "MULTIFAMILY" : sizingAsset(intake),
       // A 2–4 unit property never sizes on the 5+ unit boxes, whatever the unit count says.
       units: smallResidential ? Math.min(4, Math.max(2, intake.unitCount)) : intake.unitCount,
       sqft: 0,
@@ -439,6 +467,31 @@ export function decideWithRules(intake: Intake, rates: Benchmarks = FALLBACK_BEN
     ]),
   ].slice(0, 5);
 
+  // A financing-page lead has no NOI, value or units, so its coverage, flags and fee estimate
+  // mean nothing: keep the closest structure and lender routing for the desk, mark it for broker
+  // review at a provisional tier, and show no sized quote anywhere.
+  if (isPartialIntake(intake)) {
+    return {
+      decision: {
+        assetVertical: vertical,
+        primaryProgramFit: (primaryId ?? sizing.quotes[0]?.id ?? "WHITE_LABEL_CRE_BRIDGE") as JevLoanDecisionSchema["primaryProgramFit"],
+        secondaryProgramFit: secondary,
+        sizingOptimizationFlag: "NEEDS_BROKER_REVIEW",
+        greenMipOrGreen504Candidate: false,
+        leadUrgencyTier: "TIER_3_NURTURE",
+        recommendedWholesaleLenders: lenders,
+        estimatedBrokerCommissionUsd: 0,
+        requiresImmediateBrokerCall: intake.timelineDays <= 30 || intake.loanAmount >= 15_000_000,
+      },
+      rationale: [
+        ...intakeAssumptions(intake),
+        primary ? `Closest structure for this property and transaction: ${primary.name}. An advisor confirms the numbers before anything is quoted.` : "No structure could be sized; an advisor reviews the request.",
+      ],
+      primaryQuote: null,
+      sizing,
+    };
+  }
+
   const commission = tier === "UNQUALIFIED" ? 0 : Math.round(primary?.estimatedAdvisoryFee ?? 0);
   const callNow =
     tier === "TIER_1_INSTITUTIONAL_HOT" ||
@@ -545,7 +598,8 @@ export function reconcileRemoteDecision(
 export async function decide(intake: Intake, rates: Benchmarks = FALLBACK_BENCHMARKS): Promise<JevResult> {
   const started = performance.now();
   const local = decideWithRules(intake, rates);
-  const remote = await refineWithRemoteJev(intake, local.decision);
+  // A financing-page lead stays on the rules decision: there is nothing for the model to refine.
+  const remote = isPartialIntake(intake) ? null : await refineWithRemoteJev(intake, local.decision);
   const accepted = remote ? reconcileRemoteDecision(local, remote) : null;
   return {
     ...local,

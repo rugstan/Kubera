@@ -8,7 +8,7 @@ import { gotoHydrated } from "./helpers";
 const WIDTHS = [320, 360, 375, 1024, 1152, 1200, 1279, 1280, 1366, 1440];
 const DESKTOP = 1024;
 
-const FAMILIES = ["Senior living", "Hotels", "Multifamily", "Construction", "Hard money and bridge"];
+const FAMILIES = ["Senior living", "Hotels", "Multifamily", "Commercial property", "Construction", "Hard money and bridge"];
 const POPULAR = [
   "HUD 232",
   "HUD 223(f) multifamily",
