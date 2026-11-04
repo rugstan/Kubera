@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { HOME_FAMILIES } from "@/content/home";
+import { familyImage } from "@/content/images";
 import { FAMILY_LABELS, PROGRAM_FAMILIES, financingPath, hubForFamily, pageCard, type ProgramFamily } from "@/content/programs";
 import { disclosures } from "@/lib/site";
 import { Reveal } from "./Reveal";
@@ -8,7 +10,8 @@ import { TrackedLink } from "./TrackedLink";
 // Five equal cards: three across, then construction and hard money two across.
 // Below md the cards stack, so each shows who it is for, its lead program and a
 // "+N more" link to the hub (one row of chips), and leaves the program figure to
-// the hub page. That keeps all five families within about a screen and a half.
+// the hub page. That keeps all five families within about a screen and a half,
+// which is also why the card photos show from md only.
 const PHONE_CHIPS = 1;
 
 const SPAN: Record<ProgramFamily, string> = {
@@ -17,6 +20,18 @@ const SPAN: Record<ProgramFamily, string> = {
   multifamily: "md:col-span-2",
   construction: "md:col-span-3",
   "hard-money": "md:col-span-3",
+};
+
+// Rendered width of each card's photo: a sixth of the content width (100vw less
+// the 64px gutters, at most 1216px) per column, with 20px gaps.
+const THIRD = "(min-width: 1280px) 392px, (min-width: 768px) calc(33vw - 35px), calc(100vw - 40px)";
+const HALF = "(min-width: 1280px) 598px, (min-width: 768px) calc(50vw - 42px), calc(100vw - 40px)";
+const IMAGE_SIZES: Record<ProgramFamily, string> = {
+  "senior-living": THIRD,
+  hotels: THIRD,
+  multifamily: THIRD,
+  construction: HALF,
+  "hard-money": HALF,
 };
 
 export function ProgramFamilies() {
@@ -37,9 +52,23 @@ export function ProgramFamilies() {
             const title = FAMILY_LABELS[family];
             const hub = financingPath(hubForFamily(family).slug);
             const chips = data.programSlugs.map((slug) => pageCard(slug)).filter((c) => c !== undefined);
+            const image = familyImage(family);
             return (
               <Reveal key={family} delay={i * 0.04} className={SPAN[family]}>
                 <article id={family} aria-labelledby={`${family}-title`} className="bento flex h-full scroll-mt-24 flex-col p-6 md:rounded-tile-lg md:p-8">
+                  {image ? (
+                    // Full bleed across the top of the card; hidden (and so never fetched) on phones.
+                    <div className="-mx-8 -mt-8 mb-6 overflow-hidden rounded-t-tile-lg bg-hairline max-md:hidden" data-family-card-image={family}>
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        placeholder="blur"
+                        sizes={IMAGE_SIZES[family]}
+                        className="aspect-[4/3] h-auto w-full object-cover"
+                        style={image.position ? { objectPosition: image.position } : undefined}
+                      />
+                    </div>
+                  ) : null}
                   <h3 id={`${family}-title`} className="text-subhead font-semibold">
                     {title}
                   </h3>
