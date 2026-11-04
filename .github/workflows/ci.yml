@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**", "ws/**"]
+  pull_request:
+
+# Read-only token: CI never needs to write to the repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+  # The production build refuses to ship without a DRE license number
+  # (lib/site.ts). CI uses an obviously fake value; real deploys set the real one.
+  NEXT_PUBLIC_DRE_CORPORATE_LICENSE: "CI-PLACEHOLDER-0000000"
+
+jobs:
+  verify:
+    name: Typecheck, lint, unit tests, migrations, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Apply migrations to PGlite
+        run: npm run test:migrations
+      - run: npm run build
+
+  e2e:
+    name: Playwright e2e (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # playwright.config.ts builds and starts the app on port 3999 with every
+      # external integration unset.
+      - name: Run e2e suite
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: coverage/e2e/report
+          if-no-files-found: ignore
+          retention-days: 7

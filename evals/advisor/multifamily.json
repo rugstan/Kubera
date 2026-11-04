@@ -1,0 +1,73 @@
+{
+  "suite": "Multifamily (HUD and agency)",
+  "version": 1,
+  "cases": [
+    {
+      "id": "mf-223f-leverage",
+      "topic": "multifamily",
+      "question": "What are the max LTV and min DSCR for a market-rate HUD 223(f) apartment refinance today?",
+      "expectedFacts": [
+        { "fact": "87% LTV for market-rate", "anyOf": ["87\\s*%"] },
+        { "fact": "1.15x DSCR for market-rate", "anyOf": ["1\\.15\\s*x"] }
+      ],
+      "forbiddenClaims": [{ "claim": "Quotes the superseded 85% / 1.176x box as current", "pattern": "1\\.176" }],
+      "source": "HUD Mortgagee Letter 2025-03 (Jan 2025), VERIFY"
+    },
+    {
+      "id": "mf-affordable",
+      "topic": "multifamily",
+      "question": "How much more leverage does HUD allow for an affordable or rental-assistance property under 223(f)?",
+      "expectedFacts": [
+        { "fact": "90% LTV for affordable / rental assistance", "anyOf": ["90\\s*%"] },
+        { "fact": "1.11x DSCR", "anyOf": ["1\\.11\\s*x"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "HUD Mortgagee Letter 2025-03 (Jan 2025), VERIFY"
+    },
+    {
+      "id": "mf-mip",
+      "topic": "multifamily",
+      "question": "What is the annual MIP on a new HUD 223(f) multifamily application, and does a green certification lower it?",
+      "expectedFacts": [
+        { "fact": "Flat 0.25% MIP for applications on/after 2025-10-01", "anyOf": ["0\\.25\\s*%"] },
+        { "fact": "Green certification no longer lowers MIP", "anyOf": ["no longer", "doesn't lower", "does not lower", "no (additional|further) (reduction|discount)"] }
+      ],
+      "forbiddenClaims": [{ "claim": "Says green lowers MIP below the flat rate", "pattern": "green[^.]{0,60}(lowers|reduces|cuts)[^.]{0,30}MIP" }],
+      "source": "Federal Register notice, Sept 23, 2025 (MIP effective 2025-10-01), VERIFY"
+    },
+    {
+      "id": "mf-221d4",
+      "topic": "multifamily",
+      "question": "How does HUD 221(d)(4) work for new construction apartments?",
+      "expectedFacts": [
+        { "fact": "Construction plus 40-year fixed", "anyOf": ["40[- ]year", "40 years"] },
+        { "fact": "Leverage stated on cost (LTC)", "anyOf": ["LTC", "loan[- ]to[- ]cost", "of cost"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; HUD ML 2025-03, VERIFY"
+    },
+    {
+      "id": "mf-agency",
+      "topic": "multifamily",
+      "question": "For a $7M stabilized apartment refinance, what would Fannie Mae or Freddie Mac typically offer?",
+      "expectedFacts": [
+        { "fact": "About 80% LTV", "anyOf": ["80\\s*%"] },
+        { "fact": "1.25x DSCR", "anyOf": ["1\\.25\\s*x"] },
+        { "fact": "Non-recourse", "anyOf": ["non-?recourse"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer; agency small-loan guides, VERIFY"
+    },
+    {
+      "id": "mf-binding-constraint",
+      "topic": "multifamily",
+      "question": "My building has $1.2M NOI and is worth $20M. Will LTV or DSCR limit my agency loan?",
+      "expectedFacts": [
+        { "fact": "Explains DSCR often binds before LTV", "anyOf": ["DSCR[^.]{0,80}(bind|limit|constrain)", "(bind|limit|constrain)[^.]{0,80}DSCR"] },
+        { "fact": "Notes the answer depends on rate/underwriting", "anyOf": ["depend", "rate", "underwrit", "indicative"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Research notes (agency deals average ~63% LTV / 1.43x; DSCR usually binds), as of 2026-10"
+    }
+  ]
+}

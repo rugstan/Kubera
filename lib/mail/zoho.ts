@@ -1,0 +1,309 @@
+// Zoho Mail REST connector (read-only): OAuth refresh-token flow, list new
+// messages in a mailbox's Inbox, fetch body + headers, list and download
+// attachments. Corin never sends mail from here; outbound mail goes through
+// the approval gate and the transactional email client (lib/notify/email).
+//
+// Each inbound mailbox (deals@, docs@, …) is its own Zoho account. A mailbox
+// uses ZOHO_MAIL_REFRESH_TOKEN_<MAILBOX> when set (token minted while signed
+// in as that mailbox), otherwise ZOHO_MAIL_REFRESH_TOKEN (a user with
+// delegated access to every mailbox). The account id comes from
+// ZOHO_MAIL_ACCOUNT_ID_<MAILBOX> or is looked up by address via GET /accounts.
+// OAuth scopes: ZohoMail.accounts.READ, ZohoMail.folders.READ, ZohoMail.messages.READ.
+
+import { sharedZohoTokenCache, ZohoAccessTokens, ZohoOAuthError, type ZohoTokenCache } from "@/lib/zoho/oauth";
+import { mailboxAddress, type InboundMailbox } from "./mailboxes";
+import { dmarcVerdict, headerValue, htmlToText, isAutomated, isBulk, messageIds, parseAddress, parseAddressList, parseHeaders } from "./text";
+import { AttachmentListError, MailProviderError, type KnownIds, type MailMessage, type MailProvider, type MailRef, type MailSummary } from "./types";
+
+/** Hard stop on messages paged through in one listing (a safety net; stored ids are skipped, not capped). */
+const MAX_LIST_SCAN = 100_000;
+
+const DATA_CENTERS = new Set(["com", "eu", "in", "com.au", "jp", "ca", "sa", "com.cn"]);
+
+export type ZohoMailConfig = {
+  clientId: string;
+  clientSecret: string;
+  /** Data-center TLD: com (US), eu, in, com.au, jp, ca, sa. */
+  dc: string;
+  /** Refresh token per mailbox (already resolved with the shared fallback). */
+  refreshTokens: Partial<Record<InboundMailbox, string>>;
+  accountIds: Partial<Record<InboundMailbox, string>>;
+  addresses: Record<InboundMailbox, string>;
+  fetch?: typeof fetch;
+  now?: () => number;
+  /** Shared access-token store (default: Upstash when configured, else per instance). */
+  tokenCache?: ZohoTokenCache | null;
+  /** Lock-poll wait (tests). */
+  sleep?: (ms: number) => Promise<void>;
+};
+
+const MAILBOX_ENV: Record<InboundMailbox, string> = { deals: "DEALS", docs: "DOCS", lenders: "LENDERS", vendors: "VENDORS", closing: "CLOSING" };
+
+export function zohoMailConfigFromEnv(env: Record<string, string | undefined> = process.env): ZohoMailConfig | null {
+  const clientId = env.ZOHO_MAIL_CLIENT_ID?.trim();
+  const clientSecret = env.ZOHO_MAIL_CLIENT_SECRET?.trim();
+  if (!clientId || !clientSecret) return null;
+  const dc = env.ZOHO_MAIL_DC?.trim() || "com";
+  if (!DATA_CENTERS.has(dc)) {
+    console.warn(`[mail] ZOHO_MAIL_DC "${dc}" is not a Zoho data center; mail polling disabled`);
+    return null;
+  }
+  const shared = env.ZOHO_MAIL_REFRESH_TOKEN?.trim();
+  const refreshTokens: Partial<Record<InboundMailbox, string>> = {};
+  const accountIds: Partial<Record<InboundMailbox, string>> = {};
+  const addresses = {} as Record<InboundMailbox, string>;
+  for (const [mb, suffix] of Object.entries(MAILBOX_ENV) as [InboundMailbox, string][]) {
+    const token = env[`ZOHO_MAIL_REFRESH_TOKEN_${suffix}`]?.trim() || shared;
+    if (token) refreshTokens[mb] = token;
+    const account = env[`ZOHO_MAIL_ACCOUNT_ID_${suffix}`]?.trim();
+    if (account) accountIds[mb] = account;
+    addresses[mb] = mailboxAddress(mb, env);
+  }
+  if (!Object.keys(refreshTokens).length) return null;
+  return { clientId, clientSecret, dc, refreshTokens, accountIds, addresses };
+}
+
+type ZohoEnvelope<T> = { status?: { code?: number; description?: string }; data?: T };
+
+type ZohoListItem = {
+  messageId: string;
+  folderId: string;
+  subject?: string;
+  sender?: string;
+  fromAddress?: string;
+  toAddress?: string;
+  ccAddress?: string;
+  receivedTime?: string | number;
+  summary?: string;
+  hasAttachment?: string | boolean;
+};
+
+type ZohoAccount = { accountId: string; primaryEmailAddress?: string; emailAddress?: { mailId?: string }[]; mailboxAddress?: string };
+type ZohoFolder = { folderId: string; folderName?: string; folderType?: string };
+
+export class ZohoMailClient implements MailProvider {
+  readonly name = "zoho";
+  private readonly fetchImpl: typeof fetch;
+  private readonly now: () => number;
+  private readonly tokens = new Map<string, ZohoAccessTokens>();
+  private readonly accounts = new Map<InboundMailbox, string>();
+  private readonly inboxes = new Map<InboundMailbox, string>();
+
+  constructor(private readonly config: ZohoMailConfig) {
+    this.fetchImpl = config.fetch ?? globalThis.fetch.bind(globalThis);
+    this.now = config.now ?? (() => Date.now());
+    for (const [mb, id] of Object.entries(config.accountIds)) if (id) this.accounts.set(mb as InboundMailbox, id);
+  }
+
+  configured(mailbox: InboundMailbox): boolean {
+    return Boolean(this.config.refreshTokens[mailbox]);
+  }
+
+  private get accountsBase(): string {
+    return `https://accounts.zoho.${this.config.dc}`;
+  }
+  private get apiBase(): string {
+    return `https://mail.zoho.${this.config.dc}/api`;
+  }
+
+  private tokenManager(refresh: string): ZohoAccessTokens {
+    let m = this.tokens.get(refresh);
+    if (!m) {
+      m = new ZohoAccessTokens({
+        accountsUrl: this.accountsBase,
+        clientId: this.config.clientId,
+        clientSecret: this.config.clientSecret,
+        refreshToken: refresh,
+        fetch: this.fetchImpl,
+        now: this.now,
+        cache: this.config.tokenCache === undefined ? sharedZohoTokenCache() : this.config.tokenCache,
+        ...(this.config.sleep ? { sleep: this.config.sleep } : {}),
+        label: "mail",
+      });
+      this.tokens.set(refresh, m);
+    }
+    return m;
+  }
+
+  private async accessToken(mailbox: InboundMailbox, stale?: string): Promise<string> {
+    const refresh = this.config.refreshTokens[mailbox];
+    if (!refresh) throw new MailProviderError(`No Zoho Mail refresh token for ${mailbox}@`, null, false);
+    try {
+      const token = await this.tokenManager(refresh).get(stale ? { stale } : {});
+      return token;
+    } catch (err) {
+      // Throttled (Zoho caps refreshes per refresh token), network or 5xx: retry with backoff.
+      if (err instanceof ZohoOAuthError) throw new MailProviderError(err.message, err.status, err.retryable);
+      throw err;
+    }
+  }
+
+  private async request(mailbox: InboundMailbox, path: string, init: { raw?: boolean } = {}): Promise<Response> {
+    const token = await this.accessToken(mailbox);
+    let res: Response;
+    try {
+      res = await this.fetchImpl(`${this.apiBase}${path}`, { headers: { authorization: `Zoho-oauthtoken ${token}`, accept: init.raw ? "*/*" : "application/json" }, signal: AbortSignal.timeout(30_000) });
+    } catch (err) {
+      throw new MailProviderError(`Zoho Mail request failed: ${err instanceof Error ? err.message : String(err)}`, null, true);
+    }
+    // Evict the rejected token (shared cache too); the retry mints or reads a fresh one.
+    if (res.status === 401) await this.accessToken(mailbox, token).catch(() => undefined);
+    if (!res.ok) throw new MailProviderError(`Zoho Mail ${path.split("?")[0]} → HTTP ${res.status}`, res.status, res.status === 401 || res.status === 429 || res.status >= 500);
+    return res;
+  }
+
+  private async json<T>(mailbox: InboundMailbox, path: string): Promise<T> {
+    const res = await this.request(mailbox, path);
+    const env = (await res.json()) as ZohoEnvelope<T>;
+    if (env.data === undefined) throw new MailProviderError(`Zoho Mail ${path.split("?")[0]} returned no data (${env.status?.description ?? "unknown"})`, res.status, false);
+    return env.data;
+  }
+
+  private async accountId(mailbox: InboundMailbox): Promise<string> {
+    const known = this.accounts.get(mailbox);
+    if (known) return known;
+    const address = this.config.addresses[mailbox].toLowerCase();
+    const list = await this.json<ZohoAccount[]>(mailbox, "/accounts");
+    const match = list.find((a) => [a.primaryEmailAddress, a.mailboxAddress, ...(a.emailAddress ?? []).map((e) => e.mailId)].some((m) => m?.toLowerCase() === address));
+    if (!match) throw new MailProviderError(`No Zoho Mail account for ${address}; set ZOHO_MAIL_ACCOUNT_ID_${MAILBOX_ENV[mailbox]}`, null, false);
+    this.accounts.set(mailbox, match.accountId);
+    return match.accountId;
+  }
+
+  private async inboxFolder(mailbox: InboundMailbox): Promise<string> {
+    const known = this.inboxes.get(mailbox);
+    if (known) return known;
+    const account = await this.accountId(mailbox);
+    const folders = await this.json<ZohoFolder[]>(mailbox, `/accounts/${encodeURIComponent(account)}/folders`);
+    const inbox = folders.find((f) => f.folderType?.toLowerCase() === "inbox") ?? folders.find((f) => f.folderName?.toLowerCase() === "inbox");
+    if (!inbox) throw new MailProviderError(`No Inbox folder for ${mailbox}@`, null, false);
+    this.inboxes.set(mailbox, inbox.folderId);
+    return inbox.folderId;
+  }
+
+  private summary(mailbox: InboundMailbox, m: ZohoListItem): MailSummary {
+    const from = parseAddress(m.fromAddress ?? m.sender ?? "");
+    return {
+      mailbox,
+      providerMessageId: String(m.messageId),
+      folderId: String(m.folderId),
+      subject: decodeSubject(m.subject ?? ""),
+      fromAddress: from.address,
+      fromName: from.name ?? (m.sender && !m.sender.includes("@") ? m.sender : null),
+      toAddresses: parseAddressList(m.toAddress?.replace(/&lt;/g, "<").replace(/&gt;/g, ">")),
+      ccAddresses: parseAddressList(m.ccAddress?.replace(/&lt;/g, "<").replace(/&gt;/g, ">")),
+      receivedAt: new Date(Number(m.receivedTime ?? 0)).toISOString(),
+      hasAttachments: m.hasAttachment === true || m.hasAttachment === "1",
+      snippet: (m.summary ?? "").slice(0, 500),
+    };
+  }
+
+  /**
+   * Every unstored message newer than `since` (up to `limit` of them), oldest
+   * first. Zoho lists newest first, so this pages until it reaches `since` or has
+   * `limit` unstored messages. Ids `knownIds` reports as stored are skipped and do
+   * not count toward `limit`, so a window holding more than `limit` messages is
+   * still paged back to the older unstored ones.
+   */
+  async listNew(mailbox: InboundMailbox, since: Date | null, limit: number, knownIds?: KnownIds): Promise<MailSummary[]> {
+    const account = await this.accountId(mailbox);
+    const folder = await this.inboxFolder(mailbox);
+    const pageSize = Math.min(200, Math.max(1, limit));
+    const out: MailSummary[] = [];
+    let scanned = 0;
+    for (let start = 1; out.length < limit && scanned < MAX_LIST_SCAN; start += pageSize) {
+      const page = await this.json<ZohoListItem[]>(
+        mailbox,
+        `/accounts/${encodeURIComponent(account)}/messages/view?folderId=${encodeURIComponent(folder)}&start=${start}&limit=${pageSize}&sortBy=date&sortorder=false&includeto=true`,
+      );
+      scanned += page.length;
+      const fresh: MailSummary[] = [];
+      let reachedSince = false;
+      for (const item of page) {
+        const s = this.summary(mailbox, item);
+        if (since && Date.parse(s.receivedAt) <= since.getTime()) {
+          reachedSince = true;
+          break;
+        }
+        fresh.push(s);
+      }
+      const known = knownIds && fresh.length ? await knownIds(fresh.map((m) => m.providerMessageId)) : new Set<string>();
+      for (const s of fresh) {
+        if (known.has(s.providerMessageId)) continue;
+        out.push(s);
+        if (out.length >= limit) break;
+      }
+      if (reachedSince || page.length < pageSize) break;
+    }
+    if (scanned >= MAX_LIST_SCAN && out.length < limit) console.warn(`[mail] ${mailbox}@ listing stopped after ${scanned} messages; older unstored ones are not reached`);
+    return out.reverse();
+  }
+
+  async fetchMessage(mailbox: InboundMailbox, ref: MailRef): Promise<MailMessage> {
+    const account = encodeURIComponent(await this.accountId(mailbox));
+    const base = `/accounts/${account}/folders/${encodeURIComponent(ref.folderId)}/messages/${encodeURIComponent(ref.providerMessageId)}`;
+    type AttachmentInfo = { attachments?: { attachmentId: string; attachmentName?: string; attachmentSize?: number | string }[] };
+    // Settled, not swallowed: whether a listing failure is fatal depends on the details.
+    const listing = this.json<AttachmentInfo>(mailbox, `${base}/attachmentinfo`).then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
+    const [details, content, header, attachmentResult] = await Promise.all([
+      this.json<ZohoListItem>(mailbox, `${base}/details`),
+      this.json<{ content?: string }>(mailbox, `${base}/content?includeBlockContent=true`),
+      this.json<{ headerContent?: string | Record<string, string[]> }>(mailbox, `${base}/header?raw=true`),
+      listing,
+    ]);
+    const rawHeaders = typeof header.headerContent === "string" ? header.headerContent : Object.entries(header.headerContent ?? {}).map(([k, v]) => `${k}: ${[v].flat().join(", ")}`).join("\n");
+    const h = parseHeaders(rawHeaders);
+    const summary = this.summary(mailbox, { ...details, messageId: ref.providerMessageId, folderId: ref.folderId });
+    const html = content.content ?? "";
+    const message: MailMessage = {
+      ...summary,
+      internetMessageId: messageIds(headerValue(h, "message-id"))[0] ?? null,
+      inReplyTo: messageIds(headerValue(h, "in-reply-to"))[0] ?? null,
+      references: messageIds(headerValue(h, "references")),
+      bodyText: /<[a-z][\s\S]*>/i.test(html) ? htmlToText(html) : html.trim(),
+      attachments: [],
+      automated: isAutomated(h),
+      bulk: isBulk(h),
+      dmarc: dmarcVerdict(h),
+    };
+    if (attachmentResult.ok) {
+      message.attachments = (attachmentResult.value.attachments ?? []).map((a) => ({ attachmentId: String(a.attachmentId), fileName: a.attachmentName ?? "attachment", size: Number(a.attachmentSize ?? 0), contentType: null }));
+      return message;
+    }
+    const err = attachmentResult.error;
+    // Only a definitive answer (a non-retryable error such as a 404 for a
+    // message whose details say it has no attachments) means "no attachments".
+    // Throttling, 5xx, timeouts and token eviction are retried, and so is any
+    // failure on a message that has attachments: an empty list would save it
+    // as processed and lose its files without a trace.
+    if (err instanceof MailProviderError && !err.retryable && !summary.hasAttachments) return message;
+    const status = err instanceof MailProviderError ? err.status : null;
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new AttachmentListError(`attachment list unavailable (${cause})`.slice(0, 1000), status, message);
+  }
+
+  async fetchAttachment(mailbox: InboundMailbox, ref: MailRef, attachmentId: string): Promise<{ bytes: Uint8Array; contentType: string | null }> {
+    const account = encodeURIComponent(await this.accountId(mailbox));
+    const res = await this.request(
+      mailbox,
+      `/accounts/${account}/folders/${encodeURIComponent(ref.folderId)}/messages/${encodeURIComponent(ref.providerMessageId)}/attachments/${encodeURIComponent(attachmentId)}`,
+      { raw: true },
+    );
+    return { bytes: new Uint8Array(await res.arrayBuffer()), contentType: res.headers.get("content-type") };
+  }
+}
+
+/** Decodes RFC 2047 encoded-words (=?utf-8?B?…?= / =?utf-8?Q?…?=) when Zoho passes them through. */
+export function decodeSubject(subject: string): string {
+  return subject.replace(/=\?([^?]+)\?([BQ])\?([^?]*)\?=/gi, (m, charset: string, enc: string, text: string) => {
+    try {
+      const bytes = enc.toUpperCase() === "B" ? Buffer.from(text, "base64") : Buffer.from(text.replace(/_/g, " ").replace(/=([0-9a-f]{2})/gi, (_x, hex: string) => String.fromCharCode(parseInt(hex, 16))), "binary");
+      return new TextDecoder(charset.toLowerCase() === "utf8" ? "utf-8" : charset).decode(bytes);
+    } catch {
+      return m;
+    }
+  });
+}

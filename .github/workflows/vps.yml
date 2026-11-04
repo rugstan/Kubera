@@ -1,0 +1,249 @@
+name: VPS
+
+# Runs the VPS from GitHub. GitHub's runners open the SSH connection, so the
+# server can be managed from places that cannot reach port 22 themselves. Every
+# action is logged in the Actions tab.
+#
+# Start a task in one of three ways:
+#   - Actions → VPS → Run workflow (available once this file is on the default branch).
+#   - Push an annotated tag named vps/<task>/<anything>. For run and tls, the tag
+#     message is the argument, e.g.
+#       git tag -a vps/run/disk -m "df -h" && git push origin vps/run/disk
+#   - Push to main. This deploys if the repository variable VPS_DEPLOY_ON_PUSH is "true".
+#
+# Tasks:
+#   inspect   read-only health report
+#   setup     prepare the server (ops/vps/setup.sh); safe to run again
+#   deploy    build this commit and switch the server to it; rolls back if unhealthy
+#   rollback  go back to the previous release
+#   status    show the live release and the service
+#   run       run a shell command on the server
+#   tls       HTTPS certificates for domains that point at the server
+#   harden    SSH keys only, no passwords (ops/vps/harden.sh)
+#
+# Repository secrets:
+#   VPS_HOST         server IP or host name (required)
+#   VPS_SSH_KEY      private key whose public half is in the server's authorized_keys (required)
+#   VPS_USER         SSH user, default root (a non-root user needs passwordless sudo)
+#   VPS_PORT         SSH port, default 22
+#   VPS_KNOWN_HOSTS  the server's host key, to pin it (printed by the first run)
+#   CORIN_ENV        app settings in .env format, written to /etc/corin/app.env on deploy
+#   CORIN_BUILD_ENV  build-time NEXT_PUBLIC_* settings in .env format
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: What to do
+        type: choice
+        options: [inspect, setup, deploy, rollback, status, run, tls, harden]
+        default: inspect
+      args:
+        description: "run: the shell command. tls: domains (default: all four), plus email=you@example.com if you like."
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    tags: ["vps/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  vps:
+    name: VPS task
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Choose the task
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          INPUT_TASK: ${{ inputs.task }}
+          INPUT_ARGS: ${{ inputs.args }}
+          HAS_HOST: ${{ secrets.VPS_HOST != '' && secrets.VPS_SSH_KEY != '' }}
+          DEPLOY_ON_PUSH: ${{ vars.VPS_DEPLOY_ON_PUSH }}
+        run: |
+          task=""
+          args=""
+          if [ "$EVENT" = workflow_dispatch ]; then
+            task="$INPUT_TASK"
+            args="$INPUT_ARGS"
+          elif [ "$REF_TYPE" = tag ]; then
+            task="$(printf '%s' "$REF_NAME" | cut -d/ -f2)"
+            git fetch --no-tags --depth=1 origin "+refs/tags/$REF_NAME:refs/tags/$REF_NAME"
+            # Only an annotated tag carries an argument; a lightweight tag would hand over the commit message.
+            if [ "$(git cat-file -t "refs/tags/$REF_NAME")" = tag ]; then
+              args="$(git tag -l --format='%(contents:subject)%0a%(contents:body)' "$REF_NAME")"
+            fi
+          elif [ "$DEPLOY_ON_PUSH" = true ]; then
+            task=deploy
+          else
+            echo "Push to $REF_NAME: deploy on push is off (repository variable VPS_DEPLOY_ON_PUSH is not \"true\")."
+          fi
+          case "$task" in
+            "" | inspect | setup | deploy | rollback | status | run | tls | harden) ;;
+            *) echo "::error::Unknown task '$task'"; exit 1 ;;
+          esac
+          if [ -n "$task" ] && [ "$HAS_HOST" != true ]; then
+            echo "::error::Add the VPS_HOST and VPS_SSH_KEY repository secrets first (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          if [ "$task" = run ] && [ -z "$(printf '%s' "$args" | tr -d '[:space:]')" ]; then
+            echo "::error::run needs a command (the args input, or the tag message)."
+            exit 1
+          fi
+          delim="ARGS_$(openssl rand -hex 12)"
+          {
+            echo "task=$task"
+            echo "args<<$delim"
+            printf '%s\n' "$args"
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
+          echo "Task: ${task:-none}"
+
+      - name: Connect to the server
+        if: steps.plan.outputs.task != ''
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" | tr -d '\r' > ~/.ssh/vps
+          chmod 600 ~/.ssh/vps
+          port="${VPS_PORT:-22}"
+          user="${VPS_USER:-root}"
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -T 20 -p "$port" "$VPS_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
+            if [ ! -s ~/.ssh/known_hosts ]; then
+              echo "::error::Could not reach the server on port $port."
+              exit 1
+            fi
+            echo "::notice::The server's host key is not pinned. Save the lines printed below as the VPS_KNOWN_HOSTS secret to pin it."
+            cat ~/.ssh/known_hosts
+          fi
+          ssh-keygen -lf ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName $VPS_HOST
+            Port $port
+            User $user
+            IdentityFile ~/.ssh/vps
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+            ConnectTimeout 20
+          EOF
+          if [ "$user" = root ]; then echo "REMOTE_SUDO=" >> "$GITHUB_ENV"; else echo "REMOTE_SUDO=sudo -n" >> "$GITHUB_ENV"; fi
+          echo "SSH_PORT=$port" >> "$GITHUB_ENV"
+          ssh vps 'echo "Connected to $(hostname) as $(whoami)"'
+
+      - name: Inspect
+        if: steps.plan.outputs.task == 'inspect'
+        run: ssh vps "$REMOTE_SUDO bash -s" < ops/vps/inspect.sh
+
+      - name: Set up the server
+        if: steps.plan.outputs.task == 'setup'
+        run: |
+          tar -czf - -C ops vps | ssh vps 'rm -rf /tmp/corin-ops && mkdir -p /tmp/corin-ops && tar -xzf - -C /tmp/corin-ops'
+          ssh vps "$REMOTE_SUDO env SSH_PORT=$SSH_PORT bash /tmp/corin-ops/vps/setup.sh"
+
+      - name: Run a command
+        if: steps.plan.outputs.task == 'run'
+        env:
+          ARGS: ${{ steps.plan.outputs.args }}
+        run: printf '%s\n' "$ARGS" | ssh vps "$REMOTE_SUDO bash -s"
+
+      - name: HTTPS certificates
+        if: steps.plan.outputs.task == 'tls'
+        env:
+          ARGS: ${{ steps.plan.outputs.args }}
+        run: |
+          set -f
+          words=()
+          for w in $ARGS; do
+            if ! [[ "$w" =~ ^[A-Za-z0-9.@=_+-]+$ ]]; then echo "::error::Bad argument: $w"; exit 1; fi
+            words+=("$w")
+          done
+          if [ "${#words[@]}" -eq 0 ]; then words=(corincommercial.com www.corincommercial.com kubera.loans www.kubera.loans); fi
+          ssh vps "$REMOTE_SUDO /usr/local/lib/corin/tls.sh ${words[*]}"
+
+      - name: Roll back
+        if: steps.plan.outputs.task == 'rollback'
+        run: ssh vps "$REMOTE_SUDO /usr/local/bin/corin-release rollback"
+
+      - name: Status
+        if: steps.plan.outputs.task == 'status'
+        run: ssh vps "$REMOTE_SUDO /usr/local/bin/corin-release status"
+
+      - name: SSH keys only
+        if: steps.plan.outputs.task == 'harden'
+        run: ssh vps "$REMOTE_SUDO /usr/local/lib/corin/harden.sh"
+
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.task == 'deploy'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.plan.outputs.task == 'deploy'
+        run: npm ci
+
+      - name: Build the release
+        if: steps.plan.outputs.task == 'deploy'
+        env:
+          NEXT_OUTPUT_STANDALONE: "1"
+          DEPLOY_ENV: production
+          CORIN_BUILD_ENV: ${{ secrets.CORIN_BUILD_ENV }}
+        run: |
+          if [ -n "$CORIN_BUILD_ENV" ]; then printf '%s\n' "$CORIN_BUILD_ENV" > .env.production.local; fi
+          npm run build
+          rm -f .env.production.local
+          test -f .next/standalone/server.js
+          rm -rf release
+          mkdir release
+          cp -a .next/standalone/. release/
+          mkdir -p release/.next
+          cp -a .next/static release/.next/static
+          if [ -d public ]; then cp -a public release/public; fi
+          rm -rf release/.next/cache
+          rm -f release/.env*
+          tar -czf corin-release.tgz -C release .
+          ls -lh corin-release.tgz
+
+      - name: Ship and switch
+        if: steps.plan.outputs.task == 'deploy'
+        env:
+          CORIN_ENV: ${{ secrets.CORIN_ENV }}
+          SHA: ${{ github.sha }}
+        run: |
+          if ! ssh vps 'test -x /usr/local/bin/corin-release'; then
+            echo "::error::The server is not set up yet. Run the setup task first."
+            exit 1
+          fi
+          id="$(date -u +%Y%m%d-%H%M%S)-${SHA::7}"
+          scp -q corin-release.tgz "vps:/tmp/corin-$id.tgz"
+          if [ -n "$CORIN_ENV" ]; then
+            printf '%s\n' "$CORIN_ENV" | ssh vps "$REMOTE_SUDO sh -c 'umask 027 && cat > /etc/corin/app.env.new && chgrp corin /etc/corin/app.env.new && mv /etc/corin/app.env.new /etc/corin/app.env'"
+            echo "App settings from CORIN_ENV written to /etc/corin/app.env."
+          fi
+          ssh vps "$REMOTE_SUDO /usr/local/bin/corin-release install /tmp/corin-$id.tgz $id"
+          echo "### Deployed release $id" >> "$GITHUB_STEP_SUMMARY"

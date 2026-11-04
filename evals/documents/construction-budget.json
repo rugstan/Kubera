@@ -1,0 +1,193 @@
+{
+  "docType": "CONSTRUCTION_BUDGET",
+  "cases": [
+    {
+      "id": "budget-lines-csv",
+      "description": "Line-item development budget with a category column.",
+      "source": {
+        "format": "csv",
+        "lines": [
+          "Harbor View Apartments - Development Budget",
+          "Description,Category,Amount",
+          "Land acquisition,Land,\"3,000,000\"",
+          "Sitework,Hard,\"1,200,000\"",
+          "Building construction (GMP),Hard,\"14,800,000\"",
+          "Architecture and engineering,Soft,\"900,000\"",
+          "Permits and impact fees,Soft,\"650,000\"",
+          "Legal and title,Soft,\"250,000\"",
+          "Hard cost contingency,Contingency,\"800,000\"",
+          "Soft cost contingency,Contingency,\"100,000\"",
+          "Developer fee,Developer fee,\"600,000\"",
+          "Interest reserve,Financing,\"1,100,000\"",
+          "Loan fees,Financing,\"300,000\"",
+          "Total project cost,,\"23,700,000\""
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "landCost": 3000000,
+          "hardCosts": 16000000,
+          "softCosts": 1800000,
+          "contingency": 900000,
+          "developerFee": 600000,
+          "financingCosts": 1400000,
+          "totalCost": 23700000
+        },
+        "rowCount": 11,
+        "rows": [
+          {
+            "index": 1,
+            "values": {
+              "description": "Sitework",
+              "category": "hard",
+              "amount": 1200000
+            }
+          },
+          {
+            "index": 9,
+            "values": {
+              "category": "financing",
+              "amount": 1100000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "budget-summary-xlsx",
+      "description": "Sources-and-uses summary with a GMP contract and no line items.",
+      "source": {
+        "format": "xlsx",
+        "sheets": [
+          {
+            "name": "Budget",
+            "rows": [
+              [
+                "Sources and Uses"
+              ],
+              [
+                "Uses",
+                null
+              ],
+              [
+                "Land",
+                2000000
+              ],
+              [
+                "Hard Costs",
+                8000000
+              ],
+              [
+                "Soft Costs",
+                1200000
+              ],
+              [
+                "Contingency",
+                800000
+              ],
+              [
+                "Developer Fee",
+                460000
+              ],
+              [
+                "Financing Costs",
+                540000
+              ],
+              [
+                "Total Uses",
+                13000000
+              ],
+              [
+                "GMP",
+                "Yes"
+              ]
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "landCost": 2000000,
+          "hardCosts": 8000000,
+          "softCosts": 1200000,
+          "contingency": 800000,
+          "developerFee": 460000,
+          "financingCosts": 540000,
+          "totalCost": 13000000,
+          "gmpContract": true
+        },
+        "rowCount": 0
+      }
+    },
+    {
+      "id": "budget-pip-pdf",
+      "description": "PIP budget with a line the categorizer cannot place: it goes to review.",
+      "source": {
+        "format": "pdf",
+        "lines": [
+          [
+            "PIP Budget - Harbor Inn"
+          ],
+          [
+            "Item",
+            "Amount"
+          ],
+          [
+            "Guest room renovation",
+            "2,400,000"
+          ],
+          [
+            "Lobby and public space",
+            "600,000"
+          ],
+          [
+            "FF&E",
+            "900,000"
+          ],
+          [
+            "Design fees",
+            "150,000"
+          ],
+          [
+            "Contingency",
+            "400,000"
+          ],
+          [
+            "Total",
+            "4,450,000"
+          ]
+        ]
+      },
+      "expected": {
+        "status": "needs_review",
+        "warnings": [
+          "budget_lines_uncategorized"
+        ],
+        "scalars": {
+          "totalCost": 4450000,
+          "hardCosts": 3900000,
+          "softCosts": 150000,
+          "contingency": 400000
+        },
+        "rowCount": 5,
+        "rows": [
+          {
+            "index": 1,
+            "values": {
+              "description": "Lobby and public space",
+              "category": "hard"
+            }
+          },
+          {
+            "index": 3,
+            "values": {
+              "category": "soft"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

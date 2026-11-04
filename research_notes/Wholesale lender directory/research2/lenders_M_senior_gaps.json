@@ -1,0 +1,526 @@
+{
+ "lenders": [
+  {
+   "name": "National Health Investors (NHI) - mortgage, mezzanine and construction loans",
+   "parent_or_aka": "National Health Investors, Inc. (NYSE: NHI), healthcare REIT",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare mezz / pref equity",
+   "lender_type": "REIT",
+   "hq_city": "Murfreesboro",
+   "hq_state": "TN",
+   "website": "https://www.nhireit.com",
+   "footprint": "National",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "Senior housing (IL/AL/MC), SNF, CCRC",
+   "programs": "Mezzanine loans to operators, Construction loans (AL), Mortgage notes (acquisition / refinance)",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "9.0%-10.0% on disclosed 2025 loans (e.g. 9.0% ALF construction loan; 9.4% Vizion Health mezz; 10.0% CFG mezz)",
+   "term": "e.g. construction loan maturing April 2030; mezz extended to May 2028",
+   "recourse": "",
+   "lien_position": "1st (mortgage notes, construction), mezz",
+   "speed_to_close": "",
+   "broker_program": "No broker program published. Loans disclosed in SEC filings go to operator relationships (Encore Senior Living construction loan, Vizion Health mezz) and to Capital Funding Group (mezz facility), often alongside purchase options. Treat as a capital source for established operators, not a broker desk.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "",
+   "contact_title": "",
+   "licenses": "",
+   "fit_notes": "REIT that makes loans to operators: up to $28.0M AL construction loan (MI, May 2025), new $18.8M and $11.3M mortgage notes (late 2025), operator mezz. Useful for Corin operator clients who want REIT growth capital; no documented broker channel or CA loan.",
+   "tier": "C",
+   "sources": [
+    "https://www.sec.gov/Archives/edgar/data/877860/000087786026000053/nhi-20251231.htm",
+    "https://www.sec.gov/Archives/edgar/data/877860/000087786025000183/nhi-20250930.htm",
+    "https://seniorcare.levinassociates.com/2025/05/07/nhi-raises-guidance-in-q1-earnings-report/",
+    "https://www.abfjournal.com/nhi-provides-32-7mm-acquisition-loan-for-south-carolina-ccrc/"
+   ],
+   "confidence": "Medium",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "BOK Financial - Senior Housing & Care",
+   "parent_or_aka": "BOKF, NA / BOK Financial Corporation (Bank of Oklahoma, Bank of Texas, etc.)",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bank / balance sheet",
+   "lender_type": "Bank",
+   "hq_city": "Tulsa",
+   "hq_state": "OK",
+   "website": "https://www.bokfinancial.com/Landing-Pages/Senior-Housing",
+   "footprint": "National (senior housing team lends outside the bank's branch states)",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "Senior housing (IL/AL/MC), SNF, post-acute",
+   "programs": "Senior housing construction loans, Bridge loans, Acquisition / refinance term loans, Treasury / deposit services",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "",
+   "recourse": "",
+   "lien_position": "",
+   "speed_to_close": "",
+   "broker_program": "No published broker program. Direct relationship lender to experienced owner-operators; the bank describes starting with lower initial loan amounts plus earn-outs until labor costs and occupancy stabilize.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "Taylor Russ",
+   "contact_title": "Senior housing construction financing team (listed on BOK Financial senior housing page)",
+   "licenses": "",
+   "fit_notes": "Dedicated senior housing and care team. Says it has provided more than $3.7B of construction and bridge financing since 2011 on 21,000+ units, with a named construction-lending team. Good fit for AL/MC construction and bridge deals. CA activity and broker acceptance are not documented.",
+   "tier": "B",
+   "sources": [
+    "https://www.bokfinancial.com/Landing-Pages/Senior-Housing",
+    "https://seniorshousingbusiness.com/?p=1326",
+    "https://www.nic.org/insider/may-2022/"
+   ],
+   "confidence": "Medium",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "Texas Capital - Healthcare Banking (healthcare real estate)",
+   "parent_or_aka": "Texas Capital Bank / Texas Capital Bancshares (NASDAQ: TCBI)",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bank / balance sheet",
+   "lender_type": "Bank",
+   "hq_city": "Dallas",
+   "hq_state": "TX",
+   "website": "https://www.texascapital.com",
+   "footprint": "National (healthcare real estate coverage described as across the United States)",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "SNF, Assisted living, Memory care",
+   "programs": "Healthcare real estate loans, Healthcare ABL, Cash-flow loans",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "",
+   "recourse": "",
+   "lien_position": "",
+   "speed_to_close": "",
+   "broker_program": "No broker program published. Five-person healthcare banking team added mid-2025 (ABL, cash flow and real estate), with a stated new push into healthcare real estate for skilled nursing, assisted living and memory care.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "Rhonda Noell",
+   "contact_title": "Managing Director, Healthcare",
+   "licenses": "",
+   "fit_notes": "New 2025 healthcare team covering SNF / AL / MC real estate nationally. Worth a call for operator-quality bank balance-sheet deals; CA activity and broker acceptance are unconfirmed.",
+   "tier": "B",
+   "sources": [
+    "https://www.sfnet.com/home/chapters/canada/news-detail/2025/08/19/texas-capital-adds-a-five-person-healthcare-banking-team",
+    "https://www.abfjournal.com/texas-capitals-new-healthcare-team-brings-deep-expertise-and-even-deeper-trust/"
+   ],
+   "confidence": "Low",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "Dougherty Mortgage LLC",
+   "parent_or_aka": "Dougherty Financial Group affiliate",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "HUD 232 / Agency (permanent & construction)",
+   "lender_type": "HUD/Agency lender",
+   "hq_city": "Minneapolis",
+   "hq_state": "MN",
+   "website": "",
+   "footprint": "National; deal history concentrated in the Upper Midwest",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "Senior housing (IL/AL/MC), Seniors cooperatives, Age-restricted multifamily",
+   "programs": "HUD 232/223(f), HUD 232/223(a)(7), HUD 213 cooperative construction, HUD 221(d)(4), Fannie Mae Seniors Housing (DUS)",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "e.g. 35-yr fully amortizing (HUD 232)",
+   "recourse": "Non-recourse (HUD / Fannie)",
+   "lien_position": "1st",
+   "speed_to_close": "",
+   "broker_program": "No broker program found. Agency lender; deals reported as 'arranged' or 'originated' by Dougherty.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "",
+   "contact_title": "",
+   "licenses": "FHA MAP and LEAN approved (per trade coverage); Fannie Mae DUS (per trade coverage)",
+   "fit_notes": "LEAN-approved HUD 232 plus Fannie seniors lender. Most reported deals are 2017-2020 Midwest, so current activity and CA appetite need a call.",
+   "tier": "C",
+   "sources": [
+    "https://rebusinessonline.com/?p=262260",
+    "https://rejournals.com/dougherty-mortgage-llc-arranges-more-than-20-million-for-refinancing-of-two-senior-care-facilities/",
+    "https://seniorshousingbusiness.com/?p=4837"
+   ],
+   "confidence": "Low",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "Paragon Mortgage Corporation",
+   "parent_or_aka": "",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "HUD 232 / Agency (permanent & construction)",
+   "lender_type": "HUD/Agency lender",
+   "hq_city": "",
+   "hq_state": "",
+   "website": "",
+   "footprint": "National",
+   "lends_in_california": "Yes",
+   "property_types": "SNF, Multifamily",
+   "programs": "HUD 232/223(f), HUD 221(d)(4), HUD multifamily refinance",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "e.g. 25-yr fully amortizing (2020 North Hollywood SNF HUD 232/223 refinance)",
+   "recourse": "Non-recourse (HUD)",
+   "lien_position": "1st",
+   "speed_to_close": "",
+   "broker_program": "No broker program found.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "",
+   "contact_title": "",
+   "licenses": "",
+   "fit_notes": "Closed a $16.34M HUD 232/223 refinance for a 128-bed SNF in North Hollywood, CA (2020). Last healthcare deal found is from 2020, so confirm the firm is still active in HUD 232 before outreach.",
+   "tier": "C",
+   "sources": [
+    "https://www.businesswire.com/news/home/20200826005471/en/Paragon-Mortgage-Corporation-Arranges-16340000-to-Refinance-Skilled-Nursing-Facility-Located-in-North-Hollywood-CA",
+    "https://skillednursingnews.com/2020/09/paragons-16m-skilled-nursing-refinance-in-hollywood/",
+    "https://prnewswire.com/news-releases/paragon-mortgage-corporation-arranges-6-1m-to-refinance-multifamily-property-in-phoenix-az-301399906.html"
+   ],
+   "confidence": "Low",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "iBorrow",
+   "parent_or_aka": "iBorrow, LP (founder / CEO Brian Good; predecessor Eagle Group, LLC per third-party profile)",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bridge / bridge-to-HUD",
+   "lender_type": "Private money fund",
+   "hq_city": "Los Angeles",
+   "hq_state": "CA",
+   "website": "",
+   "footprint": "National (commercial bridge); assisted living deals reported in Southern California",
+   "lends_in_california": "Yes",
+   "property_types": "Assisted living, SNF, Multifamily, Retail, Industrial, Office, Mixed-use",
+   "programs": "Non-recourse bridge loans, Renovation / repositioning bridge, Refinance",
+   "min_loan_usd": 1500000,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "12-24 mo (per investor-platform description)",
+   "recourse": "Non-recourse (per trade description)",
+   "lien_position": "1st",
+   "speed_to_close": "",
+   "broker_program": "No broker program confirmed in search results. Direct private CRE lender; funded by a credit facility of up to $150M from Encina Lender Finance and Sterling National Bank.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "",
+   "contact_title": "",
+   "licenses": "",
+   "fit_notes": "LA-based private bridge lender with a CA assisted living track record: $16.5M on two ALFs (Tarzana / Orange County), $13.5M on a 199-bed Anaheim ALF, $12.5M Oxnard and $9.3M Long Beach ALF renovation loans, $6M Pasadena SNF. Those deals are mostly 2017-2019; a non-healthcare refinance in Aug 2025 shows it is still active. Loan size sources conflict ($1.5M-$30M vs $3M-$100M+).",
+   "tier": "B",
+   "sources": [
+    "https://rebusinessonline.com/iborrow-provides-16-5m-loan-for-two-assisted-living-facilities-in-california/",
+    "https://seniorshousingbusiness.com/?p=2729",
+    "https://rebusinessonline.com/iborrow-provides-9-3m-bridge-loan-for-assisted-living-renovations-in-long-beach/",
+    "https://rebusinessonline.com/iborrow-provides-6m-loan-for-skilled-nursing-facility-in-pasadena/",
+    "https://sfnet.com/detail-pages/article-detail/encina-lender-finance-and-sterling-national-bank-provide-new-credit-facility-of-up-to-150-million-to-iborrow",
+    "https://traded.co/lender/iborrow",
+    "https://www.yieldstreet.com/originator/26187"
+   ],
+   "confidence": "Low",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "Marathon Asset Management - Commercial Real Estate (senior housing lending)",
+   "parent_or_aka": "Marathon Asset Management, L.P.",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bridge / bridge-to-HUD",
+   "lender_type": "Debt fund",
+   "hq_city": "New York",
+   "hq_state": "NY",
+   "website": "",
+   "footprint": "National",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "Senior housing (IL/AL/MC), Multifamily, CRE",
+   "programs": "Senior mortgage loans (large-balance refinance / transitional)",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "",
+   "recourse": "",
+   "lien_position": "1st",
+   "speed_to_close": "",
+   "broker_program": "No broker portal. Takes intermediary-arranged deals: its $235M senior mortgage on an 11-community, 1,564-unit Discovery Senior Living portfolio (Feb 2026) was arranged by CBRE National Senior Housing.",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "Joseph Griffin",
+   "contact_title": "Led the Marathon CRE team on the Feb 2026 senior housing loan (per press release)",
+   "licenses": "",
+   "fit_notes": "Private credit manager that closed a $235M senior housing portfolio refinance in 2026 through a mortgage banker (CBRE). Large-balance only; worth having for big stabilized or near-stabilized portfolios. No CA senior deal found.",
+   "tier": "B",
+   "sources": [
+    "https://www.businesswire.com/news/home/20260218592059/en",
+    "https://irei.com/news/marathon-asset-management-provides-235m-senior-mortgage-loan-to-refinance-lone-stars-multi-state-senior-housing-portfolio",
+    "https://www.multihousingnews.com/lone-star-refinances-senior-housing-portfolio-for-235m"
+   ],
+   "confidence": "Medium",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "IRA Capital - Credit platform (senior housing lending)",
+   "parent_or_aka": "IRA Capital (real estate private equity firm); co-lent with Artemis Real Estate Partners on its 2026 senior housing loan",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bridge / bridge-to-HUD",
+   "lender_type": "Debt fund",
+   "hq_city": "Irvine",
+   "hq_state": "CA",
+   "website": "",
+   "footprint": "West Coast / National (2026 loan secured by WA and OR assets)",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "Senior housing (IL/AL/MC)",
+   "programs": "First-lien senior housing loans (described as bridge in secondary coverage), Senior housing equity (separate strategy)",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "",
+   "recourse": "",
+   "lien_position": "1st",
+   "speed_to_close": "",
+   "broker_program": "No broker program published. Its credit platform closed a $235M loan (June 25, 2026) on two Watermark communities, Bellevue WA (291 units) and Portland OR (243 units), alongside Artemis. A secondary source says IRA has originated about $550M of private debt over two years (unverified).",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "Jay Gangwal",
+   "contact_title": "Co-founder and Managing Partner",
+   "licenses": "",
+   "fit_notes": "California-based (Irvine) sponsor that now lends on senior housing, and a senior housing owner-operator investor in CA since its 2022 $106M CA acquisition. Large-balance West Coast senior housing credit. Broker acceptance and CA loans are not documented.",
+   "tier": "B",
+   "sources": [
+    "https://www.accessnewswire.com/newsroom/en/real-estate/ira-capital-and-artemis-real-estate-partners-advances-credit-strategy-with-235-million-1182137",
+    "https://www.sahmcapital.com/news/content/ira-capital-artemis-close-235-million-loan-backed-by-senior-housing-portfolio-in-washington-oregon-2026-07-01",
+    "https://seniorhousingnews.com/?p=41508",
+    "https://angelinvestorsnetwork.com/real-estate/senior-housing-private-credit-235m-bridge-loan-2026"
+   ],
+   "confidence": "Medium",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "Wells Fargo - Senior Housing Finance (commercial real estate)",
+   "parent_or_aka": "Wells Fargo Bank, N.A.; Other desk of Wells Fargo Multifamily Capital (already in directory)",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bank / balance sheet",
+   "lender_type": "Bank",
+   "hq_city": "San Francisco",
+   "hq_state": "CA",
+   "website": "",
+   "footprint": "National",
+   "lends_in_california": "Yes",
+   "property_types": "Senior housing (IL/AL/MC), Affordable seniors housing",
+   "programs": "Balance-sheet acquisition, repositioning, renovation and construction loans; Note-on-note / loan-on-loan financing; Agency take-out via Wells Fargo Multifamily",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "About 3 yr initial + two 1-yr extensions (older trade report), then permanent take-out",
+   "recourse": "",
+   "lien_position": "1st",
+   "speed_to_close": "",
+   "broker_program": "No broker program published. Relationship / agent-bank lender; acted as administrative agent on a $557M note-on-note financing secured by seven senior housing facilities in five states (Mar 2026).",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "",
+   "contact_title": "",
+   "licenses": "",
+   "fit_notes": "Other desk of Wells Fargo Multifamily Capital. Dedicated senior housing finance group (formed 2015) focused on private-pay IL / AL / MC balance-sheet loans, with San Diego-area seniors deals. Best for large, well-sponsored operators; small-broker access is unlikely.",
+   "tier": "B",
+   "sources": [
+    "https://www.jonesday.com/en/practices/experience/2026/03/wells-fargo-provides-$557-million-note-on-note-financing-secured-by-seven-senior-housing-facilities-in-five-states",
+    "https://www.businesswire.com/news/home/20150421006663/en/Wells-Fargo-Expands-Senior-Housing-Focus-to-Address-Growing-Demand",
+    "https://seniorhousingnews.com/2015/04/21/wells-fargo-creates-new-senior-housing-finance-group/",
+    "https://www.connectcre.com/stories/wells-fargo-finances-san-diego-area-seniors-project/",
+    "https://seniorshousingbusiness.com/?p=27669"
+   ],
+   "confidence": "Low",
+   "last_verified": "2026-11-03"
+  },
+  {
+   "name": "Old National Bank - Healthcare Finance (senior living)",
+   "parent_or_aka": "Old National Bancorp (NASDAQ: ONB); acquired Bremer Financial in 2025",
+   "category": "Senior Living / Healthcare",
+   "subcategory": "Healthcare bank / balance sheet",
+   "lender_type": "Bank",
+   "hq_city": "Evansville",
+   "hq_state": "IN",
+   "website": "",
+   "footprint": "Midwest regional bank; healthcare finance group covers senior living nationally (extent unconfirmed)",
+   "lends_in_california": "Unconfirmed",
+   "property_types": "Senior housing (IL/AL/MC), Not-for-profit senior living / CCRC, Hospitals",
+   "programs": "Senior living term loans, Construction, Treasury management",
+   "min_loan_usd": null,
+   "max_loan_usd": null,
+   "max_leverage": "",
+   "rate_range": "",
+   "term": "",
+   "recourse": "",
+   "lien_position": "",
+   "speed_to_close": "",
+   "broker_program": "No broker program found. Healthcare finance team with dedicated senior living underwriters (job postings for 'Healthcare / Senior Living Facilities' underwriters).",
+   "broker_signup_url": "",
+   "phone": "",
+   "email": "",
+   "address": "",
+   "contact_name": "Mike Mason",
+   "contact_title": "Senior Vice President, Healthcare Finance",
+   "licenses": "",
+   "fit_notes": "$72.2B-asset bank with a named healthcare finance / senior living group serving for-profit and not-for-profit operators. Midwest-centric; CA appetite unconfirmed.",
+   "tier": "C",
+   "sources": [
+    "https://inte.oldnational.com/resources/insights/how-will-senior-living-providers-capture-the-middle-market",
+    "https://www.sec.gov/Archives/edgar/data/707179/000070717926000010/onb-20251231.htm",
+    "https://www.hirebase.org/company/old-national-bank/jobs/commercial-underwriter-healthcare-senior-living-facilities-32da82d9",
+    "https://associates.oldnational.com/donald-woods"
+   ],
+   "confidence": "Low",
+   "last_verified": "2026-11-03"
+  }
+ ],
+ "excluded": [
+  {
+   "name": "Welltower (loans receivable)",
+   "reason": "Healthcare REIT with about $2.95B of real estate loans (Q3 2025), but the filings show loans to its own JV / operator partners, with no third-party or broker origination channel.",
+   "source": "https://www.sec.gov/Archives/edgar/data/766704/000076670425000037/a3q25supplement992.htm"
+  },
+  {
+   "name": "Dekel Capital",
+   "reason": "Capital advisor / mortgage broker (arranged a $14.1M Fresno AL/MC bridge loan); not a lender.",
+   "source": "https://seniorshousingbusiness.com/?p=5886"
+  },
+  {
+   "name": "Congressional Bank (Healthcare Lending)",
+   "reason": "Rebranded as Forbright Bank in 2021 (Forbright is already in the directory).",
+   "source": "https://businesswire.com/news/home/20211022005055/en/Forbright-to-Launch-HUD-Lending-Platform-for-Nursing-Homes-Assisted-Living-Facilities-and-Multifamily-Housing"
+  },
+  {
+   "name": "Midland States Bank (seniors housing HUD)",
+   "reason": "Sold its seniors housing HUD mortgage servicing rights portfolio to Dwight Capital (already in the directory) per Dwight's Jan 2026 release; treat it as exiting the line.",
+   "source": "https://www.businesswire.com/news/home/20260129555971/en/"
+  },
+  {
+   "name": "Comerica Bank (healthcare / senior housing)",
+   "reason": "Merged into Fifth Third Bank on Feb 2, 2026. Fifth Third (Healthcare) is already on the excluded list.",
+   "source": "https://www.nasdaq.com/press-release/fifth-third-completes-merger-comerica-become-9th-largest-us-bank-2026-02-02"
+  },
+  {
+   "name": "Artemis Real Estate Partners",
+   "reason": "Co-lender with IRA Capital on the 2026 $235M Watermark loan, but described as a Barings company, and Barings Real Estate Debt is already in the directory.",
+   "source": "https://angelinvestorsnetwork.com/real-estate/senior-housing-private-credit-235m-bridge-loan-2026"
+  },
+  {
+   "name": "Siena Healthcare Finance",
+   "reason": "Working-capital / ABL lender to SNF operators (e.g. $10M facility for a CA SNF chain), not a real estate lender.",
+   "source": "https://www.sfnet.com/home/chapters/canada/news-detail/2022/03/22/siena-healthcare-finance-provides-a-10-million-credit-facility-to-a-group-of-skilled-nursing-facilities"
+  },
+  {
+   "name": "Meridian Capital Group",
+   "reason": "Mortgage broker / advisor (arranged the $40M Varenita of Simi Valley AL/MC refinance); not a lender.",
+   "source": "https://seniorshousingbusiness.com/?p=21468"
+  }
+ ],
+ "not_researched": [
+  {
+   "name": "Cadence Bank (Healthcare Banking)",
+   "note": "Healthcare Banking group found only in 2012-era coverage; no current senior housing / SNF real estate program or deal found."
+  },
+  {
+   "name": "Zions Bancorporation / California Bank & Trust",
+   "note": "Searched; no senior housing or healthcare real estate lending program found."
+  },
+  {
+   "name": "U.S. Bank (senior housing)",
+   "note": "Searched; only 2013-2014 affordable seniors deals (incl. $55.1M for two LA projects) found, no current senior living program."
+  },
+  {
+   "name": "Citizens Bank (Citizens Financial Group) healthcare",
+   "note": "Searched; only a 2020 NY senior housing loan found."
+  },
+  {
+   "name": "Bank of America healthcare real estate",
+   "note": "Not searched (cap)."
+  },
+  {
+   "name": "Valley National, First Horizon, Associated Bank",
+   "note": "Searched together with Old National; no senior housing results for these three."
+  },
+  {
+   "name": "Wintrust, ServisFirst, Frost, Hancock Whitney",
+   "note": "Hancock Bank funded an older FL AL/MC loan; the rest were not searched (cap)."
+  },
+  {
+   "name": "Pinnacle Financial Partners (healthcare)",
+   "note": "Reported merger with Synovus (Synovus Senior Housing Group is known); merger status not verified this round."
+  },
+  {
+   "name": "White Oak Healthcare Finance",
+   "note": "Bought a $700M Capital One healthcare loan portfolio and leads SNF credit facilities; not confirmed whether it lends on real estate or only ABL / cash flow."
+  },
+  {
+   "name": "Flatbay Capital",
+   "note": "ABL Advisor headline: '$1.9MM CRE bridge loan to senior living community'. Small-balance bridge lead, not researched."
+  },
+  {
+   "name": "HomeStreet Bank senior housing loan program",
+   "note": "Older article on the program's launch; HomeStreet is believed to have merged into Mechanics Bank (excluded). Verify."
+  },
+  {
+   "name": "Healthcare Financial Resources",
+   "note": "Named in brief; search found no lender by this name."
+  },
+  {
+   "name": "Rosemawr",
+   "note": "Named in brief; search returned nothing on the firm."
+  },
+  {
+   "name": "Western Capital Resources",
+   "note": "Named in brief; not searched (cap); relevance doubtful."
+  },
+  {
+   "name": "Gemino Healthcare Finance, SLR Healthcare ABL",
+   "note": "Healthcare ABL lenders; likely out of scope (not real estate); not researched."
+  },
+  {
+   "name": "Strawberry Fields REIT, Healthpeak, Ventas, American Healthcare REIT",
+   "note": "REIT lending to operators not checked (cap). Welltower checked and excluded."
+  },
+  {
+   "name": "Senior Living Investment Brokerage, Siebert Williams Shank",
+   "note": "Brief flags these as a broker and a bond underwriter; not lenders, not researched."
+  },
+  {
+   "name": "Commercial Loan Direct",
+   "note": "Markets senior housing loans with prequalification; appears to be an intermediary, not verified."
+  },
+  {
+   "name": "Unnamed 'finance company' on $40M Varenita of Simi Valley refi",
+   "note": "Meridian-arranged CA AL/MC loan; lender not named in result."
+  },
+  {
+   "name": "Highland Commercial Mortgage, Davis-Penn Mortgage",
+   "note": "Skipped: already handled in round-2 file lenders_N_wave1_followup.json."
+  }
+ ]
+}

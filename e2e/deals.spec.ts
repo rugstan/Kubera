@@ -1,0 +1,50 @@
+import { createRequire } from "node:module";
+import { expect, test } from "@playwright/test";
+import { gotoHydrated } from "./helpers";
+
+// Deal desk (WS-T). The e2e server has no Supabase, so there is no staff
+// session: every page sends the visitor to sign-in (the (staff) layout keeps
+// the requested path), and every export fails closed and leaks no records.
+const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
+type Violation = { id: string; impact: string | null; nodes: { target: string[] }[] };
+
+const PAGES = ["/deals", "/deals/lenders", "/deals/dre", "/deals/00000000-0000-4000-8000-000000000001"];
+
+test.describe("deal desk without a staff session", () => {
+  for (const path of PAGES) {
+    test(`${path} asks for staff sign-in and is not indexable`, async ({ page }) => {
+      await gotoHydrated(page, path);
+      await expect(page).toHaveURL((url) => url.pathname === "/login" && url.searchParams.get("next") === path);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+      await expect(page.getByRole("navigation", { name: "Deal desk" })).toHaveCount(0);
+      await expect(page.getByRole("table")).toHaveCount(0);
+    });
+  }
+
+  test("has no serious or critical axe violations and no horizontal scroll at 390px", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await gotoHydrated(page, "/deals");
+    await page.addScriptTag({ path: axePath });
+    const violations = await page.evaluate<Violation[]>(
+      async () =>
+        (
+          await (window as unknown as { axe: { run: (ctx: Document, opts: unknown) => Promise<{ violations: Violation[] }> } }).axe.run(document, {
+            runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] },
+            resultTypes: ["violations"],
+          })
+        ).violations,
+    );
+    expect(violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
+  test("exports and PDFs answer 401, and an unknown share link opens nothing", async ({ request }) => {
+    expect((await request.get("/deals/dre/export?kind=threshold")).status()).toBe(401);
+    expect((await request.get("/deals/00000000-0000-4000-8000-000000000001/form-159/00000000-0000-4000-8000-000000000002")).status()).toBe(401);
+    const share = await request.get(`/api/deals/share/${"a".repeat(43)}`);
+    // 404 against the demo desk (AUTH_PROVIDER=fake, the suite's default), 503 with no desk at all.
+    expect([404, 503]).toContain(share.status());
+    expect(await share.text()).not.toMatch(/Package version/);
+    expect(share.headers()["cache-control"]).toContain("no-store");
+  });
+});

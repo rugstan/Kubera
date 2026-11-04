@@ -1,0 +1,60 @@
+{
+  "suite": "lenders.static_routing",
+  "description": "Static LENDER_ROUTING fallback (until credit boxes cover a program) with reason codes",
+  "agent": "lenders.matching",
+  "subject": "lenders.static_routing",
+  "minPassRate": 1,
+  "cases": [
+    {
+      "id": "route-hud-232",
+      "description": "HUD 232 routes to HUD lenders",
+      "input": {
+        "programId": "HUD_232_223F"
+      },
+      "assert": [
+        {
+          "op": "gte",
+          "path": "count",
+          "value": 1
+        },
+        {
+          "op": "contains",
+          "path": "reasons",
+          "values": [
+            "lender_match.static_routing_fallback"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "route-sba-504",
+      "description": "SBA 504 routes to a CDC",
+      "input": {
+        "programId": "SBA_504_STANDARD"
+      },
+      "assert": [
+        {
+          "op": "contains",
+          "path": "lenders",
+          "values": [
+            "TMC_FINANCING_CDC"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "route-unknown",
+      "description": "An unknown program gets no lenders",
+      "input": {
+        "programId": "NOT_A_PROGRAM"
+      },
+      "assert": [
+        {
+          "op": "equals",
+          "path": "count",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

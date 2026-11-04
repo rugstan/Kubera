@@ -1,0 +1,266 @@
+// Inngest function definitions. Handlers live in ./handlers.ts; this file
+// only binds them to triggers, retries, concurrency and idempotency.
+
+import { NonRetriableError } from "inngest";
+import { ZodError } from "zod";
+import { inngest } from "./client";
+import type { AgentWorkflowHooks, WorkflowDeps } from "./deps";
+import { EVENTS } from "./events";
+import { inboundMailHandler, mailPollHandler, outboundActionHandler, type HandlerContext } from "./handlers";
+import { EffectOutcomeUnknownError } from "./idempotency";
+import { fromInngestStep, type InngestStepLike } from "./step";
+
+/** Every 5 minutes. */
+export const MAIL_POLL_CRON = "*/5 * * * *";
+
+/** Monday 07:00 Pacific: the weekly market-intel note. */
+export const INTEL_WEEKLY_CRON = "TZ=America/Los_Angeles 0 7 * * 1";
+
+/** Every 5 minutes: settle prospect outreach drafts against broker decisions. */
+export const PROSPECT_SETTLE_CRON = "*/5 * * * *";
+
+type InngestCtx = { event: { data: unknown; id?: string }; step: unknown; runId: string; attempt?: number; maxAttempts?: number };
+
+function context(ctx: InngestCtx): HandlerContext {
+  return {
+    data: ctx.event.data,
+    step: fromInngestStep(ctx.step as InngestStepLike),
+    runId: ctx.runId,
+    ...(ctx.event.id ? { eventId: ctx.event.id } : {}),
+    ...(typeof ctx.attempt === "number" ? { attempt: ctx.attempt } : {}),
+    ...(typeof ctx.maxAttempts === "number" ? { maxAttempts: ctx.maxAttempts } : {}),
+  };
+}
+
+/** Bad payloads and unknown-outcome effects must not be retried. */
+async function guard<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof ZodError) throw new NonRetriableError(`Invalid event payload: ${err.issues.map((i) => i.path.join(".")).join(", ")}`);
+    if (err instanceof EffectOutcomeUnknownError) throw new NonRetriableError(err.message);
+    // Restricted data that cannot be stored encrypted: retrying cannot help until the key is configured.
+    if (err instanceof Error && err.name === "RestrictedExtractionError") throw new NonRetriableError(err.message);
+    throw err;
+  }
+}
+
+export function createWorkflowFunctions(getDeps: () => WorkflowDeps, getAgents?: () => AgentWorkflowHooks) {
+  const client = inngest();
+
+  const outboundAction = client.createFunction(
+    {
+      id: "outbound-action",
+      name: "Outbound action (approval gate)",
+      triggers: [{ event: EVENTS.outboundRequested }],
+      // One run per logical action, however many times it is requested.
+      idempotency: "event.data.idempotencyKey",
+      retries: 4,
+    },
+    async (ctx) => guard(() => outboundActionHandler(context(ctx as unknown as InngestCtx), getDeps())),
+  );
+
+  const mailPoll = client.createFunction(
+    {
+      id: "mail-poll",
+      name: "Poll inbound mailboxes",
+      triggers: [{ cron: MAIL_POLL_CRON }, { event: EVENTS.mailPollRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) => guard(() => mailPollHandler(context(ctx as unknown as InngestCtx), getDeps())),
+  );
+
+  const inboundMail = client.createFunction(
+    {
+      id: "inbound-mail",
+      name: "Process inbound mail",
+      triggers: [{ event: EVENTS.mailReceived }],
+      // Attempt-scoped (`<mailbox>:<id>:<attempt>`): Inngest drops a repeated key for 24 h, so a
+      // failed message re-enqueued by the poller needs a new key to be processed again.
+      idempotency: "event.data.dedupeKey",
+      concurrency: { limit: 5 },
+      // Bulk-tier classification is cheap; Zoho rate limits are the usual cause of retries.
+      throttle: { limit: 60, period: "1m" },
+      retries: 5,
+    },
+    async (ctx) => guard(() => inboundMailHandler(context(ctx as unknown as InngestCtx), getDeps())),
+  );
+
+  if (!getAgents) return [outboundAction, mailPoll, inboundMail];
+  return [outboundAction, mailPoll, inboundMail, ...createAgentFunctions(client, getAgents)];
+}
+
+/** Term-sheet mail tied to a deal is parsed into lender quotes. */
+export function isDealTermSheet(data: unknown): data is { category: "term_sheet"; dealId: string } {
+  const d = data as { category?: unknown; dealId?: unknown } | null;
+  return !!d && d.category === "term_sheet" && typeof d.dealId === "string" && d.dealId.length > 0;
+}
+
+/**
+ * Re-checks after the first pass while an attached term sheet is still being
+ * scanned and extracted (about 6 h in all, the intake's attachment wait). The
+ * last pass reads anything still waiting from the email body alone.
+ */
+export const TERM_SHEET_RECHECK_MS = [2, 5, 10, 20, 30, 60, 120, 120].map((m) => m * 60_000);
+
+/** The lender-term-sheets function body: ingest, then re-check while attachments are pending. */
+export async function lenderTermSheetsHandler(c: Pick<HandlerContext, "data" | "step">, agents: Pick<AgentWorkflowHooks, "termSheets">): Promise<Record<string, unknown>> {
+  if (!isDealTermSheet(c.data)) return { status: "skipped", reason: "not_a_deal_term_sheet" };
+  const dealId = c.data.dealId;
+  let result = await c.step.run("ingest-term-sheets", () => agents.termSheets(dealId));
+  for (const [i, ms] of TERM_SHEET_RECHECK_MS.entries()) {
+    if (!result.awaiting) break;
+    await c.step.sleep(`await-attachments-${i + 1}`, ms);
+    const last = i === TERM_SHEET_RECHECK_MS.length - 1;
+    result = await c.step.run(`ingest-term-sheets-${i + 1}`, () => agents.termSheets(dealId, last ? { attachmentWaitMs: 0 } : {}));
+  }
+  return result;
+}
+
+function createAgentFunctions(client: ReturnType<typeof inngest>, getAgents: () => AgentWorkflowHooks) {
+  const documentClean = client.createFunction(
+    {
+      id: "document-extract",
+      name: "Extract a clean vault document",
+      triggers: [{ event: EVENTS.documentClean }],
+      idempotency: "event.data.documentId",
+      concurrency: { limit: 3 },
+      // Only transient model errors reach here; the handler skips documents that are not ready.
+      retries: 4,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        const emit = await c.step.run("extract", () => getAgents().documentClean(c.data));
+        if (!emit) return { status: "skipped" };
+        await c.step.sendEvent("announce-extracted", { name: EVENTS.documentExtracted, data: emit.data });
+        return { status: "extracted", ...emit.data };
+      }),
+  );
+
+  // Extraction results feed spreads and Jev re-sizing (and, through the saved
+  // spreads, the lenders desk and the executive summary).
+  const spreadsRecalc = client.createFunction(
+    {
+      id: "spreads-recalculate",
+      name: "Recalculate spreads and re-size with Jev",
+      triggers: [{ event: EVENTS.documentExtracted }],
+      idempotency: "event.data.extractionId + ':' + event.data.status",
+      // One recalculation per deal at a time, so versions stay in order.
+      concurrency: { limit: 1, key: "event.data.dealId" },
+      retries: 3,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return c.step.run("recalculate-spreads", () => getAgents().documentExtracted(c.data));
+      }),
+  );
+
+  const crmMailRouted = client.createFunction(
+    {
+      id: "crm-mail-routed",
+      name: "CRM note and task for routed mail",
+      triggers: [{ event: EVENTS.mailRouted }],
+      idempotency: "event.data.mailMessageId",
+      concurrency: { limit: 3 },
+      retries: 3,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return c.step.run("crm-note", () => getAgents().crmMailRouted(c.data));
+      }),
+  );
+
+  const termSheets = client.createFunction(
+    {
+      id: "lender-term-sheets",
+      name: "Read lender term sheets into quotes",
+      triggers: [{ event: EVENTS.mailRouted, if: "event.data.category == 'term_sheet' && event.data.dealId != null" }],
+      idempotency: "event.data.mailMessageId",
+      concurrency: { limit: 2 },
+      retries: 3,
+    },
+    async (ctx) => guard(async () => lenderTermSheetsHandler(context(ctx as unknown as InngestCtx), getAgents())),
+  );
+
+  const speedToLead = client.createFunction(
+    {
+      id: "speed-to-lead",
+      name: "Speed-to-lead reply",
+      triggers: [{ event: EVENTS.leadScored }],
+      idempotency: "event.data.leadId",
+      retries: 2,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().speedToLead({ data: c.data, step: c.step });
+      }),
+  );
+
+  const outreachSweep = client.createFunction(
+    {
+      id: "outreach-sweep",
+      name: "Outreach chaser sweep",
+      // The /api/outreach/sweep cron runs it on a schedule; this runs it on request.
+      triggers: [{ event: EVENTS.outreachSweepRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().outreachSweep({ step: c.step });
+      }),
+  );
+
+  const weeklyIntel = client.createFunction(
+    {
+      id: "intel-weekly",
+      name: "Weekly market-intel note",
+      triggers: [{ cron: INTEL_WEEKLY_CRON }, { event: EVENTS.intelWeeklyRequested }],
+      concurrency: { limit: 1 },
+      retries: 2,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().weeklyIntel({ data: c.data, step: c.step });
+      }),
+  );
+
+  const prospectScan = client.createFunction(
+    {
+      id: "prospect-scan",
+      name: "Refinance-maturity prospect scan",
+      triggers: [{ event: EVENTS.prospectScanRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().prospectScan({ data: c.data, step: c.step });
+      }),
+  );
+
+  const prospectSettle = client.createFunction(
+    {
+      id: "prospect-outreach-settle",
+      name: "Settle prospect outreach drafts",
+      triggers: [{ cron: PROSPECT_SETTLE_CRON }, { event: EVENTS.prospectSettleRequested }],
+      concurrency: { limit: 1 },
+      retries: 1,
+    },
+    async (ctx) =>
+      guard(async () => {
+        const c = context(ctx as unknown as InngestCtx);
+        return getAgents().prospectSettle({ step: c.step });
+      }),
+  );
+
+  return [documentClean, spreadsRecalc, crmMailRouted, termSheets, speedToLead, outreachSweep, weeklyIntel, prospectScan, prospectSettle];
+}

@@ -1,0 +1,459 @@
+@import "tailwindcss";
+
+@theme {
+  /* Apple-style neutrals. White body, #f5f5f7 alternating sections and tiles. */
+  --color-canvas: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-ink: #1d1d1f;
+  /* Secondary text. 5.0:1 on white and 4.7:1 on canvas (WCAG AA). Never on
+     #e8e8ed and never in the translucent nav. */
+  --color-titanium: #6e6e73;
+  --color-graphite: #424245;
+  /* Neutral chips and segmented tracks. Only ink or graphite text on it. */
+  --color-fill: #e8e8ed;
+  /* Only on dark surfaces, as text 24px+ (or 19px+ bold), or as a non-text dot. */
+  --color-quiet: #86868b;
+  /* Decorative dividers only; never the only boundary of a control. */
+  --color-hairline: #d2d2d7;
+  /* Input boundary: 3:1 or better on white and canvas (WCAG 1.4.11). */
+  --color-field-border: #86868b;
+
+  /* One blue, used only for things you can click. accent is link and
+     selected-state text (5.6:1 on white). accent-hover is the pressed state and
+     text on blue tints. accent-fill is for filled buttons, the focus ring and
+     selected-card rings: white on it is 4.6:1, but on canvas it is only 4.3:1,
+     so it is never text. */
+  --color-accent: #0066cc;
+  --color-accent-hover: #0058b0;
+  --color-accent-fill: #0071e3;
+  /* Deliberately darker than Apple's #0077ed, which gives white text 4.3:1. */
+  --color-accent-fill-hover: #0066cc;
+  /* Blue for text and focus rings on dark surfaces. */
+  --color-accent-on-dark: #2997ff;
+
+  --color-pro: #000000;
+  --color-pro-surface: #1d1d1f;
+  --color-pro-elevated: #161617;
+  --color-pro-hairline: #424245;
+
+  /* Status colours: real status only (errors, warnings, success). Each pair
+     passes AA as text on white, canvas and its own surface. */
+  --color-success: #18762f;
+  --color-success-surface: #ebf6ed;
+  --color-warning: #a63d00;
+  --color-warning-surface: #fff3e6;
+  --color-danger: #c9001a;
+  --color-danger-surface: #fff0f1;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter Variable", Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --shadow-bento: 2px 4px 12px rgb(0 0 0 / 0.08);
+  --shadow-bento-hover: 2px 4px 16px rgb(0 0 0 / 0.16);
+  --shadow-float: 0 12px 40px rgb(0 0 0 / 0.12);
+
+  --radius-card: 1.125rem;
+  --radius-tile-lg: 1.75rem;
+
+  /* Type scale: size / line-height / tracking / weight. */
+  --text-hero-lg: 80px;
+  --text-hero-lg--line-height: 1.05;
+  --text-hero-lg--letter-spacing: -0.015em;
+  --text-hero-lg--font-weight: 600;
+  --text-hero: 56px;
+  --text-hero--line-height: 1.07143;
+  --text-hero--letter-spacing: -0.005em;
+  --text-hero--font-weight: 600;
+  --text-section: 48px;
+  --text-section--line-height: 1.08349;
+  --text-section--letter-spacing: -0.003em;
+  --text-section--font-weight: 600;
+  --text-tile: 40px;
+  --text-tile--line-height: 1.1;
+  --text-tile--letter-spacing: 0;
+  --text-tile--font-weight: 600;
+  --text-headline: 32px;
+  --text-headline--line-height: 1.125;
+  --text-headline--letter-spacing: 0.004em;
+  --text-headline--font-weight: 600;
+  --text-title: 28px;
+  --text-title--line-height: 1.14286;
+  --text-title--letter-spacing: 0.007em;
+  --text-title--font-weight: 400;
+  --text-subhead: 24px;
+  --text-subhead--line-height: 1.16667;
+  --text-subhead--letter-spacing: 0.009em;
+  --text-subhead--font-weight: 600;
+  --text-lede: 21px;
+  --text-lede--line-height: 1.381;
+  --text-lede--letter-spacing: 0.011em;
+  --text-lede--font-weight: 400;
+  --text-body: 17px;
+  --text-body--line-height: 1.47059;
+  --text-body--letter-spacing: -0.022em;
+  --text-body--font-weight: 400;
+  --text-callout: 14px;
+  --text-callout--line-height: 1.42859;
+  --text-callout--letter-spacing: -0.016em;
+  --text-callout--font-weight: 400;
+  --text-caption: 12px;
+  --text-caption--line-height: 1.33337;
+  --text-caption--letter-spacing: -0.01em;
+  --text-caption--font-weight: 400;
+
+  --text-min: 0.75rem; /* 12px: smallest text size anywhere */
+
+  --animate-marquee: marquee 60s linear infinite;
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scroll-padding-top: 72px;
+  }
+  /* Staff pages: the sticky header is two rows (brand and account, then the
+     nav), and the nav wraps between sm and lg. HeaderScrollOffset publishes
+     its measured height; before hydration the 8.5rem fallback clears the two-row header.
+     Keeps focused fields clear of it (WCAG 2.2 SC 2.4.11). */
+  html:has([data-staff-shell]) {
+    scroll-padding-top: calc(var(--staff-header-height, 7.75rem) + 0.75rem);
+  }
+  body {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.005em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-fill);
+    outline-offset: 2px;
+  }
+  /* Dark surfaces re-point the secondary-text token and the accent text colour
+     so text-titanium and text-accent keep AA contrast without per-component
+     overrides. Backgrounds (bg-accent, pill-primary) are deliberately untouched. */
+  .bg-ink,
+  .bg-pro,
+  .bento-pro {
+    --color-titanium: #a1a1a6;
+  }
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgb(250 250 252 / 0.8);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  /* Header menus open with one short compositor-only animation (opacity and
+     transform). No height animation, no per-link stagger and no full-screen
+     backdrop blur: those repaint the page every frame and made the menus feel
+     slow (about 0.75 s at roughly 13 fps). */
+  .menu-drop {
+    animation: menu-drop 160ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  .menu-fade {
+    animation: menu-fade 160ms ease-out both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .menu-drop,
+    .menu-fade {
+      animation: none;
+    }
+  }
+
+  /* Cards are context-aware: a grey tile on a white page, a white card with a
+     soft shadow on a canvas section, in the staff shell or inside another tile. */
+  .bento {
+    background: var(--color-canvas);
+    border-radius: var(--radius-card);
+  }
+  .bg-canvas .bento,
+  [data-staff-shell] .bento,
+  .page-bands > section:nth-of-type(odd) .bento,
+  .bento .bento {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-bento);
+  }
+  /* Trust pages: full-width sections alternate canvas and white. */
+  .page-bands > section:nth-of-type(odd) { background: var(--color-canvas); }
+  a.bento,
+  .bento-interactive {
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  a.bento:hover,
+  .bento-interactive:hover {
+    box-shadow: var(--shadow-bento-hover);
+    transform: scale(1.01);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    a.bento,
+    .bento-interactive { transition: none; }
+    a.bento:hover,
+    .bento-interactive:hover { transform: none; }
+  }
+  .bento-pro {
+    background: var(--color-pro-surface);
+    border-radius: var(--radius-card);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    border: 1px solid transparent;
+    border-radius: 980px;
+    padding: 0.6875rem 1.3125rem;
+    font-size: 1.0625rem;
+    line-height: 1.17648;
+    font-weight: 400;
+    letter-spacing: -0.022em;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .pill-primary { background: var(--color-accent-fill); color: #fff; }
+  .pill-primary:hover { background: var(--color-accent-fill-hover); }
+  .pill-primary:focus-visible { outline-offset: 3px; }
+  /* pill-glass is kept as an alias of pill-secondary for existing call sites. */
+  .pill-secondary,
+  .pill-glass {
+    background: transparent;
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .pill-secondary:hover,
+  .pill-glass:hover {
+    background: var(--color-accent-fill);
+    border-color: var(--color-accent-fill);
+    color: #fff;
+  }
+  .pill-quiet { background: rgb(0 0 0 / 0.05); color: var(--color-ink); }
+  .pill-quiet:hover { background: rgb(0 0 0 / 0.08); }
+  .pill-sm {
+    min-height: 1.75rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.33337;
+    letter-spacing: -0.01em;
+  }
+  .pill:disabled,
+  .pill[aria-disabled="true"] { opacity: 0.42; }
+  /* A pill that wraps a visually hidden control (the document upload's
+     "Choose file" label around an sr-only file input) shows the focus ring
+     itself: the input's own outline is clipped to 1px and invisible. */
+  .pill:has(> input:focus-visible) {
+    outline: 2px solid var(--color-accent-fill);
+    outline-offset: 2px;
+  }
+
+  /* Text link with a chevron, for "Learn more" style links. The chevron is
+     decorative: it adds no accessible name. */
+  .link-chevron {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    color: var(--color-accent);
+  }
+  .link-chevron::after {
+    content: "";
+    flex: none;
+    width: 0.45em;
+    height: 0.45em;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    transform: rotate(45deg);
+  }
+  .link-chevron:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .eyebrow {
+    font-size: 1.0625rem;
+    line-height: 1.23536;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    color: var(--color-titanium);
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-field-border);
+    background: #fff;
+    padding: 0.7rem 0.9rem;
+    font-size: 1rem;
+    color: var(--color-ink);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field:focus-visible {
+    outline: 2px solid var(--color-accent-fill);
+    outline-offset: 1px;
+    border-color: var(--color-accent-fill);
+    box-shadow: 0 0 0 4px rgb(0 113 227 / 0.16);
+  }
+  .field-label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--color-titanium); margin-bottom: 0.375rem; }
+
+  /* Badges set colour only; padding and radius stay in utilities. */
+  .badge { background: rgb(0 0 0 / 0.05); color: var(--color-ink); }
+  .badge-success { background: var(--color-success-surface); color: var(--color-success); }
+  .badge-warning { background: var(--color-warning-surface); color: var(--color-warning); }
+  .badge-danger { background: var(--color-danger-surface); color: var(--color-danger); }
+
+  /* Notices: a status panel with ink text on a tinted surface. */
+  .notice {
+    background: var(--color-canvas);
+    border: 1px solid var(--color-hairline);
+    color: var(--color-ink);
+  }
+  .notice-success {
+    background: var(--color-success-surface);
+    border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent);
+    color: var(--color-ink);
+  }
+  .notice-warning {
+    background: var(--color-warning-surface);
+    border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+    color: var(--color-ink);
+  }
+  .notice-danger {
+    background: var(--color-danger-surface);
+    border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+    color: var(--color-ink);
+  }
+
+  /* Skip link: first tab stop, visible only when focused. */
+  .skip-link {
+    position: fixed;
+    left: 0.75rem;
+    top: 0.75rem;
+    z-index: 100;
+    transform: translateY(-200%);
+    border-radius: 9999px;
+    background: var(--color-ink);
+    color: #fff;
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+  .skip-link:focus-visible { transform: none; outline-color: #fff; outline-offset: -4px; }
+
+  /* CSS-only scroll reveal. Content is always visible in the server HTML; the
+     fade only runs where scroll-driven animations exist and motion is allowed. */
+  .reveal { opacity: 1; transform: none; }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: reveal-in linear both;
+        animation-timeline: view();
+        animation-range: entry calc(var(--reveal-step, 0) * 4%) entry calc(45% + var(--reveal-step, 0) * 4%);
+      }
+    }
+  }
+
+
+}
+
+@keyframes menu-drop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes menu-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Type floor. Components written before the 12px minimum still use 10-11px
+   arbitrary sizes; clamp them here until each is migrated to text-xs. */
+[class*="text-[9px]"],
+[class*="text-[10px]"],
+[class*="text-[11px]"] {
+  font-size: var(--text-min);
+  line-height: 1.4;
+}
+
+/* Low-alpha white text on dark surfaces (white/30 to white/50) fails AA. */
+.bg-ink [class*="text-white/3"],
+.bg-ink [class*="text-white/4"],
+.bg-ink [class*="text-white/5"],
+.bg-pro [class*="text-white/3"],
+.bg-pro [class*="text-white/4"],
+.bg-pro [class*="text-white/5"],
+.bento-pro [class*="text-white/3"],
+.bento-pro [class*="text-white/4"],
+.bento-pro [class*="text-white/5"] {
+  color: rgb(255 255 255 / 0.68) !important;
+}
+
+/* Accent text, outlined buttons and focus rings on dark surfaces. The filled
+   pill-primary keeps accent-fill on black (4.5:1 as a non-text boundary). */
+.bg-ink .text-accent,
+.bg-pro .text-accent,
+.bento-pro .text-accent,
+.bg-ink .link-chevron,
+.bg-pro .link-chevron,
+.bento-pro .link-chevron { color: var(--color-accent-on-dark); }
+.bg-ink .pill-secondary,
+.bg-pro .pill-secondary,
+.bento-pro .pill-secondary,
+.bg-ink .pill-glass,
+.bg-pro .pill-glass,
+.bento-pro .pill-glass {
+  border-color: var(--color-accent-on-dark);
+  color: var(--color-accent-on-dark);
+}
+.bg-ink .pill-secondary:hover,
+.bg-pro .pill-secondary:hover,
+.bento-pro .pill-secondary:hover,
+.bg-ink .pill-glass:hover,
+.bg-pro .pill-glass:hover,
+.bento-pro .pill-glass:hover {
+  background: var(--color-accent-fill);
+  border-color: var(--color-accent-fill);
+  color: #fff;
+}
+.bg-ink :focus-visible,
+.bg-pro :focus-visible,
+.bento-pro :focus-visible,
+.bg-ink .pill:has(> input:focus-visible),
+.bg-pro .pill:has(> input:focus-visible),
+.bento-pro .pill:has(> input:focus-visible) { outline-color: var(--color-accent-on-dark); }
+
+/* Rate ticker. Unlayered with !important because Tailwind's animate-marquee
+   utility sets the animation shorthand and would otherwise win. It pauses via
+   the control, on hover and on keyboard focus; with reduced motion it stops
+   and becomes a scrollable row instead of an auto-scrolling strip. */
+.ticker[data-paused="true"] .ticker-track,
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none !important; }
+  .ticker-scroller { overflow-x: auto; }
+  .ticker-dup { display: none; }
+}

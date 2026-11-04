@@ -1,0 +1,150 @@
+{
+  "docType": "TERM_SHEET",
+  "cases": [
+    {
+      "id": "term-sheet-letter",
+      "description": "Bank term sheet as 'Label: value' text.",
+      "source": {
+        "format": "text",
+        "lines": [
+          "Indicative Term Sheet",
+          "Lender: Pacific Coast Bank",
+          "Loan Amount: $12,500,000",
+          "Interest Rate: 6.25% fixed",
+          "Rate Type: Fixed",
+          "Amortization: 30 years",
+          "Interest Only Period: 12 months",
+          "Term: 10 years",
+          "Origination Fee: 1.00%",
+          "Exit Fee: None",
+          "Maximum LTV: 65%",
+          "Minimum DSCR: 1.25x",
+          "Prepayment: 5-4-3-2-1 step-down",
+          "Recourse: Non-recourse with standard carve-outs"
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "lenderName": "Pacific Coast Bank",
+          "loanAmount": 12500000,
+          "interestRatePct": 6.25,
+          "rateType": "Fixed",
+          "amortizationYears": 30,
+          "interestOnlyMonths": 12,
+          "termMonths": 120,
+          "originationFeePct": 0.01,
+          "maxLtv": 0.65,
+          "minDscr": 1.25,
+          "prepayment": "5-4-3-2-1 step-down",
+          "recourse": "Non-recourse with standard carve-outs"
+        }
+      }
+    },
+    {
+      "id": "term-sheet-bridge-csv",
+      "description": "Debt fund bridge quote as a two-column table, floating rate, interest only.",
+      "source": {
+        "format": "csv",
+        "lines": [
+          "Term,Proposal",
+          "Lender,Summit Debt Fund",
+          "Loan Amount,\"$8,000,000\"",
+          "Index,30-day Term SOFR",
+          "Spread,425 bps",
+          "Interest Rate,8.55%",
+          "Rate type,Floating",
+          "Amortization,Interest only",
+          "Term,24 months",
+          "Origination fee,1.0%",
+          "Exit fee,0.5%",
+          "Max LTV,70%",
+          "Min debt yield,8.0%",
+          "Recourse,Non-recourse",
+          "Prepayment,6 months minimum interest"
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "lenderName": "Summit Debt Fund",
+          "loanAmount": 8000000,
+          "indexName": "30-day Term SOFR",
+          "spreadBps": 425,
+          "interestRatePct": 8.55,
+          "rateType": "Floating",
+          "amortizationYears": 0,
+          "termMonths": 24,
+          "originationFeePct": 0.01,
+          "exitFeePct": 0.005,
+          "maxLtv": 0.7,
+          "minDebtYield": 0.08,
+          "recourse": "Non-recourse"
+        }
+      }
+    },
+    {
+      "id": "term-sheet-hud-xlsx",
+      "description": "HUD-style quote in a workbook.",
+      "source": {
+        "format": "xlsx",
+        "sheets": [
+          {
+            "name": "Terms",
+            "rows": [
+              [
+                "Lender",
+                "Example Capital"
+              ],
+              [
+                "Maximum Loan Amount",
+                20000000
+              ],
+              [
+                "Note Rate",
+                "5.10%"
+              ],
+              [
+                "Amortization Period",
+                "35 years"
+              ],
+              [
+                "Term",
+                "420 months"
+              ],
+              [
+                "Debt Service Coverage",
+                "1.15x"
+              ],
+              [
+                "Loan to Value",
+                "87%"
+              ],
+              [
+                "Prepayment",
+                "10-year lockout"
+              ],
+              [
+                "Recourse",
+                "Non-recourse"
+              ]
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "status": "extracted",
+        "scalars": {
+          "lenderName": "Example Capital",
+          "loanAmount": 20000000,
+          "interestRatePct": 5.1,
+          "amortizationYears": 35,
+          "termMonths": 420,
+          "minDscr": 1.15,
+          "maxLtv": 0.87,
+          "prepayment": "10-year lockout"
+        }
+      }
+    }
+  ]
+}

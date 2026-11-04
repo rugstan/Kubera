@@ -1,0 +1,72 @@
+{
+  "suite": "Hotel CMBS and PIP bridge",
+  "version": 1,
+  "cases": [
+    {
+      "id": "cmbs-metrics",
+      "topic": "cmbs",
+      "question": "What DSCR and debt yield do hotel CMBS lenders need?",
+      "expectedFacts": [
+        { "fact": "Minimum debt yield around 11–12.5%", "anyOf": ["11(\\.0)?\\s*%", "12\\.5\\s*%", "11[–-]12"] },
+        { "fact": "DSCR around 1.40x", "anyOf": ["1\\.4(0)?\\s*x"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    },
+    {
+      "id": "cmbs-terms",
+      "topic": "cmbs",
+      "question": "What are typical hotel CMBS loan terms — term, amortization, leverage and prepayment?",
+      "expectedFacts": [
+        { "fact": "10-year fixed", "anyOf": ["10[- ]year", "ten[- ]year"] },
+        { "fact": "About 65% LTV", "anyOf": ["65\\s*%"] },
+        { "fact": "Defeasance or yield maintenance", "anyOf": ["defeasance", "yield maintenance"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    },
+    {
+      "id": "cmbs-minimum",
+      "topic": "cmbs",
+      "question": "Can I get a $2M CMBS loan for my 40-key economy hotel?",
+      "expectedFacts": [
+        { "fact": "Conduits typically start around $5M", "anyOf": ["\\$5 ?M", "\\$5 million", "5,000,000"] },
+        { "fact": "Suggests alternatives such as SBA or bank financing", "anyOf": ["SBA", "bank", "504", "7\\(a\\)"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    },
+    {
+      "id": "pip-bridge",
+      "topic": "cmbs",
+      "question": "My franchisor issued a $2.2M PIP. How can I finance the renovation?",
+      "expectedFacts": [
+        { "fact": "PIP bridge: floating, interest-only with holdbacks", "anyOf": ["holdback", "interest[- ]only", "floating"] },
+        { "fact": "Exit to CMBS or SBA after stabilization", "anyOf": ["CMBS", "SBA", "takeout", "take-out", "exit"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    },
+    {
+      "id": "hotel-revpar",
+      "topic": "cmbs",
+      "question": "My hotel runs a $159 ADR at 74% occupancy. What's my RevPAR, and what do lenders look at besides that?",
+      "expectedFacts": [
+        { "fact": "RevPAR = ADR × occupancy ≈ $117.66", "anyOf": ["117\\.66", "117\\.7", "\\$118"] },
+        { "fact": "STR comp-set penetration / RGI", "anyOf": ["RGI", "penetration", "STR"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer (RevPAR definition), as of 2026-10"
+    },
+    {
+      "id": "cmbs-pip-requirement",
+      "topic": "cmbs",
+      "question": "Can I refinance into CMBS before my PIP is finished?",
+      "expectedFacts": [
+        { "fact": "PIP must be complete or reserved at closing", "anyOf": ["reserve", "complete", "escrow"] }
+      ],
+      "forbiddenClaims": [],
+      "source": "Program primer, as of 2026-10"
+    }
+  ]
+}
