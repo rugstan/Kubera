@@ -30,6 +30,7 @@ const ERRORS: Record<string, string> = {
   not_in_queue: "That message is no longer waiting for review; someone may have resolved it already.",
   unknown_target: "No single deal or lead matches that reference. Use a CC- deal reference, a deal ID or a lead ID.",
   not_assignable: "That message was never read successfully. Open it in the mailbox, then dismiss it here.",
+  other_lead: "Some of that message's attachments are already in the vault under another lead (shown on the message). File it to that lead or one of its deals to add the rest.",
   not_configured: "The mail review queue is not configured on this deployment.",
   forbidden: "Your role cannot file inbound mail.",
   mfa: "Confirm two-step verification, then try again.",
@@ -84,16 +85,18 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <>
-      {assigned ? (
+      {assigned && !failed ? (
         <p role="status" className="notice-success mb-5 rounded-xl px-4 py-3 text-[14px]">
           Message filed.
           {registered ? ` ${registered} ${registered === 1 ? "attachment was" : "attachments were"} added to the vault and will be scanned before they can be opened.` : ""}
-          {held ? ` ${held} ${held === 1 ? "attachment stays" : "attachments stay"} with the message (no lead to file ${held === 1 ? "it" : "them"} under, or this mailbox keeps attachments with the message).` : ""}
+          {held ? ` ${held} ${held === 1 ? "attachment stays" : "attachments stay"} with the message (no lead to file ${held === 1 ? "it" : "them"} under, or this mailbox keeps ${held === 1 ? "that file" : "those files"} with the message).` : ""}
         </p>
       ) : null}
       {assigned && failed ? (
         <p role="alert" className="notice-danger mb-5 rounded-xl px-4 py-3 text-[14px]">
-          {failed} {failed === 1 ? "attachment" : "attachments"} could not be added to the vault and stayed in quarantine. Ask an administrator to check the documents log.
+          Not filed yet: {failed} {failed === 1 ? "attachment" : "attachments"} could not be added to the vault and stayed in quarantine
+          {registered ? ` (${registered} ${registered === 1 ? "other was" : "others were"} added)` : ""}. The message is still in the queue: file it again to the same lead or deal to
+          retry just {failed === 1 ? "that one" : "those"}. If it keeps failing, ask an administrator to check the documents log.
         </p>
       ) : null}
       {dismissed ? (
@@ -195,7 +198,9 @@ function MailCard({ mail: m, canFile }: { mail: ReviewMail; canFile: boolean }) 
                   {a.status === "stored"
                     ? "held in quarantine"
                     : a.status === "registered"
-                      ? "in the vault"
+                      ? a.leadId
+                        ? `in the vault under lead ${a.leadId}`
+                        : "in the vault"
                       : a.status === "skipped_type"
                         ? "not kept (file type not accepted)"
                         : a.status === "skipped_size"
