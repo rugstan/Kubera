@@ -6,11 +6,14 @@
 // Staff either assign the message to a lead or deal, or dismiss it. Assigning
 // to a lead registers the attachments held in quarantine as vault documents
 // (status quarantined), so the malware scanner picks them up and they reach the
-// deal's file only once they are clean. Nothing here sends mail or writes to a
-// third party.
+// deal's file only once they are clean; a lenders@ term sheet assigned to a
+// deal is filed the same way processAttachments files a routed one. If any
+// attachment fails to register, the message stays in the queue with the
+// others recorded, so filing it again retries only the failures. Nothing here
+// sends mail or writes to a third party.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { documentKindFor, sanitizeFileName, type AttachmentRecord, type AttachmentSink } from "./attachments";
+import { documentKindFor, sanitizeFileName, TERM_SHEET_KIND, TERM_SHEET_TYPES, type AttachmentKind, type AttachmentRecord, type AttachmentSink } from "./attachments";
 import { REFERENCE_IN_BODY_ONLY } from "./classify";
 import { MAILBOXES, MAX_MAIL_ATTEMPTS, type InboundMailbox } from "./mailboxes";
 import { supabaseDealDirectory, type MailStore, type ReviewMail } from "./store";
@@ -90,7 +93,7 @@ export interface ReviewTargets {
 
 export type ReviewDeps = { store: MailStore; sink: AttachmentSink; targets: ReviewTargets; now?: () => Date };
 
-export type ReviewFailure = { ok: false; code: "not_in_queue" | "unknown_target" | "not_assignable"; message: string };
+export type ReviewFailure = { ok: false; code: "not_in_queue" | "unknown_target" | "not_assignable" | "other_lead"; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REFERENCE = /^CC-[0-9a-f]{8}$/i;
@@ -109,13 +112,21 @@ export async function resolveTarget(raw: string, targets: ReviewTargets): Promis
   return (await targets.leadExists(id)) ? { dealId: null, leadId: id } : null;
 }
 
-export type AssignResult = { ok: true; leadId: string | null; dealId: string | null; registered: number; failed: number; heldBack: number };
+/**
+ * `closed` is false when an attachment failed to register: the message stays
+ * in the queue with the registered ones recorded, and filing it again (to the
+ * same lead) retries only the failures.
+ */
+export type AssignResult = { ok: true; leadId: string | null; dealId: string | null; registered: number; failed: number; heldBack: number; closed: boolean };
 
 /**
  * Files a reviewed message under a lead or deal. Its quarantined attachments
- * become vault documents of the lead (for mailboxes whose attachments go to
- * the vault), so the scanner picks them up; an attachment that fails to
- * register stays held and is reported.
+ * become vault documents of the lead, so the scanner picks them up: every one
+ * for mailboxes whose attachments go to the vault, and for lenders@ a term
+ * sheet's PDF and spreadsheet files when it is filed under a deal (as
+ * processAttachments does for a routed term sheet). Anything else stays held
+ * with the message. When an attachment fails to register, the review stays
+ * open (see AssignResult.closed).
  */
 export async function assignReviewedMail(deps: ReviewDeps, id: string, reviewer: string, target: string): Promise<AssignResult | ReviewFailure> {
   const now = deps.now ?? (() => new Date());
@@ -125,37 +136,57 @@ export async function assignReviewedMail(deps: ReviewDeps, id: string, reviewer:
   const resolved = await resolveTarget(target, deps.targets);
   if (!resolved) return { ok: false, code: "unknown_target", message: "No single deal or lead matches that reference. Use a CC- deal reference, a deal ID or a lead ID." };
 
+  const attachments = mail.attachments.map((a) => ({ ...a }));
+  // An earlier attempt that partly failed filed some attachments already; the rest follow them.
+  const filedUnder = attachments.find((a) => a.status === "registered" && a.leadId)?.leadId;
+  if (filedUnder && filedUnder !== resolved.leadId) {
+    return { ok: false, code: "other_lead", message: `Some of this message's attachments are already filed under lead ${filedUnder}. File it to that lead or one of its deals to add the rest.` };
+  }
+
+  const box = MAILBOXES[mail.mailbox];
+  const termSheet = !box.vaultAttachments && box.termSheetAttachments && mail.classification.category === "term_sheet" && Boolean(resolved.dealId);
+  const kindFor = (a: AttachmentRecord): AttachmentKind | null => {
+    if (box.vaultAttachments) return documentKindFor(a.fileName, mail.classification);
+    return termSheet && TERM_SHEET_TYPES.has(a.contentType!) ? TERM_SHEET_KIND : null;
+  };
+
   let registered = 0;
   let failed = 0;
   let heldBack = 0;
-  const attachments = mail.attachments.map((a) => ({ ...a }));
-  const held = heldAttachments({ attachments });
-  if (held.length && resolved.leadId && MAILBOXES[mail.mailbox].vaultAttachments) {
-    for (const a of held) {
-      const kind = documentKindFor(a.fileName, mail.classification);
-      try {
-        const { documentId } = await deps.sink.registerDocument({
-          leadId: resolved.leadId,
-          kind,
-          bucket: a.bucket!,
-          path: a.storagePath!,
-          fileName: sanitizeFileName(a.fileName),
-          contentType: a.contentType!,
-          sizeBytes: a.size,
-          sha256: a.sha256!,
-        });
-        Object.assign(a, { status: "registered", documentId, kind, error: null });
-        registered++;
-      } catch (err) {
-        a.error = `registration failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300);
-        failed++;
-      }
+  const leadId = resolved.leadId;
+  for (const a of heldAttachments({ attachments })) {
+    const kind = leadId ? kindFor(a) : null;
+    if (!leadId || !kind) {
+      heldBack++;
+      continue;
     }
-  } else heldBack = held.length;
+    try {
+      const { documentId } = await deps.sink.registerDocument({
+        leadId,
+        kind,
+        bucket: a.bucket!,
+        path: a.storagePath!,
+        fileName: sanitizeFileName(a.fileName),
+        contentType: a.contentType!,
+        sizeBytes: a.size,
+        sha256: a.sha256!,
+      });
+      Object.assign(a, { status: "registered", documentId, kind, leadId, error: null });
+      registered++;
+    } catch (err) {
+      a.error = `registration failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300);
+      failed++;
+    }
+  }
 
+  if (failed > 0) {
+    const saved = await deps.store.saveReviewAttachments(id, attachments);
+    if (!saved) return { ok: false, code: "not_in_queue", message: "Someone else resolved this message first." };
+    return { ok: true, ...resolved, registered, failed, heldBack, closed: false };
+  }
   const closed = await deps.store.markReviewed(id, { reviewer, at: now().toISOString(), outcome: "assigned", leadId: resolved.leadId, dealId: resolved.dealId, attachments });
   if (!closed) return { ok: false, code: "not_in_queue", message: "Someone else resolved this message first." };
-  return { ok: true, ...resolved, registered, failed, heldBack };
+  return { ok: true, ...resolved, registered, failed, heldBack, closed: true };
 }
 
 /** Closes a review without filing the message (spam, a duplicate, nothing to do). Attachments stay in quarantine until retention removes them. */

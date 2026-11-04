@@ -80,8 +80,8 @@ export function documentKindFor(fileName: string, c: MailClassification): MailDo
 export const TERM_SHEET_KIND = "TERM_SHEET";
 export type AttachmentKind = MailDocumentKind | typeof TERM_SHEET_KIND;
 
-/** Term-sheet formats the document agent reads (images are kept with the message only). */
-const TERM_SHEET_TYPES: ReadonlySet<string> = new Set([ACCEPTED_TYPES.pdf, ACCEPTED_TYPES.csv, ACCEPTED_TYPES.xls, ACCEPTED_TYPES.xlsx]);
+/** Term-sheet formats the document agent reads, filed as TERM_SHEET documents (images are kept with the message only). */
+export const TERM_SHEET_TYPES: ReadonlySet<string> = new Set([ACCEPTED_TYPES.pdf, ACCEPTED_TYPES.csv, ACCEPTED_TYPES.xls, ACCEPTED_TYPES.xlsx]);
 
 export type AttachmentStatus = "stored" | "registered" | "skipped_type" | "skipped_size" | "skipped_limit" | "failed";
 
@@ -99,6 +99,8 @@ export type AttachmentRecord = {
   error: string | null;
   /** On "failed": whether another attempt may succeed (a 429/5xx, timeout or storage error; not a 404). */
   retryable?: boolean;
+  /** On "registered" from the review queue: the lead it was filed under, so a retry after a partial failure files the rest under the same lead. */
+  leadId?: string | null;
 };
 
 export interface AttachmentSink {

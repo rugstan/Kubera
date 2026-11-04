@@ -107,6 +107,12 @@ export interface MailStore {
   getReview(id: string, opts: { maxAttempts: number }): Promise<ReviewMail | null>;
   /** Closes a review (compare-and-set: only while it is still unreviewed). False when someone else got there first. */
   markReviewed(id: string, resolution: ReviewResolution): Promise<boolean>;
+  /**
+   * Records attachment progress on a needs_review message that stays in the
+   * queue (some attachments failed to register), so the next attempt retries
+   * only those. Compare-and-set like markReviewed; false when it was resolved.
+   */
+  saveReviewAttachments(id: string, attachments: AttachmentRecord[]): Promise<boolean>;
 }
 
 type ReviewState = { reviewedAt?: string | null; reviewedBy?: string | null; reviewOutcome?: ReviewResolution["outcome"] | null };
@@ -201,6 +207,13 @@ export class MemoryMailStore implements MailStore {
         ...(res.outcome === "assigned" ? { leadId: res.leadId ?? null, dealId: res.dealId ?? null } : {}),
       };
     }
+    return true;
+  }
+
+  async saveReviewAttachments(id: string, attachments: AttachmentRecord[]) {
+    const r = this.rows.find((x) => x.id === id);
+    if (!r || r.reviewedAt || r.error || r.route.status !== "needs_review") return false;
+    r.attachments = attachments;
     return true;
   }
 
@@ -402,6 +415,11 @@ export function supabaseMailStore(db: SupabaseClient): MailStore {
         if (res.outcome === "assigned") Object.assign(patch, { lead_id: res.leadId ?? null, deal_id: res.dealId ?? null });
       }
       const { data, error } = await table().update(patch).eq("id", id).eq("status", status).is("reviewed_at", null).select("id");
+      if (error) throw new Error(`mail review update failed: ${error.message}`);
+      return (data ?? []).length > 0;
+    },
+    async saveReviewAttachments(id, attachments) {
+      const { data, error } = await table().update({ attachments }).eq("id", id).eq("status", "needs_review").is("reviewed_at", null).select("id");
       if (error) throw new Error(`mail review update failed: ${error.message}`);
       return (data ?? []).length > 0;
     },
