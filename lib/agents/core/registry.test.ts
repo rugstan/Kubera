@@ -59,6 +59,23 @@ describe("prompt registry", () => {
   it("approves the gateway's default xAI model without XAI_MODEL", () => {
     expect(approvedModels({}).find((m) => m.tier === "xai")?.id).toBe(xaiModel({}));
   });
+
+  it("runs a prompt on another approved model without a new version, and records the model used", () => {
+    const r = new AgentRegistry(() => [...approvedModels({}), { id: "claude-retired", tier: "default", status: "deprecated" }]);
+    const p = r.registerPrompt(prompt());
+    // The registered model is the default; an approved override needs no new version.
+    expect(r.modelForRun(p)).toBe("claude-opus-5-5");
+    expect(r.modelForRun(p, null)).toBe("claude-opus-5-5");
+    expect(r.modelForRun(p, "claude-haiku-5-5")).toBe("claude-haiku-5-5");
+    expect(r.runRef(p, "claude-sonnet-5-5")).toEqual({ id: p.id, version: "1.0.0", sha256: p.sha256, model: "claude-sonnet-5-5" });
+    expect(r.prompt(p.id).model).toBe("claude-opus-5-5");
+    // Same checks as a registration.
+    expect(() => r.modelForRun(p, "gpt-unknown")).toThrow(/approved model list/);
+    expect(() => r.modelForRun(p, "claude-retired")).toThrow(/deprecated/);
+    expect(() => r.modelForRun(p, xaiModel({}))).toThrow(/market intel/);
+    // Versions stay immutable: re-registering with another model still throws.
+    expect(() => r.registerPrompt(prompt({ model: "claude-haiku-5-5" }))).toThrow(/bump the version/);
+  });
 });
 
 describe("agent registry", () => {

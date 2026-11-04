@@ -72,12 +72,15 @@ async function signInWithCode(page: Page, email: string, path = "/pipeline") {
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
-async function signInBroker(page: Page, path = "/pipeline") {
-  await signInWithCode(page, "broker@corin.test", path);
+async function signInBroker(page: Page, path = "/pipeline", email = "broker@corin.test") {
+  await signInWithCode(page, email, path);
   await expect(page).toHaveURL(/\/mfa\?next=/);
   await page.getByLabel("Authenticator code").fill(totp(DEMO_TOTP_SECRET));
   await page.getByRole("button", { name: "Verify" }).click();
 }
+
+/** The demo admin has the same enrolled TOTP secret as the demo broker. */
+const signInAdmin = (page: Page, path = "/pipeline") => signInBroker(page, path, "admin@corin.test");
 
 test("staff pages and files require sign-in", async ({ page, request }) => {
   await page.goto(`${base}/approvals`);
@@ -234,7 +237,7 @@ test("every staff nav link sits fully inside the nav at 640px to 1440px", async 
   await signInBroker(page, "/pipeline");
   await expect(page).toHaveURL(`${base}/pipeline`);
   const nav = page.getByRole("navigation", { name: "Staff" });
-  await expect(nav.getByRole("link")).toHaveCount(10);
+  await expect(nav.getByRole("link")).toHaveCount(11);
   for (const width of [640, 768, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     const { box, clipped } = await nav.evaluate((el) => {
@@ -350,6 +353,43 @@ test("sign-in and staff pages have no serious accessibility violations", async (
   await page.goto(`${base}/documents/extractions`);
   await expect(page.getByRole("heading", { name: "Extraction review", level: 1 })).toBeVisible();
   expect(await seriousViolations(page)).toEqual([]);
+});
+
+test("an administrator moves mail triage to another model, then sees it as current and in the history", async ({ page }) => {
+  await signInAdmin(page, "/settings/ai");
+  await expect(page).toHaveURL(`${base}/settings/ai`);
+  await expect(page.getByRole("heading", { name: "AI models", level: 1 })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Staff" }).getByRole("link", { name: "Settings" })).toBeVisible();
+  const card = page.getByRole("article", { name: "Mail triage" });
+  const current = page.getByTestId("current-mail-triage");
+  // A reused server may already hold a choice: always move to a model that is not the current one.
+  const before = ((await current.locator("code").textContent()) ?? "").trim();
+  expect(before).toMatch(/^claude-/);
+  const target = before === "claude-sonnet-5-5" ? "claude-opus-5-5" : "claude-sonnet-5-5";
+  // Only models the task allows are offered: Claude tiers here, never the market-intel model.
+  const select = card.getByLabel("Model for Mail triage");
+  await expect(select.locator("option")).toHaveText([/^Use the default \(claude-haiku-5-5\)$/, /^claude-opus-5-5 /, /^claude-sonnet-5-5 /, /^claude-haiku-5-5 /]);
+  await select.selectOption(target);
+  const reason = `Lender replies need a stronger model (e2e ${Date.now()})`;
+  await card.getByLabel("Reason for the change to Mail triage").fill(reason);
+  await card.getByRole("button", { name: "Save Mail triage" }).click();
+
+  await expect(page.getByText(`Saved. Mail triage now runs on ${target}.`)).toBeVisible();
+  await expect(current).toHaveText(`${target} (chosen)`);
+  await expect(card.getByText("Chosen by an administrator")).toBeVisible();
+  const row = card.getByRole("table").getByRole("row").filter({ hasText: reason });
+  await expect(row).toHaveCount(1);
+  await expect(row.getByRole("cell")).toHaveText([/\d/, "Demo Admin", before, target, reason]);
+  expect(await seriousViolations(page)).toEqual([]);
+});
+
+test("a broker sees the AI model settings read-only", async ({ page }) => {
+  await signInBroker(page, "/settings/ai");
+  await expect(page).toHaveURL(`${base}/settings/ai`);
+  await expect(page.getByText("Only administrators can change which model a task uses.")).toBeVisible();
+  await expect(page.getByRole("article", { name: "Mail triage" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Save/ })).toHaveCount(0);
+  await expect(page.getByRole("combobox")).toHaveCount(0);
 });
 
 test("keyboard focus on a long deal page never lands under the sticky staff header", async ({ page }) => {

@@ -49,6 +49,16 @@ describe("buildAdvisorRequest", () => {
     expect(req.messages.at(-1)?.role).toBe("user");
   });
 
+  it("runs on another Claude model when one is chosen, without a fallback list where the model has none", () => {
+    const mid = buildAdvisorRequest({ history: [], turn: userTurn("x"), market, model: "claude-sonnet-5-5" });
+    expect(mid).toMatchObject({ model: "claude-sonnet-5-5", betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" });
+    const bulk = buildAdvisorRequest({ history: [], turn: userTurn("x"), market, model: "claude-haiku-5-5" });
+    expect(bulk.model).toBe("claude-haiku-5-5");
+    expect(bulk.betas).toBeUndefined();
+    expect(bulk.fallbacks).toBeUndefined();
+    expect(bulk.system).toEqual(req.system);
+  });
+
   it("keeps the cached system prefix free of per-request data", () => {
     const system = req.system as { text: string; cache_control?: unknown }[];
     expect(system[0]?.cache_control).toEqual({ type: "ephemeral" });
@@ -173,6 +183,26 @@ describe("streamAdvisorTurn", () => {
       { role: "assistant", content: "HUD 232 needs 1.45x.", stopReason: "end_turn", model: "claude-opus-5-5" },
     ]);
     expect(row.lockedUntil).toBe(0);
+  });
+
+  it("runs the turn on the model an administrator chose for the assistant", async () => {
+    const { MemoryTaskModelStore, setTaskModelSource } = await import("./model-settings");
+    const settings = new MemoryTaskModelStore();
+    settings.rows.push({ task: "advisor.chat", model: "claude-sonnet-5-5", previousModel: "claude-opus-5-5", setAt: "2026-11-04T00:00:00Z", setBy: null, setByLabel: "Admin", reason: "cost" });
+    setTaskModelSource(async () => settings);
+    try {
+      const { store, conv } = await setup();
+      const model = fakeModel(["ok"]);
+      await readAll(await streamAdvisorTurn({ conversationId: conv.id, history: [], turnCount: 0, message: "x", mode: "chat", market, store, model, retrieveExcerpts: async () => [] }));
+      expect(model.calls[0]!.model).toBe("claude-sonnet-5-5");
+      // An explicit model id wins (tests and callers that pin one).
+      const pinned = fakeModel(["ok"]);
+      const again = await setup();
+      await readAll(await streamAdvisorTurn({ conversationId: again.conv.id, history: [], turnCount: 0, message: "x", mode: "chat", market, store: again.store, model: pinned, modelId: "claude-opus-5-5", retrieveExcerpts: async () => [] }));
+      expect(pinned.calls[0]!.model).toBe("claude-opus-5-5");
+    } finally {
+      setTaskModelSource(undefined);
+    }
   });
 
   it("handles refusals and appends a safe note", async () => {

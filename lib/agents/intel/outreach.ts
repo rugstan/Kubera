@@ -20,7 +20,8 @@
 import { createHash } from "node:crypto";
 import { checkText } from "@/lib/ai/guardrails";
 import { GatewayProviderError, GatewayUnavailableError, MODELS, RoutingRefusedError, type ModelGateway } from "@/lib/ai/gateway";
-import { agentRegistry, RegistryError, sha256 } from "@/lib/agents/core/registry";
+import { resolveTaskModel } from "@/lib/ai/model-settings";
+import { agentRegistry, RegistryError, sha256, type RegisteredPrompt } from "@/lib/agents/core/registry";
 import { isApproved, peekApproval, type ApprovalGate, type OutboundAction } from "@/lib/compliance/approval-gate";
 import { consentState, type ConsentReader } from "@/lib/notify/consent";
 import type { EmailClient } from "@/lib/notify/email/types";
@@ -169,9 +170,15 @@ export const INTRO_PROMPT_ID = "prospecting.outreach_intro";
 export const INTRO_PROMPT_VERSION = "1.0.0";
 const INTRO_MAX_TOKENS = 400;
 
-export function introPrompt() {
+/**
+ * The intro prompt, registered against its default model (MODELS.claudeMid).
+ * `model` is the model this run uses (task "prospecting.intro" in
+ * lib/ai/model-settings.ts); the registry checks it and the result carries it.
+ */
+export function introPrompt(model?: string) {
+  let p: RegisteredPrompt;
   try {
-    const p = agentRegistry().registerPrompt({
+    p = agentRegistry().registerPrompt({
       id: INTRO_PROMPT_ID,
       version: INTRO_PROMPT_VERSION,
       description: "Opening sentences of a refinance-maturity outreach note",
@@ -181,11 +188,11 @@ export function introPrompt() {
       maxTokens: INTRO_MAX_TOKENS,
       system: INTRO_SYSTEM,
     });
-    return { id: p.id, version: p.version, sha256: p.sha256, model: p.model, system: p.system };
   } catch (err) {
     if (!(err instanceof RegistryError)) throw err;
     return { id: INTRO_PROMPT_ID, version: INTRO_PROMPT_VERSION, sha256: sha256(INTRO_SYSTEM), model: MODELS.claudeMid, system: INTRO_SYSTEM };
   }
+  return { ...agentRegistry().runRef(p, model), system: p.system };
 }
 
 /** Facts the model may see: no owner, contact, street address or lender. */
@@ -201,7 +208,7 @@ export type IntroResult = { text: string; generatedBy: "template" | "model"; mod
 export async function writeIntro(gateway: ModelGateway | null | undefined, p: Prospect): Promise<IntroResult> {
   const fallback: IntroResult = { text: templateIntro(p), generatedBy: "template", model: null };
   if (!gateway) return fallback;
-  const prompt = introPrompt();
+  const prompt = introPrompt(await resolveTaskModel("prospecting.intro"));
   if (!gateway.available(prompt.model)) return { ...fallback, reason: "provider_unconfigured" };
   try {
     const facts = introFacts(p);

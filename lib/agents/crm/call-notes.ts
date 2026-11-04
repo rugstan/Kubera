@@ -16,11 +16,13 @@ import { z } from "zod";
 import { guardInbound, STRIPPED_CONTENT_NOTE, type InboundGuard } from "@/lib/agents/core/inbound";
 import { agentRegistry, type PromptRef, type RegisteredPrompt } from "@/lib/agents/core/registry";
 import { MODELS, type GatewayResponse, type JsonSchema, type ModelGateway } from "@/lib/ai/gateway";
+import { resolveTaskModel } from "@/lib/ai/model-settings";
 import { escapeXmlText } from "@/lib/mail/escape";
 import { CRM_AGENT_VERSIONS } from "./events";
 import type { NoteCreateOp } from "./operations";
 import { cleanLine, cleanMarkdown } from "./sanitize";
 
+/** Default model (task "crm.call_summary" in lib/ai/model-settings.ts; an administrator may choose another on /settings/ai). */
 export const CALL_SUMMARY_MODEL = MODELS.claudeMid;
 export const MAX_TRANSCRIPT_CHARS = 40_000;
 export const MAX_FOLLOW_UPS = 5;
@@ -128,14 +130,17 @@ export async function summarizeCall(call: CallRecord, deps: { gateway: ModelGate
   const none = (fallbackReason: string, response: GatewayResponse | null = null): CallSummaryResult => ({ summary: null, fallbackReason, model: null, response, guard, prompt });
   if (call.subject?.aiProcessingOptOut || call.subject?.humanReviewOnly) return none("ai_opt_out");
   if (!call.transcript.trim()) return none("empty_transcript");
-  if (!deps.gateway || !deps.gateway.available(CALL_SUMMARY_MODEL)) return none("model_unavailable");
+  if (!deps.gateway) return none("model_unavailable");
 
   const registered = callSummaryPrompt();
-  prompt = { id: registered.id, version: registered.version, sha256: registered.sha256, model: registered.model };
+  // The administrator's choice for the task, else CALL_SUMMARY_MODEL; the ref records the model this run used.
+  const ref = agentRegistry().runRef(registered, await resolveTaskModel("crm.call_summary"));
+  if (!deps.gateway.available(ref.model)) return none("model_unavailable");
+  prompt = ref;
   let response: GatewayResponse;
   try {
     response = await deps.gateway.complete({
-      model: registered.model,
+      model: ref.model,
       purpose: registered.purpose,
       system: registered.system,
       messages: [{ role: "user", content: renderCallForModel(call, guard) }],

@@ -20,6 +20,7 @@ import { z } from "zod";
 import { levelFor, logIntelEvent, INTEL_AGENT, TASKS, type IntelEventSink } from "./audit";
 import { checkText } from "@/lib/ai/guardrails";
 import { GatewayProviderError, GatewayUnavailableError, RoutingRefusedError, xaiModel, type JsonSchema, type ModelGateway } from "@/lib/ai/gateway";
+import { resolveTaskModel } from "@/lib/ai/model-settings";
 import { agentRegistry, sha256, RegistryError, type PromptRef } from "@/lib/agents/core/registry";
 import { UNTRUSTED_CONTENT_POLICY, isolateUntrusted } from "@/lib/agents/core/injection";
 import { STRIPPED_CONTENT_NOTE } from "@/lib/agents/core/inbound";
@@ -91,10 +92,11 @@ export type MarketPrompt = { id: string; version: string; sha256: string; model:
 let warnedRegistry = false;
 
 /**
- * The market-intel prompt from the agent registry. The registry approves
- * the gateway's xAI model; if a different model is passed and rejected, the
- * prompt is used unregistered (same text, same hash) so the note still
- * records which prompt wrote it.
+ * The market-intel prompt from the agent registry, registered against the
+ * gateway's xAI model (its default). `model` is the model this run uses (task
+ * "intel.market_draft" in lib/ai/model-settings.ts) and the registry checks
+ * it; if it is rejected, the prompt is used unregistered (same text, same
+ * hash) so the note still records which prompt wrote it.
  */
 export function marketPrompt(model: string = xaiModel()): MarketPrompt {
   try {
@@ -103,17 +105,17 @@ export function marketPrompt(model: string = xaiModel()): MarketPrompt {
       version: MARKET_PROMPT_VERSION,
       description: "Weekly market-intel note from public signals only",
       purpose: "market_intel",
-      model,
+      model: xaiModel(),
       effort: "medium",
       maxTokens: MARKET_MAX_TOKENS,
       system: SYSTEM,
     });
-    return { id: p.id, version: p.version, sha256: p.sha256, model: p.model, system: p.system, registered: true };
+    return { ...agentRegistry().runRef(p, model), system: p.system, registered: true };
   } catch (err) {
     if (!(err instanceof RegistryError)) throw err;
     if (!warnedRegistry) {
       warnedRegistry = true;
-      console.warn(`[intel] market prompt not registered (${err.message}); pass the gateway xAI model so the registry approves it`);
+      console.warn(`[intel] market prompt used unregistered (${err.message}); choose an approved xAI model for the task`);
     }
     return { id: MARKET_PROMPT_ID, version: MARKET_PROMPT_VERSION, sha256: sha256(SYSTEM), model, system: SYSTEM, registered: false };
   }
@@ -271,7 +273,8 @@ export async function runMarketIntel(deps: MarketDeps, input: MarketRunInput): P
   const today = now.toISOString().slice(0, 10);
   const weekStart = input.weekStart ?? weekStartOf(now);
   const level = await levelFor(deps.autonomy, TASKS.marketDraft);
-  const prompt = marketPrompt(deps.model ?? xaiModel());
+  // deps.model (tests), else the administrator's choice for the task, else the gateway's xAI model.
+  const prompt = marketPrompt(deps.model ?? (await resolveTaskModel("intel.market_draft")));
 
   const collected = await collectSignals(deps.sources, { since: addDays(today, -8), until: today });
   if (!collected.signals.length) return { status: "no_signals", errors: collected.errors };

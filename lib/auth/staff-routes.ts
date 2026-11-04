@@ -14,6 +14,7 @@ export const STAFF_NAV = [
   { href: "/ai-review", label: "AI review" },
   { href: "/reports", label: "Reports" },
   { href: "/prospects", label: "Prospects" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 /** Path prefixes served by the staff app (each matches itself and its subpaths). */

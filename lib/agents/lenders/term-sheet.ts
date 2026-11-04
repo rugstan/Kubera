@@ -20,9 +20,11 @@ import { z } from "zod";
 import { guardInbound, STRIPPED_CONTENT_NOTE, type InboundGuard } from "@/lib/agents/core/inbound";
 import { agentRegistry, type PromptRef, type RegisteredPrompt } from "@/lib/agents/core/registry";
 import { MODELS, type JsonSchema, type ModelGateway } from "@/lib/ai/gateway";
+import { resolveTaskModel } from "@/lib/ai/model-settings";
 import { escapeXmlText } from "@/lib/mail/escape";
 import { bindingConstraints, prepayKinds, recourseKinds, type BindingConstraint, type PrepayKind, type QuoteTerms, type Recourse } from "./types";
 
+/** Default model (task "lenders.term_sheet" in lib/ai/model-settings.ts; an administrator may choose another on /settings/ai). */
 export const TERM_SHEET_MODEL = MODELS.claude;
 /** Fields below this confidence send the quote to review. */
 export const LOW_CONFIDENCE = 0.75;
@@ -366,13 +368,16 @@ export async function parseTermSheet(doc: TermSheetDoc, deps: { gateway: ModelGa
   let prompt: PromptRef | null = null;
   // Rules read the stripped body too, so an injected sentence cannot plant terms there either.
   const rules = (reason: string): ParseResult => ({ extraction: parseTermSheetByRules(guard.texts.body ?? "", { indexRates: deps.indexRates }), parser: "rules", model: null, fallbackReason: reason, guard, prompt });
-  if (!deps.gateway || !deps.gateway.available(TERM_SHEET_MODEL)) return rules("model_unavailable");
+  if (!deps.gateway) return rules("model_unavailable");
   const registered = termSheetPrompt();
-  prompt = { id: registered.id, version: registered.version, sha256: registered.sha256, model: registered.model };
+  // The administrator's choice for the task, else TERM_SHEET_MODEL; the ref records the model this run used.
+  const ref = agentRegistry().runRef(registered, await resolveTaskModel("lenders.term_sheet"));
+  if (!deps.gateway.available(ref.model)) return rules("model_unavailable");
+  prompt = ref;
   const { text, truncated } = renderTermSheetForModel(doc, guard);
   try {
     const res = await deps.gateway.complete({
-      model: registered.model,
+      model: ref.model,
       purpose: registered.purpose,
       system: registered.system,
       messages: [{ role: "user", content: text }],
