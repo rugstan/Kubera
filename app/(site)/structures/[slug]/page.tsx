@@ -12,6 +12,13 @@ import { ASSUMPTIONS_REVIEWED } from "@/lib/sizing/assumptions";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
 
+// The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
+// rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
+// on the next visit. It awaits `params` above any <Suspense>; with Partial
+// Prefetching that render fails (NEXT_STATIC_GEN_BAILOUT, a 500) unless the
+// route may wait for its params, like `fallback: 'blocking'`.
+export const instant = false;
+
 // With Cache Components every slug must be listed up front; unknown slugs 404.
 export function generateStaticParams() {
   return DEAL_STRUCTURES.map((s) => ({ slug: s.slug }));
