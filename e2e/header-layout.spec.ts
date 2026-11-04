@@ -94,9 +94,11 @@ test.describe("primary header layout", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await gotoHydrated(page, "/");
     const nav = page.getByRole("navigation", { name: "Primary" });
+    // The first link is the logo, an image named for the home page.
+    await expect(nav.getByRole("link").first()).toHaveAccessibleName("Corin Commercial home");
+    await expect(nav.getByRole("link").first().getByRole("img", { name: "Corin Commercial" })).toBeVisible();
     const names = (await nav.getByRole("link").allInnerTexts()).map((t) => t.trim()).filter(Boolean);
-    expect(names[0]).toMatch(/^Corin/);
-    expect(names.slice(1)).toEqual(["Rates", "Calculators", "About", "Contact", "Size my loan", "Get loan options"]);
+    expect(names).toEqual(["Rates", "Calculators", "About", "Contact", "Size my loan", "Get loan options"]);
   });
 
   test("shows the phone only when one is configured", async ({ page }) => {
