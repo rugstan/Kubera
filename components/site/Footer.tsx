@@ -149,7 +149,6 @@ export function Footer() {
         <div className="mt-14 space-y-3 border-t border-hairline pt-8 leading-relaxed text-titanium">
           <p className="font-medium text-graphite">{licenseLine()}</p>
           <p>{disclosures.indicative}</p>
-          <p>{disclosures.images}</p>
           <p>
             © <Year /> {site.legalName} HUD, FHA, and SBA program names are used descriptively; Corin Commercial is not affiliated with or endorsed by any government agency. Equal Housing Opportunity.
           </p>

@@ -101,8 +101,6 @@ export const disclosures = {
     "Timelines are typical ranges after a complete file and are subject to lender approval, appraisal, title, and diligence. They are not guaranteed.",
   brokerNotLender:
     "Corin Commercial is a real estate broker, not a lender. Lenders make all credit decisions and fund loans as lender of record. Corin never holds, transfers, or disburses loan funds and does not service loans.",
-  images:
-    "Images on this site are illustrative and digitally created. They do not depict properties Corin Commercial has financed, its clients or its team.",
   mlds:
     "On every loan Corin arranges that is secured by real property, you receive a Mortgage Loan Disclosure Statement (DRE form RE 882) no later than three business days after we receive your completed written loan application, and in every case before you become obligated on the loan.",
 } as const;

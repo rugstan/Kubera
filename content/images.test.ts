@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { PROGRAM_FAMILIES } from "@/content/programs/types";
-import { FAMILY_IMAGES, IMAGE_DISCLOSURE, familyImage } from "./images";
+import { FAMILY_IMAGES, familyImage } from "./images";
 
 const root = process.cwd();
 const assetsDir = path.join(root, "assets/images");
@@ -31,12 +31,5 @@ describe("site images", () => {
       expect(statSync(path.join(assetsDir, file)).size, `${file} under 400 KB`).toBeLessThan(400_000);
       expect(registry, `${file} is referenced`).toContain(`@/assets/images/${file}`);
     }
-  });
-
-  it("states in the footer that the images are illustrative, without the word AI", () => {
-    expect(IMAGE_DISCLOSURE).toMatch(/illustrative and digitally created/);
-    expect(IMAGE_DISCLOSURE).toMatch(/do not depict properties Corin Commercial has financed, its clients or its team/);
-    expect(IMAGE_DISCLOSURE).not.toMatch(/\bAI\b/);
-    expect(readFileSync(path.join(root, "components/site/Footer.tsx"), "utf8")).toContain("{disclosures.images}");
   });
 });

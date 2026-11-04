@@ -20,15 +20,11 @@ and the settings used. Keep this file in step with `content/images.ts`.
   - No recognizable landmarks or real buildings.
   - No money, keys, handshakes or gavels.
   - No text baked into images, so the DRE license line is never crowded out.
-- **Disclosure.**
-  - Footer: "Images on this site are illustrative and digitally created. They
-    do not depict properties Corin Commercial has financed, its clients or its
-    team."
-  - Structure pages: the caption "Illustrative image, not the property in this
-    example."
-  - Never use the word "AI" (owner rule; `components/legal/copy.test.ts`).
+- **Disclosure.** None on the site: the owner decided on 2026-11-04 not to
+  show an image disclosure line in the footer or captions on the structure
+  pages. Never use the word "AI" (owner rule; `components/legal/copy.test.ts`).
 - **Counsel to confirm.**
-  - The disclosure wording.
+  - That no image disclosure is needed.
   - Whether residential-collateral pages need an Equal Housing statement.
   - That generated, people-free images trigger no AB 723 (B&P §10140.8) or
     New York synthetic-performer duty.

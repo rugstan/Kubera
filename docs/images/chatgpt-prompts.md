@@ -24,7 +24,7 @@ Not usable at all, so don't regenerate these: industrial (has a truck), retail, 
 1. In ChatGPT, paste **one prompt per message** and get **one image per reply**. Don't ask for several images at once: that is what produced the collage. Start a new chat if the style starts to drift.
 2. Each image must come out at **landscape, 1536 × 1024** (3:2), straight from ChatGPT. If it offers a larger or HD landscape size, use that instead. Don't crop, stretch or upscale it afterwards.
 3. Download each image and give it the file name shown (for example `01-home-hero.png`).
-4. Attach them back here, in one message or a few, keeping the file names (a zip is fine). I will crop each one to the shapes in the table, compress it, place it on the site and add the disclosure line.
+4. Attach them back here, in one message or a few, keeping the file names (a zip is fine). I will crop each one to the shapes in the table, compress it and place it on the site.
 
 If an image has any lettering, signs, logos, people, cars or a real landmark in it, ask ChatGPT to redo it. Those can't go on the site.
 
@@ -184,8 +184,6 @@ Subject: a 1960s two-story, eight-unit apartment building in the middle of a reh
 Style: photorealistic architectural photograph, not a 3D rendering. 24-35mm lens, everything sharp, vertical lines perfectly vertical, level horizon, eye-level view. Soft natural mid-morning daylight from the left with gentle shadows, clear pale slightly hazy sky, no HDR look. Neutral, slightly warm color with restrained saturation: warm white, primer gray, light oak and muted sage green; no saturated blues, reds or oranges. Tidy, orderly work in progress. Main subject centered in the middle half of the frame, with generous empty sky above and a clean foreground below. No people and no vehicles. No text, letters, numbers, signs, logos, flags, banners, address numbers, license plates or screens. No lens flare, vignette, watermark or border, and no recognizable real building.
 ```
 
-## Before they go live
+## Rules
 
-- The site footer will say: "Images on this site are illustrative and digitally created. They do not depict properties Corin Commercial has financed, its clients or its team."
-- Each structure page will caption its image: "Illustrative image, not the property in this example."
-- Counsel should confirm that wording. The full rules are in `docs/images/image-plan.md`.
+The full rules for these images are in `docs/images/image-plan.md`.

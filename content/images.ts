@@ -2,18 +2,16 @@
 // are in docs/images/image-plan.md and docs/images/chatgpt-prompts.md; keep
 // them in step with this file.
 //
-// The images are illustrative and digitally created: they show the kind of
-// property Corin Commercial finances, never a property it financed, a client
-// or the team. So:
-//   - every page that shows one also shows IMAGE_DISCLOSURE (the footer does);
+// The images show the kind of property Corin Commercial finances, never a
+// property it financed, a client or the team. So:
 //   - alt text describes what is in the picture and never claims it is a
 //     Corin deal, a client's building or a real place;
 //   - no people, vehicles, signs or text in any image.
+// The site carries no image disclosure line (owner decision, 2026-11-04).
 // A family without an image here renders without one; nothing else changes.
 
 import type { StaticImageData } from "next/image";
 import type { ProgramFamily } from "@/content/programs/types";
-import { disclosures } from "@/lib/site";
 import familyMultifamily from "@/assets/images/family-multifamily.webp";
 
 export type SiteImage = {
@@ -23,9 +21,6 @@ export type SiteImage = {
   /** CSS object-position for crops (the subject's centre), e.g. "60% 55%". */
   position?: string;
 };
-
-/** Shown in the footer of every page (lib/site.ts disclosures.images). */
-export const IMAGE_DISCLOSURE = disclosures.images;
 
 /** Banner on each financing hub page (and, once all five exist, the homepage family cards). */
 export const FAMILY_IMAGES: Partial<Record<ProgramFamily, SiteImage>> = {
