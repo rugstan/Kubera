@@ -43,7 +43,7 @@ describe("expressAction (kubera.loans routing)", () => {
   });
 
   it("passes API calls and metadata assets through", () => {
-    for (const p of ["/api/qualify", "/_next/static/a.js", "/icon.svg", "/apple-icon", "/opengraph-image", "/manifest.webmanifest", "/robots.txt"]) {
+    for (const p of ["/api/qualify", "/_next/static/a.js", "/icon.png", "/apple-icon.png", "/opengraph-image", "/manifest.webmanifest", "/robots.txt"]) {
       expect(expressAction(p)).toEqual({ type: "next" });
     }
   });

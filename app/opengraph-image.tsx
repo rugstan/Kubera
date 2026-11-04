@@ -1,10 +1,19 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { ImageResponse } from "next/og";
 
 export const alt = "Corin Commercial: commercial real estate loan brokerage";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default function OpenGraphImage() {
+// The owner's logo artwork (assets/brand/corin-logo.png, 1601 x 407). Read at
+// build time, when this image is generated, and inlined as a data URL.
+const LOGO = { width: 1601, height: 407 };
+const LOGO_HEIGHT = 84;
+
+export default async function OpenGraphImage() {
+  const logo = await readFile(path.join(process.cwd(), "assets/brand/corin-logo.png"));
+  const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
   return new ImageResponse(
     (
       <div
@@ -19,13 +28,8 @@ export default function OpenGraphImage() {
           color: "#1d1d1f",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 18, background: "#1d1d1f", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
-              <path d="M16.24 7.76A6 6 0 1 0 16.24 16.24" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div style={{ fontSize: 36, fontWeight: 600 }}>Corin Commercial</div>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <img src={logoSrc} alt="Corin Commercial" width={Math.round((LOGO_HEIGHT * LOGO.width) / LOGO.height)} height={LOGO_HEIGHT} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.08, letterSpacing: -2 }}>We help you find the right lender for your commercial real estate loan.</div>

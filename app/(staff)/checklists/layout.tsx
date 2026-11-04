@@ -17,7 +17,7 @@ export default function ChecklistsLayout({ children }: { children: React.ReactNo
       <header className="border-b border-black/10 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="rounded-lg">
-            <Logo />
+            <Logo className="h-8" />
             <span className="sr-only"> home</span>
           </Link>
           <nav aria-label="Deal desk">

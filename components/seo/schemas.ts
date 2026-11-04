@@ -33,7 +33,7 @@ export function organizationSchema(): JsonLdNode {
     name: site.name,
     legalName: site.legalName,
     url: canonicalUrl("/"),
-    logo: canonicalUrl("/icon.svg"),
+    logo: canonicalUrl("/brand/corin-logo.png"),
     description: SITE_DESCRIPTION,
     email: site.email,
     telephone: site.phone,

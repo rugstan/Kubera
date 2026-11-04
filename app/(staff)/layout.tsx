@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Logo } from "@/components/site/Logo";
 import { Suspense } from "react";
 import { signOutAction } from "@/app/(auth)/actions";
 import { currentSignIn } from "@/lib/auth/dal";
 import { displayName, evaluateStaffAccess } from "@/lib/auth/policy";
-import { site } from "@/lib/site";
 import { SignInRedirect } from "@/lib/auth/sign-in-redirect";
 import { HeaderScrollOffset } from "./_components/HeaderScrollOffset";
 // The nav is the single list of staff desks; the Ask button and robots.txt
@@ -27,8 +27,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       <HeaderScrollOffset headerId="staff-header" />
       <header id="staff-header" className="glass sticky top-0 z-40 border-b border-hairline">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
-          <Link href="/pipeline" className="rounded-md text-[15px] font-semibold tracking-tight text-ink">
-            {site.name} <span className="font-normal text-titanium">· Staff</span>
+          <Link href="/pipeline" className="flex items-center gap-2 rounded-md text-[15px] tracking-tight text-titanium">
+            <Logo className="h-7" />
+            <span>Staff</span>
           </Link>
           {/* The nav takes its own full-width row at every width: next to the
               brand and account menu it had ~820px for ~970px of links, so the

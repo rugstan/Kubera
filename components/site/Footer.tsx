@@ -87,7 +87,7 @@ export function Footer() {
       <div className="mx-auto max-w-[1280px] px-5 py-16 md:px-8">
         <div className="grid gap-12 md:grid-cols-3 lg:grid-cols-[1.4fr_repeat(6,1fr)] lg:gap-8">
           <div>
-            <Logo />
+            <Logo className="h-10" />
             <p className="mt-4 max-w-xs leading-relaxed text-graphite">
               Commercial real estate loan brokerage for senior living, hotels, multifamily, construction and hard money. We arrange loans as a licensed California real estate broker; we are not the lender.
             </p>
