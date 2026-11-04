@@ -3,7 +3,7 @@ import { bookingLink, calcomBaseUrl } from "./calcom";
 import { ResendEmailClient, resendConfigFromEnv } from "./email/resend";
 import { EmailError } from "./email/types";
 import { preApprovedFromEnv } from "./gate";
-import { MemoryOptOutSink, TwentyOptOutSink } from "./optout";
+import { MemoryOptOutSink, phoneSearches, TwentyOptOutSink } from "./optout";
 import { maskPhone, phoneVariants, toE164 } from "./phone";
 import { insideSmsWindow } from "./quiet-hours";
 import { SmsError } from "./sms/types";
@@ -122,6 +122,40 @@ describe("Twenty opt-out sink", () => {
     const patch = calls.find((c) => c.method === "PATCH");
     expect(patch).toMatchObject({ url: "https://crm.example.com/rest/people/p9", body: { smsOptOut: false } });
     expect(calls.filter((c) => c.method === "GET").length).toBeGreaterThan(1);
+  });
+
+  it("finds a non-US person by the national number and calling code Twenty stores", async () => {
+    calls.length = 0;
+    // Twenty keeps +919876543210 as +91 / 9876543210. A record with the same
+    // national number under another calling code is someone else.
+    const twentyFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ method: init?.method ?? "GET", url, body: init?.body ? JSON.parse(init.body as string) : undefined });
+      if (init?.method === "PATCH") return res({ data: { updatePerson: { id: "x" } } });
+      const value = /"(.*)"/.exec(decodeURIComponent(url.split("filter=")[1]?.split("&")[0] ?? ""))?.[1];
+      const people =
+        value === "9876543210"
+          ? [
+              { id: "in-1", phones: { primaryPhoneNumber: "9876543210", primaryPhoneCallingCode: "+91" } },
+              { id: "other", phones: { primaryPhoneNumber: "9876543210", primaryPhoneCallingCode: "+44" } },
+            ]
+          : [];
+      return res({ data: { people } });
+    }) as typeof fetch;
+    const sink = new TwentyOptOutSink({ baseUrl: "https://crm.example.com", apiKey: "k", fetch: twentyFetch });
+    expect(await sink.setOptOut("+919876543210", true)).toEqual({ updated: 1 });
+    expect(calls.filter((c) => c.method === "PATCH")).toEqual([expect.objectContaining({ url: "https://crm.example.com/rest/people/in-1" })]);
+  });
+
+  it("searches US numbers by their usual formats and other numbers by each calling code split", () => {
+    expect(phoneSearches("+14155550100").every((s) => s.callingCode === null)).toBe(true);
+    expect(phoneSearches("+14155550100").map((s) => s.number)).toContain("4155550100");
+    expect(phoneSearches("+919876543210")).toEqual([
+      { number: "+919876543210", callingCode: null },
+      { number: "19876543210", callingCode: "+9" },
+      { number: "9876543210", callingCode: "+91" },
+      { number: "876543210", callingCode: "+919" },
+    ]);
   });
 
   it("reports zero updates when no person matches", async () => {

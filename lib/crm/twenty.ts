@@ -99,10 +99,16 @@ async function upsertPerson(contact: Contact, c: CrmConsent, companyId?: string)
     if (!reachable(c)) await call("PATCH", `people/${encodeURIComponent(existing)}`, { smsOptOut: true });
     return existing;
   }
+  // Twenty refuses a number without a country code ("(415) 555-0100": 400
+  // INVALID_PHONE_NUMBER), and that would fail the whole lead. E.164 alone is
+  // enough (no primaryPhoneCountryCode, which Twenty can reject as conflicting).
+  // A number that cannot be normalized stays out of the CRM (the lead row keeps
+  // it) so the lead still arrives.
+  const phone = reachable(c) ? toE164(contact.phone) : null;
   return create("people", {
     name: { firstName: contact.firstName, lastName: contact.lastName },
     emails: { primaryEmail: contact.email },
-    ...(reachable(c) && contact.phone ? { phones: { primaryPhoneNumber: contact.phone } } : {}),
+    ...(phone ? { phones: { primaryPhoneNumber: phone } } : {}),
     ...(companyId ? { companyId } : {}),
     smsOptOut: !reachable(c),
     leadStatus: "NEW",
