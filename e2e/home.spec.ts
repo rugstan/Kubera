@@ -109,6 +109,28 @@ test.describe("homepage", () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
+  test("the hero calls to action are fully opaque on first paint, before any scroll", async ({ page }) => {
+    // A scroll-driven fade leaves anything that overhangs the fold part-transparent until the
+    // visitor scrolls, which fails text contrast. Opacity is not inherited, so multiply it up the tree.
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 375, height: 667 },
+      { width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/");
+      const hero = page.locator("main > section").first();
+      for (const name of ["Get loan options", "Size my loan"]) {
+        const opacity = await hero.getByRole("link", { name, exact: true }).evaluate((el) => {
+          let o = 1;
+          for (let n: Element | null = el; n; n = n.parentElement) o *= Number(getComputedStyle(n).opacity);
+          return o;
+        });
+        expect(opacity, `${name} at ${viewport.width}x${viewport.height}`).toBe(1);
+      }
+    }
+  });
+
   test("every family has an entry point in the hero, above a 1440x900 fold", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoHydrated(page, "/");
