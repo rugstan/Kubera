@@ -6,7 +6,7 @@ import { LEGAL_PAGES } from "@/components/legal/legal";
 import { PAGE_CONTAINER, PageContainer } from "@/components/site/PageContainer";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
-import { JsonLd } from "@/components/seo/JsonLd";
+import { JsonLd, SiteJsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
 
 // One canonical for the qualifier: the main-site URL. kubera.loans serves the same
@@ -32,6 +32,7 @@ export default function ExpressPage() {
     <div className="flex min-h-dvh flex-col">
       <ExpressHeader />
       <main id="main-content" className="flex-1 pb-16">
+        <SiteJsonLd />
         <JsonLd
           data={breadcrumbSchema([
             { name: "Home", path: "/" },
