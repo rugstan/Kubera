@@ -5,7 +5,7 @@ import { STAFF_NAV, STAFF_ROUTE_PREFIXES } from "./staff-routes";
 describe("staff routes", () => {
   it("lists every top-level folder under app/(staff)/, and nothing else", () => {
     const folders = staffRouteFolders();
-    expect(folders).toEqual(expect.arrayContaining(["pipeline", "lenders", "reports", "ai-review", "prospects"]));
+    expect(folders).toEqual(expect.arrayContaining(["pipeline", "lenders", "reports", "ai-review", "prospects", "settings"]));
     expect([...STAFF_ROUTE_PREFIXES].sort()).toEqual(folders.map((f) => `/${f}`));
   });
 

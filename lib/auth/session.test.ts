@@ -13,6 +13,7 @@ import {
   sessionState,
   toStored,
 } from "./session";
+import { STAFF_ROUTE_PREFIXES } from "./staff-routes";
 
 const stored = { accessToken: "at", refreshToken: "rt", expiresAt: 10_000, issuedAt: 1_000 };
 
@@ -88,6 +89,11 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/documents/0b5c8a1e-1111-4111-8111-111111111111")).toBe("/documents/0b5c8a1e-1111-4111-8111-111111111111");
     expect(safeNextPath("/pipeline?stage=closing")).toBe("/pipeline?stage=closing");
     expect(safeNextPath("/portal")).toBe("/portal");
+    expect(safeNextPath("/settings/ai")).toBe("/settings/ai");
+  });
+
+  it("allows every staff desk in the nav", () => {
+    for (const prefix of STAFF_ROUTE_PREFIXES) expect(safeNextPath(prefix), prefix).toBe(prefix);
   });
 
   it.each([

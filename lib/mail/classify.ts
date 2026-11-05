@@ -20,6 +20,7 @@ import { z } from "zod";
 import { guardInbound, STRIPPED_CONTENT_NOTE, type InboundGuard } from "@/lib/agents/core/inbound";
 import { agentRegistry, type PromptRef, type RegisteredPrompt } from "@/lib/agents/core/registry";
 import { MODELS, type GatewayResponse, type JsonSchema, type ModelGateway } from "@/lib/ai/gateway";
+import { resolveTaskModel } from "@/lib/ai/model-settings";
 import { escapeXmlText } from "./escape";
 import type { InboundMailbox } from "./mailboxes";
 import type { MailMessage } from "./types";
@@ -45,6 +46,7 @@ export type MailCategory = (typeof MAIL_CATEGORIES)[number];
 export const MAIL_DOCUMENT_KINDS = ["T12", "RENT_ROLL", "CENSUS", "STR_REPORT", "FRANCHISE_AGREEMENT", "PIP_BUDGET", "PFS", "TAX_RETURN", "APPRAISAL", "OTHER"] as const;
 export type MailDocumentKind = (typeof MAIL_DOCUMENT_KINDS)[number];
 
+/** Default model (task "mail.triage" in lib/ai/model-settings.ts; an administrator may choose another on /settings/ai). */
 export const CLASSIFIER_MODEL = MODELS.claudeBulk;
 /** Characters of body text the classifier reads (the full body is still stored). */
 export const CLASSIFIER_BODY_CHARS = 12_000;
@@ -351,15 +353,17 @@ export async function classifyMail(
   });
   const rules = () => classifyByRules(msg);
   if (deps.subject?.aiProcessingOptOut) return done(rules(), null, "ai_opt_out", null);
-  if (!deps.gateway || !deps.gateway.available(CLASSIFIER_MODEL)) return done(rules(), null, "model_unavailable", null);
+  if (!deps.gateway) return done(rules(), null, "model_unavailable", null);
 
   const prompt = classifierPrompt();
-  const ref: PromptRef = { id: prompt.id, version: prompt.version, sha256: prompt.sha256, model: prompt.model };
+  // The administrator's choice for the task, else CLASSIFIER_MODEL; the ref records the model this run used.
+  const ref: PromptRef = agentRegistry().runRef(prompt, await resolveTaskModel("mail.triage"));
+  if (!deps.gateway.available(ref.model)) return done(rules(), null, "model_unavailable", null);
   const { text, truncated } = renderEmailForModel(msg, guard);
   let response: GatewayResponse;
   try {
     response = await deps.gateway.complete({
-      model: prompt.model,
+      model: ref.model,
       purpose: prompt.purpose,
       system: prompt.system,
       messages: [{ role: "user", content: text }],

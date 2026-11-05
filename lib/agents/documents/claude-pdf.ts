@@ -37,6 +37,8 @@ export type PdfExtractionRequest = {
   docType: DocType;
   pdf: Uint8Array;
   fileName?: string;
+  /** Claude model for this call (task "documents.extract_pdf", lib/ai/model-settings.ts); default: the client's model, else MODELS.claude. */
+  model?: string;
   subject?: { aiProcessingOptOut?: boolean };
   traceId?: string;
   signal?: AbortSignal;
@@ -107,7 +109,7 @@ export class AnthropicDocumentClient implements ClaudeDocumentClient {
 
   async extractPdf(req: PdfExtractionRequest): Promise<ModelExtraction> {
     if (req.pdf.byteLength > MAX_PDF_BYTES) throw new PdfTooLargeError(req.pdf.byteLength);
-    const model = this.opts.model ?? MODELS.claude;
+    const model = req.model ?? this.opts.model ?? MODELS.claude;
     const effort = this.opts.effort ?? "medium";
     const system = extractionPrompt(req.docType).system;
     // Routing guard before a byte leaves: the raw file is restricted borrower data.
@@ -137,7 +139,7 @@ export class AnthropicDocumentClient implements ClaudeDocumentClient {
         endTime: new Date(started + latencyMs),
         usage: res.usage,
         level: refused ? "WARNING" : "DEFAULT",
-        metadata: { stopReason: res.stopReason, docType: req.docType },
+        metadata: { requestedModel: model, stopReason: res.stopReason, docType: req.docType },
       });
       trace.end({ metadata: { stopReason: res.stopReason } });
       const call: ModelCall = {
@@ -177,7 +179,8 @@ export class FakeClaudeDocumentClient implements ClaudeDocumentClient {
   async extractPdf(req: PdfExtractionRequest): Promise<ModelExtraction> {
     this.requests.push(req);
     const json = await this.answer(req);
-    const call: ModelCall = { provider: "anthropic", model: MODELS.claude, servedModel: MODELS.claude, inputTokens: 1000, outputTokens: 200, stopReason: json === "refusal" ? "refusal" : "end_turn", latencyMs: 5, refused: json === "refusal" };
+    const model = req.model ?? MODELS.claude;
+    const call: ModelCall = { provider: "anthropic", model, servedModel: model, inputTokens: 1000, outputTokens: 200, stopReason: json === "refusal" ? "refusal" : "end_turn", latencyMs: 5, refused: json === "refusal" };
     if (json === "refusal") return { result: null, call, warnings: ["model_refused"] };
     return { result: parseModelExtraction(req.docType, json), call, warnings: [] };
   }

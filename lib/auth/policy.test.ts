@@ -94,6 +94,14 @@ describe("can", () => {
     expect(can(principal(["broker"]), "view_audit", today).ok).toBe(false);
     expect(can(principal(["admin"]), "view_audit", today).ok).toBe(true);
   });
+
+  it("lets only administrators choose which model a task uses", () => {
+    expect(can(principal(["admin"]), "manage_ai_settings", today)).toEqual({ ok: true });
+    expect(can(principal(["admin", "analyst"]), "manage_ai_settings", today).ok).toBe(true);
+    // A licensed broker is not enough, and neither is an analyst.
+    expect(can(principal(["broker"]), "manage_ai_settings", today)).toMatchObject({ ok: false, reason: expect.stringContaining("administrators") });
+    expect(can(principal(["analyst"]), "manage_ai_settings", today).ok).toBe(false);
+  });
 });
 
 describe("californiaDate", () => {

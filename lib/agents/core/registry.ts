@@ -7,6 +7,13 @@
 // prompt id, version and hash it ran with. Models are checked against the
 // approved model list (lib/ai/gateway.ts tiers, a configured NVIDIA id and
 // the gateway's xAI model) and agents declare the tools (with versions) and tasks they use.
+//
+// A prompt registers its default model. An administrator may run the task on
+// another model (lib/ai/model-settings.ts, /settings/ai) without a new prompt
+// version: `modelForRun` accepts only approved, active models (xAI for market
+// intel only), and every call records the model it actually used (`runRef`,
+// agent_events.model and the task's own model column), so the audit trail
+// never infers the model from the version.
 
 import { createHash } from "node:crypto";
 import { MODELS, xaiModel, type Effort } from "@/lib/ai/gateway";
@@ -105,10 +112,7 @@ export class AgentRegistry {
     if (!SEMVER.test(def.version)) throw new RegistryError(`prompt ${def.id}: version "${def.version}" is not x.y.z`);
     if (!def.system.trim()) throw new RegistryError(`prompt ${def.id}@${def.version}: empty system text`);
     if (!Number.isInteger(def.maxTokens) || def.maxTokens < 1 || def.maxTokens > 128_000) throw new RegistryError(`prompt ${def.id}: maxTokens out of range`);
-    const model = this.models().find((m) => m.id === def.model);
-    if (!model) throw new RegistryError(`prompt ${def.id}: model "${def.model}" is not on the approved model list`);
-    if (model.status !== "active") throw new RegistryError(`prompt ${def.id}: model "${def.model}" is deprecated`);
-    if (model.tier === "xai" && def.purpose !== "market_intel") throw new RegistryError(`prompt ${def.id}: xAI models are for market intel only`);
+    this.checkModel(def.id, def.purpose, def.model);
     const registered: RegisteredPrompt = { ...def, tools: [...(def.tools ?? [])], sha256: sha256(def.system) };
     const versions = this.prompts.get(def.id) ?? new Map<string, RegisteredPrompt>();
     const prior = versions.get(def.version);
@@ -139,6 +143,31 @@ export class AgentRegistry {
   promptRef(idOrRef: string, version?: string): PromptRef {
     const p = this.prompt(idOrRef, version);
     return { id: p.id, version: p.version, sha256: p.sha256, model: p.model };
+  }
+
+  /** Throws unless `model` is approved, active and allowed for the purpose (xAI: market intel only). */
+  private checkModel(promptId: string, purpose: AiPurpose, model: string): void {
+    const approved = this.models().find((m) => m.id === model);
+    if (!approved) throw new RegistryError(`prompt ${promptId}: model "${model}" is not on the approved model list`);
+    if (approved.status !== "active") throw new RegistryError(`prompt ${promptId}: model "${model}" is deprecated`);
+    if (approved.tier === "xai" && purpose !== "market_intel") throw new RegistryError(`prompt ${promptId}: xAI models are for market intel only`);
+  }
+
+  /**
+   * The model a run of `prompt` uses: its registered (default) model, or an
+   * override chosen for the task. The override must pass the same checks as a
+   * registration; the prompt version is unchanged because it pins the text,
+   * and the caller records the model it ran on. Throws RegistryError otherwise.
+   */
+  modelForRun(prompt: Pick<RegisteredPrompt, "id" | "purpose" | "model">, model?: string | null): string {
+    const wanted = model?.trim() || prompt.model;
+    if (wanted !== prompt.model) this.checkModel(prompt.id, prompt.purpose, wanted);
+    return wanted;
+  }
+
+  /** What a call records about its prompt: id, version and hash, with the model the run actually used. */
+  runRef(prompt: RegisteredPrompt, model?: string | null): PromptRef {
+    return { id: prompt.id, version: prompt.version, sha256: prompt.sha256, model: this.modelForRun(prompt, model) };
   }
 
   registerAgent(def: AgentDefinition): AgentDefinition {
