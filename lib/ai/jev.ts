@@ -138,6 +138,31 @@ export function isPartialIntake(intake: Intake): boolean {
   return intake.origin?.form === "financing_page";
 }
 
+/**
+ * The structure a financing-page lead is filed under when nothing could be sized
+ * (it has no NOI, value or units): the usual first look for that kind of property,
+ * so an office request is never filed under a multifamily or HUD program.
+ */
+export function partialFallbackFit(intake: Intake, vertical: JevLoanDecisionSchema["assetVertical"]): JevLoanDecisionSchema["primaryProgramFit"] {
+  const construction = intake.transaction === "CONSTRUCTION";
+  switch (vertical) {
+    case "SENIOR_LIVING_CARE":
+      return construction ? "HUD_232_NEW_CONST" : "HUD_232_223F";
+    case "HOSPITALITY_HOTEL":
+      return construction ? "CONSTRUCTION_BANK" : "SBA_504_STANDARD";
+    case "HOTEL_TO_CARE_CONVERSION":
+      return "BRIDGE_TO_HUD_232";
+    case "MULTIFAMILY":
+      return construction ? "HUD_221D4_223F_MULTIFAMILY" : "AGENCY_FANNIE_FREDDIE";
+    case "HARD_MONEY_PRIVATE":
+      return "HARD_MONEY";
+    case "RESIDENTIAL_INVESTOR":
+      return "DSCR_INVESTOR_2_4";
+    case "GENERAL_CRE_OR_CONSTRUCTION":
+      return construction ? "CONSTRUCTION_BANK" : "WHITE_LABEL_CRE_BRIDGE";
+  }
+}
+
 const assetWords = (asset: string) => asset.toLowerCase().replace(/_/g, " ");
 
 /**
@@ -471,15 +496,18 @@ export function decideWithRules(intake: Intake, rates: Benchmarks = FALLBACK_BEN
   // mean nothing: keep the closest structure and lender routing for the desk, mark it for broker
   // review at a provisional tier, and show no sized quote anywhere.
   if (isPartialIntake(intake)) {
+    // Never fall back to the first sized quote: for an office or retail request that is a
+    // multifamily program. File it under the property's usual first look instead.
+    const fit = (primaryId ?? partialFallbackFit(intake, vertical)) as JevLoanDecisionSchema["primaryProgramFit"];
     return {
       decision: {
         assetVertical: vertical,
-        primaryProgramFit: (primaryId ?? sizing.quotes[0]?.id ?? "WHITE_LABEL_CRE_BRIDGE") as JevLoanDecisionSchema["primaryProgramFit"],
-        secondaryProgramFit: secondary,
+        primaryProgramFit: fit,
+        secondaryProgramFit: secondary === fit ? "NONE" : secondary,
         sizingOptimizationFlag: "NEEDS_BROKER_REVIEW",
         greenMipOrGreen504Candidate: false,
         leadUrgencyTier: "TIER_3_NURTURE",
-        recommendedWholesaleLenders: lenders,
+        recommendedWholesaleLenders: lenders.length > 0 ? lenders : lendersFor(fit).slice(0, 5),
         estimatedBrokerCommissionUsd: 0,
         requiresImmediateBrokerCall: intake.timelineDays <= 30 || intake.loanAmount >= 15_000_000,
       },
