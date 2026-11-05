@@ -9,7 +9,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 export const metadata: Metadata = pageMetadata({
   title: "Financing programs",
   description:
-    "Every loan program Corin Commercial arranges: HUD, SBA, CMBS, agency, bridge, construction and hard money for senior living, hotels and multifamily.",
+    "Every loan program Corin Commercial arranges: HUD, SBA, CMBS, agency, bridge, construction and hard money for senior living, hotels, multifamily and commercial.",
   path: FINANCING_BASE,
 });
 
@@ -34,7 +34,7 @@ export default function FinancingIndexPage() {
           </p>
         </header>
 
-        {/* All five families up front, so construction and hard money are as easy to find as the property types.
+        {/* Every family up front, so construction and hard money are as easy to find as the property types.
             Phones: one sticky, sideways-scrolling row of jump links under the header. It is a direct
             child of the page wrapper so it stays stuck for the whole list. */}
         <nav aria-label="Jump to a financing family" className="glass sticky top-12 z-20 -mx-5 mt-8 border-b border-black/[0.08] md:hidden">
@@ -48,9 +48,9 @@ export default function FinancingIndexPage() {
             ))}
           </ul>
         </nav>
-        {/* From md: five equal tiles with the hub link and a jump to the family's programs. */}
+        {/* From md: equal tiles, three across, with the hub link and a jump to the family's programs. */}
         <nav aria-label="Financing by family" className="mt-12 hidden md:block">
-          <ul className="grid grid-cols-3 gap-4 lg:grid-cols-5">
+          <ul className="grid grid-cols-3 gap-4">
             {families.map(({ family, label, hub, programs }) => (
               <li key={family} className="bento flex flex-col p-6">
                 <p className="text-[19px] font-semibold leading-tight text-ink">{label}</p>

@@ -11,7 +11,7 @@ import { disclosures, licenseLine } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "60-second deal qualifier",
   description:
-    "Tell us about your senior living, hotel, multifamily, construction or hard money deal. A licensed advisor reviews it and maps the programs that may fit.",
+    "Tell us about your senior living, hotel, multifamily, commercial property, construction or hard money deal. A licensed advisor maps the programs that may fit.",
   path: "/express",
 });
 
@@ -32,7 +32,7 @@ export default function ExpressPage() {
         <section className="mb-10 text-center">
           <h1 className="text-4xl font-semibold md:text-5xl">60-second deal qualifier</h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-titanium">
-            Share a few details about your senior living, hotel, multifamily, construction or hard money financing. We map the loan programs that may fit,
+            Share a few details about your senior living, hotel, multifamily, commercial property, construction or hard money financing. We map the loan programs that may fit,
             and a licensed advisor reviews every submission.
           </p>
         </section>

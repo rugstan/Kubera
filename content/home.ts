@@ -7,7 +7,7 @@ import type { FaqItem } from "@/components/seo/schemas";
 import { pct } from "@/content/programs/format";
 import { CONSTRUCTION_MARKET, HARD_MONEY as HARD_MONEY_MARKET } from "@/content/programs/market-facts";
 import type { ProgramFamily } from "@/content/programs/types";
-import { HUD, SBA } from "@/lib/sizing/assumptions";
+import { CMBS, HUD, SBA } from "@/lib/sizing/assumptions";
 import { disclosures } from "@/lib/site";
 
 export interface HomeFamily {
@@ -40,6 +40,12 @@ export const HOME_FAMILIES: readonly HomeFamily[] = [
     audience: "Apartment communities of five or more units, plus small investor rentals.",
     fact: `HUD 223(f): up to ${pct(HUD.multifamily.s223f.maxLtv)} LTV, ${HUD.multifamily.s223f.termYears}-year fixed`,
     programSlugs: ["hud-223f-multifamily", "fannie-mae-multifamily", "freddie-mac-multifamily", "multifamily-bridge", "dscr-investor"],
+  },
+  {
+    family: "commercial",
+    audience: "Office, industrial, retail, self-storage, medical office, mixed-use and mobile home park owners and buyers.",
+    fact: `CMBS conduit: ${CMBS.termYears}-year fixed, non-recourse terms`,
+    programSlugs: ["office-loans", "industrial-loans", "retail-loans", "self-storage-loans", "cmbs-loans"],
   },
   {
     family: "construction",

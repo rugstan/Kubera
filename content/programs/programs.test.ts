@@ -46,7 +46,25 @@ const REQUIRED_PROGRAM_SLUGS = [
   "fix-and-flip",
   "private-bridge",
 ];
-const REQUIRED_HUB_SLUGS = ["senior-living", "hotels", "multifamily", "construction", "hard-money"];
+/** Commercial property: the property types, then the capital types. */
+const COMMERCIAL_PROPERTY_SLUGS = [
+  "office-loans",
+  "industrial-loans",
+  "retail-loans",
+  "self-storage-loans",
+  "medical-office-loans",
+  "mixed-use-loans",
+  "mobile-home-park-loans",
+];
+const COMMERCIAL_CAPITAL_SLUGS = [
+  "acquisition-loans",
+  "mezzanine-preferred-equity",
+  "life-company-loans",
+  "bank-credit-union-loans",
+  "cmbs-loans",
+  "debt-fund-bridge-loans",
+];
+const REQUIRED_HUB_SLUGS = ["senior-living", "hotels", "multifamily", "commercial", "construction", "hard-money"];
 
 const allEntries = [...programs, ...hubs];
 
@@ -60,16 +78,24 @@ function allText(entry: (typeof allEntries)[number]): string {
 }
 
 describe("page inventory", () => {
-  it("has at least 25 program pages and every required slug", () => {
-    expect(programs.length).toBeGreaterThanOrEqual(25);
+  it("has at least 38 program pages and every required slug", () => {
+    expect(programs.length).toBeGreaterThanOrEqual(38);
     const slugs = programs.map((p) => p.slug);
-    for (const slug of REQUIRED_PROGRAM_SLUGS) expect(slugs).toContain(slug);
+    for (const slug of [...REQUIRED_PROGRAM_SLUGS, ...COMMERCIAL_PROPERTY_SLUGS, ...COMMERCIAL_CAPITAL_SLUGS]) expect(slugs).toContain(slug);
   });
 
-  it("serves the five hub URLs", () => {
+  it("serves the six hub URLs", () => {
+    expect(PROGRAM_FAMILIES).toHaveLength(6);
     for (const slug of REQUIRED_HUB_SLUGS) expect(getFinancingPage(slug)).toBeDefined();
     expect(getFinancingPage("hard-money")?.kind).toBe("program");
     expect(getFinancingPage("senior-living")?.kind).toBe("hub");
+    expect(getFinancingPage("commercial")?.kind).toBe("hub");
+  });
+
+  it("files every commercial property and capital-type page under Commercial property", () => {
+    expect(FAMILY_LABELS.commercial).toBe("Commercial property");
+    expect(hubForFamily("commercial").slug).toBe("commercial");
+    expect(programsInFamily("commercial").map((p) => p.slug).sort()).toEqual([...COMMERCIAL_PROPERTY_SLUGS, ...COMMERCIAL_CAPITAL_SLUGS].sort());
   });
 
   it("has one hub page per family", () => {
@@ -227,6 +253,21 @@ describe("facts come from lib/sizing/assumptions", () => {
     expect(factValue("construction-loans", /Corin sizing assumption: max/)).toBe(pct(BRIDGE.construction.maxLtc));
   });
 
+  it("commercial pages take their figures from the bank, bridge, CMBS and capital-stack assumptions", async () => {
+    const { BANK_PERM, CONSTRUCTION } = await import("@/lib/sizing/programs/assumptions");
+    for (const slug of COMMERCIAL_PROPERTY_SLUGS) {
+      expect(factValue(slug, /^Bank loan: max LTV/), slug).toBe(`${pct(BANK_PERM.maxLtv)} / ${x(BANK_PERM.minDscr)}`);
+      expect(factValue(slug, /^Bank loan: amortization/), slug).toBe(`${BANK_PERM.amortYears}-year schedule`);
+      expect(factValue(slug, /^Bridge loan: max LTV/), slug).toBe(`${pct(BRIDGE.cre.maxLtv)} / ${pct(BRIDGE.cre.minDebtYield)}`);
+    }
+    expect(factValue("bank-credit-union-loans", /indicative spread/)).toBe(`Five-year Treasury + ${BANK_PERM.spread.toFixed(2)} points`);
+    expect(factValue("cmbs-loans", /Term \/ amortization/)).toBe(`${CMBS.termYears}-year fixed / ${CMBS.amortYears}-year schedule`);
+    expect(factValue("debt-fund-bridge-loans", /Max LTV/)).toBe(pct(BRIDGE.cre.maxLtv));
+    expect(factValue("acquisition-loans", /typical close/)).toBe(`${BRIDGE.closeRange} after a complete file`);
+    expect(factValue("mezzanine-preferred-equity", /Mezzanine: max combined/)).toBe(pct(CONSTRUCTION.mezz.maxCombinedLtc));
+    expect(factValue("mezzanine-preferred-equity", /Preferred equity: indicative return/)).toBe(pct(CONSTRUCTION.pref.returnPct / 100, 1));
+  });
+
   it("shows bridge and SBA timeline facts as a plain range plus one qualifier", () => {
     expect(factValue("private-bridge", /Typical close/)).toBe(`${BRIDGE.closeRange} after a complete file`);
     expect(factValue("pip-bridge", /Typical close/)).toBe(`${BRIDGE.closeRange} after a complete file`);
@@ -322,6 +363,26 @@ describe("copy rules", () => {
     for (const p of programsInFamily("hard-money")) {
       expect(allText(p), p.slug).toMatch(/lender of record/i);
     }
+  });
+
+  it("keeps the commercial pages broker-voiced and California-focused, and names Corin as the lender nowhere", () => {
+    const commercial = [...programsInFamily("commercial"), hubs.find((h) => h.family === "commercial")!];
+    for (const e of commercial) {
+      const text = allText(e);
+      expect(text, e.slug).not.toMatch(/\b(we|corin) (make|offer|provide)s? (loans|financing)\b/i);
+      expect(text, e.slug).not.toMatch(/\bour (loans|rates)\b/i);
+    }
+    expect(commercial.filter((e) => /California/.test(allText(e))).length).toBeGreaterThanOrEqual(8);
+    // The bridge and capital pages say who funds; the hub carries the broker disclosure.
+    for (const slug of ["debt-fund-bridge-loans", "mezzanine-preferred-equity"]) expect(allText(getFinancingPage(slug)!.entry), slug).toMatch(/never holds or disburses/i);
+    expect(allText(getFinancingPage("commercial")!.entry)).toMatch(/not a lender/);
+  });
+
+  it("links the commercial pages to the existing bridge, construction, agency and hotel CMBS pages", () => {
+    const related = new Set(programsInFamily("commercial").flatMap((p) => p.related));
+    const hub = hubs.find((h) => h.family === "commercial")!;
+    for (const slug of ["private-bridge", "multifamily-bridge", "fannie-mae-multifamily", "freddie-mac-multifamily", "hotel-cmbs"]) expect(related.has(slug), slug).toBe(true);
+    expect(hub.related).toContain("construction-to-permanent");
   });
 });
 

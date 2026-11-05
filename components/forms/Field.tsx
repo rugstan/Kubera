@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Controller, useFormContext, type ControllerRenderProps, type FieldValues } from "react-hook-form";
 import { controlAria, fieldIds, formatNumeric, parseNumeric } from "./ids";
 
@@ -212,10 +212,26 @@ export function NumericField({ name, label, hint, required, className = "", form
 
 // --- Select ---------------------------------------------------------------------
 
-export type Option<T extends string = string> = { value: T; label: string; hint?: string };
+export type Option<T extends string = string> = { value: T; label: string; hint?: string; /** Select only: options sharing a group render inside one <optgroup>. */ group?: string };
+
+/** Consecutive options grouped by `group`; options without one stay ungrouped. */
+function optionGroups(options: readonly Option[]): { group?: string; options: Option[] }[] {
+  const out: { group?: string; options: Option[] }[] = [];
+  for (const o of options) {
+    const last = out.at(-1);
+    if (last && last.group === o.group) last.options.push(o);
+    else out.push({ group: o.group, options: [o] });
+  }
+  return out;
+}
 
 export function SelectField({ name, label, hint, required, className = "", options, placeholder = "Select one" }: Common & { options: readonly Option[]; placeholder?: string }) {
   const ids = fieldIds(name);
+  const renderOption = (o: Option) => (
+    <option key={o.value} value={o.value}>
+      {o.label}
+    </option>
+  );
   return (
     <Bind name={name}>
       {({ field, error }) => (
@@ -235,11 +251,15 @@ export function SelectField({ name, label, hint, required, className = "", optio
             <option value="" disabled>
               {placeholder}
             </option>
-            {options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
+            {optionGroups(options).map((g, i) =>
+              g.group ? (
+                <optgroup key={`${g.group}-${i}`} label={g.group}>
+                  {g.options.map(renderOption)}
+                </optgroup>
+              ) : (
+                <Fragment key={`ungrouped-${i}`}>{g.options.map(renderOption)}</Fragment>
+              ),
+            )}
           </select>
           {hint && <Hint id={ids.hintId}>{hint}</Hint>}
           {error && <ErrorText id={ids.errorId}>{error}</ErrorText>}

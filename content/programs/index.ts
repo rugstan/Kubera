@@ -1,4 +1,5 @@
 import type { SitemapRoute } from "@/lib/seo/sitemap-routes";
+import { commercialPrograms } from "./commercial";
 import { constructionPrograms } from "./construction";
 import { hardMoneyPrograms } from "./hard-money";
 import { hotelPrograms } from "./hotels";
@@ -15,6 +16,7 @@ export const programs: ProgramEntry[] = [
   ...seniorLivingPrograms,
   ...hotelPrograms,
   ...multifamilyPrograms,
+  ...commercialPrograms,
   ...constructionPrograms,
   ...hardMoneyPrograms,
 ];
@@ -64,7 +66,7 @@ export const programRoutes: SitemapRoute[] = [
   {
     path: FINANCING_BASE,
     title: "Financing programs",
-    description: "Every loan program Corin Commercial arranges, grouped by senior living, hotels, multifamily, construction and hard money.",
+    description: "Every loan program Corin Commercial arranges, grouped by senior living, hotels, multifamily, commercial property, construction and hard money.",
     changeFrequency: "monthly",
     priority: 0.8,
     section: "Programs",

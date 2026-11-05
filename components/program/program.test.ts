@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { familyImage } from "@/content/images";
 import { PROGRAM_FAMILIES, financingPath, financingSlugs, getFinancingPage, hubForFamily, hubs, programs } from "@/content/programs";
+import { CONSENT_TEXTS, CURRENT_CONSENT } from "@/lib/consent/texts";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { serializeJsonLd } from "@/components/seo/schemas";
 import { HubPage, ProgramPage } from "./ProgramPage";
@@ -50,8 +51,34 @@ describe("every financing slug renders", () => {
       expect(html).toContain("not a lender");
       // FAQ is visible as well as in JSON-LD.
       for (const q of page.entry.faq) expect(html).toContain(q.question.replace(/&/g, "&amp;").replace(/'/g, "&#x27;"));
+      // Every financing page is a landing page: the request form, its consent box and notices, and a link to it up top.
+      expect(html).toContain(`data-lead-form="${slug}"`);
+      expect(html).toContain('href="#request"');
+      expect(html).toContain('id="request-heading"');
+      expect(html).toContain(CONSENT_TEXTS[CURRENT_CONSENT.qualifier].text);
+      expect(html).toContain('data-notice-at-collection="qualifier"');
+      expect(html).toContain('method="post"');
     });
   }
+});
+
+describe("request form", () => {
+  it("presets the page's property type and offers the commercial types", () => {
+    const html = render("office-loans");
+    expect(html).toMatch(/<option value="OFFICE" selected="">Office<\/option>/);
+    for (const label of ["Industrial", "Retail", "Self-storage", "Medical office", "Mixed-use", "Manufactured housing"]) expect(html).toContain(`>${label}</option>`);
+    expect(html).toContain('<optgroup label="Commercial property">');
+  });
+
+  it("leaves the property type to the visitor on a capital-type page", () => {
+    const html = render("cmbs-loans");
+    expect(html).toMatch(/<option value="" disabled="" selected="">Select a property type<\/option>/);
+  });
+
+  it("disables the submit button until the page hydrates, as the other forms do", () => {
+    const html = render("office-loans");
+    expect(html).toMatch(/<button type="submit" disabled=""[^>]*>Send to an advisor<\/button>/);
+  });
 });
 
 describe("program pages", () => {

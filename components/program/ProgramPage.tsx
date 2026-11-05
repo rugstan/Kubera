@@ -5,6 +5,8 @@ import { familyImage } from "@/content/images";
 import { AS_OF } from "@/content/programs/format";
 import { FAMILY_LABELS, financingPath, programsInFamily } from "@/content/programs";
 import type { HubEntry, ProgramEntry } from "@/content/programs";
+import { LEAD_FORM_ANCHOR } from "./lead-form";
+import { LeadForm } from "./LeadForm";
 import { Breadcrumbs, CtaBand, CtaLinks, FactsTable, FaqList, ProgramDisclosures, RelatedPages, Sections } from "./parts";
 import { hubBreadcrumbs, hubJsonLd, programBreadcrumbs, programJsonLd } from "./schema";
 
@@ -32,6 +34,17 @@ function FamilyList({ family, currentSlug, heading }: { family: ProgramEntry["fa
         ))}
       </ul>
     </section>
+  );
+}
+
+/** A short jump from the page's opening actions to the request form further down. */
+function RequestLink() {
+  return (
+    <p className="mt-4 text-[15px]">
+      <a href={`#${LEAD_FORM_ANCHOR}`} className="link-chevron inline-flex min-h-9 items-center">
+        Or send a short request to an advisor
+      </a>
+    </p>
   );
 }
 
@@ -66,6 +79,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
             <CtaLinks family={entry.family} />
+            <RequestLink />
           </div>
         </header>
         {/* A program that is its family's hub (hard money) carries the hub banner; other program pages have no photo. */}
@@ -73,6 +87,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
         <FactsTable facts={entry.facts} asOf={AS_OF} />
         <Sections sections={entry.sections} />
         {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="Programs we arrange" />}
+        <LeadForm family={entry.family} slug={entry.slug} />
         <FaqList faq={entry.faq} />
         <RelatedPages slugs={entry.related} shown={entry.isHub ? familySlugs(entry.family) : []} />
         <CtaBand family={entry.family} />
@@ -94,11 +109,13 @@ export function HubPage({ entry }: { entry: HubEntry }) {
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
           <div className="mt-6">
             <CtaLinks family={entry.family} />
+            <RequestLink />
           </div>
         </header>
         <FamilyBanner family={entry.family} />
         <FamilyList family={entry.family} heading="Programs we arrange" />
         <Sections sections={entry.sections} />
+        <LeadForm family={entry.family} slug={entry.slug} />
         <FaqList faq={entry.faq} />
         <RelatedPages slugs={entry.related} shown={familySlugs(entry.family)} heading="Related financing" />
         <CtaBand family={entry.family} />

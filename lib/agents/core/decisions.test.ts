@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decideWithRules } from "@/lib/ai/jev";
 import { lendersFor } from "@/lib/ai/jev";
-import { intakeSchema } from "@/lib/validation";
+import { intakeFromQuick, intakeSchema } from "@/lib/validation";
 import { qualifierReasonCodes, recordHumanReviewQualifier, recordLenderMatchDecision, recordQualifierDecision, staticRoutingCandidates } from "./decisions";
 import { MemoryAgentEventStore, verifyChain } from "./events";
 import { isReasonCode } from "./reasons";
@@ -27,6 +27,18 @@ describe("qualifier reason codes", () => {
     const r = { ...decideWithRules(i), engine: "rules" as const, latencyMs: 1 };
     expect(r.decision.leadUrgencyTier).toBe("UNQUALIFIED");
     expect(qualifierReasonCodes(r, i)).toEqual(expect.arrayContaining(["qualifier.tier.unqualified", "qualifier.no_in_place_income"]));
+  });
+
+  it("marks a financing-page lead for broker review without coverage or income codes", () => {
+    const i = intakeFromQuick(
+      { assetType: "RETAIL", transaction: "PURCHASE", loanAmount: 5_000_000, timelineDays: 90, notes: "", slug: "retail-loans" },
+      { slug: "retail-loans", path: "/financing/retail-loans", name: "Retail property loans" },
+    );
+    const r = { ...decideWithRules(i), engine: "rules" as const, latencyMs: 1 };
+    const codes = qualifierReasonCodes(r, i);
+    expect(codes.every(isReasonCode)).toBe(true);
+    expect(codes).toEqual(expect.arrayContaining(["qualifier.broker_review.partial_intake", "qualifier.flag.needs_broker_review", "qualifier.tier.tier_3_nurture"]));
+    expect(codes.some((c) => c.startsWith("qualifier.coverage.") || c === "qualifier.no_in_place_income" || c === "qualifier.no_program_fit")).toBe(false);
   });
 
   it("explains an immediate call for a short timeline", () => {

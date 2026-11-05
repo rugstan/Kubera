@@ -18,9 +18,12 @@ import {
   transactionAfterAssetChoice,
   transactionAfterFamilyChange,
   transactionOptions,
+  unitCountOptional,
+  unitLabel,
   valueLabel,
   type QualifierValues,
 } from "./schema";
+import { PROPERTY_TYPES } from "@/lib/property-types";
 
 const META = { textVersion: "qualifier-contact-2026-10-31", page: "/express" };
 
@@ -83,6 +86,38 @@ describe("express form defaults", () => {
   });
 });
 
+describe("commercial property types", () => {
+  const COMMERCIAL_LABELS = ["Office", "Industrial", "Retail", "Self-storage", "Medical office", "Manufactured housing"];
+
+  it("offers office, industrial, retail, self-storage, medical office and manufactured housing, with mixed-use kept", () => {
+    expect(assetsFor("Commercial property").map((a) => a.label)).toEqual(COMMERCIAL_LABELS);
+    expect(ASSETS.find((a) => a.value === "MIXED_USE")?.label).toBe("Mixed-use");
+    // Every option is a type the server accepts.
+    for (const a of ASSETS) expect(PROPERTY_TYPES).toContain(a.value);
+  });
+
+  it("treats each like Commercial: no unit count required, and the full payload passes the server gate", () => {
+    for (const a of assetsFor("Commercial property")) {
+      const v: QualifierValues = { ...valid, assetType: a.value, unitCount: null };
+      expect(issuesFor(v), a.label).toEqual({});
+      expect(unitCountOptional(a.value)).toBe(true);
+      expect(leadSchema.safeParse(buildQualifyPayload(v, META)).success, a.label).toBe(true);
+    }
+    expect(unitCountOptional("MULTIFAMILY")).toBe(false);
+    expect(issuesFor({ ...valid, assetType: "MULTIFAMILY", unitCount: null })).toHaveProperty("unitCount");
+    expect(unitLabel("SELF_STORAGE")).toBe("Storage units");
+    expect(unitLabel("MANUFACTURED_HOUSING")).toBe("Homesites");
+    expect(unitLabel("OFFICE")).toBe("Tenants");
+  });
+
+  it("offers hard money and construction on commercial property", () => {
+    for (const a of ["OFFICE", "RETAIL", "MANUFACTURED_HOUSING"] as const) {
+      expect(offersHardMoney(a)).toBe(true);
+      expect(transactionOptions(a).map((o) => o.value)).toEqual(["PURCHASE", "REFINANCE", "CONSTRUCTION", "HARD_MONEY"]);
+    }
+  });
+});
+
 describe("family deep links", () => {
   const params = (q: string) => {
     const p = new URLSearchParams(q);
@@ -102,7 +137,9 @@ describe("family deep links", () => {
     expect(assetGroupsFor("senior-living")[0]).toBe("Senior living and care");
     expect(assetGroupsFor("hotels")[0]).toBe("Hospitality");
     expect(assetGroupsFor("multifamily")[0]).toBe("Multifamily and CRE");
-    for (const f of [undefined, "construction", "hard-money", "hotels"] as const) expect([...assetGroupsFor(f)].sort()).toEqual([...ASSET_GROUPS].sort());
+    expect(assetGroupsFor("commercial")[0]).toBe("Commercial property");
+    expect(ASSET_GROUPS).toHaveLength(4);
+    for (const f of [undefined, "construction", "hard-money", "hotels", "commercial"] as const) expect([...assetGroupsFor(f)].sort()).toEqual([...ASSET_GROUPS].sort());
     expect(assetGroupsFor()).toEqual(ASSET_GROUPS);
     expect(assetGroupsFor("construction")).toEqual(ASSET_GROUPS);
   });

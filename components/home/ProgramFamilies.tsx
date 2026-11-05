@@ -7,10 +7,10 @@ import { disclosures } from "@/lib/site";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
 
-// Five equal cards: three across, then construction and hard money two across.
-// Below md the cards stack, so each shows who it is for, its lead program and a
-// "+N more" link to the hub (one row of chips), and leaves the program figure to
-// the hub page. That keeps all five families within about a screen and a half,
+// Six equal cards, three across: the four property families, then construction
+// and hard money. Below md the cards stack, so each shows who it is for, its lead
+// program and a "+N more" link to the hub (one row of chips), and leaves the
+// program figure to the hub page. That keeps the families compact on a phone,
 // which is also why the card photos show from md only.
 const PHONE_CHIPS = 1;
 
@@ -18,20 +18,21 @@ const SPAN: Record<ProgramFamily, string> = {
   "senior-living": "md:col-span-2",
   hotels: "md:col-span-2",
   multifamily: "md:col-span-2",
-  construction: "md:col-span-3",
-  "hard-money": "md:col-span-3",
+  commercial: "md:col-span-2",
+  construction: "md:col-span-2",
+  "hard-money": "md:col-span-2",
 };
 
-// Rendered width of each card's photo: a sixth of the content width (100vw less
-// the 64px gutters, at most 1216px) per column, with 20px gaps.
+// Rendered width of each card's photo: every card is a third of the content
+// width (100vw less the 64px gutters, at most 1216px) with 20px gaps.
 const THIRD = "(min-width: 1280px) 392px, (min-width: 768px) calc(33vw - 35px), calc(100vw - 40px)";
-const HALF = "(min-width: 1280px) 598px, (min-width: 768px) calc(50vw - 42px), calc(100vw - 40px)";
 const IMAGE_SIZES: Record<ProgramFamily, string> = {
   "senior-living": THIRD,
   hotels: THIRD,
   multifamily: THIRD,
-  construction: HALF,
-  "hard-money": HALF,
+  commercial: THIRD,
+  construction: THIRD,
+  "hard-money": THIRD,
 };
 
 export function ProgramFamilies() {

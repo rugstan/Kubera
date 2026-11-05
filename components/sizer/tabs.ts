@@ -4,18 +4,20 @@
 
 import { FAMILY_LABELS, PROGRAM_FAMILIES, type ProgramFamily } from "@/content/programs/types";
 
-export type SizerTab = "senior" | "hospitality" | "multifamily" | "construction" | "hardMoney";
+export type SizerTab = "senior" | "hospitality" | "multifamily" | "commercial" | "construction" | "hardMoney";
 
 const TAB_FOR_FAMILY: Record<ProgramFamily, SizerTab> = {
   "senior-living": "senior",
   hotels: "hospitality",
   multifamily: "multifamily",
+  // The commercial tab reuses the multifamily form's commercial and mixed-use sizing.
+  commercial: "commercial",
   construction: "construction",
   "hard-money": "hardMoney",
 };
 
-/** Tab labels use the family names from the menu; "Hard money and bridge" is shortened to fit a tab. */
-const LABEL_FOR_FAMILY: Record<ProgramFamily, string> = { ...FAMILY_LABELS, "hard-money": "Hard money" };
+/** Tab labels use the family names from the menu, shortened where a tab cannot fit them. */
+const LABEL_FOR_FAMILY: Record<ProgramFamily, string> = { ...FAMILY_LABELS, commercial: "Commercial", "hard-money": "Hard money" };
 
 export const SIZER_TABS: readonly { id: SizerTab; label: string }[] = PROGRAM_FAMILIES.map((f) => ({ id: TAB_FOR_FAMILY[f], label: LABEL_FOR_FAMILY[f] }));
 

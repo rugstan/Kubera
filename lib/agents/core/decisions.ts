@@ -24,7 +24,10 @@ export function qualifierReasonCodes(result: Pick<JevResult, "decision" | "prima
     `qualifier.flag.${codeSegment(d.sizingOptimizationFlag)}`,
   ];
   const q = result.primaryQuote;
-  if (!q) codes.push("qualifier.no_program_fit");
+  // A financing-page lead has no NOI or value to size, so coverage and income codes would mislead.
+  const brokerReview = d.sizingOptimizationFlag === "NEEDS_BROKER_REVIEW";
+  if (brokerReview) codes.push("qualifier.broker_review.partial_intake");
+  else if (!q) codes.push("qualifier.no_program_fit");
   else {
     if (!q.eligible) codes.push("qualifier.primary_ineligible");
     const coverage = intake.loanAmount > 0 ? q.loanAmount / intake.loanAmount : 0;
@@ -34,7 +37,7 @@ export function qualifierReasonCodes(result: Pick<JevResult, "decision" | "prima
     else codes.push("qualifier.coverage.90pct_plus");
     if (q.exit?.result === "FAIL") codes.push("qualifier.exit_shortfall");
   }
-  if (intake.noi <= 0 && !["CONSTRUCTION", "CONVERSION", "HARD_MONEY"].includes(intake.transaction)) codes.push("qualifier.no_in_place_income");
+  if (!brokerReview && intake.noi <= 0 && !["CONSTRUCTION", "CONVERSION", "HARD_MONEY"].includes(intake.transaction)) codes.push("qualifier.no_in_place_income");
   if (d.requiresImmediateBrokerCall) {
     codes.push("qualifier.call_now");
     if (d.leadUrgencyTier === "TIER_1_INSTITUTIONAL_HOT") codes.push("qualifier.call_now.tier_1");

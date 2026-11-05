@@ -1,7 +1,7 @@
 // Typed shape of a financing page. Content lives in `content/programs/*.ts`;
 // `components/program/*` and `app/(site)/financing/*` only render it.
 
-export const PROGRAM_FAMILIES = ["senior-living", "hotels", "multifamily", "construction", "hard-money"] as const;
+export const PROGRAM_FAMILIES = ["senior-living", "hotels", "multifamily", "commercial", "construction", "hard-money"] as const;
 export type ProgramFamily = (typeof PROGRAM_FAMILIES)[number];
 
 /**
@@ -13,6 +13,7 @@ export const FAMILY_LABELS: Record<ProgramFamily, string> = {
   "senior-living": "Senior living",
   hotels: "Hotels",
   multifamily: "Multifamily",
+  commercial: "Commercial property",
   construction: "Construction",
   "hard-money": "Hard money and bridge",
 };

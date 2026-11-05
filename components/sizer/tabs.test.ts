@@ -5,8 +5,8 @@ import { DEFAULT_SIZER_TAB, SIZER_TABS, sizerTabFromParam } from "./tabs";
 
 describe("sizer tabs", () => {
   it("follow the menu's family order and names, with Construction before Hard money", () => {
-    expect(SIZER_TABS.map((t) => t.label)).toEqual(["Senior living", "Hotels", "Multifamily", "Construction", "Hard money"]);
-    expect(SIZER_TABS.map((t) => t.id)).toEqual(["senior", "hospitality", "multifamily", "construction", "hardMoney"]);
+    expect(SIZER_TABS.map((t) => t.label)).toEqual(["Senior living", "Hotels", "Multifamily", "Commercial", "Construction", "Hard money"]);
+    expect(SIZER_TABS.map((t) => t.id)).toEqual(["senior", "hospitality", "multifamily", "commercial", "construction", "hardMoney"]);
     expect(DEFAULT_SIZER_TAB).toBe("senior");
   });
 
@@ -17,6 +17,7 @@ describe("sizer tabs", () => {
       expect(sizerTabFromParam(param), family).toBe(SIZER_TABS[PROGRAM_FAMILIES.indexOf(family)]!.id);
     }
     expect(sizerTabFromParam("hard-money")).toBe("hardMoney");
+    expect(sizerTabFromParam("commercial")).toBe("commercial");
     expect(sizerTabFromParam(" construction ")).toBe("construction");
   });
 

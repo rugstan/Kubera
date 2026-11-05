@@ -82,6 +82,13 @@ export const MULTIFAMILY_DEFAULT: MultifamilyPlusInputs = {
   existingHud: undefined,
 };
 
+/**
+ * The commercial tab's starting inputs: the multifamily example as a commercial
+ * property, so it sizes on the same general commercial (CRE) boxes the
+ * multifamily tab's "Commercial" option uses.
+ */
+export const COMMERCIAL_DEFAULT: MultifamilyPlusInputs = { ...MULTIFAMILY_DEFAULT, assetType: "COMMERCIAL" };
+
 export const EXISTING_HUD_DEFAULT: NonNullable<MultifamilyPlusInputs["existingHud"]> = {
   unpaidBalance: 14_000_000,
   originalPrincipal: 17_000_000,
