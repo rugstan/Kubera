@@ -1,6 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "kubera-tau.vercel.app" }],
+      "destination": "https://corincommercial.com/:path",
+      "permanent": true
+    }
+  ],
   "crons": [
     { "path": "/api/cron/rates", "schedule": "11 12 * * *" },
     { "path": "/api/cron/crm-retry", "schedule": "37 12 * * *" },
