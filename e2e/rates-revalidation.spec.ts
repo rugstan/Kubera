@@ -20,3 +20,33 @@ test("program, structure, city and calculator pages still load after the rates j
     }
   }
 });
+
+// After the rates job a visit used to be answered from the [slug] route's
+// generic fallback shell plus a per-request resume: 200, but sent as
+// `Cache-Control: private, no-store` with the page body streamed twice. The
+// job now marks the ticker stale, so the cached static page is served while it
+// regenerates. Bots Next calls "HTML-limited" (Bingbot and others) used to get
+// a per-request render of every page too; next.config.ts turns that off.
+const isPrivate = (cacheControl: string | undefined) => /private|no-store/.test(cacheControl ?? "");
+
+test("pages stay cacheable static HTML after the rates job runs", async ({ request }) => {
+  for (const p of PAGES) await request.get(p);
+  const cron = await request.get("/api/cron/rates", { headers: CRON_AUTH });
+  expect(cron.status(), "rates job").toBe(200);
+  for (const p of PAGES) {
+    const res = await request.get(p);
+    expect(res.status(), p).toBe(200);
+    expect(res.headers()["x-nextjs-postponed"], `${p} resumed from a fallback shell`).toBeUndefined();
+    expect(isPrivate(res.headers()["cache-control"]), `${p} cache-control: ${res.headers()["cache-control"]}`).toBe(false);
+  }
+});
+
+test("Bingbot gets the same cacheable static page as everyone else", async ({ request }) => {
+  const bingbot = { "user-agent": "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)" };
+  for (const p of ["/", "/about", "/financing/hud-232"]) {
+    const res = await request.get(p, { headers: bingbot });
+    expect(res.status(), p).toBe(200);
+    expect(isPrivate(res.headers()["cache-control"]), `${p} cache-control: ${res.headers()["cache-control"]}`).toBe(false);
+    expect(await res.text(), p).toMatch(/<head>[\s\S]*<title>[^<]+<\/title>[\s\S]*<\/head>/);
+  }
+});

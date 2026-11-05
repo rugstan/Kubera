@@ -14,6 +14,13 @@ const nextConfig: NextConfig = {
     rates: { stale: 300, revalidate: 900, expire: 86_400 },
   },
   poweredByHeader: false,
+  // Next renders every request from an "HTML-limited" bot (Bingbot, Applebot,
+  // DuckDuckBot, Google-Extended, Lighthouse, link-preview bots) dynamically so
+  // that streamed metadata lands in <head>. Every public page here is fully
+  // prerendered with its metadata already in <head>, so those bots were getting
+  // a slower, uncacheable (`private, no-store`) and ~60% heavier copy of the same
+  // page. A pattern that matches no user agent serves them the static page.
+  htmlLimitedBots: /(?!)/,
   // Keeps Sentry's server runtime hook out of the bundle so it registers its
   // diagnostics channel once at startup instead of warning when a DSN is set.
   serverExternalPackages: ["@sentry/server-runtime-injection"],

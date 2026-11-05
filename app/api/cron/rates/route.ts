@@ -11,7 +11,14 @@ export async function GET(req: Request) {
   if (!secret || !safeEqual(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  revalidateTag("rates", { expire: 0 });
+  // "max" marks the rates entry stale rather than expiring it: the next visit to
+  // a page with the rate ticker is answered from the cached static page while
+  // it regenerates in the background. `{ expire: 0 }` made that visit wait for
+  // a render, and on the [slug] routes it was answered from the generic
+  // fallback shell plus a per-request resume (`Cache-Control: private,
+  // no-store`, about 60% more HTML) on most crawler visits. The snapshot below
+  // can therefore be one cycle old; the next run records the fresh one.
+  revalidateTag("rates", "max");
   const snapshot = await getMarketSnapshot();
   const db = supabaseAdmin();
   if (db) {

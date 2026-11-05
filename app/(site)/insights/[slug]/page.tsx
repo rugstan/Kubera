@@ -11,6 +11,12 @@ import { pageMetadata } from "@/lib/seo/metadata";
 // route may wait for its params, like `fallback: 'blocking'`.
 export const instant = false;
 
+// After the rates job a visit must re-render the whole page as static HTML.
+// Without this the stale path is answered from the route's generic fallback
+// shell plus a per-request resume, sent as `Cache-Control: private, no-store`
+// and about 60% heavier, which is what crawlers saw on most visits.
+export const ensureStatic = "navigation";
+
 type Props = { params: Promise<{ slug: string }> };
 
 export function generateStaticParams() {
