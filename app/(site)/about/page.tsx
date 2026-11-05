@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
@@ -7,6 +8,7 @@ import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShel
 import { HEADER_CTA, SIZER_LINK } from "@/components/site/nav";
 import { aboutPageSchema } from "@/components/trust/schemas";
 import { callLink } from "@/content/contact";
+import { ABOUT_IMAGE } from "@/content/images";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine, site } from "@/lib/site";
@@ -64,6 +66,19 @@ export default function AboutPage() {
           ]),
         ]}
       />
+
+      {/* Banner under the header, 2:1 like the hub banners. The page's largest paint on desktop, so preloaded. */}
+      <figure className="overflow-hidden rounded-card bg-hairline md:rounded-tile-lg" data-about-image>
+        <Image
+          src={ABOUT_IMAGE.src}
+          alt={ABOUT_IMAGE.alt}
+          placeholder="blur"
+          preload
+          sizes="(min-width: 1280px) 1216px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 40px)"
+          className="aspect-[2/1] h-auto w-full object-cover"
+          style={{ objectPosition: ABOUT_IMAGE.position }}
+        />
+      </figure>
 
       <Section id="how-we-work" title="How we work">
         <ul className="grid gap-5 md:grid-cols-2">

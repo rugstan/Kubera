@@ -111,17 +111,32 @@ test.describe("financing pages", () => {
     }
   });
 
-  test("the multifamily hub shows its image, loaded and described", async ({ page }) => {
-    await page.goto("/financing/multifamily");
-    const img = page.locator("[data-family-image=multifamily] img");
-    await expect(img).toHaveAttribute("alt", /apartment buildings/);
-    await img.scrollIntoViewIfNeeded();
-    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-  });
+  for (const [family, alt] of [
+    ["senior-living", /assisted living building/],
+    ["hotels", /hotel at dusk/],
+    ["multifamily", /apartment buildings/],
+    ["construction", /under construction/],
+    ["hard-money", /apartment building/],
+  ] as const) {
+    test(`the ${family} hub shows its image, loaded and described`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`/financing/${family}`);
+      const img = page.locator(`[data-family-image=${family}] img`);
+      await expect(img).toHaveAttribute("alt", alt);
+      await img.scrollIntoViewIfNeeded();
+      await expect(img).toBeVisible();
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+      // A 2:1 box, sized before the file arrives.
+      const box = (await img.boundingBox())!;
+      expect(box.width / box.height).toBeCloseTo(2, 1);
+    });
+  }
 
-  test("hubs without an image yet render without one", async ({ page }) => {
-    await page.goto("/financing/hotels");
+  test("program pages render without a photo; only the hubs carry one", async ({ page }) => {
+    await page.goto("/financing/hud-223f-multifamily");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("HUD 223(f) multifamily");
     await expect(page.locator("[data-family-image]")).toHaveCount(0);
+    await expect(page.locator("main img")).toHaveCount(0);
   });
 
   test("unknown slugs return 404", async ({ request }) => {

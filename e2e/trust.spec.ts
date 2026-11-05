@@ -41,6 +41,56 @@ test.describe("trust pages", () => {
     await noSidewaysScroll(page, "/structures/memory-care-bridge-to-hud");
   });
 
+  test("/about shows its banner, loaded and described", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/about");
+    const img = page.locator("[data-about-image] img");
+    await expect(img).toBeVisible();
+    await expect(img).toHaveAttribute("alt", /^Aerial view of a suburban neighborhood/);
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    const box = (await img.boundingBox())!;
+    expect(box.width / box.height).toBeCloseTo(2, 1);
+  });
+
+  for (const [slug, alt] of [
+    ["assisted-living-sba-504-refinance", /craftsman-style house/],
+    ["flagged-hotel-sba-504-green-pip", /hotel under renovation/],
+    ["memory-care-bridge-to-hud", /garden courtyard/],
+    ["hotel-to-assisted-living-conversion-bridge", /entry ramp/],
+    ["multifamily-construction-bank-cpace", /apartment building nearing completion/],
+    ["investor-rehab-hard-money", /apartment building mid-renovation/],
+  ] as const) {
+    test(`/structures/${slug} shows its image under the illustrative note`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`/structures/${slug}`);
+      const img = page.locator(`[data-structure-image="${slug}"] img`);
+      await expect(img).toHaveCount(1);
+      await expect(img).toHaveAttribute("alt", alt);
+      await img.scrollIntoViewIfNeeded();
+      await expect(img).toBeVisible();
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+      const box = (await img.boundingBox())!;
+      expect(box.width / box.height).toBeCloseTo(16 / 9, 1);
+      const note = (await page.getByRole("note").filter({ hasText: /illustrative example/i }).boundingBox())!;
+      expect(box.y).toBeGreaterThan(note.y + note.height);
+    });
+  }
+
+  test("/structures shows a photo on every structure card; the home page cards stay text only", async ({ page }) => {
+    await page.goto("/structures");
+    const cards = page.locator("#structures article");
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(0);
+    await expect(page.locator("#structures [data-structure-card-image] img")).toHaveCount(count);
+    const img = page.locator('[data-structure-card-image="memory-care-bridge-to-hud"] img');
+    await expect(img).toHaveAttribute("alt", /garden courtyard/);
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+
+    await page.goto("/");
+    await expect(page.locator("main [data-structure-card-image]")).toHaveCount(0);
+  });
+
   test("contact cards keep their content inside the card at 768px", async ({ page }) => {
     // Long email addresses must wrap: the rightmost card's overflow reaches the page edge.
     await page.goto("/contact");
