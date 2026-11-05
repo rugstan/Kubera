@@ -87,8 +87,10 @@ describe("trust pages render", () => {
     const markup = html(createElement(TeamPage));
     expect(text(markup)).toContain("Designated officer");
     expect(text(markup)).toContain("Neeli Khanna");
-    // Jsonld only lists people who are public.
-    expect(jsonLd(markup).filter((n) => n["@type"] === "Person")).toHaveLength(0);
+    // Jsonld only lists people who are public: at most the designated officer, nobody invented.
+    const people = jsonLd(markup).filter((n) => n["@type"] === "Person");
+    expect(people.length).toBeLessThanOrEqual(1);
+    for (const p of people) expect(p.name).toBe("Neeli Khanna");
   });
 
   it("structures index links every detail page", () => {

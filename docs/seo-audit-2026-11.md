@@ -92,7 +92,7 @@ Every JSON-LD block on all 79 pages was parsed and checked. All were valid. Gaps
 - Question-shaped headings: every page already has an FAQ (visible, in `<details>`), and the new comparison heading is a question. Section headings were left as they are ("How the 504 stack is built", "What a hotel needs to qualify"); they already read as answers.
 - Dates: financing, structure, calculator and city pages show "Updated <date>", the same date as the sitemap `<lastmod>`. Key-facts tables already show "Figures as of".
 - Entity facts: `llms.txt` now states where Corin works (California; city guides for Los Angeles, Orange County and the Bay Area), how it is paid (as `/licensing` says) and how to verify the DRE license. `/llms-full.txt` is new: each financing page's definition, dated key figures, sections and FAQ; city guides with their facts and FAQ; calculators; illustrative structures (labelled as not closed transactions); articles with key takeaways; the glossary; and the broker-not-lender and indicative-terms disclosures.
-- Authors: articles already name the designated officer as author. No other people were added; `/team` has one member whose bio is still a placeholder (owner action).
+- Authors: articles already name the designated officer as author, and `/team` now carries her role-based bio. No other people were added.
 
 ### Local (California)
 
@@ -128,7 +128,7 @@ What this shows:
 | HTTP/2 on nginx | Server configuration; out of scope for this change (no server settings were changed). `ops/vps/nginx-corin.conf` would need `http2` on the TLS listener that certbot adds. |
 | Vercel copy still serves the site | It is now noindex with a disallow-all robots.txt. Turning it off or redirecting it to `corincommercial.com` is a Vercel project setting. |
 | `sameAs` profiles, address, phone, LocalBusiness | No public profiles are known, and the licensed address and phone are not configured in production. Nothing was invented; `SAME_AS` is empty with a TODO. |
-| More authors or reviewers | `/team` lists only the designated officer, with a placeholder bio. No people were added. |
+| More authors or reviewers | `/team` lists only the designated officer. Her bio states role facts only; no people were added. |
 | Reviews, ratings, testimonials, client counts, deal stats | None exist on the site, so none were added. `/track-record` stays noindex until approved records exist. |
 | Rewriting section headings as questions on 43 financing pages | Existing headings already read as answers and every page has a visible FAQ; a mass rewrite would add risk to reviewed compliance copy for little gain. |
 | Legal page titles (31 to 44 characters) | "Privacy policy · Corin Commercial" is the right title for a legal page. |
@@ -151,7 +151,7 @@ These are the things that most affect ranking and citations, and only the owner 
 7. **Real reviews**: after closings, ask borrowers to review the Google Business Profile. Do not add review or rating markup to the site for reviews collected elsewhere.
 8. **Backlinks and listings** (real ones only), for example: California Mortgage Bankers Association; California Association of Mortgage Professionals; the National Association of Mortgage Brokers; local chambers of commerce (Los Angeles, Orange County, San Francisco); senior-living and hotel industry groups such as the California Assisted Living Association, Argentum, the California Hotel & Lodging Association and AAHOA as a vendor or member where eligible; CDC partners for SBA 504; HUD 232 and HUD multifamily lender partner pages; and the DRE license lookup itself. Guest articles or quotes in industry publications that link to the insights pages help both search and answer engines.
 9. **Social profiles for `sameAs`**: create (or share the URLs of) a LinkedIn company page and any other profiles the firm controls, then add them to `SAME_AS` in `components/seo/schemas.ts`. LinkedIn is the most useful for a commercial lending broker.
-10. **Team**: replace the placeholder bio on `/team` with one Neeli Khanna writes or approves, set `NEXT_PUBLIC_DRE_OFFICER_LICENSE`, and add other licensed advisors as they join. Named, licensed people help answer engines trust the content.
+10. **Team**: `/team` now has a bio for Neeli Khanna built only from verifiable role facts (designated officer and broker of the DRE-licensed corporation, what that role supervises, the programs Corin arranges). Neeli should read and approve it, and can add her own experience. In production the card, the footer link and the home-page advisor line appear only once `NEXT_PUBLIC_DRE_OFFICER_LICENSE` is set to her eight-digit DRE number. Add other licensed advisors as they join.
 11. **Track record**: when closed transactions are approved for publication, `/track-record` stops being noindex automatically; add it to the sitemap then.
 12. **Keep dates honest**: when a section's copy changes, update its entry in `lib/seo/content-dates.ts` in the same change, and bump an article's `updated` date when it is revised.
 13. **Ops**: enable HTTP/2 on the nginx TLS listener.
