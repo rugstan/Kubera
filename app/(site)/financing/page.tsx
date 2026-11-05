@@ -8,6 +8,7 @@ import { PageContainer } from "@/components/site/PageContainer";
 import { familyImage, HOME_HERO_IMAGE } from "@/content/images";
 import { FAMILY_LABELS, FINANCING_BASE, financingPath, hubForFamily, PROGRAM_FAMILIES, programsInFamily } from "@/content/programs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { collectionSchema } from "@/lib/growth/schemas";
 
 export const metadata: Metadata = pageMetadata({
   title: "Commercial real estate financing programs",
@@ -24,10 +25,18 @@ export default function FinancingIndexPage() {
   return (
     <>
       <JsonLd
-        data={breadcrumbSchema([
-          { name: "Home", path: "/" },
-          { name: "Financing", path: FINANCING_BASE },
-        ])}
+        data={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Financing", path: FINANCING_BASE },
+          ]),
+          collectionSchema({
+            name: "Financing programs",
+            description: metadata.description as string,
+            path: FINANCING_BASE,
+            items: families.flatMap(({ hub, programs }) => [hub, ...programs.filter((p) => p.slug !== hub.slug)]).map((p) => ({ name: p.name, path: financingPath(p.slug) })),
+          }),
+        ]}
       />
       <PageContainer className="py-12 md:py-20">
         <header className="max-w-3xl">

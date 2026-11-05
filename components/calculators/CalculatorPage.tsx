@@ -7,7 +7,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { CALCULATORS, CALCULATORS_BASE, CALCULATORS_INDEX, calculatorPath, type CalculatorPage as CalculatorEntry } from "@/content/calculators";
 import { getTerm } from "@/content/glossary";
-import { webApplicationSchema } from "@/lib/growth/schemas";
+import { collectionSchema, webApplicationSchema } from "@/lib/growth/schemas";
 import { getMarketSnapshot } from "@/lib/rates";
 import { DscrCalculator } from "./DscrCalculator";
 import { HotelDebtYieldCalculator } from "./HotelDebtYieldCalculator";
@@ -159,7 +159,12 @@ export function CalculatorsIndex() {
   ];
   return (
     <>
-      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd
+        data={[
+          breadcrumbSchema(crumbs),
+          collectionSchema({ name: CALCULATORS_INDEX.title, description: CALCULATORS_INDEX.description, path: CALCULATORS_BASE, items: CALCULATORS.map((c) => ({ name: c.name, path: calculatorPath(c.slug) })) }),
+        ]}
+      />
       <PageContainer className="py-12 md:py-20">
         <PageHero breadcrumbs={crumbs}>
           <p className="eyebrow">Calculators</p>

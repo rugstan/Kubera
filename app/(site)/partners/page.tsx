@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { PartnerPortal } from "@/components/partners/PartnerPortal";
 import { PageContainer } from "@/components/site/PageContainer";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/components/seo/schemas";
 
 export const metadata: Metadata = pageMetadata({
   title: "Lender, broker and vendor partner portal",
@@ -12,6 +14,12 @@ export const metadata: Metadata = pageMetadata({
 export default function PartnersPage() {
   return (
     <PageContainer className="py-20 md:py-28">
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Partner portal", path: "/partners" },
+        ])}
+      />
       <div className="mx-auto max-w-3xl text-center">
         <p className="eyebrow">Partner portal</p>
         <h1 className="mt-4 text-5xl font-semibold leading-[1.06] md:text-6xl">Plug into the deal flow.</h1>

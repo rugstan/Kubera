@@ -13,6 +13,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of use"
+      path="/terms"
       intro={
         <p>
           These terms apply when you use {site.primaryDomain}, {site.expressDomain}, and the tools on them, including the loan sizer, the deal qualifier, the document vault,

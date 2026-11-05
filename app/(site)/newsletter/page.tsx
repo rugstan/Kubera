@@ -4,12 +4,20 @@ import { ProgramDisclosures } from "@/components/program/parts";
 import { PageContainer } from "@/components/site/PageContainer";
 import { NEWSLETTER_PATH, NEWSLETTER_PAGE } from "@/content/newsletter";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/components/seo/schemas";
 
 export const metadata: Metadata = pageMetadata({ title: NEWSLETTER_PAGE.title, description: NEWSLETTER_PAGE.description, path: NEWSLETTER_PATH });
 
 export default function NewsletterPage() {
   return (
     <PageContainer className="py-12 md:py-20">
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Newsletter", path: NEWSLETTER_PATH },
+        ])}
+      />
       {/* From lg: what the newsletter is on the left, the signup beside it. A phone reads them in that order. */}
       <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-12 xl:gap-16">
         <div>

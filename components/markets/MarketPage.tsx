@@ -4,7 +4,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { MAIN_COLUMN, PageContainer, SIDEBAR_GRID, SIDE_COLUMN } from "@/components/site/PageContainer";
 import { CALIFORNIA_BASE, CALIFORNIA_INDEX, MARKETS, getMarket, marketDisclaimer, marketPath, type MarketPage as MarketEntry } from "@/content/markets/california";
-import { marketServiceSchema } from "@/lib/growth/schemas";
+import { collectionSchema, marketServiceSchema } from "@/lib/growth/schemas";
 
 // Laid out like the financing pages: the hero, then the sections and FAQ in
 // the main column beside the local figures and a sticky call to action, then
@@ -88,7 +88,12 @@ export function CaliforniaIndex() {
   ];
   return (
     <>
-      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd
+        data={[
+          breadcrumbSchema(crumbs),
+          collectionSchema({ name: CALIFORNIA_INDEX.title, description: CALIFORNIA_INDEX.description, path: CALIFORNIA_BASE, items: MARKETS.map((m) => ({ name: m.name, path: marketPath(m.slug) })) }),
+        ]}
+      />
       <PageContainer className="py-12 md:py-20">
         <PageHero breadcrumbs={crumbs}>
           <p className="eyebrow">California markets</p>

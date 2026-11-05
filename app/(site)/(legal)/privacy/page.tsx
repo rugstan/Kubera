@@ -19,6 +19,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
+      path="/privacy"
       intro={
         <p>
           {site.legalName} (&ldquo;Corin,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;) is a California real estate broker that arranges commercial real estate loans. This policy explains what personal

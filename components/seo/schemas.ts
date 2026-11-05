@@ -19,6 +19,17 @@ const SERVICE_TYPES = [
   "Private bridge, hard money and construction financing",
 ];
 
+/**
+ * Public profiles of the firm (Google Business Profile, LinkedIn, industry
+ * directories) for Organization `sameAs`. Only profiles that exist and that the
+ * firm controls belong here.
+ * TODO(owner): add the URLs once the profiles are created; none are known yet.
+ */
+export const SAME_AS: readonly string[] = [];
+
+/** Where Corin arranges loans: it is licensed by the California DRE. */
+export const AREA_SERVED = { "@type": "State", name: "California" } as const;
+
 export const SITE_DESCRIPTION =
   "Corin Commercial arranges senior living, hotel, multifamily, construction and hard money loans as a licensed California real estate broker. It is not a lender.";
 
@@ -26,7 +37,7 @@ function withoutEmpty<T extends JsonLdNode>(node: T): T {
   return Object.fromEntries(Object.entries(node).filter(([, v]) => v !== "" && v !== undefined && v !== null)) as T;
 }
 
-export function organizationSchema(): JsonLdNode {
+export function organizationSchema(licensedAddress: string = site.licensedAddress): JsonLdNode {
   return withoutEmpty({
     "@type": "Organization",
     "@id": ORGANIZATION_ID(),
@@ -37,6 +48,9 @@ export function organizationSchema(): JsonLdNode {
     description: SITE_DESCRIPTION,
     email: site.email,
     telephone: site.phone,
+    address: postalAddressSchema(licensedAddress),
+    areaServed: AREA_SERVED,
+    sameAs: SAME_AS.length ? [...SAME_AS] : undefined,
     identifier: site.dreCorporateLicense
       ? { "@type": "PropertyValue", propertyID: "California DRE corporate license", value: site.dreCorporateLicense }
       : "",
@@ -84,7 +98,7 @@ export function financialServiceSchema(licensedAddress: string = site.licensedAd
     image: canonicalUrl("/opengraph-image"),
     description: SITE_DESCRIPTION,
     knowsAbout: SERVICE_TYPES,
-    areaServed: { "@type": "State", name: "California" },
+    areaServed: AREA_SERVED,
     address: postalAddressSchema(licensedAddress),
     email: site.email,
     telephone: site.phone,

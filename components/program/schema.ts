@@ -1,10 +1,12 @@
 // JSON-LD for the financing pages. Builders are pure so they can be tested; the
 // page components render them through `components/seo/JsonLd.tsx`.
 
-import { breadcrumbSchema, faqSchema, ORGANIZATION_ID, type BreadcrumbItem, type JsonLdNode } from "@/components/seo/schemas";
+import { AREA_SERVED, breadcrumbSchema, faqSchema, ORGANIZATION_ID, type BreadcrumbItem, type JsonLdNode } from "@/components/seo/schemas";
+import { pageImageFor } from "@/content/images";
 import { FINANCING_BASE, financingPath, hubForFamily, programsInFamily } from "@/content/programs";
 import type { HubEntry, ProgramEntry } from "@/content/programs";
 import { canonicalUrl } from "@/lib/seo/hosts";
+import { ogImagePath } from "@/lib/seo/og";
 
 /**
  * schema.org LoanOrCredit for one program. Corin is a broker, so the page names
@@ -22,10 +24,18 @@ export function loanOrCreditSchema(entry: ProgramEntry): JsonLdNode {
     loanType: entry.loanType,
     currency: "USD",
     broker: { "@id": ORGANIZATION_ID() },
+    areaServed: AREA_SERVED,
+    ...pageImage(entry),
     ...(entry.loanTermYears
       ? { loanTerm: { "@type": "QuantitativeValue", value: entry.loanTermYears, unitCode: "ANN", unitText: "year" } }
       : {}),
   };
+}
+
+/** The page's photo as an absolute URL to its 1200x630 share image, when it has one. */
+function pageImage(entry: ProgramEntry | HubEntry): { image: string } | Record<string, never> {
+  const image = pageImageFor(entry);
+  return image ? { image: canonicalUrl(ogImagePath(image)) } : {};
 }
 
 export function programBreadcrumbs(entry: ProgramEntry): BreadcrumbItem[] {
@@ -64,6 +74,7 @@ export function hubJsonLd(entry: HubEntry): JsonLdNode[] {
       name: entry.name,
       description: entry.description,
       url,
+      ...pageImage(entry),
       mainEntity: {
         "@type": "ItemList",
         itemListElement: members.map((p, i) => ({

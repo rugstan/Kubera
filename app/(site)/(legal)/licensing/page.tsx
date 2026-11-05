@@ -27,6 +27,7 @@ export default function LicensingPage() {
   return (
     <LegalPage
       title="Licensing and disclosures"
+      path="/licensing"
       intro={
         <p>
           {site.legalName} is a real estate broker licensed by the California Department of Real Estate (DRE). We arrange commercial real estate loans for our clients. We are not a lender.

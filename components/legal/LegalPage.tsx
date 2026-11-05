@@ -1,5 +1,7 @@
 import { Children, isValidElement, type ReactNode } from "react";
 import { MAIN_COLUMN, PageContainer, SIDEBAR_GRID, SIDE_COLUMN } from "@/components/site/PageContainer";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/components/seo/schemas";
 import { DraftNotice } from "./DraftNotice";
 import { LEGAL_EFFECTIVE_DATE } from "./legal";
 
@@ -32,11 +34,14 @@ function tableOfContents(children: ReactNode): TocEntry[] {
 
 export function LegalPage({
   title,
+  path,
   intro,
   children,
   effectiveDate = LEGAL_EFFECTIVE_DATE,
 }: {
   title: string;
+  /** The page's path, for its BreadcrumbList (Home > page). */
+  path: string;
   intro?: React.ReactNode;
   children: React.ReactNode;
   effectiveDate?: string;
@@ -44,6 +49,12 @@ export function LegalPage({
   const toc = tableOfContents(children);
   return (
     <PageContainer as="article" className="py-16 md:py-24">
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: title, path },
+        ])}
+      />
       <DraftNotice />
       <header className="mt-8 max-w-3xl">
         <p className="eyebrow">Legal</p>
