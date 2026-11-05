@@ -1,6 +1,8 @@
 # Site imagery plan
 
-Status: **13 of 13 placed** (2026-11-04). Every image below is on the site;
+Status: **45 placed** (2026-11-05): the 13 below, plus `family-commercial`
+and 31 program images (see [Program images](#program-images-2026-11-05)), so
+every financing hub and program page has one. Every image is on the site;
 `content/images.ts` holds each one's alt text and crop position. The
 link-preview (share) image is still the text card in `app/opengraph-image.tsx`.
 This is the record of every generated image on corincommercial.com: what it
@@ -50,15 +52,18 @@ in step with `content/images.ts`.
     whose foliage needs it to stay under 400 KB), full 1536 × 1024, metadata
     stripped, no retouching. `content/images.test.ts` fails any file over
     400 KB or not referenced from `content/images.ts`.
-  - **Crops on the site:** homepage hero 2:1 from md (4:3 on phones); hub and
-    About banners 2:1; structure pages 16:9; homepage family cards and
-    `/structures` cards 4:3. One `position` per image serves all of them:
-    the wide crops only move vertically, the 4:3 crops only sideways.
-  - **Loading:** the About banner and structure page images are each page's
-    largest paint on desktop, so they use `preload`. Hub banners and the
-    homepage hero (which starts below the 1440 × 900 fold, under the facts
-    row) use `loading="eager"`. Cards are lazy; the homepage family-card
-    photos show from md only, so phones never fetch them.
+  - **Crops on the site:** homepage hero 2:1 from md (4:3 on phones); About
+    banner 2:1; structure pages 16:9; homepage family cards, the family rows
+    on `/financing` and `/structures` cards 4:3. Financing hub and program
+    heroes show the whole 3:2 master beside the heading, so program images
+    carry no `position`. One `position` per image serves every crop: the
+    wide crops only move vertically, the 4:3 crops only sideways.
+  - **Loading:** the About banner, structure page images and financing page
+    heroes are each page's largest paint on desktop, so they use `preload`.
+    The homepage hero (which starts below the 1440 × 900 fold, under the
+    facts row) uses `loading="eager"`. Cards are lazy; the homepage
+    family-card photos show from md only and the `/financing` family photos
+    from lg only, so phones never fetch them.
 - **Review:** look at the whole set on a contact sheet before publishing.
   Check each image at 100% for:
   - stray lettering
@@ -90,6 +95,66 @@ with: "20–24mm lens at 1.3 m height, one- or two-point perspective with
 vertical lines vertical; large windows or open sky as the main light source,
 interior lights off; bright but not blown-out highlights."
 
+## Program images (2026-11-05)
+
+32 new masters, approved 2026-11-05 and placed as delivered (1536 × 1024 WebP,
+quality 80, under 400 KB, metadata stripped). How they were made is in
+`chatgpt-prompts.md`. `content/images.ts` holds their alt text (as approved,
+except that `closed` was dropped from the industrial alt, since no alt may
+read like a closed deal), and `PENDING_IMAGES` there is now empty.
+
+- **Commercial family:** `family-commercial.webp` is in `FAMILY_IMAGES`: the
+  `/financing/commercial` hub hero, the homepage Commercial property card and
+  its row on `/financing`.
+- **Hard money:** `/financing/hard-money` is a program that doubles as its
+  family's hub, so it keeps `family-hard-money`.
+- **Reused structure images (no new file):**
+
+| Program page | Image |
+|---|---|
+| `fix-and-flip` | `structure-investor-rehab-hard-money` |
+| `pip-bridge` | `structure-flagged-hotel-sba-504-green-pip` |
+| `hotel-to-senior-living-conversion` | `structure-hotel-to-assisted-living-conversion-bridge` |
+| `memory-care` | `structure-memory-care-bridge-to-hud` |
+| `rcfe` | `structure-assisted-living-sba-504-refinance` |
+| `c-pace` | `structure-multifamily-construction-bank-cpace` |
+
+- **Made for the page (31), in `PROGRAM_IMAGES`:**
+
+| Program page | File |
+|---|---|
+| `acquisition-loans` | `program-acquisition-loans.webp` |
+| `assisted-living` | `program-assisted-living.webp` |
+| `bank-credit-union-loans` | `program-bank-credit-union-loans.webp` |
+| `bridge-to-hud` | `program-bridge-to-hud.webp` |
+| `cmbs-loans` | `program-cmbs-loans.webp` |
+| `construction-loans` | `program-construction-loans.webp` |
+| `construction-to-permanent` | `program-construction-to-permanent.webp` |
+| `debt-fund-bridge-loans` | `program-debt-fund-bridge-loans.webp` |
+| `dscr-investor` | `program-dscr-investor.webp` |
+| `fannie-mae-multifamily` | `program-fannie-mae-multifamily.webp` |
+| `freddie-mac-multifamily` | `program-freddie-mac-multifamily.webp` |
+| `hotel-cmbs` | `program-hotel-cmbs.webp` |
+| `hud-221d4` | `program-hud-221d4.webp` |
+| `hud-223a7` | `program-hud-223a7.webp` |
+| `hud-223f-multifamily` | `program-hud-223f-multifamily.webp` |
+| `hud-223f-senior-housing` | `program-hud-223f-senior-housing.webp` |
+| `hud-232` | `program-hud-232.webp` |
+| `industrial-loans` | `program-industrial-loans.webp` |
+| `life-company-loans` | `program-life-company-loans.webp` |
+| `medical-office-loans` | `program-medical-office-loans.webp` |
+| `mezzanine-preferred-equity` | `program-mezzanine-preferred-equity.webp` |
+| `mixed-use-loans` | `program-mixed-use-loans.webp` |
+| `mobile-home-park-loans` | `program-mobile-home-park-loans.webp` |
+| `multifamily-bridge` | `program-multifamily-bridge.webp` |
+| `office-loans` | `program-office-loans.webp` |
+| `private-bridge` | `program-private-bridge.webp` |
+| `retail-loans` | `program-retail-loans.webp` |
+| `sba-504-hotel` | `program-sba-504-hotel.webp` |
+| `sba-7a-504-hotel-stack` | `program-sba-7a-504-hotel-stack.webp` |
+| `self-storage-loans` | `program-self-storage-loans.webp` |
+| `skilled-nursing` | `program-skilled-nursing.webp` |
+
 ## The set (13 images)
 
 All 13 are placed. The share image named in row 1 is not made yet.
@@ -113,7 +178,6 @@ All 13 are placed. The share image named in row 1 is not made yet.
 **Not planned, on purpose:**
 - Legal pages, calculators, the loan sizer, the rates board and forms.
 - The glossary, `/team`, `/track-record`, 404 pages and the "Why a broker" band.
-- The other 24 program pages.
 
 **Credits.** 13 images × 2.75 = 35.75 credits, plus about 10 redos to keep the
 set consistent. Roughly 50–60 credits in total.

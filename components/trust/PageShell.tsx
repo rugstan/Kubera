@@ -1,15 +1,17 @@
 import { Children, isValidElement, type ReactNode } from "react";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
-
-const CONTAINER = "mx-auto max-w-[1280px] px-5 md:px-8";
+import { PageContainer } from "@/components/site/PageContainer";
 
 /**
  * Page frame shared by the trust pages: breadcrumb, eyebrow, H1 and intro on
  * white, then full-width sections that alternate canvas and white (the
- * `page-bands` rules in globals.css). Anything that is not a `Section` or a
- * JSON-LD block, such as a note or the license footnote, sits in its own
- * contained row.
+ * `page-bands` rules in globals.css), each in the site container. Anything
+ * that is not a `Section` or a JSON-LD block, such as a note or the license
+ * footnote, sits in its own contained row.
+ *
+ * `media` (an image, or a note and an image) sits beside the header from lg
+ * and under it on smaller screens.
  */
 export function PageShell({
   eyebrow,
@@ -17,6 +19,7 @@ export function PageShell({
   intro,
   breadcrumb,
   children,
+  media,
   wide = false,
 }: {
   eyebrow: string;
@@ -24,19 +27,27 @@ export function PageShell({
   intro?: ReactNode;
   breadcrumb?: { href: string; label: string }[];
   children: ReactNode;
+  media?: ReactNode;
   wide?: boolean;
 }) {
   const rows = Children.toArray(children).map((child) => {
     if (isValidElement(child) && (child.type === Section || child.type === JsonLd)) return child;
     return (
-      <div key={isValidElement(child) ? (child.key ?? undefined) : undefined} className={`${CONTAINER} py-6`}>
+      <PageContainer key={isValidElement(child) ? (child.key ?? undefined) : undefined} className="py-6">
         {child}
-      </div>
+      </PageContainer>
     );
   });
+  const header = (
+    <header className={media ? "min-w-0" : wide ? "max-w-4xl" : "max-w-3xl"}>
+      <p className="eyebrow">{eyebrow}</p>
+      <h1 className="mt-4 text-4xl font-semibold leading-[1.08] md:text-6xl">{title}</h1>
+      {intro && <div className="mt-5 text-lg leading-relaxed text-titanium md:text-xl">{intro}</div>}
+    </header>
+  );
   return (
     <div className="overflow-x-clip">
-      <div className={`${CONTAINER} pb-14 pt-16 md:pb-20 md:pt-24`}>
+      <PageContainer className="pb-14 pt-16 md:pb-20 md:pt-24">
         {breadcrumb && breadcrumb.length > 0 && (
           <nav aria-label="Breadcrumb" className="mb-8 text-[13px] text-titanium">
             <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -52,12 +63,15 @@ export function PageShell({
             </ol>
           </nav>
         )}
-        <header className={wide ? "max-w-4xl" : "max-w-3xl"}>
-          <p className="eyebrow">{eyebrow}</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-[1.08] md:text-6xl">{title}</h1>
-          {intro && <div className="mt-5 text-lg leading-relaxed text-titanium md:text-xl">{intro}</div>}
-        </header>
-      </div>
+        {media ? (
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12 xl:gap-16">
+            {header}
+            <div className="min-w-0">{media}</div>
+          </div>
+        ) : (
+          header
+        )}
+      </PageContainer>
       <div className="page-bands pb-8 md:pb-12">{rows}</div>
     </div>
   );
@@ -66,11 +80,11 @@ export function PageShell({
 export function Section({ id, title, lead, children }: { id?: string; title: string; lead?: ReactNode; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={id ? `${id}-title` : undefined} className="scroll-mt-24 py-14 md:py-20">
-      <div className={CONTAINER}>
+      <PageContainer>
         <h2 id={id ? `${id}-title` : undefined} className="text-3xl font-semibold md:text-4xl">{title}</h2>
         {lead && <div className="mt-3 max-w-3xl text-[17px] leading-relaxed text-titanium">{lead}</div>}
         <div className="mt-8">{children}</div>
-      </div>
+      </PageContainer>
     </section>
   );
 }

@@ -179,7 +179,12 @@ test.describe("California metro pages", () => {
       const res = await page.goto(`/california/${slug}`);
       expect(res?.status()).toBe(200);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(h1);
-      await expect(page.getByRole("columnheader", { name: "Figure" })).toBeVisible();
+      // A card beside the main column: a table for assistive technology, shown as a stacked list.
+      const rules = page.getByRole("table", { name: /local rules and program figures/i });
+      await expect(rules).toBeVisible();
+      await expect(rules.getByRole("columnheader", { name: "Figure" })).toBeAttached();
+      await expect(rules.getByRole("rowheader").first()).toBeVisible();
+      await expect(rules.getByRole("row").nth(1).getByRole("cell").first()).toBeVisible();
       expect(await ldTypes(page)).toEqual(expect.arrayContaining(["Service", "FAQPage", "BreadcrumbList"]));
     }
   });

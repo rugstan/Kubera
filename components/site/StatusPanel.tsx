@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PageContainer } from "./PageContainer";
 
 /**
  * Body of the branded 404 and error pages: eyebrow, the page's single H1, a
@@ -17,13 +18,13 @@ export function StatusPanel({
   actions: ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-[1280px] px-5 py-20 md:px-8 md:py-32">
+    <PageContainer className="py-20 md:py-32">
       <div className="max-w-2xl">
         <p className="eyebrow">{eyebrow}</p>
         <h1 className="mt-4 text-4xl font-semibold leading-[1.08] md:text-6xl">{title}</h1>
         <div className="mt-5 text-lg leading-relaxed text-titanium md:text-xl">{children}</div>
         <div className="mt-10 flex flex-wrap gap-3">{actions}</div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

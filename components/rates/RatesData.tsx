@@ -105,7 +105,7 @@ export async function RatesData() {
         <h2 id="programs-heading" className="text-2xl font-semibold md:text-3xl">
           Indicative loan rates by program
         </h2>
-        <p className="mt-2 text-[15px] text-titanium">
+        <p className="mt-2 max-w-3xl text-[15px] text-titanium">
           Each range is the benchmark above plus the spread band Corin assumes for the program; hard money is priced at a fixed rate, so its range does not move with the benchmarks. They are planning estimates, not quotes, and lenders price each loan individually.
         </p>
         <div className="bento mt-5 p-2 md:p-4">
@@ -140,13 +140,13 @@ export async function RatesData() {
             </table>
           </TableScroll>
         </div>
-        <p className="mt-4 text-[14px] text-titanium">
+        <p className="mt-4 max-w-3xl text-[14px] text-titanium">
           Turn a rate into a payment with the <Link href="/calculators/dscr" className="font-medium text-accent underline underline-offset-2">DSCR calculator</Link>, or size a full structure with the{" "}
           <Link href="/#sizer" className="font-medium text-accent underline underline-offset-2">60-second loan sizer</Link>.
         </p>
       </section>
 
-      <p className="mt-10 text-[13px] leading-relaxed text-titanium">{FRED_ATTRIBUTION}</p>
+      <p className="mt-10 max-w-4xl text-[13px] leading-relaxed text-titanium">{FRED_ATTRIBUTION}</p>
     </>
   );
 }

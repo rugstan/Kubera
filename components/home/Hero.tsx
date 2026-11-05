@@ -2,6 +2,7 @@ import Image from "next/image";
 import { callLink } from "@/content/contact";
 import { HOME_HERO_IMAGE } from "@/content/images";
 import { FAMILY_LABELS, PROGRAM_FAMILIES, financingPath, hubForFamily } from "@/content/programs";
+import { PageContainer } from "@/components/site/PageContainer";
 import { site } from "@/lib/site";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
@@ -21,7 +22,7 @@ export function Hero() {
   return (
     <section className="bg-white">
       {/* Sized so the facts row clears a 1440x900 fold: 56px headline, tighter top padding. */}
-      <div className="mx-auto max-w-[1280px] px-5 pb-20 pt-12 text-center md:px-8 md:pb-28 md:pt-16">
+      <PageContainer className="pb-20 pt-12 text-center md:pb-28 md:pt-16">
         <Reveal className="mx-auto max-w-[980px]">
           <p className="eyebrow">
             Commercial real estate loan broker
@@ -92,7 +93,7 @@ export function Hero() {
             style={{ objectPosition: HOME_HERO_IMAGE.position }}
           />
         </figure>
-      </div>
+      </PageContainer>
     </section>
   );
 }

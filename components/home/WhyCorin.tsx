@@ -3,6 +3,7 @@ import { formatUsd } from "@/content/deal-structures";
 import { HOME_REASONS } from "@/content/home";
 import { publishableRecords } from "@/content/track-record";
 import { dreLookupUrl, site } from "@/lib/site";
+import { PageContainer } from "@/components/site/PageContainer";
 import { Reveal } from "./Reveal";
 
 /** The homepage's one black section: why a broker, plus verified closings once there are any. */
@@ -11,7 +12,7 @@ export function WhyCorin() {
   const records = publishableRecords().slice(0, 3);
   return (
     <section aria-labelledby="why-corin-title" className="bg-pro py-20 text-white md:py-32">
-      <div className="mx-auto max-w-[1280px] px-5 md:px-8">
+      <PageContainer>
         <Reveal className="mx-auto max-w-[980px] text-center">
           <p className="eyebrow">Why a broker</p>
           <h2 id="why-corin-title" className="mt-3 text-headline font-semibold md:text-section">
@@ -21,7 +22,7 @@ export function WhyCorin() {
             A bank can only offer its own loans. We compare the programs and lenders that fit your property, then help you negotiate the terms.
           </p>
         </Reveal>
-        <ul className="mx-auto mt-12 grid max-w-[1080px] gap-5 md:mt-16 md:grid-cols-2">
+        <ul className="mt-12 grid gap-5 md:mt-16 md:grid-cols-2">
           {HOME_REASONS.map((r, i) => (
             <li key={r.title}>
               <Reveal delay={i * 0.05} className="h-full">
@@ -40,7 +41,7 @@ export function WhyCorin() {
           ))}
         </ul>
         {records.length > 0 && (
-          <div className="mx-auto mt-12 max-w-[1080px]">
+          <div className="mt-12">
             <h3 className="text-[21px] font-semibold">Recent closings</h3>
             <ul className="mt-4 divide-y divide-pro-hairline border-y border-pro-hairline">
               {records.map((r) => (
@@ -57,7 +58,7 @@ export function WhyCorin() {
             </Link>
           </div>
         )}
-      </div>
+      </PageContainer>
     </section>
   );
 }

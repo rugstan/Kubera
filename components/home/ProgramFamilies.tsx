@@ -4,6 +4,7 @@ import { HOME_FAMILIES } from "@/content/home";
 import { familyImage } from "@/content/images";
 import { FAMILY_LABELS, PROGRAM_FAMILIES, financingPath, hubForFamily, pageCard, type ProgramFamily } from "@/content/programs";
 import { disclosures } from "@/lib/site";
+import { PageContainer } from "@/components/site/PageContainer";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
 
@@ -38,7 +39,7 @@ const IMAGE_SIZES: Record<ProgramFamily, string> = {
 export function ProgramFamilies() {
   return (
     <section id="programs" className="bg-canvas py-20 md:py-32">
-      <div className="mx-auto max-w-[1280px] px-5 md:px-8">
+      <PageContainer>
         <Reveal className="mx-auto max-w-[980px] text-center">
           <p className="eyebrow">What we finance</p>
           <h2 className="mt-3 text-headline font-semibold md:text-section">What are you financing?</h2>
@@ -105,7 +106,7 @@ export function ProgramFamilies() {
           })}
         </div>
         <p className="mt-6 text-[12px] leading-relaxed text-titanium">{disclosures.indicative}</p>
-      </div>
+      </PageContainer>
     </section>
   );
 }

@@ -52,6 +52,28 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
         { href: TRUST_PAGES.structures.path, label: "Representative structures" },
         { href: path, label: s.asset },
       ]}
+      // Beside the header from lg: the "Illustrative example" note, then the image under it and as
+      // wide as it (docs/images/image-plan.md), 16:9. The page's largest paint on desktop, so preloaded.
+      media={
+        <>
+          <p role="note" className="notice rounded-2xl px-5 py-4 text-[14px] leading-relaxed">
+            <strong className="font-semibold">Illustrative example.</strong> {disclosures.illustrative} This is not a closed transaction and not an offer or commitment to lend.
+          </p>
+          {image ? (
+            <figure className="mt-5 overflow-hidden rounded-2xl bg-hairline" data-structure-image={s.slug}>
+              <Image
+                src={image.src}
+                alt={image.alt}
+                placeholder="blur"
+                preload
+                sizes="(min-width: 1280px) 576px, (min-width: 1024px) calc(50vw - 56px), (min-width: 768px) calc(100vw - 64px), calc(100vw - 40px)"
+                className="aspect-video h-auto w-full object-cover"
+                style={image.position ? { objectPosition: image.position } : undefined}
+              />
+            </figure>
+          ) : null}
+        </>
+      }
     >
       <JsonLd
         data={[
@@ -63,26 +85,6 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
           ]),
         ]}
       />
-
-      <p role="note" className="notice max-w-3xl rounded-2xl px-5 py-4 text-[14px] leading-relaxed">
-        <strong className="font-semibold">Illustrative example.</strong> {disclosures.illustrative} This is not a closed transaction and not an offer or commitment to lend.
-      </p>
-
-      {/* Under the "Illustrative example" note and as wide as it (docs/images/image-plan.md), 16:9.
-          The page's largest paint on desktop, so preloaded. */}
-      {image ? (
-        <figure className="max-w-3xl overflow-hidden rounded-2xl bg-hairline" data-structure-image={s.slug}>
-          <Image
-            src={image.src}
-            alt={image.alt}
-            placeholder="blur"
-            preload
-            sizes="(min-width: 832px) 768px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 40px)"
-            className="aspect-video h-auto w-full object-cover"
-            style={image.position ? { objectPosition: image.position } : undefined}
-          />
-        </figure>
-      ) : null}
 
       <Section id="why" title="Why this structure">
         <ul className="grid gap-5 md:grid-cols-3">
@@ -157,7 +159,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
       </Section>
 
       <Section id="watch" title="What a lender will look at closely">
-        <ul className="max-w-3xl list-disc space-y-2 pl-6 text-[16px] leading-relaxed text-titanium">
+        <ul className="list-disc space-y-2 pl-6 text-[16px] leading-relaxed text-titanium md:grid md:grid-cols-2 md:gap-x-12 md:gap-y-2 md:space-y-0">
           {s.watch.map((w) => (
             <li key={w}>{w}</li>
           ))}

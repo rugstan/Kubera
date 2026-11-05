@@ -1,6 +1,7 @@
 import { callLink, contactDetails } from "@/content/contact";
 import { TEAM, isPlaceholderBio, licenseDisplay } from "@/content/team";
 import { site } from "@/lib/site";
+import { PageContainer } from "@/components/site/PageContainer";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
 
@@ -18,43 +19,46 @@ export function FinalCta() {
   const call = callLink();
   return (
     <section aria-labelledby="final-cta-title" className="bg-white py-20 md:py-32">
-      <Reveal className="mx-auto max-w-[980px] px-5 text-center md:px-8">
-        <h2 id="final-cta-title" className="text-headline font-semibold md:text-section">
-          Tell us about your deal.
-        </h2>
-        <p className="mx-auto mt-4 max-w-3xl text-[17px] text-titanium md:text-lede">
-          An advisor reviews every request and replies with the programs and lenders that may fit. No credit check to start, and no obligation.
-        </p>
-        <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
-          <TrackedLink href="/express" cta="get_options" section="final" className="pill pill-primary">Get loan options</TrackedLink>
-          <TrackedLink href={call.href} cta={call.kind === "book" ? "book_call" : "email_advisor"} section="final" className="pill pill-secondary">
-            {call.label}
-          </TrackedLink>
-        </div>
-        {/* Until online booking is set up the second pill already emails an advisor, so the
-            address is not offered twice; the phone shows whenever it is configured. */}
-        {(call.kind === "book" || contact.telHref) && (
-          <p className="mt-6 text-[15px] text-titanium">
-            {call.kind === "book" && (
-              <>
-                Or email{" "}
-                <a href={`mailto:${site.email}`} className="text-accent underline-offset-2 hover:underline">
-                  {site.email}
-                </a>
-              </>
-            )}
-            {contact.telHref && (
-              <>
-                {call.kind === "book" ? " · call " : "Or call "}
-                <a href={`tel:${contact.telHref}`} className="text-accent underline-offset-2 hover:underline">
-                  {contact.phone}
-                </a>
-              </>
-            )}
+      {/* In the site container; the closing ask itself stays a centred, readable block. */}
+      <PageContainer>
+        <Reveal className="mx-auto max-w-[980px] text-center">
+          <h2 id="final-cta-title" className="text-headline font-semibold md:text-section">
+            Tell us about your deal.
+          </h2>
+          <p className="mx-auto mt-4 max-w-3xl text-[17px] text-titanium md:text-lede">
+            An advisor reviews every request and replies with the programs and lenders that may fit. No credit check to start, and no obligation.
           </p>
-        )}
-        {advisor && <p className="mt-2 text-[13px] text-titanium">{advisor}</p>}
-      </Reveal>
+          <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
+            <TrackedLink href="/express" cta="get_options" section="final" className="pill pill-primary">Get loan options</TrackedLink>
+            <TrackedLink href={call.href} cta={call.kind === "book" ? "book_call" : "email_advisor"} section="final" className="pill pill-secondary">
+              {call.label}
+            </TrackedLink>
+          </div>
+          {/* Until online booking is set up the second pill already emails an advisor, so the
+              address is not offered twice; the phone shows whenever it is configured. */}
+          {(call.kind === "book" || contact.telHref) && (
+            <p className="mt-6 text-[15px] text-titanium">
+              {call.kind === "book" && (
+                <>
+                  Or email{" "}
+                  <a href={`mailto:${site.email}`} className="text-accent underline-offset-2 hover:underline">
+                    {site.email}
+                  </a>
+                </>
+              )}
+              {contact.telHref && (
+                <>
+                  {call.kind === "book" ? " · call " : "Or call "}
+                  <a href={`tel:${contact.telHref}`} className="text-accent underline-offset-2 hover:underline">
+                    {contact.phone}
+                  </a>
+                </>
+              )}
+            </p>
+          )}
+          {advisor && <p className="mt-2 text-[13px] text-titanium">{advisor}</p>}
+        </Reveal>
+      </PageContainer>
     </section>
   );
 }

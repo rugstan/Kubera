@@ -31,7 +31,7 @@ export default function TeamPage() {
       />
 
       {!production && hasPlaceholders && (
-        <p role="note" className="notice max-w-3xl rounded-2xl px-5 py-4 text-[14px]">
+        <p role="note" className="notice rounded-2xl px-5 py-4 text-[14px]">
           Preview only: entries marked as placeholders are hidden on the production site until a bio and, for licensed advisors, a DRE license number are added in <code>content/team.ts</code> or the license variables.
         </p>
       )}
@@ -48,11 +48,12 @@ export default function TeamPage() {
         </Section>
       ) : (
         <Section id="advisors" title="Advisor profiles are coming soon">
-          <div className="bento max-w-3xl p-7">
-            <p className="text-[16px] leading-relaxed text-titanium">
+          {/* Across the container from lg: the note on the left, the actions on the right. */}
+          <div className="bento p-7 lg:flex lg:items-center lg:justify-between lg:gap-12">
+            <p className="max-w-3xl text-[16px] leading-relaxed text-titanium">
               We are preparing individual advisor profiles. Until they are published, here is who is accountable for the firm&apos;s license. Write to us and we will tell you which licensed advisor will work with you.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:mt-0 lg:shrink-0">
               <Link href="/contact" className="pill pill-primary">Contact an advisor</Link>
               <Link href="/about#licenses" className="pill pill-glass">See our licenses</Link>
             </div>
@@ -61,10 +62,13 @@ export default function TeamPage() {
       )}
 
       <Section id="designated-officer" title="Designated officer">
-        <div className="bento max-w-3xl p-7">
-          <p className="text-xl font-semibold">{site.designatedOfficer}</p>
-          <p className="mt-1 text-[15px] text-titanium">Designated broker officer of {site.legalName}</p>
-          <dl className="mt-5 space-y-3 text-[15px]">
+        {/* Across the container from md: who the officer is on the left, the license numbers on the right. */}
+        <div className="bento grid gap-5 p-7 md:grid-cols-2 md:items-center md:gap-10">
+          <div>
+            <p className="text-xl font-semibold">{site.designatedOfficer}</p>
+            <p className="mt-1 text-[15px] text-titanium">Designated broker officer of {site.legalName}</p>
+          </div>
+          <dl className="space-y-3 text-[15px] sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0">
             {/* The build guard only requires the corporate license, so the officer row renders only when its number is set (as on /about). */}
             {site.dreOfficerLicense && (
               <div>

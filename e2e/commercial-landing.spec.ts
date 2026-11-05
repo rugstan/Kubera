@@ -53,13 +53,17 @@ async function fillRequest(page: Page, opts: { consent?: boolean } = {}) {
 }
 
 test.describe("commercial property family", () => {
-  test("the hub lists every commercial page, renders without an image and carries the request form", async ({ page }) => {
+  test("the hub lists every commercial page, shows the family image and carries the request form", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     const res = await page.goto("/financing/commercial");
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Commercial property financing");
-    await expect(page.locator("[data-family-image]")).toHaveCount(0);
+    // The commercial family image in the hero, the hub's only photo.
+    const img = page.locator('[data-page-image="commercial"][data-family-image="commercial"] img');
+    await expect(img).toHaveAttribute("alt", /glass and stone office building beside a single-story flex building/);
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    await expect(page.locator("main img")).toHaveCount(1);
     const family = page.locator('section[aria-labelledby="family-heading"]');
     for (const [slug, name] of COMMERCIAL_PAGES) await expect(family.locator(`a[href="/financing/${slug}"]`), slug).toContainText(name);
     await expect(requestForm(page).getByRole("heading", { level: 2, name: "Send your deal to an advisor" })).toBeVisible();
@@ -77,6 +81,8 @@ test.describe("commercial property family", () => {
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
       await expect(page.getByRole("table")).toBeVisible();
       await expect(page.locator(`[data-lead-form="${slug}"]`)).toHaveCount(1);
+      // Its own image in the hero, not the family's.
+      await expect(page.locator(`[data-page-image="${slug}"]:not([data-family-image]) img`)).toHaveAttribute("alt", /\S/);
       await expect(page.getByRole("complementary", { name: "Disclosures" })).toContainText("not a lender");
     });
   }
@@ -168,8 +174,10 @@ test.describe("financing-page request form", () => {
 
   test("the link under the page's actions takes keyboard users to the form", async ({ page }) => {
     await gotoHydrated(page, "/financing/industrial-loans");
-    const link = page.getByRole("link", { name: "Or send a short request to an advisor" });
+    // The hero's link; on a desktop the sticky side card repeats it, pointing at the same form.
+    const link = page.locator("main header").getByRole("link", { name: "Or send a short request to an advisor" });
     await expect(link).toHaveAttribute("href", "#request");
+    await expect(page.locator("[data-side-cta]").getByRole("link", { name: "Or send a short request to an advisor" })).toHaveAttribute("href", "#request");
     await link.focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/#request$/);

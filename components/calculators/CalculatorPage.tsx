@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Breadcrumbs, CtaBand, FaqList, ProgramDisclosures, RelatedPages } from "@/components/program/parts";
+import { CtaBand, FaqList, PageHero, ProgramDisclosures, RelatedPages } from "@/components/program/parts";
+import { PageContainer, READABLE } from "@/components/site/PageContainer";
 import { sizerLinkFor } from "@/components/site/nav";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
@@ -12,8 +13,6 @@ import { DscrCalculator } from "./DscrCalculator";
 import { HotelDebtYieldCalculator } from "./HotelDebtYieldCalculator";
 import { HudMipCalculator } from "./HudMipCalculator";
 import { Sba504Calculator } from "./Sba504Calculator";
-
-const WRAP = "mx-auto max-w-5xl px-5 py-12 md:px-8 md:py-20";
 
 /** Construction and hard money are sized on the homepage sizer; these cards open it on the right tab. */
 const SIZER_CARDS = [
@@ -71,82 +70,84 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
           faqSchema(entry.faq.map((q) => ({ question: q.question, answer: q.answer }))),
         ]}
       />
-      <article className={WRAP}>
-        <Breadcrumbs items={crumbs} />
-        <header className="mt-8 max-w-3xl">
+      {/* The calculator spans the container; the explanations beside each other from lg, each a readable column. */}
+      <PageContainer as="article" className="pb-16 pt-10 md:pb-24 md:pt-14">
+        <PageHero breadcrumbs={crumbs}>
           <p className="eyebrow">Calculator</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
-        </header>
+        </PageHero>
 
         <div className="mt-10">
           <Suspense fallback={<CalculatorSkeleton />}>
             <Calculator slug={entry.slug} />
           </Suspense>
-          <p className="mt-4 text-[13px] leading-relaxed text-titanium">
+          <p className="mt-4 max-w-3xl text-[13px] leading-relaxed text-titanium">
             Results are indicative estimates for discussion. They are not a loan offer, a rate quote or a commitment to lend. Nothing you type here is sent anywhere; the math runs in your browser.
           </p>
         </div>
 
-        <section aria-labelledby="how-heading" className="mt-14 max-w-3xl">
-          <h2 id="how-heading" className="text-2xl font-semibold md:text-3xl">
-            How it works
-          </h2>
-          <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
-            {entry.howItWorks.map((p) => (
-              <p key={p}>{p}</p>
-            ))}
+        <section aria-labelledby="how-heading" className="mt-14 grid gap-10 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+          <div className={READABLE}>
+            <h2 id="how-heading" className="text-2xl font-semibold md:text-3xl">
+              How it works
+            </h2>
+            <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
+              {entry.howItWorks.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
           </div>
-          <h2 className="mt-10 text-2xl font-semibold md:text-3xl">Reading the result</h2>
-          <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
-            {entry.readingTheResult.map((p) => (
-              <p key={p}>{p}</p>
-            ))}
+          <div className={READABLE}>
+            <h2 className="text-2xl font-semibold md:text-3xl">Reading the result</h2>
+            <div className="mt-4 space-y-4 text-[17px] leading-relaxed text-ink/85">
+              {entry.readingTheResult.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
           </div>
         </section>
 
-        <div className="max-w-3xl">
-          <FaqList faq={entry.faq} />
-          <RelatedPages slugs={entry.relatedPrograms} heading="Related financing" />
+        <FaqList faq={entry.faq} columns={2} />
+        <RelatedPages slugs={entry.relatedPrograms} heading="Related financing" />
 
-          {terms.length > 0 && (
-            <section aria-labelledby="terms-heading" className="mt-14">
-              <h2 id="terms-heading" className="text-2xl font-semibold md:text-3xl">
-                Terms used here
-              </h2>
-              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                {terms.map((t) => (
-                  <li key={t.slug}>
-                    <Link href={`/glossary#${t.slug}`} className="bento block h-full p-4">
-                      <span className="text-[16px] font-semibold text-ink">{t.term}</span>
-                      <span className="mt-1 line-clamp-2 block text-[14px] text-titanium">{t.definition}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section aria-labelledby="more-calcs-heading" className="mt-14">
-            <h2 id="more-calcs-heading" className="text-2xl font-semibold md:text-3xl">
-              More calculators
+        {terms.length > 0 && (
+          <section aria-labelledby="terms-heading" className="mt-14">
+            <h2 id="terms-heading" className="text-2xl font-semibold md:text-3xl">
+              Terms used here
             </h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-3">
-              {others.map((c) => (
-                <li key={c.slug}>
-                  <Link href={calculatorPath(c.slug)} className="bento block h-full p-4">
-                    <span className="text-[16px] font-semibold text-ink">{c.name}</span>
-                    <span className="mt-1 block text-[14px] text-titanium">{c.summary}</span>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {terms.map((t) => (
+                <li key={t.slug}>
+                  <Link href={`/glossary#${t.slug}`} className="bento block h-full p-4">
+                    <span className="text-[16px] font-semibold text-ink">{t.term}</span>
+                    <span className="mt-1 line-clamp-2 block text-[14px] text-titanium">{t.definition}</span>
                   </Link>
                 </li>
               ))}
             </ul>
           </section>
+        )}
 
-          <CtaBand heading="Want an advisor to check the numbers?" />
-          <ProgramDisclosures />
-        </div>
-      </article>
+        <section aria-labelledby="more-calcs-heading" className="mt-14">
+          <h2 id="more-calcs-heading" className="text-2xl font-semibold md:text-3xl">
+            More calculators
+          </h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+            {others.map((c) => (
+              <li key={c.slug}>
+                <Link href={calculatorPath(c.slug)} className="bento block h-full p-4">
+                  <span className="text-[16px] font-semibold text-ink">{c.name}</span>
+                  <span className="mt-1 block text-[14px] text-titanium">{c.summary}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <CtaBand heading="Want an advisor to check the numbers?" />
+        <ProgramDisclosures />
+      </PageContainer>
     </>
   );
 }
@@ -159,14 +160,13 @@ export function CalculatorsIndex() {
   return (
     <>
       <JsonLd data={breadcrumbSchema(crumbs)} />
-      <div className="mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20">
-        <Breadcrumbs items={crumbs} />
-        <header className="mt-8">
+      <PageContainer className="py-12 md:py-20">
+        <PageHero breadcrumbs={crumbs}>
           <p className="eyebrow">Calculators</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{CALCULATORS_INDEX.title}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{CALCULATORS_INDEX.description}</p>
-        </header>
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+        </PageHero>
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {CALCULATORS.map((c) => (
             <li key={c.slug}>
               <Link href={calculatorPath(c.slug)} className="bento block h-full p-6">
@@ -189,7 +189,7 @@ export function CalculatorsIndex() {
             </li>
           ))}
         </ul>
-        <p className="mt-10 text-[15px] leading-relaxed text-titanium">
+        <p className="mt-10 max-w-3xl text-[15px] leading-relaxed text-titanium">
           Looking for a full structure instead of one number? The{" "}
           <Link href="/#sizer" className="font-medium text-accent underline underline-offset-2">
             60-second loan sizer
@@ -198,7 +198,7 @@ export function CalculatorsIndex() {
         </p>
         <CtaBand />
         <ProgramDisclosures />
-      </div>
+      </PageContainer>
     </>
   );
 }
