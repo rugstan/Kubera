@@ -19,6 +19,7 @@ import { createHash } from "node:crypto";
 import type { AgentEventStore } from "@/lib/agents/core/events";
 import { guardInbound, recordInjection, type InboundGuard } from "@/lib/agents/core/inbound";
 import { GatewayProviderError, GatewayUnavailableError, MODELS, type Effort, type ModelGateway } from "@/lib/ai/gateway";
+import { resolveTaskModel } from "@/lib/ai/model-settings";
 import { providerForModel, RoutingRefusedError } from "@/lib/ai/routing";
 import type { DocumentEventLog, DocumentStore } from "@/lib/documents/store";
 import type { VaultStorage } from "@/lib/documents/storage";
@@ -46,14 +47,18 @@ export const MIN_TEXT_QUALITY = 0.5;
 /** Below this classifier confidence, the type is not guessed. */
 export const MIN_CLASSIFIER_CONFIDENCE = 0.6;
 
+/**
+ * `textModel` pins the text-path model (tests, evals). Without it the run uses
+ * the "documents.extract_text" task's model (lib/ai/model-settings.ts): the
+ * administrator's choice on /settings/ai, else DOCUMENT_TEXT_MODEL, else the
+ * default Claude tier. The PDF path uses the "documents.extract_pdf" task's model.
+ */
 export type ExtractionConfig = { textModel?: string; effort?: Effort; minTextQuality?: number };
 
 export function extractionConfigFromEnv(env: Record<string, string | undefined> = process.env): ExtractionConfig {
   const effort = env.DOCUMENT_EXTRACTION_EFFORT?.trim();
-  return {
-    textModel: env.DOCUMENT_TEXT_MODEL?.trim() || MODELS.claude,
-    ...(effort && ["low", "medium", "high", "xhigh", "max"].includes(effort) ? { effort: effort as Effort } : {}),
-  };
+  // DOCUMENT_TEXT_MODEL is read by the task's default (lib/ai/model-settings.ts), under any administrator choice.
+  return effort && ["low", "medium", "high", "xhigh", "max"].includes(effort) ? { effort: effort as Effort } : {};
 }
 
 export type ExtractionDeps = {
@@ -171,7 +176,7 @@ export function budgetRecordFrom(rec: ExtractionRecord, kind: ConstructionBudget
 export async function extractDocument(deps: ExtractionDeps, input: ExtractionInput): Promise<ExtractionOutcome> {
   const clock = deps.clock ?? systemClock;
   const actor = input.actor ?? AGENT_ACTOR;
-  const cfg = { minTextQuality: MIN_TEXT_QUALITY, ...deps.config, textModel: deps.config?.textModel || MODELS.claude };
+  const cfg = { minTextQuality: MIN_TEXT_QUALITY, ...deps.config };
   const runId = await deps.runs
     ?.start(
       {
@@ -271,8 +276,9 @@ export async function extractDocument(deps: ExtractionDeps, input: ExtractionInp
   const rulesAssessment = assessExtraction(validateExtraction(rules));
   let model: ModelExtraction | null = null;
   let modelName: string | null = null;
+  const chosenTextModel = cfg.textModel || (await resolveTaskModel("documents.extract_text"));
   // Restricted documents (PFS) may only go to Claude, whatever text model is configured.
-  const textModel = spec.classification === "restricted" && providerForModel(cfg.textModel) !== "anthropic" ? MODELS.claude : cfg.textModel;
+  const textModel = spec.classification === "restricted" && providerForModel(chosenTextModel) !== "anthropic" ? MODELS.claude : chosenTextModel;
   let guard: InboundGuard | null = null;
   if (rulesAssessment.status === "needs_review" && !optOut) {
     // The document is untrusted: strip instruction-like sentences and scan before any model
@@ -298,7 +304,13 @@ export async function extractDocument(deps: ExtractionDeps, input: ExtractionInp
         modelName = textModel;
         engineParts.push("text_model");
       } else if (parsed.format === "pdf" && deps.claude?.configured()) {
-        model = await deps.claude.extractPdf({ docType, pdf: loaded.bytes, fileName: loaded.fileName, ...(runId ? { traceId: runId } : {}) });
+        model = await deps.claude.extractPdf({
+          docType,
+          pdf: loaded.bytes,
+          fileName: loaded.fileName,
+          model: await resolveTaskModel("documents.extract_pdf"),
+          ...(runId ? { traceId: runId } : {}),
+        });
         modelName = model.call.model;
         engineParts.push("claude_pdf");
       } else {

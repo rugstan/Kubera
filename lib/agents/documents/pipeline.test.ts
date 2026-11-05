@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MemoryAgentEventStore } from "@/lib/agents/core/events";
 import { GatewayProviderError } from "@/lib/ai/gateway";
+import { MemoryTaskModelStore, setTaskModelSource } from "@/lib/ai/model-settings";
 import { loadDocumentEvals, sourceBytes } from "@/evals/documents/load";
 import { buildPdf } from "./parse/pdf";
 import { buildXlsx } from "./parse/xlsx";
@@ -235,6 +236,32 @@ describe("document agent pipeline", () => {
     const deps = { ...h.deps, config: { textModel: "nvidia/llama-3.3-nemotron-super-49b-v1.5" } };
     await extractDocument(deps, { source: "manual", bytes: enc.encode("Guarantor statement of finances, prepared by the owner"), contentType: "text/plain", fileName: "pfs.txt", docType: "PFS" });
     expect(h.claudeText.requests[0]?.model).toBe("claude-opus-5-5");
+  });
+
+  it("runs the text and PDF paths on the models chosen for them and records each in document_extractions.model", async () => {
+    const settings = new MemoryTaskModelStore();
+    const at = "2026-11-04T00:00:00Z";
+    settings.rows.push(
+      { task: "documents.extract_text", model: "claude-sonnet-5-5", previousModel: "claude-opus-5-5", setAt: at, setBy: null, setByLabel: "Admin", reason: "cost" },
+      { task: "documents.extract_pdf", model: "claude-haiku-5-5", previousModel: "claude-opus-5-5", setAt: at, setBy: null, setByLabel: "Admin", reason: "cost" },
+    );
+    setTaskModelSource(async () => settings);
+    try {
+      const h = harness({
+        textReply: { text: JSON.stringify({ netWorth: { value: 1, confidence: 0.9, evidence: "p1" }, warnings: [] }) },
+        pdfAnswer: () => ({ netWorth: { value: 2, confidence: 0.9, evidence: "p1" }, warnings: [] }),
+      });
+      // A restricted document may go to any Claude model; the chosen one is used.
+      const text = await extractDocument(h.deps, { source: "manual", bytes: enc.encode("Guarantor statement of finances, prepared by the owner"), contentType: "text/plain", fileName: "pfs.txt", docType: "PFS" });
+      expect(h.claudeText.requests[0]?.model).toBe("claude-sonnet-5-5");
+      expect(text.extraction.model).toBe("claude-sonnet-5-5");
+      const id = await h.addDocument(buildPdf([[""]]), { kind: "PFS", contentType: "application/pdf" });
+      const pdf = await extractDocument(h.deps, { source: "vault_document", documentId: id });
+      expect(h.claudePdf.requests[0]?.model).toBe("claude-haiku-5-5");
+      expect(pdf.extraction).toMatchObject({ engine: "claude_pdf", model: "claude-haiku-5-5" });
+    } finally {
+      setTaskModelSource(undefined);
+    }
   });
 
   it("degrades to review when no model is configured", async () => {

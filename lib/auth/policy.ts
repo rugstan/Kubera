@@ -68,7 +68,17 @@ export function hasCurrentLicense(profile: Profile, today: string): boolean {
   return s === "current" || s === "expiring";
 }
 
-export type Capability = "view_pipeline" | "view_documents" | "view_approvals" | "review_extractions" | "review_mail" | "approve" | "reject" | "cancel_approval" | "view_audit";
+export type Capability =
+  | "view_pipeline"
+  | "view_documents"
+  | "view_approvals"
+  | "review_extractions"
+  | "review_mail"
+  | "approve"
+  | "reject"
+  | "cancel_approval"
+  | "view_audit"
+  | "manage_ai_settings";
 
 export type CapabilityCheck = { ok: true } | { ok: false; reason: string };
 
@@ -107,6 +117,9 @@ export function can(principal: StaffPrincipal, capability: Capability, today: st
       return roles.has("broker") || roles.has("admin") ? { ok: true } : { ok: false, reason: "Only a broker or administrator can do this." };
     case "view_audit":
       return roles.has("admin") ? { ok: true } : { ok: false, reason: "Administrators only." };
+    case "manage_ai_settings":
+      // Which model each AI task runs on (/settings/ai) changes cost, quality and where data goes: administrators only.
+      return roles.has("admin") ? { ok: true } : { ok: false, reason: "Only administrators can change which model a task uses." };
   }
 }
 

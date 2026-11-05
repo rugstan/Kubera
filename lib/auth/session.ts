@@ -110,7 +110,7 @@ export function decodePendingLogin(value: string | undefined | null, nowSeconds:
   }
 }
 
-const NEXT_ALLOWED = /^\/(pipeline|approvals|documents|deals|checklists|lenders|construction|reports|ai-review|prospects|portal|mfa)(\/[\w\-./%]*)?(\?[\w\-.=&%]*)?$/;
+const NEXT_ALLOWED = /^\/(pipeline|approvals|documents|deals|checklists|lenders|construction|reports|ai-review|prospects|settings|portal|mfa)(\/[\w\-./%]*)?(\?[\w\-.=&%]*)?$/;
 
 /**
  * Post-sign-in destination. Only same-origin paths into the authenticated
