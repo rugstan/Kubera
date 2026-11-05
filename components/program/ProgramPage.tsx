@@ -48,6 +48,25 @@ function RequestLink() {
   );
 }
 
+/** The family's 2:1 banner under a hub's header; nothing for a family without an image. */
+function FamilyBanner({ family }: { family: ProgramEntry["family"] }) {
+  const image = familyImage(family);
+  if (!image) return null;
+  return (
+    <figure className="mt-10 overflow-hidden rounded-2xl bg-hairline" data-family-image={family}>
+      <Image
+        src={image.src}
+        alt={image.alt}
+        placeholder="blur"
+        loading="eager"
+        sizes="(min-width: 768px) 704px, calc(100vw - 40px)"
+        className="aspect-[2/1] h-auto w-full object-cover"
+        style={image.position ? { objectPosition: image.position } : undefined}
+      />
+    </figure>
+  );
+}
+
 export function ProgramPage({ entry }: { entry: ProgramEntry }) {
   return (
     <>
@@ -63,6 +82,8 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
             <RequestLink />
           </div>
         </header>
+        {/* A program that is its family's hub (hard money) carries the hub banner; other program pages have no photo. */}
+        {entry.isHub && <FamilyBanner family={entry.family} />}
         <FactsTable facts={entry.facts} asOf={AS_OF} />
         <Sections sections={entry.sections} />
         {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="Programs we arrange" />}
@@ -77,7 +98,6 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
 }
 
 export function HubPage({ entry }: { entry: HubEntry }) {
-  const image = familyImage(entry.family);
   return (
     <>
       <JsonLd data={hubJsonLd(entry)} />
@@ -92,19 +112,7 @@ export function HubPage({ entry }: { entry: HubEntry }) {
             <RequestLink />
           </div>
         </header>
-        {image ? (
-          <figure className="mt-10 overflow-hidden rounded-2xl bg-hairline" data-family-image={entry.family}>
-            <Image
-              src={image.src}
-              alt={image.alt}
-              placeholder="blur"
-              loading="eager"
-              sizes="(min-width: 768px) 704px, calc(100vw - 40px)"
-              className="aspect-[2/1] h-auto w-full object-cover"
-              style={image.position ? { objectPosition: image.position } : undefined}
-            />
-          </figure>
-        ) : null}
+        <FamilyBanner family={entry.family} />
         <FamilyList family={entry.family} heading="Programs we arrange" />
         <Sections sections={entry.sections} />
         <LeadForm family={entry.family} slug={entry.slug} />

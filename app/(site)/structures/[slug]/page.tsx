@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -7,10 +8,18 @@ import { LicenseFootnote, PageShell, Section } from "@/components/trust/PageShel
 import { webPageSchema } from "@/components/trust/schemas";
 import { callLink } from "@/content/contact";
 import { DEAL_STRUCTURES, formatUsd, getDealStructure, structurePath } from "@/content/deal-structures";
+import { structureImage } from "@/content/images";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { ASSUMPTIONS_REVIEWED } from "@/lib/sizing/assumptions";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
+
+// The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
+// rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
+// on the next visit. It awaits `params` above any <Suspense>; with Partial
+// Prefetching that render fails (NEXT_STATIC_GEN_BAILOUT, a 500) unless the
+// route may wait for its params, like `fallback: 'blocking'`.
+export const instant = false;
 
 // With Cache Components every slug must be listed up front; unknown slugs 404.
 export function generateStaticParams() {
@@ -32,6 +41,7 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
   const call = callLink();
   const path = structurePath(s.slug);
   const others = DEAL_STRUCTURES.filter((o) => o.slug !== s.slug);
+  const image = structureImage(s.slug);
 
   return (
     <PageShell
@@ -57,6 +67,22 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
       <p role="note" className="notice max-w-3xl rounded-2xl px-5 py-4 text-[14px] leading-relaxed">
         <strong className="font-semibold">Illustrative example.</strong> {disclosures.illustrative} This is not a closed transaction and not an offer or commitment to lend.
       </p>
+
+      {/* Under the "Illustrative example" note and as wide as it (docs/images/image-plan.md), 16:9.
+          The page's largest paint on desktop, so preloaded. */}
+      {image ? (
+        <figure className="max-w-3xl overflow-hidden rounded-2xl bg-hairline" data-structure-image={s.slug}>
+          <Image
+            src={image.src}
+            alt={image.alt}
+            placeholder="blur"
+            preload
+            sizes="(min-width: 832px) 768px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 40px)"
+            className="aspect-video h-auto w-full object-cover"
+            style={image.position ? { objectPosition: image.position } : undefined}
+          />
+        </figure>
+      ) : null}
 
       <Section id="why" title="Why this structure">
         <ul className="grid gap-5 md:grid-cols-3">

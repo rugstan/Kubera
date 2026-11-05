@@ -1,8 +1,11 @@
 # Site imagery plan
 
-Status: **1 of 13 placed** (multifamily, 2026-11-04). The rest are being regenerated in ChatGPT from `docs/images/chatgpt-prompts.md`. This is the record of every generated
-image on corincommercial.com: what it shows, where it goes, the exact prompt,
-and the settings used. Keep this file in step with `content/images.ts`.
+Status: **13 of 13 placed** (2026-11-04). Every image below is on the site;
+`content/images.ts` holds each one's alt text and crop position. The
+link-preview (share) image is still the text card in `app/opengraph-image.tsx`.
+This is the record of every generated image on corincommercial.com: what it
+shows, where it goes, the exact prompt, and the settings used. Keep this file
+in step with `content/images.ts`.
 
 ## Rules
 
@@ -43,6 +46,19 @@ and the settings used. Keep this file in step with `content/images.ts`.
   size. Crops are done in CSS (`aspect-*` with `object-cover`), not as
   separate files. The settings above were for Higgsfield; the images now
   come from ChatGPT with the prompts in `chatgpt-prompts.md`.
+  - **Converting:** sharp, WebP quality 80 (78 for the memory care courtyard,
+    whose foliage needs it to stay under 400 KB), full 1536 × 1024, metadata
+    stripped, no retouching. `content/images.test.ts` fails any file over
+    400 KB or not referenced from `content/images.ts`.
+  - **Crops on the site:** homepage hero 2:1 from md (4:3 on phones); hub and
+    About banners 2:1; structure pages 16:9; homepage family cards and
+    `/structures` cards 4:3. One `position` per image serves all of them:
+    the wide crops only move vertically, the 4:3 crops only sideways.
+  - **Loading:** the About banner and structure page images are each page's
+    largest paint on desktop, so they use `preload`. Hub banners and the
+    homepage hero (which starts below the 1440 × 900 fold, under the facts
+    row) use `loading="eager"`. Cards are lazy; the homepage family-card
+    photos show from md only, so phones never fetch them.
 - **Review:** look at the whole set on a contact sheet before publishing.
   Check each image at 100% for:
   - stray lettering
@@ -76,16 +92,18 @@ interior lights off; bright but not blown-out highlights."
 
 ## The set (13 images)
 
+All 13 are placed. The share image named in row 1 is not made yet.
+
 | # | id | Used on | Subject (prompt lead, then the house style) |
 |---|---|---|---|
-| 1 | `home-hero` | Homepage hero, below the facts row (not lazy). Also cropped into the share image. | Hero image for the homepage of a commercial real estate loan broker's website. A calm contemporary California street corner: a four-story apartment building with recessed balconies and light stucco beside a two-story landscaped courtyard building with a deep covered walkway; olive trees, lavender and ornamental grasses along a wide clean sidewalk; plain stone panels where signs would be. Camera across the street at 1.6 m. |
+| 1 | `home-hero` | Homepage hero, below the facts row (not lazy). Also to be cropped into the share image (not done yet). | Hero image for the homepage of a commercial real estate loan broker's website. A calm contemporary California street corner: a four-story apartment building with recessed balconies and light stucco beside a two-story landscaped courtyard building with a deep covered walkway; olive trees, lavender and ornamental grasses along a wide clean sidewalk; plain stone panels where signs would be. Camera across the street at 1.6 m. |
 | 2 | `family-senior-living` | Senior living card on the homepage; senior living hub hero | Hero image for the senior living financing page. A single-story contemporary assisted living community in inland Southern California, seen from across its entry drive: off-white smooth stucco, light-wood soffits, soft-gray standing-seam roof, a deep covered walkway with slim columns leading to a glass entry, a plain stone panel above the door; olive trees, lavender and ornamental grasses along decomposed-granite paths. Late spring, 9:30 a.m. |
 | 3 | `family-hotels` | Hotels card; hotels hub hero | Hero image for the hotel financing page. An independent five-story boutique hotel with a contemporary limestone and glass facade and a covered porte-cochère drop-off; warm light glowing from the empty lobby at early blue hour (the one blue-hour image in the set); blank fascia, no flag, no brand, no lettering. |
 | 4 | `family-multifamily` | Multifamily card; multifamily hub hero | Hero image for the multifamily financing page. A five-story podium apartment building with recessed balconies, warm-white stucco and light-wood accents, street trees and a landscaped sidewalk planting strip; plain ground-floor glazing with no shop signs. |
 | 5 | `family-construction` | Construction card; construction hub hero | Hero image for the construction financing page. A mid-rise apartment building under construction: wood framing over a finished concrete podium, a tower crane beside it, tidy fenced site, stacked materials, early morning, no workers, no company names on the fence or crane. |
 | 6 | `family-hard-money` | Hard money card; hard money hub hero | Hero image for the hard money and bridge financing page. A freshly renovated 1960s two-story California fourplex: new windows, smooth light stucco, wood slat accents, a new low-water front garden and walkway; renovation just completed. |
 | 7 | `about-california` | About page header image | Header image for the About page. A low oblique aerial view (about 35 degrees) of a generic inland California neighborhood: a mix of low-rise apartment buildings, a courtyard senior community, a small hotel and street trees, with soft hills in the distance; hazy morning light. No recognizable landmarks or real places. |
-| 8 | `structure-assisted-living-sba-504-refinance` | That structure page and its card on `/structures` | A single-story residential-scale assisted living home in a California suburb: craftsman-style exterior, wide covered porch with an accessible ramp, mature trees, a tidy front garden. |
+| 8 | `structure-assisted-living-sba-504-refinance` | That structure page and its card on `/structures` (not the homepage structure cards, which sit next to deal amounts) | A single-story residential-scale assisted living home in a California suburb: craftsman-style exterior, wide covered porch with an accessible ramp, mature trees, a tidy front garden. |
 | 9 | `structure-flagged-hotel-sba-504-green-pip` | That structure page and its card | A four-story hotel mid-renovation: one wing behind clean scaffolding with new facade panels being installed, rooftop solar panels going in; blank fascia, no brand, flag or signage anywhere. |
 | 10 | `structure-memory-care-bridge-to-hud` | That structure page and its card | Interior and courtyard variant. The enclosed garden courtyard of a two-story memory care community: a looping decomposed-granite walking path, raised planters, shaded benches, low walls, soft morning light. |
 | 11 | `structure-hotel-to-assisted-living-conversion-bridge` | That structure page and its card | A two-story former motor-court motel being converted to residential care: fresh light stucco, new accessible entry ramp and handrails under construction, new drought-tolerant landscaping, palms; no signage. |

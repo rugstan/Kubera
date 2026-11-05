@@ -55,6 +55,8 @@ export default defineConfig({
       SUPABASE_ANON_KEY: "",
       // Portal secret stays blank so .env.local cannot change results.
       PORTAL_SESSION_SECRET: "",
+      // Lets e2e/rates-revalidation.spec.ts run the rates job (app/api/cron/rates).
+      CRON_SECRET: process.env.E2E_CRON_SECRET ?? "e2e-cron-secret",
     },
   },
 });

@@ -136,7 +136,7 @@ describe("a CRM push after a STOP reads the consent ledger", () => {
     const h = makeHarness();
     h.grant({ phone: PHONE, email: "pat@example.com", at: new Date(NOW - 3_600_000) });
     await run(new FakeStore([leadRow()]), realTwenty, { smsConsent: smsConsentLookup(h.consent) });
-    expect(twenty.sent("people")[0]).toMatchObject({ smsOptOut: false, phones: { primaryPhoneNumber: "(415) 555-0100" } });
+    expect(twenty.sent("people")[0]).toMatchObject({ smsOptOut: false, phones: { primaryPhoneNumber: "+14155550100" } });
   });
 
   it("narrows an existing Twenty person when the number was revoked", async () => {

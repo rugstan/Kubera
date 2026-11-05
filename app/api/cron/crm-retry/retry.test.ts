@@ -392,8 +392,21 @@ describe("contact consent in the CRM push", () => {
     const twenty = stubTwenty();
     await pushLead(intake as Intake, withPhone, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }), { consentEventId: "consent-7" });
     expect(twenty.sent("opportunities")[0]!.nextStep).toBe("Call borrower today — Jev flagged immediate broker call");
-    expect(twenty.sent("people")[0]).toMatchObject({ smsOptOut: false, phones: { primaryPhoneNumber: "415-555-0100" } });
+    expect(twenty.sent("people")[0]).toMatchObject({ smsOptOut: false, phones: { primaryPhoneNumber: "+14155550100" } });
     expect((twenty.sent("notes")[0]!.bodyV2 as { markdown: string }).markdown).toContain("consent event consent-7");
+  });
+
+  it("sends Twenty an E.164 number, and keeps a number it cannot normalize out of the CRM without failing the lead", async () => {
+    const twenty = stubTwenty();
+    await pushLead(intake as Intake, { ...withPhone, phone: "(415) 555-0100" }, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }), { consentEventId: "consent-8" });
+    expect(twenty.sent("people")[0]).toMatchObject({ phones: { primaryPhoneNumber: "+14155550100" } });
+
+    const later = stubTwenty();
+    await pushLead(intake as Intake, { ...withPhone, phone: "555-0100" }, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }), { consentEventId: "consent-9" });
+    const [person] = later.sent("people");
+    expect(person).toMatchObject({ smsOptOut: false });
+    expect(person).not.toHaveProperty("phones");
+    expect(later.sent("opportunities")).toHaveLength(1);
   });
 
   it("marks an existing person email-only when a later submission has no consent", async () => {
