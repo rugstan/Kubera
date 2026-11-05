@@ -3,7 +3,6 @@ import { callLink } from "@/content/contact";
 import { HOME_HERO_IMAGE } from "@/content/images";
 import { FAMILY_LABELS, PROGRAM_FAMILIES, financingPath, hubForFamily } from "@/content/programs";
 import { site } from "@/lib/site";
-import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
 
 const PROOF = [
@@ -20,9 +19,12 @@ export function Hero() {
   const call = callLink();
   return (
     <section className="bg-white">
-      {/* Sized so the facts row clears a 1440x900 fold: 56px headline, tighter top padding. */}
+      {/* Sized so the facts row clears a 1440x900 fold: 56px headline, tighter top padding.
+          No Reveal anywhere in the hero: a scroll-driven fade leaves whatever overhangs the fold
+          part-transparent on first paint (the actions at 390x844, the facts row at 1440x789),
+          which fails text contrast and hides the actions on short phones. */}
       <div className="mx-auto max-w-[1280px] px-5 pb-20 pt-12 text-center md:px-8 md:pb-28 md:pt-16">
-        <Reveal className="mx-auto max-w-[980px]">
+        <div className="mx-auto max-w-[980px]">
           <p className="eyebrow">
             Commercial real estate loan broker
             {site.dreCorporateLicense ? (
@@ -38,8 +40,8 @@ export function Hero() {
             Corin Commercial is a licensed California real estate broker. We arrange senior living, hotel, multifamily, construction and hard money loans,
             comparing HUD, SBA, CMBS, agency, bank and private lenders for you. We are not a lender, so we are not tied to one lender&apos;s loans.
           </p>
-        </Reveal>
-        <Reveal delay={0.08}>
+        </div>
+        <div>
           <div className="mx-auto mt-8 flex max-w-sm flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center sm:justify-center">
             <TrackedLink href="/express" cta="get_options" section="hero" className="pill pill-primary">Get loan options</TrackedLink>
             <TrackedLink href="/#sizer" cta="size_loan" section="hero" className="pill pill-secondary">Size my loan</TrackedLink>
@@ -67,8 +69,8 @@ export function Hero() {
               ))}
             </ul>
           </nav>
-        </Reveal>
-        <Reveal delay={0.16}>
+        </div>
+        <div>
           <dl className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-y-8 md:mt-14 md:grid-cols-4">
             {PROOF.map((p, i) => (
               <div key={p.k} className={`border-hairline px-4 ${divider(i)}`}>
@@ -77,7 +79,7 @@ export function Hero() {
               </div>
             ))}
           </dl>
-        </Reveal>
+        </div>
         {/* Below the facts row, so the headline, actions and facts keep the fold. Never lazy, but
             not preloaded either: it starts below a 1440x900 fold and the headline is the largest
             paint. Not in a Reveal, so it never fades. 2:1 from md, 4:3 on phones. */}
