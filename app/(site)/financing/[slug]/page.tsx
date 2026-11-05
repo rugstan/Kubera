@@ -4,6 +4,13 @@ import { HubPage, ProgramPage } from "@/components/program/ProgramPage";
 import { financingPath, financingSlugs, getFinancingPage } from "@/content/programs";
 import { pageMetadata } from "@/lib/seo/metadata";
 
+// The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
+// rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
+// on the next visit. It awaits `params` above any <Suspense>; with Partial
+// Prefetching that render fails (NEXT_STATIC_GEN_BAILOUT, a 500) unless the
+// route may wait for its params, like `fallback: 'blocking'`.
+export const instant = false;
+
 type Props = { params: Promise<{ slug: string }> };
 
 export function generateStaticParams() {
