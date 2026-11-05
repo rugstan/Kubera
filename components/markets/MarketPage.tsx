@@ -6,6 +6,7 @@ import { MAIN_COLUMN, PageContainer, SIDEBAR_GRID, SIDE_COLUMN } from "@/compone
 import { CALIFORNIA_BASE, CALIFORNIA_INDEX, MARKETS, getMarket, marketDisclaimer, marketPath, type MarketPage as MarketEntry } from "@/content/markets/california";
 import { collectionSchema, marketServiceSchema } from "@/lib/growth/schemas";
 import { UpdatedLine } from "@/components/seo/UpdatedLine";
+import { RelatedInsights } from "@/components/insights/RelatedInsights";
 
 // Laid out like the financing pages: the hero, then the sections and FAQ in
 // the main column beside the local figures and a sticky call to action, then
@@ -59,6 +60,7 @@ export function MarketPage({ entry }: { entry: MarketEntry }) {
             </div>
           </div>
           <RelatedPages slugs={entry.relatedPrograms} heading="Programs we arrange here" />
+          <RelatedInsights path={marketPath(entry.slug)} />
           <section aria-labelledby="nearby-heading" className="mt-14">
             <h2 id="nearby-heading" className="text-2xl font-semibold md:text-3xl">
               Other California markets

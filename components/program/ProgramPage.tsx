@@ -10,6 +10,7 @@ import { LeadForm } from "./LeadForm";
 import { CtaBand, CtaLinks, FaqList, HeroImage, KeyFactsCard, PageHero, ProgramDisclosures, RelatedPages, RequestLink, Sections, SideCtaCard } from "./parts";
 import { hubBreadcrumbs, hubJsonLd, programBreadcrumbs, programJsonLd } from "./schema";
 import { UpdatedLine } from "@/components/seo/UpdatedLine";
+import { RelatedInsights } from "@/components/insights/RelatedInsights";
 
 // Layout shared by the hub and program pages, in the site container:
 //   1. Hero: breadcrumbs, eyebrow, H1, definition and actions on the left, the
@@ -144,6 +145,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
             </div>
           </div>
           <RelatedPages slugs={entry.related} shown={entry.isHub ? familySlugs(entry.family) : []} />
+          <RelatedInsights path={financingPath(entry.slug)} />
           <CtaBand family={entry.family} />
           <ProgramDisclosures />
         </PageContainer>
@@ -173,6 +175,7 @@ export function HubPage({ entry }: { entry: HubEntry }) {
             </div>
           </div>
           <RelatedPages slugs={entry.related} shown={familySlugs(entry.family)} heading="Related financing" />
+          <RelatedInsights path={financingPath(entry.slug)} />
           <CtaBand family={entry.family} />
           <ProgramDisclosures />
         </PageContainer>

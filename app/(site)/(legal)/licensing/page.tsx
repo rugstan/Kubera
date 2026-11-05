@@ -115,6 +115,10 @@ export default function LicensingPage() {
         Some business loans are not secured by real property, such as an SBA 7(a) loan secured only by business assets. No Mortgage Loan Disclosure Statement applies to those, and
         we review each one individually before we arrange it, because different licensing rules may apply.
       </p>
+      <p>
+        For a plain-English walk-through of the statement, see{" "}
+        <Link href="/insights/california-mortgage-loan-disclosure-statement">what borrowers should expect from the Mortgage Loan Disclosure Statement (RE 882)</Link>.
+      </p>
 
       <h2 id="compensation">How we are paid</h2>
       <p>

@@ -58,6 +58,15 @@ export function insightAuthor(): { name: string; jobTitle: string; path: string 
   return { name: officer.name, jobTitle: officer.title, path: "/team" };
 }
 
+/**
+ * Articles whose "read next" links point at `path` (e.g. `/calculators/dscr`),
+ * newest first. Lets a program, calculator or city page link back to the
+ * articles that cite it, so no article depends on the /insights index alone.
+ */
+export function insightsLinkingTo(path: string): Insight[] {
+  return insightsNewestFirst().filter((i) => i.related.some((r) => r.href.split("#")[0] === path));
+}
+
 /** Articles that share a category with `slug`, then the rest, up to `limit`. */
 export function relatedInsights(slug: string, limit = 3): Insight[] {
   const current = getInsight(slug);

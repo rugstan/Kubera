@@ -14,6 +14,7 @@ import { HotelDebtYieldCalculator } from "./HotelDebtYieldCalculator";
 import { HudMipCalculator } from "./HudMipCalculator";
 import { Sba504Calculator } from "./Sba504Calculator";
 import { UpdatedLine } from "@/components/seo/UpdatedLine";
+import { RelatedInsights } from "@/components/insights/RelatedInsights";
 
 /** Construction and hard money are sized on the homepage sizer; these cards open it on the right tab. */
 const SIZER_CARDS = [
@@ -112,6 +113,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
 
         <FaqList faq={entry.faq} columns={2} />
         <RelatedPages slugs={entry.relatedPrograms} heading="Related financing" />
+        <RelatedInsights path={calculatorPath(entry.slug)} />
 
         {terms.length > 0 && (
           <section aria-labelledby="terms-heading" className="mt-14">
