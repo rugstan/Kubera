@@ -44,6 +44,21 @@ export function twentyOptOutConfigFromEnv(env: Record<string, string | undefined
   return baseUrl && apiKey ? { baseUrl, apiKey } : null;
 }
 
+/**
+ * The primaryPhoneNumber values to search for an E.164 number. Twenty stores
+ * the national number and the calling code separately ("+919876543210" is
+ * +91 / 9876543210), so a number outside the US and Canada is also tried as
+ * each possible split of a 1 to 3 digit calling code, checked against the
+ * calling code on the record. US and Canadian numbers keep the usual formats.
+ */
+export function phoneSearches(e164: string): { number: string; callingCode: string | null }[] {
+  const out = phoneVariants(e164).map((number) => ({ number, callingCode: null as string | null }));
+  if (e164.startsWith("+1")) return out;
+  const digits = e164.slice(1);
+  for (let k = 1; k <= 3 && digits.length - k >= 4; k++) out.push({ number: digits.slice(k), callingCode: `+${digits.slice(0, k)}` });
+  return out;
+}
+
 export class TwentyOptOutSink implements SmsOptOutSink {
   constructor(private readonly config: TwentyOptOutConfig) {}
 
@@ -62,10 +77,13 @@ export class TwentyOptOutSink implements SmsOptOutSink {
 
   private async searchByPhone(phone: string): Promise<string[]> {
     const ids = new Set<string>();
-    for (const variant of phoneVariants(phone)) {
-      const filter = encodeURIComponent(`phones.primaryPhoneNumber[eq]:"${variant.replace(/"/g, "")}"`);
-      const res = (await this.call("GET", `people?filter=${filter}&limit=10`)) as { data?: { people?: { id?: string }[] } };
-      for (const p of res.data?.people ?? []) if (p.id) ids.add(p.id);
+    for (const { number, callingCode } of phoneSearches(phone)) {
+      const filter = encodeURIComponent(`phones.primaryPhoneNumber[eq]:"${number.replace(/"/g, "")}"`);
+      const res = (await this.call("GET", `people?filter=${filter}&limit=10`)) as { data?: { people?: { id?: string; phones?: { primaryPhoneCallingCode?: string | null } | null }[] } };
+      for (const p of res.data?.people ?? []) {
+        // A national number means one person only together with its calling code.
+        if (p.id && (!callingCode || p.phones?.primaryPhoneCallingCode === callingCode)) ids.add(p.id);
+      }
       if (ids.size > 0) break;
     }
     return [...ids];

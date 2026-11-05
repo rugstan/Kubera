@@ -42,7 +42,7 @@ export default function StructuresPage() {
         <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {DEAL_STRUCTURES.map((s) => (
             <li key={s.slug}>
-              <StructureCard structure={s} />
+              <StructureCard structure={s} withImage />
             </li>
           ))}
         </ul>

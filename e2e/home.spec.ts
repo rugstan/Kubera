@@ -188,6 +188,40 @@ test.describe("homepage", () => {
     expect(await page.locator("main").innerText()).not.toMatch(/\b\d+\s*[–-]\s*\d+\s+(?:days|business days)\b/);
   });
 
+  test("shows the hero image below the facts row, loaded and described", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    const hero = page.locator("main > section").first();
+    const img = hero.locator("[data-home-hero-image] img");
+    await expect(img).toHaveAttribute("alt", /apartment building/);
+    await expect(img).not.toHaveAttribute("loading", "lazy");
+    await img.scrollIntoViewIfNeeded();
+    await expect(img).toBeVisible();
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    const box = (await img.boundingBox())!;
+    expect(box.width / box.height).toBeCloseTo(2, 1);
+    // Under the facts row, never over the headline or the actions.
+    const facts = (await hero.locator("dl").boundingBox())!;
+    expect(box.y).toBeGreaterThan(facts.y + facts.height);
+  });
+
+  test("family cards show their photos from md and leave them off on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await expect(page.locator("#programs [data-family-card-image] img")).toHaveCount(5);
+    const img = page.locator("#hotels [data-family-card-image] img");
+    await expect(img).toHaveAttribute("alt", /hotel at dusk/);
+    await img.scrollIntoViewIfNeeded();
+    await expect(img).toBeVisible();
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    const box = (await img.boundingBox())!;
+    expect(box.width / box.height).toBeCloseTo(4 / 3, 1);
+
+    // Phone cards stay compact (see "about a screen and a half" above).
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator("#programs [data-family-card-image]").first()).toBeHidden();
+  });
+
   test("a family deep link lands on its card", async ({ page }) => {
     await gotoHydrated(page, "/#construction");
     await expect(page.locator("#construction")).toBeInViewport();

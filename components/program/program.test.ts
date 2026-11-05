@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { financingPath, financingSlugs, getFinancingPage, hubs, programs } from "@/content/programs";
+import { familyImage } from "@/content/images";
+import { PROGRAM_FAMILIES, financingPath, financingSlugs, getFinancingPage, hubForFamily, hubs, programs } from "@/content/programs";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { serializeJsonLd } from "@/components/seo/schemas";
 import { HubPage, ProgramPage } from "./ProgramPage";
@@ -73,6 +74,17 @@ describe("program pages", () => {
     for (const slug of ["hud-232", "rcfe", "skilled-nursing", "memory-care"]) {
       expect(html).toContain(`href="${financingPath(slug)}"`);
     }
+  });
+
+  it("every family hub carries its banner, hard money included; other program pages carry none", () => {
+    for (const family of PROGRAM_FAMILIES) {
+      const html = render(hubForFamily(family).slug);
+      const image = familyImage(family);
+      if (!image) continue;
+      expect(html, family).toContain(`data-family-image="${family}"`);
+      expect(html, family).toContain(`alt="${image.alt}"`);
+    }
+    for (const p of programs.filter((p) => !p.isHub)) expect(render(p.slug), p.slug).not.toContain("data-family-image");
   });
 });
 

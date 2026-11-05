@@ -2,22 +2,29 @@
 
 13 images in total. All are landscape photos of buildings, with no people, no cars and no text.
 
-## Status (round 2, 2026-11-04)
+## Status (2026-11-04): 13 of 13 placed
 
-The first batch came back as a different set: ChatGPT made one combined collage, cut it into pieces and enlarged them, and added property types the site doesn't cover (industrial, retail, office, a "loan analysis" screen, document and network graphics). Only one image was usable.
+All 13 are approved and on the site; nothing is left to generate. The first batch came back as one combined collage cut into soft, enlarged pieces, so every image except multifamily was redone one prompt per message (round 2), and `12-multifamily-construction.png` was regenerated once more before it was approved.
 
-| # | Image | Status | Why |
+| # | Image | Status | On the site |
 |---|---|---|---|
-| 1 | `01-home-hero.png` | **Redo** | The one received shows Sutro Tower (a recognizable San Francisco landmark) on the hill, a sun flare on the glass, and the building cut off at the right edge. |
-| 2 | `02-senior-living.png` | **Redo** | Right subject, but cut from the collage and enlarged, so it is soft and a very wide strip (1800 × 656). |
-| 3 | `03-hotels.png` | **Redo** | Same: soft and cut from the collage. |
-| 4 | `04-multifamily.png` | **Done, on the site** | Placed on `/financing/multifamily`. |
-| 5 | `05-construction.png` | **Redo** | Soft and cut from the collage. |
-| 6 | `06-hard-money.png` | **Redo** | Not received. |
-| 7 | `07-about.png` | **Redo** | Not received. |
-| 8–13 | the six structure images | **Redo** | Not received. |
+| 1 | `01-home-hero.png` | **Done, on the site** | Homepage hero, below the facts row |
+| 2 | `02-senior-living.png` | **Done, on the site** | Homepage "Senior living" card; `/financing/senior-living` banner |
+| 3 | `03-hotels.png` | **Done, on the site** | Homepage "Hotels" card; `/financing/hotels` banner (the one dusk image) |
+| 4 | `04-multifamily.png` | **Done, on the site** | Homepage "Multifamily" card; `/financing/multifamily` banner |
+| 5 | `05-construction.png` | **Done, on the site** | Homepage "Construction" card; `/financing/construction` banner |
+| 6 | `06-hard-money.png` | **Done, on the site** | Homepage "Hard money and bridge" card; `/financing/hard-money` banner |
+| 7 | `07-about.png` | **Done, on the site** | `/about` banner |
+| 8 | `08-assisted-living-504.png` | **Done, on the site** | `/structures/assisted-living-sba-504-refinance` and its card on `/structures` |
+| 9 | `09-hotel-504-pip.png` | **Done, on the site** | `/structures/flagged-hotel-sba-504-green-pip` and its card |
+| 10 | `10-memory-care-bridge.png` | **Done, on the site** | `/structures/memory-care-bridge-to-hud` and its card |
+| 11 | `11-hotel-to-assisted-living.png` | **Done, on the site** | `/structures/hotel-to-assisted-living-conversion-bridge` and its card |
+| 12 | `12-multifamily-construction.png` | **Done, on the site** (regenerated) | `/structures/multifamily-construction-bank-cpace` and its card |
+| 13 | `13-investor-rehab.png` | **Done, on the site** | `/structures/investor-rehab-hard-money` and its card |
 
-Not usable at all, so don't regenerate these: industrial (has a truck), retail, office, the refinancing desk, owner-occupied storefront (the site doesn't cover those property types), the "loan analysis" screen (the site never mentions AI, and it shows the Transamerica Pyramid and Salesforce Tower), and the document and network graphics (not photos).
+The homepage family cards show their photo from tablet width up; on phones the cards stay text only so all five fit in about a screen and a half. The link-preview image is not made yet (see the table below).
+
+From the first batch, these were not usable at all, so don't regenerate them: industrial (has a truck), retail, office, the refinancing desk, owner-occupied storefront (the site doesn't cover those property types), the "loan analysis" screen (the site never mentions AI, and it shows the Transamerica Pyramid and Salesforce Tower), and the document and network graphics (not photos).
 
 ## How to do it
 

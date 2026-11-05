@@ -18,13 +18,16 @@ import {
 } from "@/lib/conversations/store";
 import type { MarketSnapshot } from "@/lib/rates";
 import { disclosures, site } from "@/lib/site";
+import { CLAUDE_FALLBACK_BETA, supportsServerFallback } from "./gateway/anthropic";
 import { GuardrailStreamFilter, guardrailMode, summarizeViolations, type GuardrailMode, type GuardrailViolation } from "./guardrails";
 import { PROGRAM_PRIMER, retrieve, type KbChunk } from "./knowledge";
+import { resolveTaskModel } from "./model-settings";
 import { guardrailSink } from "./review/server";
 import type { GuardrailSink } from "./review/sink";
 import { prepareForRoute } from "./routing";
 
 // "System Two" — Claude for structuring questions and term sheet drafts.
+// The default for task "advisor.chat" (lib/ai/model-settings.ts); an administrator may choose another Claude model on /settings/ai.
 export const ADVISOR_MODEL = "claude-opus-5-5";
 /** Hard output cap per reply (thinking included). */
 export const ADVISOR_MAX_TOKENS = 4000;
@@ -140,16 +143,19 @@ export function buildAdvisorRequest(opts: {
   turn: StoredUserMessage;
   market: MarketSnapshot;
   excerpts?: KbChunk[];
+  /** Claude model id (default ADVISOR_MODEL). */
+  model?: string;
 }): BetaMessageStreamParams {
   const volatile = [renderMarket(opts.market), renderExcerpts(opts.excerpts ?? []), opts.turn.mode === "term_sheet" ? TERM_SHEET_INSTRUCTIONS : ""]
     .filter(Boolean)
     .join("\n\n");
+  const model = opts.model ?? ADVISOR_MODEL;
 
   return {
-    model: ADVISOR_MODEL,
+    model,
     max_tokens: ADVISOR_MAX_TOKENS,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    // The bulk tier has no server-side refusal fallback (a fallback list is a 400 there).
+    ...(supportsServerFallback(model) ? { betas: [CLAUDE_FALLBACK_BETA], fallbacks: "default" as const } : {}),
     output_config: { effort: opts.turn.mode === "term_sheet" ? "medium" : "low" },
     system: [
       { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
@@ -243,6 +249,8 @@ export type AdvisorTurnInput = {
   market: MarketSnapshot;
   store: ConversationStore;
   model?: AdvisorModel;
+  /** Claude model id for this turn. Default: the "advisor.chat" task's model (lib/ai/model-settings.ts). */
+  modelId?: string;
   retrieveExcerpts?: (query: string, subject?: { aiProcessingOptOut?: boolean }) => Promise<KbChunk[]>;
   /** The data subject's AI preference, when the lead is known (lib/privacy/requests.ts routingSubject). */
   subject?: { aiProcessingOptOut?: boolean };
@@ -278,7 +286,8 @@ export async function streamAdvisorTurn(input: AdvisorTurnInput): Promise<Readab
     console.error("advisor retrieval failed", err instanceof Error ? err.message : err);
   }
 
-  const params = routeAdvisorRequest(buildAdvisorRequest({ history: input.history, turn, market: input.market, excerpts }), input.subject);
+  const modelId = input.modelId ?? (await resolveTaskModel("advisor.chat"));
+  const params = routeAdvisorRequest(buildAdvisorRequest({ history: input.history, turn, market: input.market, excerpts, model: modelId }), input.subject);
   if (!params) {
     // Refused by the routing guard: nothing is sent and the turn is not stored.
     await input.store.release(input.conversationId);

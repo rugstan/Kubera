@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { callLink } from "@/content/contact";
+import { HOME_HERO_IMAGE } from "@/content/images";
 import { FAMILY_LABELS, PROGRAM_FAMILIES, financingPath, hubForFamily } from "@/content/programs";
 import { site } from "@/lib/site";
 import { TrackedLink } from "./TrackedLink";
@@ -78,6 +80,20 @@ export function Hero() {
             ))}
           </dl>
         </div>
+        {/* Below the facts row, so the headline, actions and facts keep the fold. Never lazy, but
+            not preloaded either: it starts below a 1440x900 fold and the headline is the largest
+            paint. Not in a Reveal, so it never fades. 2:1 from md, 4:3 on phones. */}
+        <figure className="mt-12 overflow-hidden rounded-card bg-hairline md:mt-16 md:rounded-tile-lg" data-home-hero-image>
+          <Image
+            src={HOME_HERO_IMAGE.src}
+            alt={HOME_HERO_IMAGE.alt}
+            placeholder="blur"
+            loading="eager"
+            sizes="(min-width: 1280px) 1216px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 40px)"
+            className="aspect-[4/3] h-auto w-full object-cover md:aspect-[2/1]"
+            style={{ objectPosition: HOME_HERO_IMAGE.position }}
+          />
+        </figure>
       </div>
     </section>
   );
