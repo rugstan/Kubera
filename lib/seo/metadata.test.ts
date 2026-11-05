@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLlmsTxt } from "./llms";
+import { buildLlmsFullTxt, buildLlmsTxt } from "./llms";
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, pageMetadata, renderedTitle } from "./metadata";
 
 // Keep in sync with the metadata exports in app/(site)/page.tsx, partners/page.tsx and express/page.tsx.
@@ -64,5 +64,30 @@ describe("llms.txt", () => {
   it("links the sitemap and the qualifier with absolute urls", () => {
     expect(text).toMatch(/\]\(https?:\/\/[^)]+\/sitemap\.xml\)/);
     expect(text).toMatch(/\]\(https?:\/\/[^)]+\/express\)/);
+  });
+});
+
+describe("llms-full.txt", () => {
+  const text = buildLlmsFullTxt();
+
+  it("carries every financing page's definition and FAQ, every city guide and the glossary", async () => {
+    const { programs, hubs } = await import("@/content/programs");
+    for (const p of [...hubs, ...programs]) {
+      expect(text, p.slug).toContain(`/financing/${p.slug}`);
+      expect(text, p.slug).toContain(p.faq[0]!.question);
+    }
+    expect(text).toMatch(/## California city guides/);
+    expect(text).toMatch(/## Glossary/);
+  });
+
+  it("keeps the broker-not-lender and indicative-terms disclosures and avoids prohibited claims", () => {
+    expect(text).toMatch(/is not a lender/);
+    expect(text).toContain("not a commitment to lend");
+    expect(text).toMatch(/not closed transactions/);
+    expect(text).not.toMatch(/\bAI\b|autonomous|pre-?approved|guaranteed approval/i);
+  });
+
+  it("is linked from llms.txt", () => {
+    expect(buildLlmsTxt()).toMatch(/\/llms-full\.txt/);
   });
 });

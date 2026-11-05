@@ -56,10 +56,10 @@ export const coreRoutes: SitemapRoute[] = [
 
 // Legal pages are built by the compliance workstream under `app/(site)/(legal)/`.
 export const legalRoutes: SitemapRoute[] = [
-  { path: "/privacy", title: "Privacy policy", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
-  { path: "/terms", title: "Terms of use", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
-  { path: "/licensing", title: "Licensing and disclosures", changeFrequency: "yearly", priority: 0.4, section: "Legal" },
-  { path: "/accessibility", title: "Accessibility statement", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
+  { path: "/privacy", title: "Privacy policy", description: "What personal information Corin Commercial collects, how it is used and shared, and how to use California privacy rights.", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
+  { path: "/terms", title: "Terms of use", description: "The terms for using the website, loan sizer, deal qualifier, document vault and partner portal.", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
+  { path: "/licensing", title: "Licensing and disclosures", description: "California DRE broker licenses, how Corin is paid, and the Mortgage Loan Disclosure Statement on loans secured by real property.", changeFrequency: "yearly", priority: 0.4, section: "Legal" },
+  { path: "/accessibility", title: "Accessibility statement", description: "WCAG 2.2 AA commitment, what is tested, known limitations and how to report a problem.", changeFrequency: "yearly", priority: 0.3, section: "Legal" },
 ];
 
 /**
