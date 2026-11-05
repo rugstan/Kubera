@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/site/Logo";
+import { PAGE_CONTAINER } from "@/components/site/PageContainer";
 
 /**
  * The express page's masthead. The logo is a link home: on kubera.loans
@@ -8,7 +9,7 @@ import { Logo } from "@/components/site/Logo";
  */
 export function ExpressHeader() {
   return (
-    <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-6">
+    <header className={`${PAGE_CONTAINER} flex items-center justify-between py-6`}>
       <Link href="/" aria-label="Corin Commercial home" className="-m-2 inline-flex min-h-11 items-center rounded-lg p-2">
         <Logo className="h-9" />
       </Link>

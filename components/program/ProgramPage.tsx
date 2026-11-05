@@ -1,19 +1,29 @@
-import Image from "next/image";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { familyImage } from "@/content/images";
+import type { BreadcrumbItem } from "@/components/seo/schemas";
+import { MAIN_COLUMN, PageContainer, SIDEBAR_GRID, SIDE_COLUMN } from "@/components/site/PageContainer";
+import { familyImage, pageImageFor } from "@/content/images";
 import { AS_OF } from "@/content/programs/format";
 import { FAMILY_LABELS, financingPath, programsInFamily } from "@/content/programs";
 import type { HubEntry, ProgramEntry } from "@/content/programs";
-import { LEAD_FORM_ANCHOR } from "./lead-form";
 import { LeadForm } from "./LeadForm";
-import { Breadcrumbs, CtaBand, CtaLinks, FactsTable, FaqList, ProgramDisclosures, RelatedPages, Sections } from "./parts";
+import { CtaBand, CtaLinks, FaqList, HeroImage, KeyFactsCard, PageHero, ProgramDisclosures, RelatedPages, RequestLink, Sections, SideCtaCard } from "./parts";
 import { hubBreadcrumbs, hubJsonLd, programBreadcrumbs, programJsonLd } from "./schema";
 
-const WRAP = "mx-auto max-w-3xl px-5 py-12 md:px-8 md:py-20";
+// Layout shared by the hub and program pages, in the site container:
+//   1. Hero: breadcrumbs, eyebrow, H1, definition and actions on the left, the
+//      page's image on the right from lg (under the text on a phone).
+//   2. Body: the main column (about two thirds: sections, the family's
+//      programs, the request form and the FAQ) and a side column (the key
+//      facts card and a sticky call to action). The side column comes first
+//      in the DOM so a phone reads the facts before the sections, as before.
+//   3. Related pages, the closing card and the disclosures across the container.
 
 /** Slugs a hub already lists under "Programs we arrange", so the related list never repeats them. */
 const familySlugs = (family: ProgramEntry["family"]) => programsInFamily(family).map((p) => p.slug);
+
+/** The main column's blocks each carry their own top margin; the first one sits flush with the side column. */
+const MAIN = `${MAIN_COLUMN} [&>*:first-child]:mt-0`;
 
 function FamilyList({ family, currentSlug, heading }: { family: ProgramEntry["family"]; currentSlug?: string; heading: string }) {
   const members = programsInFamily(family).filter((p) => p.slug !== currentSlug);
@@ -37,33 +47,22 @@ function FamilyList({ family, currentSlug, heading }: { family: ProgramEntry["fa
   );
 }
 
-/** A short jump from the page's opening actions to the request form further down. */
-function RequestLink() {
+function Hero({ entry, breadcrumbs }: { entry: ProgramEntry | HubEntry; breadcrumbs: BreadcrumbItem[] }) {
+  // The program's own image, else the family's; none for a family without one yet (PENDING_IMAGES).
+  const image = pageImageFor(entry);
+  const media = image ? <HeroImage image={image} slug={entry.slug} family={image === familyImage(entry.family) ? entry.family : undefined} /> : undefined;
   return (
-    <p className="mt-4 text-[15px]">
-      <a href={`#${LEAD_FORM_ANCHOR}`} className="link-chevron inline-flex min-h-9 items-center">
-        Or send a short request to an advisor
-      </a>
-    </p>
-  );
-}
-
-/** The family's 2:1 banner under a hub's header; nothing for a family without an image. */
-function FamilyBanner({ family }: { family: ProgramEntry["family"] }) {
-  const image = familyImage(family);
-  if (!image) return null;
-  return (
-    <figure className="mt-10 overflow-hidden rounded-2xl bg-hairline" data-family-image={family}>
-      <Image
-        src={image.src}
-        alt={image.alt}
-        placeholder="blur"
-        loading="eager"
-        sizes="(min-width: 768px) 704px, calc(100vw - 40px)"
-        className="aspect-[2/1] h-auto w-full object-cover"
-        style={image.position ? { objectPosition: image.position } : undefined}
-      />
-    </figure>
+    <PageContainer className="pb-12 pt-10 md:pb-16 md:pt-14">
+      <PageHero breadcrumbs={breadcrumbs} media={media}>
+        <p className="eyebrow">{FAMILY_LABELS[entry.family]}</p>
+        <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
+        <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
+        <div className="mt-6">
+          <CtaLinks family={entry.family} />
+          <RequestLink />
+        </div>
+      </PageHero>
+    </PageContainer>
   );
 }
 
@@ -71,27 +70,30 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
   return (
     <>
       <JsonLd data={programJsonLd(entry)} />
-      <article className={WRAP}>
-        <Breadcrumbs items={programBreadcrumbs(entry)} />
-        <header className="mt-8">
-          <p className="eyebrow">{FAMILY_LABELS[entry.family]}</p>
-          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
-          <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
-          <div className="mt-6">
-            <CtaLinks family={entry.family} />
-            <RequestLink />
+      <article>
+        <Hero entry={entry} breadcrumbs={programBreadcrumbs(entry)} />
+        <PageContainer className="pb-16 md:pb-24">
+          <div className={SIDEBAR_GRID}>
+            <div className={`${SIDE_COLUMN} flex flex-col gap-6`}>
+              <KeyFactsCard
+                title="Key facts"
+                caption="Key facts with sources and as-of dates"
+                facts={entry.facts.map((f) => ({ label: f.label, value: f.value, source: `${f.source}; as of ${f.asOf}` }))}
+                note={`Figures as of ${AS_OF}. Program rules change by notice, so an advisor confirms current terms with lenders before you rely on any figure.`}
+              />
+              <SideCtaCard family={entry.family} />
+            </div>
+            <div className={MAIN}>
+              <Sections sections={entry.sections} />
+              {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="Programs we arrange" />}
+              <LeadForm family={entry.family} slug={entry.slug} />
+              <FaqList faq={entry.faq} />
+            </div>
           </div>
-        </header>
-        {/* A program that is its family's hub (hard money) carries the hub banner; other program pages have no photo. */}
-        {entry.isHub && <FamilyBanner family={entry.family} />}
-        <FactsTable facts={entry.facts} asOf={AS_OF} />
-        <Sections sections={entry.sections} />
-        {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="Programs we arrange" />}
-        <LeadForm family={entry.family} slug={entry.slug} />
-        <FaqList faq={entry.faq} />
-        <RelatedPages slugs={entry.related} shown={entry.isHub ? familySlugs(entry.family) : []} />
-        <CtaBand family={entry.family} />
-        <ProgramDisclosures />
+          <RelatedPages slugs={entry.related} shown={entry.isHub ? familySlugs(entry.family) : []} />
+          <CtaBand family={entry.family} />
+          <ProgramDisclosures />
+        </PageContainer>
       </article>
     </>
   );
@@ -101,25 +103,25 @@ export function HubPage({ entry }: { entry: HubEntry }) {
   return (
     <>
       <JsonLd data={hubJsonLd(entry)} />
-      <article className={WRAP}>
-        <Breadcrumbs items={hubBreadcrumbs(entry)} />
-        <header className="mt-8">
-          <p className="eyebrow">{FAMILY_LABELS[entry.family]}</p>
-          <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
-          <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
-          <div className="mt-6">
-            <CtaLinks family={entry.family} />
-            <RequestLink />
+      <article>
+        <Hero entry={entry} breadcrumbs={hubBreadcrumbs(entry)} />
+        <PageContainer className="pb-16 md:pb-24">
+          <div className={SIDEBAR_GRID}>
+            {/* Only the sticky call to action, which shows from lg. */}
+            <div className={`${SIDE_COLUMN} hidden lg:block`}>
+              <SideCtaCard family={entry.family} />
+            </div>
+            <div className={MAIN}>
+              <FamilyList family={entry.family} heading="Programs we arrange" />
+              <Sections sections={entry.sections} />
+              <LeadForm family={entry.family} slug={entry.slug} />
+              <FaqList faq={entry.faq} />
+            </div>
           </div>
-        </header>
-        <FamilyBanner family={entry.family} />
-        <FamilyList family={entry.family} heading="Programs we arrange" />
-        <Sections sections={entry.sections} />
-        <LeadForm family={entry.family} slug={entry.slug} />
-        <FaqList faq={entry.faq} />
-        <RelatedPages slugs={entry.related} shown={familySlugs(entry.family)} heading="Related financing" />
-        <CtaBand family={entry.family} />
-        <ProgramDisclosures />
+          <RelatedPages slugs={entry.related} shown={familySlugs(entry.family)} heading="Related financing" />
+          <CtaBand family={entry.family} />
+          <ProgramDisclosures />
+        </PageContainer>
       </article>
     </>
   );

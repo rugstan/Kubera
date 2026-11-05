@@ -2,19 +2,38 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEAL_STRUCTURES } from "@/content/deal-structures";
+import { financingSlugs, getFinancingPage, hubs, programs } from "@/content/programs";
 import { PROGRAM_FAMILIES } from "@/content/programs/types";
-import { ABOUT_IMAGE, FAMILY_IMAGES, HOME_HERO_IMAGE, STRUCTURE_IMAGES, familyImage, structureImage, type SiteImage } from "./images";
+import {
+  ABOUT_IMAGE,
+  FAMILY_IMAGES,
+  HOME_HERO_IMAGE,
+  PENDING_IMAGES,
+  PROGRAM_IMAGES,
+  STRUCTURE_IMAGES,
+  familyImage,
+  pageImageFor,
+  programImage,
+  structureImage,
+  type SiteImage,
+} from "./images";
 
 const root = process.cwd();
 const assetsDir = path.join(root, "assets/images");
 
-/** Every image in the registry, labelled for failure messages. */
-const ALL_IMAGES: [string, SiteImage][] = [
+/**
+ * Every distinct image in the registry, labelled for failure messages. A
+ * program page may reuse a structure's image object (same file, same alt), so
+ * the list holds each object once.
+ */
+const LABELLED: [string, SiteImage][] = [
   ["home hero", HOME_HERO_IMAGE],
   ["about", ABOUT_IMAGE],
   ...Object.entries(FAMILY_IMAGES).map(([family, image]): [string, SiteImage] => [`family ${family}`, image!]),
   ...Object.entries(STRUCTURE_IMAGES).map(([slug, image]): [string, SiteImage] => [`structure ${slug}`, image!]),
+  ...Object.entries(PROGRAM_IMAGES).map(([slug, image]): [string, SiteImage] => [`program ${slug}`, image!]),
 ];
+const ALL_IMAGES = LABELLED.filter(([, image], i) => LABELLED.findIndex(([, other]) => other === image) === i);
 
 describe("site images", () => {
   it("describes every image plainly, without claiming it is a Corin deal, a client or a real place", () => {
@@ -41,6 +60,61 @@ describe("site images", () => {
     for (const slug of Object.keys(STRUCTURE_IMAGES)) expect(slugs, `${slug} is a structure in content/deal-structures.ts`).toContain(slug);
     for (const slug of slugs) expect(structureImage(slug)).toBe(STRUCTURE_IMAGES[slug] ?? null);
     expect(structureImage("not-a-structure")).toBeNull();
+  });
+
+  it("keys program images by real program slugs, never a hub, and returns null for a page without one", () => {
+    const programSlugs = programs.map((p) => p.slug);
+    const hubSlugs = hubs.map((h) => h.slug);
+    for (const slug of Object.keys(PROGRAM_IMAGES)) {
+      expect(programSlugs, `${slug} is a program in content/programs`).toContain(slug);
+      expect(hubSlugs, `${slug} is not a hub`).not.toContain(slug);
+    }
+    for (const slug of programSlugs) expect(programImage(slug)).toBe(PROGRAM_IMAGES[slug] ?? null);
+    expect(programImage("not-a-program")).toBeNull();
+  });
+
+  it("reuses the structure images for the six mapped programs instead of copying them", () => {
+    expect(PROGRAM_IMAGES["fix-and-flip"]).toBe(STRUCTURE_IMAGES["investor-rehab-hard-money"]);
+    expect(PROGRAM_IMAGES["pip-bridge"]).toBe(STRUCTURE_IMAGES["flagged-hotel-sba-504-green-pip"]);
+    expect(PROGRAM_IMAGES["hotel-to-senior-living-conversion"]).toBe(STRUCTURE_IMAGES["hotel-to-assisted-living-conversion-bridge"]);
+    expect(PROGRAM_IMAGES["memory-care"]).toBe(STRUCTURE_IMAGES["memory-care-bridge-to-hud"]);
+    expect(PROGRAM_IMAGES.rcfe).toBe(STRUCTURE_IMAGES["assisted-living-sba-504-refinance"]);
+    expect(PROGRAM_IMAGES["c-pace"]).toBe(STRUCTURE_IMAGES["multifamily-construction-bank-cpace"]);
+  });
+
+  it("gives a financing page its program image, else its family image, else none", () => {
+    for (const slug of financingSlugs) {
+      const { entry } = getFinancingPage(slug)!;
+      expect(pageImageFor(entry), slug).toBe(programImage(slug) ?? familyImage(entry.family));
+    }
+    // Hubs show their family image; hard money is a program that doubles as the hub.
+    for (const hub of hubs) expect(pageImageFor(hub), hub.slug).toBe(familyImage(hub.family));
+    expect(pageImageFor(getFinancingPage("commercial")!.entry)).toBe(FAMILY_IMAGES.commercial);
+    expect(pageImageFor(getFinancingPage("hard-money")!.entry)).toBe(FAMILY_IMAGES["hard-money"]);
+    expect(pageImageFor(getFinancingPage("fix-and-flip")!.entry)).toBe(STRUCTURE_IMAGES["investor-rehab-hard-money"]);
+  });
+
+  it("gives every family an image and every program page its own, so no page falls back to its family's", () => {
+    for (const family of PROGRAM_FAMILIES) expect(familyImage(family), family).not.toBeNull();
+    // Hard money is the one program that is also its family's hub: it shows the family image.
+    const withoutOwn = programs.filter((p) => !programImage(p.slug)).map((p) => p.slug);
+    expect(withoutOwn).toEqual(["hard-money"]);
+    expect(programs.find((p) => p.slug === "hard-money")?.isHub).toBe(true);
+  });
+
+  it("uses each made-for-the-page program image on one page only", () => {
+    const files = Object.values(PROGRAM_IMAGES).map((image) => path.basename(image!.src.src));
+    const own = files.filter((f) => f.startsWith("program-"));
+    expect(own).toHaveLength(31);
+    expect(new Set(own).size).toBe(own.length);
+  });
+
+  it("lists exactly the financing pages that still have no image in PENDING_IMAGES", () => {
+    // Empty since every hub and program page has an image; a new page without one must be listed (or given one).
+    expect(PENDING_IMAGES).toEqual([]);
+    const withoutImage = financingSlugs.filter((slug) => pageImageFor(getFinancingPage(slug)!.entry) === null);
+    expect([...withoutImage].sort()).toEqual([...PENDING_IMAGES].sort());
+    expect(new Set(PENDING_IMAGES).size, "no duplicates").toBe(PENDING_IMAGES.length);
   });
 
   it("keeps assets/images to optimised WebP files that content/images.ts uses", () => {

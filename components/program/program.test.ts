@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { familyImage } from "@/content/images";
+import { PENDING_IMAGES, familyImage, pageImageFor, programImage } from "@/content/images";
 import { PROGRAM_FAMILIES, financingPath, financingSlugs, getFinancingPage, hubForFamily, hubs, programs } from "@/content/programs";
 import { CONSENT_TEXTS, CURRENT_CONSENT } from "@/lib/consent/texts";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -103,15 +103,57 @@ describe("program pages", () => {
     }
   });
 
-  it("every family hub carries its banner, hard money included; other program pages carry none", () => {
+  it("every family hub shows its family image in the hero, hard money included", () => {
     for (const family of PROGRAM_FAMILIES) {
-      const html = render(hubForFamily(family).slug);
+      const slug = hubForFamily(family).slug;
+      const html = render(slug);
       const image = familyImage(family);
-      if (!image) continue;
-      expect(html, family).toContain(`data-family-image="${family}"`);
+      if (!image) {
+        // The commercial family has no image yet (PENDING_IMAGES).
+        expect(html, family).not.toContain("data-page-image");
+        continue;
+      }
+      expect(html, family).toContain(`data-page-image="${slug}" data-family-image="${family}"`);
       expect(html, family).toContain(`alt="${image.alt}"`);
     }
-    for (const p of programs.filter((p) => !p.isHub)) expect(render(p.slug), p.slug).not.toContain("data-family-image");
+  });
+
+  it("every program page shows its own image, else its family's, and only pending pages show none", () => {
+    for (const slug of financingSlugs) {
+      const { entry } = getFinancingPage(slug)!;
+      const html = render(slug);
+      const image = pageImageFor(entry);
+      if (!image) {
+        expect(PENDING_IMAGES, `${slug} has no image, so it must be pending`).toContain(slug);
+        expect(html, slug).not.toContain("data-page-image");
+        expect(html, slug).not.toContain("<img");
+        continue;
+      }
+      // One image per page, in the hero, described by its alt text and preloaded (the largest paint above a desktop fold).
+      expect(html.match(/data-page-image=/g), slug).toHaveLength(1);
+      expect(html, slug).toContain(`alt="${image.alt.replace(/&/g, "&amp;")}"`);
+      expect(html, slug).toMatch(/<link rel="preload" as="image"/);
+      const own = programImage(slug);
+      if (own) expect(html, slug).toMatch(new RegExp(`data-page-image="${slug}"(?! data-family-image)`));
+      else expect(html, slug).toContain(`data-page-image="${slug}" data-family-image="${entry.family}"`);
+    }
+    // The six mapped programs show their own (structure) image rather than the family's.
+    for (const slug of ["fix-and-flip", "pip-bridge", "hotel-to-senior-living-conversion", "memory-care", "rcfe", "c-pace"]) {
+      expect(render(slug), slug).toContain(`alt="${programImage(slug)!.alt}"`);
+    }
+  });
+
+  it("lays the page out in the site container: hero, a main column beside the key facts, then full-width links", () => {
+    const html = render("hud-223f-multifamily");
+    expect(html.match(/data-page-container=""/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(html).toContain("max-w-[1280px]");
+    // The facts are a card in the side column, still a table with a source and date for every figure.
+    expect(html).toContain("data-key-facts");
+    expect(html).toContain(">Source and date</th>");
+    // The sticky call to action in the side column carries the family too.
+    expect(html).toMatch(/data-side-cta[\s\S]*href="\/express\?family=multifamily"/);
+    // No narrow page column anywhere on the page.
+    expect(html).not.toContain("max-w-3xl px-5");
   });
 });
 

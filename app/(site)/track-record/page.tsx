@@ -55,14 +55,17 @@ export default function TrackRecordPage() {
         </Section>
       ) : (
         <Section id="closed" title="No closed transactions published yet">
-          <div className="bento max-w-3xl p-7">
-            <p className="text-[16px] leading-relaxed text-titanium">
-              We are not publishing closed deals on this page yet, and we will not fill the space with examples that did not happen. When we have transactions that meet the standard above, they will appear here with the program, size and year.
-            </p>
-            <p className="mt-4 text-[16px] leading-relaxed text-titanium">
-              In the meantime, representative structures show how we typically arrange HUD, SBA and bridge financing. They are illustrations, not client results.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {/* Across the container from lg: the explanation on the left, the two actions on the right. */}
+          <div className="bento p-7 lg:flex lg:items-center lg:justify-between lg:gap-12">
+            <div className="max-w-3xl">
+              <p className="text-[16px] leading-relaxed text-titanium">
+                We are not publishing closed deals on this page yet, and we will not fill the space with examples that did not happen. When we have transactions that meet the standard above, they will appear here with the program, size and year.
+              </p>
+              <p className="mt-4 text-[16px] leading-relaxed text-titanium">
+                In the meantime, representative structures show how we typically arrange HUD, SBA and bridge financing. They are illustrations, not client results.
+              </p>
+            </div>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:mt-0 lg:shrink-0">
               <Link href="/structures" className="pill pill-primary">See representative structures</Link>
               <Link href="/about#licenses" className="pill pill-glass">Verify our licenses</Link>
             </div>

@@ -10,9 +10,16 @@ test.describe("financing pages", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("HUD 223(f) multifamily");
     await expect(page.getByText(/HUD 223\(f\) is an FHA mortgage insurance program/)).toBeVisible();
 
-    const facts = page.getByRole("table");
-    await expect(facts.getByRole("columnheader", { name: "Source and date" })).toBeVisible();
-    await expect(facts.getByText("87%").first()).toBeVisible();
+    // The key facts are a card in the side column: still a table for assistive technology (its column
+    // headers are read, not shown), laid out as a stacked list that shows each figure's source and date.
+    const facts = page.getByRole("table", { name: /key facts with sources and as-of dates/i });
+    await expect(facts).toBeVisible();
+    for (const name of ["Item", "Figure", "Source and date"]) await expect(facts.getByRole("columnheader", { name })).toBeAttached();
+    const row = facts.getByRole("row", { name: /^Market-rate: max LTV/ });
+    await expect(row.getByRole("rowheader")).toHaveText("Market-rate: max LTV / min DSCR");
+    await expect(row.getByRole("cell").first()).toHaveText("87% / 1.15x");
+    await expect(row.getByRole("cell").last()).toHaveText(/^HUD Mortgagee Letter 2025-03.*; as of \d{4}-\d{2}-\d{2}$/);
+    await expect(row.getByRole("cell").last()).toBeVisible();
 
     // FAQ opens with the keyboard.
     const summary = page.locator("summary").first();
@@ -33,7 +40,9 @@ test.describe("financing pages", () => {
       const main = page.locator("main");
       for (const link of await main.getByRole("link", { name: "Get loan options", exact: true }).all()) await expect(link).toHaveAttribute("href", `/express?family=${family}`);
       for (const link of await main.getByRole("link", { name: "Size my loan", exact: true }).all()) await expect(link).toHaveAttribute("href", `/?sizer=${family}#sizer`);
-      await expect(main.getByRole("link", { name: "Get loan options", exact: true })).toHaveCount(2);
+      // Three on a desktop: the hero, the sticky card in the side column and the closing card.
+      await expect(main.getByRole("link", { name: "Get loan options", exact: true })).toHaveCount(3);
+      await expect(main.locator("[data-side-cta]").getByRole("link", { name: "Get loan options", exact: true })).toBeVisible();
       // The closing card is light, not a black band.
       await expect(main.locator(".bento-pro")).toHaveCount(0);
     });
@@ -122,28 +131,90 @@ test.describe("financing pages", () => {
     ["senior-living", /assisted living building/],
     ["hotels", /hotel at dusk/],
     ["multifamily", /apartment buildings/],
+    ["commercial", /glass and stone office building/],
     ["construction", /under construction/],
     ["hard-money", /apartment building/],
   ] as const) {
-    test(`the ${family} hub shows its image, loaded and described`, async ({ page }) => {
+    test(`the ${family} hub shows its image beside the heading, loaded and described`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(`/financing/${family}`);
-      const img = page.locator(`[data-family-image=${family}] img`);
+      const img = page.locator(`[data-page-image="${family}"][data-family-image="${family}"] img`);
       await expect(img).toHaveAttribute("alt", alt);
-      await img.scrollIntoViewIfNeeded();
       await expect(img).toBeVisible();
       await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-      // A 2:1 box, sized before the file arrives.
+      // The whole 3:2 master in the hero's right half, sized before the file arrives, above the fold.
       const box = (await img.boundingBox())!;
-      expect(box.width / box.height).toBeCloseTo(2, 1);
+      expect(box.width / box.height).toBeCloseTo(1.5, 1);
+      const h1 = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+      expect(box.x, "image sits right of the heading").toBeGreaterThanOrEqual(h1.x + h1.width);
+      expect(box.y + box.height, "image is above a 1440x900 fold").toBeLessThanOrEqual(900);
     });
   }
 
-  test("program pages render without a photo; only the hubs carry one", async ({ page }) => {
+  // A hub, a program on a reused structure image, programs with images made for them (one per
+  // family) and hard money, a program that is its family's hub and so shows the family image.
+  for (const [path, slug, source, alt] of [
+    ["/financing/multifamily", "multifamily", "family", /apartment buildings with glass balconies/],
+    ["/financing/hard-money", "hard-money", "family", /renovated two-story apartment building/i],
+    ["/financing/fix-and-flip", "fix-and-flip", "program", /apartment building mid-renovation/],
+    ["/financing/memory-care", "memory-care", "program", /garden courtyard/],
+    ["/financing/hud-223f-multifamily", "hud-223f-multifamily", "program", /garden-style apartment building with breezeway stairs/],
+    ["/financing/hotel-cmbs", "hotel-cmbs", "program", /eight-story limestone and glass hotel tower/],
+    ["/financing/hud-232", "hud-232", "program", /senior care campus/],
+    ["/financing/office-loans", "office-loans", "program", /glass curtain wall/],
+    ["/financing/construction-loans", "construction-loans", "program", /concrete frame under construction/],
+  ] as const) {
+    test(`${path} shows a relevant image in its hero at 1440px, loaded and described`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(path);
+      const figure = page.locator(`[data-page-image="${slug}"]`);
+      await expect(figure).toHaveCount(1);
+      if (source === "family") await expect(figure).toHaveAttribute("data-family-image", /.+/);
+      else await expect(figure).not.toHaveAttribute("data-family-image");
+      const img = figure.locator("img");
+      await expect(img).toHaveAttribute("alt", alt);
+      await expect(img).toBeVisible();
+      await expect(img).not.toHaveAttribute("loading", "lazy");
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+      const box = (await img.boundingBox())!;
+      expect(box.y + box.height).toBeLessThanOrEqual(900);
+      await expect(page.locator("main img")).toHaveCount(1);
+    });
+  }
+
+  test("at 1440px the body is a main column beside the key facts and a sticky call to action", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/financing/hud-223f-multifamily");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("HUD 223(f) multifamily");
-    await expect(page.locator("[data-family-image]")).toHaveCount(0);
-    await expect(page.locator("main img")).toHaveCount(0);
+    const facts = (await page.locator("[data-key-facts]").boundingBox())!;
+    const firstSection = (await page.getByRole("heading", { level: 2 }).filter({ hasNotText: /key facts/i }).first().boundingBox())!;
+    const form = (await page.locator("section#request").boundingBox())!;
+    // Side column on the right, about a third of the container; the form in the wider main column.
+    expect(facts.x).toBeGreaterThan(firstSection.x + 600);
+    expect(facts.width).toBeGreaterThan(330);
+    expect(facts.width).toBeLessThan(450);
+    expect(form.width).toBeGreaterThan(700);
+    expect(form.x + form.width).toBeLessThan(facts.x);
+    // The call to action stays in view while the main column scrolls.
+    const cta = page.locator("[data-side-cta]");
+    await page.locator("#faq-heading").scrollIntoViewIfNeeded();
+    await expect(cta).toBeInViewport();
+  });
+
+  test("on a phone the hero reads text, then image, then the key facts and the content", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/financing/fix-and-flip");
+    const y = async (selector: string) => (await page.locator(selector).first().boundingBox())!.y;
+    const h1 = await y("h1");
+    const image = await y("[data-page-image]");
+    const facts = await y("[data-key-facts]");
+    const form = await y("section#request");
+    expect(h1).toBeLessThan(image);
+    expect(image).toBeLessThan(facts);
+    expect(facts).toBeLessThan(form);
+    // The sticky card is a desktop extra: the hero's actions are already on screen above.
+    await expect(page.locator("[data-side-cta]")).toBeHidden();
+    const { scroll, client } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
+    expect(scroll).toBeLessThanOrEqual(client);
   });
 
   test("unknown slugs return 404", async ({ request }) => {
@@ -161,7 +232,8 @@ test.describe("financing pages", () => {
 
   // WCAG 1.4.10 Reflow: no horizontal scroll at 320 CSS px. Every page with the
   // CtaBand once overflowed by ~13px because the qualifier pill could not wrap.
-  for (const path of ["/financing/hud-223f-multifamily", "/calculators/sba-504", "/insights/california-mortgage-loan-disclosure-statement"]) {
+  // The image pages too: a hub, a program with its own image and one on its family's.
+  for (const path of ["/financing/hud-223f-multifamily", "/financing/senior-living", "/financing/fix-and-flip", "/calculators/sba-504", "/insights/california-mortgage-loan-disclosure-statement"]) {
     test(`${path} does not scroll sideways at 320px`, async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 640 });
       expect((await page.goto(path))?.status()).toBe(200);

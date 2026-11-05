@@ -8,6 +8,7 @@ import { HowItWorks } from "@/components/home/HowItWorks";
 import { ProgramFamilies } from "@/components/home/ProgramFamilies";
 import { Reveal } from "@/components/home/Reveal";
 import { WhyCorin } from "@/components/home/WhyCorin";
+import { PageContainer } from "@/components/site/PageContainer";
 import { LoanSizer } from "@/components/sizer/LoanSizer";
 import { callLink } from "@/content/contact";
 import { getMarketSnapshot } from "@/lib/rates";
@@ -35,7 +36,7 @@ export default function HomePage() {
       <ProgramFamilies />
       <HowItWorks />
       <section id="sizer" aria-labelledby="sizer-title" className="bg-canvas py-20 md:py-32">
-        <div className="mx-auto max-w-[1280px] px-5 md:px-8">
+        <PageContainer>
           <Reveal className="mx-auto max-w-[980px] text-center">
             <p className="eyebrow">Loan sizer</p>
             <h2 id="sizer-title" className="mt-3 text-headline font-semibold md:text-section">
@@ -51,7 +52,7 @@ export default function HomePage() {
               <SizerWithRates />
             </Suspense>
           </div>
-        </div>
+        </PageContainer>
       </section>
       <WhyCorin />
       <DealStructures />

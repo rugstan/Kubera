@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { CtaBand, ProgramDisclosures } from "@/components/program/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
+import { PageContainer } from "@/components/site/PageContainer";
+import { familyImage } from "@/content/images";
 import { FAMILY_LABELS, FINANCING_BASE, financingPath, hubForFamily, PROGRAM_FAMILIES, programsInFamily } from "@/content/programs";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -16,7 +19,7 @@ export const metadata: Metadata = pageMetadata({
 const anchor = (family: string) => `${family}-heading`;
 
 export default function FinancingIndexPage() {
-  const families = PROGRAM_FAMILIES.map((family) => ({ family, label: FAMILY_LABELS[family], hub: hubForFamily(family), programs: programsInFamily(family) }));
+  const families = PROGRAM_FAMILIES.map((family) => ({ family, label: FAMILY_LABELS[family], hub: hubForFamily(family), programs: programsInFamily(family), image: familyImage(family) }));
   return (
     <>
       <JsonLd
@@ -25,7 +28,7 @@ export default function FinancingIndexPage() {
           { name: "Financing", path: FINANCING_BASE },
         ])}
       />
-      <div className="mx-auto max-w-[1280px] px-5 py-12 md:px-8 md:py-20">
+      <PageContainer className="py-12 md:py-20">
         <header className="max-w-3xl">
           <p className="eyebrow">Financing</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">Financing programs</h1>
@@ -68,16 +71,32 @@ export default function FinancingIndexPage() {
           </ul>
         </nav>
 
-        {families.map(({ family, label, hub, programs }) => (
-          <section key={family} aria-labelledby={anchor(family)} className="mt-14 md:mt-20">
-            {/* Clears the sticky header, plus the phone jump bar. */}
-            <h2 id={anchor(family)} className="scroll-mt-28 text-2xl font-semibold md:scroll-mt-20 md:text-3xl">
-              <Link href={financingPath(hub.slug)} className="link-chevron inline-flex min-h-9 text-ink">
-                {label}
-              </Link>
-            </h2>
-            <p className="mt-2 max-w-3xl text-[15px] text-titanium">{hub.summary}</p>
-            <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* From lg each family is two columns: its heading, summary and photo on the left (no photo for a
+            family without one yet), its programs on the right. Phones skip the photos, as on the homepage. */}
+        {families.map(({ family, label, hub, programs, image }) => (
+          <section key={family} aria-labelledby={anchor(family)} className="mt-14 md:mt-20 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-12 xl:gap-16">
+            <div>
+              {/* Clears the sticky header, plus the phone jump bar. */}
+              <h2 id={anchor(family)} className="scroll-mt-28 text-2xl font-semibold md:scroll-mt-20 md:text-3xl">
+                <Link href={financingPath(hub.slug)} className="link-chevron inline-flex min-h-9 text-ink">
+                  {label}
+                </Link>
+              </h2>
+              <p className="mt-2 max-w-3xl text-[15px] text-titanium">{hub.summary}</p>
+              {image && (
+                <figure className="mt-6 hidden overflow-hidden rounded-card bg-hairline lg:block" data-family-index-image={family}>
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    placeholder="blur"
+                    sizes="(min-width: 1280px) 384px, calc(33vw - 40px)"
+                    className="aspect-[4/3] h-auto w-full object-cover"
+                    style={image.position ? { objectPosition: image.position } : undefined}
+                  />
+                </figure>
+              )}
+            </div>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:mt-0 lg:content-start">
               {programs.map((p) => (
                 <li key={p.slug}>
                   <Link href={financingPath(p.slug)} className="bento block h-full p-5">
@@ -90,10 +109,8 @@ export default function FinancingIndexPage() {
           </section>
         ))}
         <CtaBand />
-        <div className="max-w-3xl">
-          <ProgramDisclosures />
-        </div>
-      </div>
+        <ProgramDisclosures />
+      </PageContainer>
     </>
   );
 }

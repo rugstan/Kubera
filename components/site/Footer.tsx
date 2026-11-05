@@ -6,6 +6,7 @@ import { TEAM, teamCards } from "@/content/team";
 import { publishableRecords } from "@/content/track-record";
 import { disclosures, licenseLine, site } from "@/lib/site";
 import { Logo } from "./Logo";
+import { PAGE_CONTAINER } from "./PageContainer";
 import { ACCOUNT_LINKS, ALL_FINANCING, FINANCING_FAMILIES, HEADER_CTA, type NavLink } from "./nav";
 
 // The header carries only what a customer needs to start. Everything else lives
@@ -84,7 +85,7 @@ export function Footer() {
   const columns = footerColumns();
   return (
     <footer className="border-t border-hairline bg-canvas text-[12px]">
-      <div className="mx-auto max-w-[1280px] px-5 py-16 md:px-8">
+      <div className={`${PAGE_CONTAINER} py-16`}>
         <div className="grid gap-12 md:grid-cols-3 lg:grid-cols-[1.4fr_repeat(6,1fr)] lg:gap-8">
           <div>
             <Logo className="h-10" />

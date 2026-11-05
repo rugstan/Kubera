@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PartnerPortal } from "@/components/partners/PartnerPortal";
+import { PageContainer } from "@/components/site/PageContainer";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
@@ -10,7 +11,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function PartnersPage() {
   return (
-    <div className="mx-auto max-w-[1280px] px-5 py-20 md:px-8 md:py-28">
+    <PageContainer className="py-20 md:py-28">
       <div className="mx-auto max-w-3xl text-center">
         <p className="eyebrow">Partner portal</p>
         <h1 className="mt-4 text-5xl font-semibold leading-[1.06] md:text-6xl">Plug into the deal flow.</h1>
@@ -21,6 +22,6 @@ export default function PartnersPage() {
       <div className="mt-14">
         <PartnerPortal />
       </div>
-    </div>
+    </PageContainer>
   );
 }

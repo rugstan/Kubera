@@ -188,7 +188,8 @@ test.describe("homepage", () => {
   test("family cards show their photos from md and leave them off on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await expect(page.locator("#programs [data-family-card-image] img")).toHaveCount(5);
+    // Every family, commercial property included (family-commercial, 2026-11-05).
+    await expect(page.locator("#programs [data-family-card-image] img")).toHaveCount(6);
     const img = page.locator("#hotels [data-family-card-image] img");
     await expect(img).toHaveAttribute("alt", /hotel at dusk/);
     await img.scrollIntoViewIfNeeded();

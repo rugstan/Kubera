@@ -30,6 +30,8 @@ const getStarted = (call: NavLink): NavLink[] => [
   { href: "/rates", label: "Today's rates" },
 ];
 
+// The bar and the flyout line up with the site container (components/site/PageContainer.tsx):
+// 1280px at most with 32px gutters from md. Phones keep a 16px gutter so the 320px bar fits.
 export function GlassHeader({ phone, telHref, call }: { phone?: string | null; telHref?: string | null; call: NavLink }) {
   const [open, setOpen] = useState(false);
   const [flyout, setFlyout] = useState(false);
@@ -91,7 +93,7 @@ export function GlassHeader({ phone, telHref, call }: { phone?: string | null; t
       <header className="glass sticky top-0 z-40 border-b border-black/[0.08]">
         <nav
           ref={navRef}
-          className="mx-auto flex h-12 max-w-[1024px] items-center justify-between gap-2 px-4 sm:gap-4 md:h-11 md:px-[22px]"
+          className="mx-auto flex h-12 max-w-[1280px] items-center justify-between gap-2 px-4 sm:gap-4 md:h-11 md:px-8"
           aria-label="Primary"
         >
           <Link href="/" className="flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap" aria-label="Corin Commercial home">
@@ -307,7 +309,7 @@ function FinancingMenu({ open, onOpenChange, call }: { open: boolean; onOpenChan
             style={panelMax === null ? undefined : { maxHeight: panelMax }}
             className="menu-drop max-h-[calc(100dvh-3rem)] overflow-y-auto border-b border-black/[0.08] bg-[rgb(250_250_252)]"
           >
-            <div className="mx-auto grid max-w-[1024px] gap-10 px-[22px] py-10 md:grid-cols-[1.4fr_1fr_1fr]">
+            <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-10 md:grid-cols-[1.4fr_1fr_1fr] md:px-8">
               <FlyoutColumn
                 id={typesId}
                 heading={"What you're financing"}

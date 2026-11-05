@@ -1,11 +1,12 @@
 import { HOME_STEPS } from "@/content/home";
+import { PageContainer } from "@/components/site/PageContainer";
 import { Reveal } from "./Reveal";
 import { TrackedLink } from "./TrackedLink";
 
 export function HowItWorks() {
   return (
     <section aria-labelledby="how-it-works-title" className="bg-white py-20 md:py-32">
-      <div className="mx-auto max-w-[1280px] px-5 md:px-8">
+      <PageContainer>
         <Reveal className="mx-auto max-w-[980px] text-center">
           <p className="eyebrow">How it works</p>
           <h2 id="how-it-works-title" className="mt-3 text-headline font-semibold md:text-section">
@@ -28,7 +29,7 @@ export function HowItWorks() {
         <div className="mt-12 flex justify-center md:mt-16">
           <TrackedLink href="/express" cta="get_options" section="process" className="pill pill-primary">Get loan options</TrackedLink>
         </div>
-      </div>
+      </PageContainer>
     </section>
   );
 }

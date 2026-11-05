@@ -99,8 +99,8 @@ export default function ContactPage() {
       ) : (
         // Without NEXT_PUBLIC_CALCOM_LINK the section keeps its #schedule anchor for old links and asks for times by email.
         <Section id="schedule" title="Set up a call" lead="A licensed advisor will send you an invitation.">
-          <div className="bento max-w-3xl p-7">
-            <p className="text-[16px] leading-relaxed text-titanium">
+          <div className="bento p-7">
+            <p className="max-w-3xl text-[16px] leading-relaxed text-titanium">
               Email{" "}
               <a href={`mailto:${contact.email}`} className="font-medium text-accent underline underline-offset-2 [overflow-wrap:anywhere]">{contact.email}</a>{" "}
               with two or three times that work for you and a line about the property. To share the numbers first, use{" "}

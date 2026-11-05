@@ -53,7 +53,7 @@ If an image has any lettering, signs, logos, people, cars or a real landmark in 
 | 12 | `12-multifamily-construction.png` | `/structures/multifamily-construction-bank-cpace` and its card | 1536 × 1024 | 16:9, 4:3 |
 | 13 | `13-investor-rehab.png` | `/structures/investor-rehab-hard-money` and its card | 1536 × 1024 | 16:9, 4:3 |
 
-No images go on the legal pages, calculators, loan sizer, rates, forms, glossary, team, track record, or the other program pages.
+No images go on the legal pages, calculators, loan sizer, rates, forms, glossary, team or track record. The program pages got theirs later: see [Program images (2026-11-05)](#program-images-2026-11-05).
 
 Every prompt below keeps the building in the middle of the frame with open sky above and clean ground below. That lets one image crop cleanly to all the shapes above.
 
@@ -190,6 +190,16 @@ Subject: a 1960s two-story, eight-unit apartment building in the middle of a reh
 
 Style: photorealistic architectural photograph, not a 3D rendering. 24-35mm lens, everything sharp, vertical lines perfectly vertical, level horizon, eye-level view. Soft natural mid-morning daylight from the left with gentle shadows, clear pale slightly hazy sky, no HDR look. Neutral, slightly warm color with restrained saturation: warm white, primer gray, light oak and muted sage green; no saturated blues, reds or oranges. Tidy, orderly work in progress. Main subject centered in the middle half of the frame, with generous empty sky above and a clean foreground below. No people and no vehicles. No text, letters, numbers, signs, logos, flags, banners, address numbers, license plates or screens. No lens flare, vignette, watermark or border, and no recognizable real building.
 ```
+
+## Program images (2026-11-05)
+
+32 more images: `family-commercial` and 31 program pages, listed with their files in `image-plan.md`. They were generated with Codex image generation, not ChatGPT, one prompt per image. Each prompt was three parts:
+
+1. The first line of the prompts above, word for word ("Create ONE single photograph, landscape, 1536 x 1024 (3:2). Not a collage, grid, set or montage, and no borders.").
+2. A `Subject:` paragraph written for that page's property type.
+3. The `Style:` paragraph of `01-home-hero.png`, word for word.
+
+All 32 were approved on 2026-11-05 and placed as delivered (WebP, quality 80, 1536 × 1024).
 
 ## Rules
 

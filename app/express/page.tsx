@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ExpressHeader } from "@/components/express/ExpressHeader";
 import { Qualifier } from "@/components/express/Qualifier";
 import { LEGAL_PAGES } from "@/components/legal/legal";
+import { PAGE_CONTAINER, PageContainer } from "@/components/site/PageContainer";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
 
@@ -28,34 +29,41 @@ export default function ExpressPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <ExpressHeader />
-      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16">
-        <section className="mb-10 text-center">
-          <h1 className="text-4xl font-semibold md:text-5xl">60-second deal qualifier</h1>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-titanium">
-            Share a few details about your senior living, hotel, multifamily, commercial property, construction or hard money financing. We map the loan programs that may fit,
-            and a licensed advisor reviews every submission.
-          </p>
-        </section>
-        <Suspense fallback={<div className="bento h-[560px] animate-pulse" />}>
-          <Qualifier />
-        </Suspense>
-        <section aria-labelledby="how-it-works" className="mt-16">
-          <h2 id="how-it-works" className="text-2xl font-semibold">
-            How it works
-          </h2>
-          <ol className="mt-6 grid gap-4 md:grid-cols-3">
-            {HOW_IT_WORKS.map((step, i) => (
-              <li key={step.title} className="bento p-6">
-                <span className="text-sm font-semibold text-titanium">Step {i + 1}</span>
-                <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-titanium">{step.body}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-6 text-[13px] leading-relaxed text-titanium">{disclosures.indicative}</p>
-        </section>
+      <main id="main-content" className="flex-1 pb-16">
+        {/* From lg: the title and how it works on the left, the qualifier on the right across both rows
+            (the second row takes any extra height, so the left column stays together). The DOM keeps
+            title, qualifier, how it works, so a phone reaches the form first, as before. */}
+        <PageContainer className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[auto_1fr] lg:gap-x-12 lg:gap-y-10 xl:gap-x-16">
+          <section className="text-center lg:col-start-1 lg:row-start-1 lg:pt-6 lg:text-left">
+            <h1 className="text-4xl font-semibold md:text-5xl">60-second deal qualifier</h1>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-titanium lg:mx-0">
+              Share a few details about your senior living, hotel, multifamily, commercial property, construction or hard money financing. We map the loan programs that may fit,
+              and a licensed advisor reviews every submission.
+            </p>
+          </section>
+          <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <Suspense fallback={<div className="bento h-[560px] animate-pulse" />}>
+              <Qualifier />
+            </Suspense>
+          </div>
+          <section aria-labelledby="how-it-works" className="mt-6 lg:col-start-1 lg:row-start-2 lg:mt-0">
+            <h2 id="how-it-works" className="text-2xl font-semibold">
+              How it works
+            </h2>
+            <ol className="mt-6 grid gap-4 md:grid-cols-3 lg:grid-cols-1">
+              {HOW_IT_WORKS.map((step, i) => (
+                <li key={step.title} className="bento p-6">
+                  <span className="text-sm font-semibold text-titanium">Step {i + 1}</span>
+                  <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-titanium">{step.body}</p>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-6 text-[13px] leading-relaxed text-titanium">{disclosures.indicative}</p>
+          </section>
+        </PageContainer>
       </main>
-      <footer className="mx-auto w-full max-w-3xl px-5 pb-10 text-center text-xs leading-relaxed text-titanium">
+      <footer className={`${PAGE_CONTAINER} pb-10 text-center text-xs leading-relaxed text-titanium`}>
         {/* Plain anchors: on kubera.loans these paths 308 to the main site (proxy.ts). */}
         <nav aria-label="Legal">
           <ul className="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
