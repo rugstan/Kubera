@@ -52,8 +52,19 @@ describe("buildRobots", () => {
     }
   });
 
-  it("unknown hosts get the main-site rules", () => {
-    expect(buildRobots("localhost:3000", {}).sitemap).toBeDefined();
-    expect(buildRobots(null, {}).sitemap).toBeDefined();
+  it("hosts other than the site URL, its www twin and the express domain disallow everything", () => {
+    for (const host of ["kubera-tau.vercel.app", "203.0.113.7", "localhost:3000"]) {
+      const r = buildRobots(host, {}, "https://corincommercial.com");
+      expect(r.sitemap, host).toBeUndefined();
+      expect(rules(r), host).toEqual([{ userAgent: "*", disallow: "/" }]);
+    }
+  });
+
+  it("the canonical host, its www twin and a request without a host get the main-site rules", () => {
+    for (const host of ["corincommercial.com", "www.corincommercial.com", null]) {
+      expect(buildRobots(host, {}, "https://corincommercial.com").sitemap, String(host)).toMatch(/\/sitemap\.xml$/);
+    }
+    // e2e and local runs set the site URL to localhost, which then counts as canonical.
+    expect(buildRobots("localhost:3999", {}, "http://localhost:3999").sitemap).toBeDefined();
   });
 });
