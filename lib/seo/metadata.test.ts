@@ -26,7 +26,7 @@ describe("pageMetadata", () => {
   it("attaches the share image to openGraph and twitter", () => {
     const m = pageMetadata({ title: "t", description: "d", path: "/x" });
     expect((m.openGraph as { images: { url: string }[] }).images[0]!.url).toBe("/opengraph-image");
-    expect((m.twitter as { images: string[] }).images).toEqual(["/opengraph-image"]);
+    expect((m.twitter as { images: { url: string }[] }).images[0]!.url).toBe("/opengraph-image");
   });
 
   it("uses an absolute title without the template when requested", () => {

@@ -5,7 +5,7 @@ import { CtaBand, ProgramDisclosures } from "@/components/program/parts";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema } from "@/components/seo/schemas";
 import { PageContainer } from "@/components/site/PageContainer";
-import { familyImage } from "@/content/images";
+import { familyImage, HOME_HERO_IMAGE } from "@/content/images";
 import { FAMILY_LABELS, FINANCING_BASE, financingPath, hubForFamily, PROGRAM_FAMILIES, programsInFamily } from "@/content/programs";
 import { pageMetadata } from "@/lib/seo/metadata";
 
@@ -14,6 +14,7 @@ export const metadata: Metadata = pageMetadata({
   description:
     "Every loan program Corin Commercial arranges: HUD, SBA, CMBS, agency, bridge, construction and hard money for senior living, hotels, multifamily and commercial.",
   path: FINANCING_BASE,
+  image: HOME_HERO_IMAGE,
 });
 
 const anchor = (family: string) => `${family}-heading`;

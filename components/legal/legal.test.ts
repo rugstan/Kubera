@@ -199,7 +199,7 @@ describe("legalMetadata", () => {
     expect(images).toHaveLength(1);
     expect(images?.[0]).toMatchObject({ url: "/opengraph-image", width: 1200, height: 630 });
     expect((m.twitter as { card?: string }).card).toBe("summary_large_image");
-    expect((m.twitter as { images?: string[] }).images).toEqual(["/opengraph-image"]);
+    expect((m.twitter as { images?: { url: string }[] }).images?.[0]).toMatchObject({ url: "/opengraph-image" });
     expect((m.openGraph as { title?: string }).title).toBe("Terms of use · Corin Commercial");
   });
 });

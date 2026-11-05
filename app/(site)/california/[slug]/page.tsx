@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { MarketPage } from "@/components/markets/MarketPage";
 import { MARKETS, getMarket, marketPath } from "@/content/markets/california";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { relatedFinancingImage } from "@/lib/seo/og";
 
 // The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
 // rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const market = getMarket(slug);
   // An unknown slug is a 404, not a page with empty metadata.
   if (!market) notFound();
-  return pageMetadata({ title: market.title, description: market.description, path: marketPath(slug) });
+  return pageMetadata({ title: market.title, description: market.description, path: marketPath(slug), image: relatedFinancingImage(market.relatedPrograms) });
 }
 
 export default async function MarketRoute({ params }: Props) {

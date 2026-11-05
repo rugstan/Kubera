@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CalculatorPage } from "@/components/calculators/CalculatorPage";
 import { CALCULATORS, calculatorPath, getCalculator } from "@/content/calculators";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { relatedFinancingImage } from "@/lib/seo/og";
 
 // The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
 // rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const entry = getCalculator(slug);
   // An unknown slug is a 404, not a page with empty metadata.
   if (!entry) notFound();
-  return pageMetadata({ title: entry.title, description: entry.description, path: calculatorPath(slug) });
+  return pageMetadata({ title: entry.title, description: entry.description, path: calculatorPath(slug), image: relatedFinancingImage(entry.relatedPrograms) });
 }
 
 export default async function CalculatorRoute({ params }: Props) {

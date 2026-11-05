@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { HubPage, ProgramPage } from "@/components/program/ProgramPage";
 import { financingPath, financingSlugs, getFinancingPage } from "@/content/programs";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { pageImageFor } from "@/content/images";
 
 // The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
 // rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = getFinancingPage(slug);
   // An unknown slug is a 404, not a page with empty metadata.
   if (!page) notFound();
-  return pageMetadata({ title: page.entry.title, description: page.entry.description, path: financingPath(slug) });
+  return pageMetadata({ title: page.entry.title, description: page.entry.description, path: financingPath(slug), image: pageImageFor(page.entry) });
 }
 
 export default async function FinancingPage({ params }: Props) {

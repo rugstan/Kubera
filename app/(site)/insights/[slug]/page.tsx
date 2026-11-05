@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { InsightPage } from "@/components/insights/InsightPage";
 import { getInsight, INSIGHTS, insightPath } from "@/content/insights";
 import { pageMetadata } from "@/lib/seo/metadata";
+import { insightImage } from "@/lib/seo/og";
 
 // The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
 // rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const insight = getInsight(slug);
   // An unknown slug is a 404, not a page with empty metadata.
   if (!insight) notFound();
-  const base = pageMetadata({ title: insight.metaTitle, description: insight.description, path: insightPath(slug) });
+  const base = pageMetadata({ title: insight.metaTitle, description: insight.description, path: insightPath(slug), image: insightImage(insight.related) });
   return {
     ...base,
     // Articles carry their own dates and section, which is what search and social cards read.

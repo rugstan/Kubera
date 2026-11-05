@@ -10,10 +10,11 @@ import { DEAL_STRUCTURES } from "@/content/deal-structures";
 import { TRUST_PAGES } from "@/content/trust-pages";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
+import { structureImage } from "@/content/images";
 
 const meta = TRUST_PAGES.structures;
 
-export const metadata: Metadata = pageMetadata({ title: meta.title, description: meta.description, path: meta.path });
+export const metadata: Metadata = pageMetadata({ title: meta.title, description: meta.description, path: meta.path, image: structureImage(DEAL_STRUCTURES[0]!.slug) });
 
 export default function StructuresPage() {
   return (

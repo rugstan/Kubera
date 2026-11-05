@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const s = getDealStructure(slug);
   // An unknown slug is a 404, not a page with empty metadata.
   if (!s) notFound();
-  return pageMetadata({ title: s.metaTitle, description: s.summary, path: structurePath(s.slug) });
+  return pageMetadata({ title: s.metaTitle, description: s.summary, path: structurePath(s.slug), image: structureImage(s.slug) });
 }
 
 export default async function StructurePage({ params }: { params: Promise<{ slug: string }> }) {
