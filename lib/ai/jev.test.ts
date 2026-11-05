@@ -406,6 +406,35 @@ describe("Jev: financing-page leads (partial intake)", () => {
     }
   });
 
+  it("files an office lead under a commercial structure, never a multifamily or HUD program", () => {
+    const r = decideWithRules(partial("OFFICE", "PURCHASE"), rates);
+    expect(r.decision.primaryProgramFit).toBe("WHITE_LABEL_CRE_BRIDGE");
+    expect(r.decision.recommendedWholesaleLenders.length).toBeGreaterThan(0);
+    expect(r.decision.secondaryProgramFit).not.toBe(r.decision.primaryProgramFit);
+  });
+
+  it("files every financing-page lead under a structure for its own kind of property", () => {
+    const allowed: Record<string, RegExp> = {
+      SENIOR_LIVING_CARE: /^(HUD_232_|BRIDGE_TO_HUD_232|SBA_504)/,
+      HOSPITALITY_HOTEL: /^(SBA_504|HOSPITALITY_|CONSTRUCTION_|WHITE_LABEL_CRE_BRIDGE)/,
+      HOTEL_TO_CARE_CONVERSION: /^(BRIDGE_TO_HUD_232|WHITE_LABEL_CRE_BRIDGE)$/,
+      MULTIFAMILY: /^(HUD_221D4|HUD_223A7|AGENCY_|WHITE_LABEL_CRE_BRIDGE|DSCR_INVESTOR_5_PLUS)/,
+      RESIDENTIAL_INVESTOR: /^(DSCR_INVESTOR_|HARD_MONEY)/,
+      HARD_MONEY_PRIVATE: /^HARD_MONEY$/,
+      GENERAL_CRE_OR_CONSTRUCTION: /^(WHITE_LABEL_CRE_BRIDGE|CONSTRUCTION_|SBA_504)/,
+    };
+    for (const assetType of ALL_TYPES) {
+      for (const transaction of ["PURCHASE", "REFINANCE", "CONSTRUCTION", "OTHER"] as const) {
+        const intake = partial(assetType, transaction);
+        const { decision } = decideWithRules(intake, rates);
+        expect(decision.primaryProgramFit, `${assetType} ${transaction} (${decision.assetVertical})`).toMatch(allowed[decision.assetVertical]!);
+        if (transaction === "CONSTRUCTION" && decision.assetVertical === "GENERAL_CRE_OR_CONSTRUCTION") {
+          expect(decision.primaryProgramFit, `${assetType} construction`).toMatch(/^CONSTRUCTION_/);
+        }
+      }
+    }
+  });
+
   it("says when an 'Other' transaction was sized as a refinance", () => {
     const intake = partial("RETAIL", "OTHER");
     expect(intake.transaction).toBe("REFINANCE");
