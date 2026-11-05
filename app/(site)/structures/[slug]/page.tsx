@@ -13,6 +13,7 @@ import { TRUST_PAGES } from "@/content/trust-pages";
 import { ASSUMPTIONS_REVIEWED } from "@/lib/sizing/assumptions";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
 
 // The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
 // rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
@@ -53,7 +54,12 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
     <PageShell
       eyebrow={`Illustrative structure · ${s.program}`}
       title={`${s.amount} ${s.asset}`}
-      intro={<p>{s.situation}</p>}
+      intro={
+        <>
+          <p>{s.situation}</p>
+          <UpdatedLine path={path} />
+        </>
+      }
       breadcrumb={[
         { href: TRUST_PAGES.structures.path, label: "Representative structures" },
         { href: path, label: s.asset },

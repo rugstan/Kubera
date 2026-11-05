@@ -73,6 +73,7 @@ export const insightRoutes: SitemapRoute[] = [
     description: INSIGHTS_INDEX.description,
     changeFrequency: "weekly",
     priority: 0.7,
+    lastModified: INSIGHTS.map((i) => i.updated).sort().at(-1),
     section: "Resources",
   },
   ...INSIGHTS.map(

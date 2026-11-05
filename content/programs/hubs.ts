@@ -60,7 +60,7 @@ export const hubs: HubEntry[] = [
       "Compare SBA 504, 7(a) + 504 stacks, hotel CMBS and PIP bridge loans for flagged and independent hotels. Advisor-led, licensed California broker.",
     summary: "SBA, CMBS and bridge options for hotel owners and buyers.",
     definition:
-      "Hotel financing is commercial real estate debt secured by a lodging property, underwritten on the hotel's operating performance (ADR, occupancy, RevPAR), franchise standing and property condition. Programs differ in recourse, leverage and flexibility.",
+      "Hotel financing is commercial real estate debt secured by a lodging property, underwritten on the hotel's operating performance (ADR, occupancy, RevPAR), franchise standing and property condition. Programs differ in recourse, leverage and flexibility. Corin arranges SBA 504 and 7(a), hotel CMBS, PIP bridge and bank loans for flagged and independent hotels as a licensed broker, not a lender.",
     sections: [
       {
         heading: "How to choose a path",

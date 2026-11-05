@@ -9,6 +9,7 @@ import type { HubEntry, ProgramEntry } from "@/content/programs";
 import { LeadForm } from "./LeadForm";
 import { CtaBand, CtaLinks, FaqList, HeroImage, KeyFactsCard, PageHero, ProgramDisclosures, RelatedPages, RequestLink, Sections, SideCtaCard } from "./parts";
 import { hubBreadcrumbs, hubJsonLd, programBreadcrumbs, programJsonLd } from "./schema";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
 
 // Layout shared by the hub and program pages, in the site container:
 //   1. Hero: breadcrumbs, eyebrow, H1, definition and actions on the left, the
@@ -47,6 +48,56 @@ function FamilyList({ family, currentSlug, heading }: { family: ProgramEntry["fa
   );
 }
 
+/**
+ * The family's programs side by side: what each one is and its first two key
+ * facts, taken from the program pages (same figures, same as-of date). A
+ * question-shaped heading and a real table so search and answer engines can
+ * quote the comparison.
+ */
+function CompareTable({ family, label }: { family: ProgramEntry["family"]; label: string }) {
+  const members = programsInFamily(family);
+  if (members.length < 2) return null;
+  return (
+    <section aria-labelledby="compare-heading" className="mt-14">
+      <h2 id="compare-heading" className="text-2xl font-semibold md:text-3xl">
+        How do these {label.toLowerCase()} programs compare?
+      </h2>
+      <div className="mt-5 overflow-x-auto rounded-2xl border border-hairline">
+        <table className="w-full min-w-[36rem] text-left text-[15px]">
+          <caption className="sr-only">{label} loan programs compared: what each is and its key figures as of {AS_OF}</caption>
+          <thead className="bg-canvas text-[13px] font-semibold text-ink">
+            <tr>
+              <th scope="col" className="px-4 py-3">Program</th>
+              <th scope="col" className="px-4 py-3">What it is</th>
+              <th scope="col" className="px-4 py-3">Key figures</th>
+            </tr>
+          </thead>
+          <tbody>
+            {members.map((p) => (
+              <tr key={p.slug} className="border-t border-hairline align-top">
+                <th scope="row" className="px-4 py-3 font-semibold">
+                  <Link href={financingPath(p.slug)} className="text-ink underline decoration-hairline underline-offset-4 hover:decoration-ink">
+                    {p.name}
+                  </Link>
+                </th>
+                <td className="px-4 py-3 text-ink/85">{p.summary}</td>
+                <td className="px-4 py-3 text-ink/85">
+                  {p.facts.slice(0, 2).map((f) => (
+                    <span key={f.label} className="block">
+                      {f.label}: {f.value}
+                    </span>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-[13px] text-ink/70">Indicative figures as of {AS_OF}. Lenders set final terms after underwriting.</p>
+    </section>
+  );
+}
+
 function Hero({ entry, breadcrumbs }: { entry: ProgramEntry | HubEntry; breadcrumbs: BreadcrumbItem[] }) {
   // The program's own image, else the family's; none for a family without one yet (PENDING_IMAGES).
   const image = pageImageFor(entry);
@@ -57,6 +108,7 @@ function Hero({ entry, breadcrumbs }: { entry: ProgramEntry | HubEntry; breadcru
         <p className="eyebrow">{FAMILY_LABELS[entry.family]}</p>
         <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
         <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
+        <UpdatedLine path={financingPath(entry.slug)} />
         <div className="mt-6">
           <CtaLinks family={entry.family} />
           <RequestLink />
@@ -86,6 +138,7 @@ export function ProgramPage({ entry }: { entry: ProgramEntry }) {
             <div className={MAIN}>
               <Sections sections={entry.sections} />
               {entry.isHub && <FamilyList family={entry.family} currentSlug={entry.slug} heading="Programs we arrange" />}
+              {entry.isHub && <CompareTable family={entry.family} label={FAMILY_LABELS[entry.family]} />}
               <LeadForm family={entry.family} slug={entry.slug} />
               <FaqList faq={entry.faq} />
             </div>
@@ -113,6 +166,7 @@ export function HubPage({ entry }: { entry: HubEntry }) {
             </div>
             <div className={MAIN}>
               <FamilyList family={entry.family} heading="Programs we arrange" />
+              <CompareTable family={entry.family} label={FAMILY_LABELS[entry.family]} />
               <Sections sections={entry.sections} />
               <LeadForm family={entry.family} slug={entry.slug} />
               <FaqList faq={entry.faq} />

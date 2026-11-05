@@ -235,7 +235,7 @@ export const commercialPrograms: ProgramEntry[] = [
       "Self-storage financing for California facilities: bank, SBA, life company, CMBS and bridge options for stabilized, lease-up and expansion projects.",
     summary: "Debt for stabilized, lease-up and expanding self-storage facilities.",
     definition:
-      "A self-storage loan is a commercial mortgage secured by a storage facility and underwritten on income from month-to-month rentals, so lenders focus on occupancy trends, rental rates, operating expenses and the strength of the operator and its management platform.",
+      "A self-storage loan is a commercial mortgage secured by a storage facility and underwritten on income from month-to-month rentals, so lenders focus on occupancy trends, rental rates, operating expenses and the strength of the operator and its management platform. Bank, SBA, life company, CMBS and bridge lenders all finance storage, depending on occupancy and the business plan.",
     loanType: "Self-storage mortgage (brokered)",
     facts: [
       typicalLenders("Banks and credit unions, SBA lenders for owner-operators, life companies, CMBS conduits and debt funds"),
@@ -598,7 +598,7 @@ export const commercialPrograms: ProgramEntry[] = [
       "Life company loans offer long fixed-rate, often non-recourse debt for stabilized, lower-leverage commercial property. See who they lend to and what they need.",
     summary: "Long fixed-rate debt from insurers for stabilized, lower-leverage property.",
     definition:
-      "A life company loan is a permanent commercial mortgage from a life insurance company, which lends against high-quality, stabilized property at conservative leverage in exchange for long fixed-rate terms, competitive pricing and, often, a non-recourse structure.",
+      "A life company loan is a permanent commercial mortgage from a life insurance company, which lends against high-quality, stabilized property at conservative leverage in exchange for long fixed-rate terms, competitive pricing and, often, a non-recourse structure. It fits owners of well-leased property who value rate certainty over maximum loan proceeds.",
     loanType: "Life insurance company commercial mortgage (brokered)",
     facts: [
       fact("Typical property", "Stabilized, well-located property with strong tenancy and moderate leverage", SRC.market, { verify: false }),

@@ -23,7 +23,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       "HUD 221(d)(4) insures new construction and substantial rehab of multifamily with a long fixed term. See market-rate and affordable leverage and DSCR.",
     summary: "Non-recourse construction-to-permanent debt for new or substantially rehabilitated apartments.",
     definition:
-      "HUD 221(d)(4) is an FHA mortgage insurance program for the new construction or substantial rehabilitation of multifamily rental housing. A single HUD-insured loan funds construction and then converts to a long-term, fixed-rate, fully amortizing, non-recourse mortgage.",
+      "HUD 221(d)(4) is an FHA mortgage insurance program for the new construction or substantial rehabilitation of multifamily rental housing. A single HUD-insured loan funds construction and then converts to a long-term, fixed-rate, fully amortizing, non-recourse mortgage. It suits apartment developers who can accept HUD processing time in exchange for one loan from construction through permanent financing.",
     loanType: "FHA-insured multifamily construction mortgage (brokered)",
     loanTermYears: mf.s221d4.termYears,
     facts: [
@@ -78,7 +78,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       "HUD 223(f) refinances or acquires existing apartments with a long fixed-rate, non-recourse loan. See current LTV, DSCR and MIP for market-rate and affordable.",
     summary: "Long-term, fixed-rate, non-recourse refinance for existing apartment communities.",
     definition:
-      "HUD 223(f) is an FHA mortgage insurance program that finances the purchase or refinance of existing multifamily rental properties with a long-term, fixed-rate, fully amortizing, non-recourse loan, offered through HUD-licensed MAP lenders.",
+      `HUD 223(f) is an FHA mortgage insurance program that finances the purchase or refinance of existing multifamily rental properties with a long-term, fixed-rate, fully amortizing, non-recourse loan, offered through HUD-licensed MAP lenders. The term runs up to ${years(mf.s223f.termYears)}, and market-rate loans size to about ${pct(mf.s223f.maxLtv)} loan-to-value at a ${x(mf.s223f.minDscr)} minimum DSCR.`,
     loanType: "FHA-insured multifamily refinance mortgage (brokered)",
     loanTermYears: mf.s223f.termYears,
     facts: [
@@ -294,7 +294,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       "Multifamily bridge loans fund acquisitions and value-add business plans with floating, interest-only debt, then exit to agency or HUD financing.",
     summary: "Floating, interest-only debt for value-add apartment business plans.",
     definition:
-      "A multifamily bridge loan is a short-term, floating-rate, interest-only loan from a debt fund, bank or private lender that finances the acquisition, renovation or lease-up of an apartment property until it can refinance into permanent agency or HUD debt.",
+      `A multifamily bridge loan is a short-term, floating-rate, interest-only loan from a debt fund, bank or private lender that finances the acquisition, renovation or lease-up of an apartment property until it can refinance into permanent agency or HUD debt. Typical terms run about ${BRIDGE.cre.termMonths} months at up to ${pct(BRIDGE.cre.maxLtv)} loan-to-value.`,
     loanType: "Multifamily bridge loan (brokered)",
     facts: [
       fact("Max LTV", pct(BRIDGE.cre.maxLtv), SRC.corin),

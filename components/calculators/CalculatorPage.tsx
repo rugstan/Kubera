@@ -13,6 +13,7 @@ import { DscrCalculator } from "./DscrCalculator";
 import { HotelDebtYieldCalculator } from "./HotelDebtYieldCalculator";
 import { HudMipCalculator } from "./HudMipCalculator";
 import { Sba504Calculator } from "./Sba504Calculator";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
 
 /** Construction and hard money are sized on the homepage sizer; these cards open it on the right tab. */
 const SIZER_CARDS = [
@@ -76,6 +77,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
           <p className="eyebrow">Calculator</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
+          <UpdatedLine path={calculatorPath(entry.slug)} />
         </PageHero>
 
         <div className="mt-10">

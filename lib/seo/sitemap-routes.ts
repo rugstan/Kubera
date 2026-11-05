@@ -10,6 +10,7 @@ import { newsletterRoutes } from "@/content/newsletter";
 import { programRoutes } from "@/content/programs";
 import { ratesRoutes } from "@/content/rates";
 import { trustRoutes } from "@/content/trust-pages";
+import { contentUpdated } from "./content-dates";
 import { canonicalUrl } from "./hosts";
 
 export type SitemapSection = "Tools" | "Programs" | "Company" | "Legal" | "Resources";
@@ -79,7 +80,11 @@ export const sitemapSources: SitemapRoute[][] = [
   legalRoutes,
 ];
 
-/** Flattens the sources, normalizes trailing slashes and drops duplicate paths. */
+/**
+ * Flattens the sources, normalizes trailing slashes and drops duplicate paths.
+ * A route without its own `lastModified` takes its section's content date
+ * (lib/seo/content-dates.ts); the insights index takes its newest article's.
+ */
 export function allSitemapRoutes(sources: SitemapRoute[][] = sitemapSources): SitemapRoute[] {
   const seen = new Set<string>();
   const out: SitemapRoute[] = [];
@@ -87,7 +92,8 @@ export function allSitemapRoutes(sources: SitemapRoute[][] = sitemapSources): Si
     const path = route.path === "/" ? "/" : route.path.replace(/\/+$/, "");
     if (seen.has(path)) continue;
     seen.add(path);
-    out.push({ ...route, path });
+    const lastModified = route.lastModified ?? contentUpdated(path);
+    out.push({ ...route, path, ...(lastModified ? { lastModified } : {}) });
   }
   return out;
 }

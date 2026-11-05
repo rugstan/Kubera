@@ -5,6 +5,7 @@ import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { MAIN_COLUMN, PageContainer, SIDEBAR_GRID, SIDE_COLUMN } from "@/components/site/PageContainer";
 import { CALIFORNIA_BASE, CALIFORNIA_INDEX, MARKETS, getMarket, marketDisclaimer, marketPath, type MarketPage as MarketEntry } from "@/content/markets/california";
 import { collectionSchema, marketServiceSchema } from "@/lib/growth/schemas";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
 
 // Laid out like the financing pages: the hero, then the sections and FAQ in
 // the main column beside the local figures and a sticky call to action, then
@@ -32,6 +33,7 @@ export function MarketPage({ entry }: { entry: MarketEntry }) {
             <p className="eyebrow">California markets</p>
             <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name} commercial real estate loans</h1>
             <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
+            <UpdatedLine path={marketPath(entry.slug)} />
             <div className="mt-6">
               <CtaLinks />
             </div>
