@@ -14,7 +14,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
     // Named for the family it heads, as in the menu ("Hard money and bridge"),
     // because this page is also the family hub.
     name: "Hard money and bridge loans",
-    title: "Hard money and bridge loans",
+    title: "Hard money and bridge loans in California",
     description:
       "Hard money and private bridge loans are short-term, asset-based loans for fast closings. See typical rates, points, leverage, extensions and exit costs.",
     summary: "Short-term, asset-based private loans for speed and flexibility.",
@@ -84,7 +84,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
     slug: "fix-and-flip",
     family: "hard-money",
     name: "Fix-and-flip loans",
-    title: "Fix-and-flip loans",
+    title: "Fix-and-flip loans in California",
     description:
       "Fix-and-flip loans fund a purchase and a rehab budget, sized on as-is value and after-repair value. See leverage, holdbacks, points and exit costs.",
     summary: "Purchase-plus-rehab financing sized on as-is and after-repair value.",
@@ -140,7 +140,7 @@ export const hardMoneyPrograms: ProgramEntry[] = [
     slug: "private-bridge",
     family: "hard-money",
     name: "Private bridge loans",
-    title: "Private bridge loans",
+    title: "Private bridge loans in California",
     description:
       "Private bridge loans from debt funds and private lenders finance acquisitions, transitions and repositionings. See leverage, term, pricing and exit planning.",
     summary: "Short-term floating debt from private lenders and debt funds.",

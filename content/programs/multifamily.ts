@@ -183,7 +183,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
     slug: "fannie-mae-multifamily",
     family: "multifamily",
     name: "Fannie Mae multifamily",
-    title: "Fannie Mae multifamily loans",
+    title: "Fannie Mae apartment loans in California",
     description:
       "Fannie Mae multifamily loans offer fixed or floating non-recourse debt on stabilized apartments. See small-loan leverage, DSCR, terms and how they compare.",
     summary: "Fixed-rate, non-recourse agency loans for stabilized apartment communities.",
@@ -238,7 +238,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
     slug: "freddie-mac-multifamily",
     family: "multifamily",
     name: "Freddie Mac multifamily",
-    title: "Freddie Mac multifamily loans",
+    title: "Freddie Mac apartment loans in California",
     description:
       "Freddie Mac multifamily loans give non-recourse fixed-rate debt on stabilized apartments. See small-balance leverage, DSCR and how Freddie compares with Fannie.",
     summary: "Fixed-rate, non-recourse agency loans from Freddie Mac's lender network.",
@@ -289,7 +289,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
     slug: "multifamily-bridge",
     family: "multifamily",
     name: "Multifamily bridge",
-    title: "Multifamily bridge loans",
+    title: "Multifamily bridge loans in California",
     description:
       "Multifamily bridge loans fund acquisitions and value-add business plans with floating, interest-only debt, then exit to agency or HUD financing.",
     summary: "Floating, interest-only debt for value-add apartment business plans.",
@@ -339,7 +339,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
     slug: "dscr-investor",
     family: "multifamily",
     name: "DSCR investor loans",
-    title: "DSCR investor loans",
+    title: "DSCR rental property loans in California",
     description:
       "DSCR investor loans qualify rental properties on property cash flow, not personal income. See how DSCR is calculated and which boxes fit 2-4 unit and 5+ unit.",
     summary: "Rental property loans underwritten on the property's debt service coverage.",

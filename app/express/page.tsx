@@ -10,7 +10,7 @@ import { disclosures, licenseLine } from "@/lib/site";
 // One canonical for the qualifier: the main-site URL. kubera.loans serves the same
 // page at `/` but is noindex (proxy.ts) and points here.
 export const metadata: Metadata = pageMetadata({
-  title: "60-second deal qualifier",
+  title: "60-second commercial loan deal qualifier",
   description:
     "Tell us about your senior living, hotel, multifamily, commercial property, construction or hard money deal. A licensed advisor maps the programs that may fit.",
   path: "/express",

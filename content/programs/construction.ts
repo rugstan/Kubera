@@ -14,7 +14,7 @@ export const constructionPrograms: ProgramEntry[] = [
     slug: "construction-loans",
     family: "construction",
     name: "Construction loans",
-    title: "Commercial construction loans",
+    title: "Ground-up commercial construction loans",
     description:
       "Commercial construction loans fund ground-up and heavy renovation projects. Compare bank, debt fund and private lender leverage, pricing and interest reserves.",
     summary: "Ground-up and heavy-renovation financing from banks, debt funds and private lenders.",
@@ -133,7 +133,7 @@ export const constructionPrograms: ProgramEntry[] = [
     slug: "c-pace",
     family: "construction",
     name: "C-PACE",
-    title: "C-PACE commercial financing",
+    title: "California C-PACE commercial financing",
     description:
       "C-PACE finances energy, water and resilience improvements through a property tax assessment. Learn how it fits a construction or renovation capital stack.",
     summary: "Long-term assessment-based financing for qualifying building improvements.",

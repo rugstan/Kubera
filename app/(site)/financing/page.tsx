@@ -10,7 +10,7 @@ import { FAMILY_LABELS, FINANCING_BASE, financingPath, hubForFamily, PROGRAM_FAM
 import { pageMetadata } from "@/lib/seo/metadata";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Financing programs",
+  title: "Commercial real estate financing programs",
   description:
     "Every loan program Corin Commercial arranges: HUD, SBA, CMBS, agency, bridge, construction and hard money for senior living, hotels, multifamily and commercial.",
   path: FINANCING_BASE,

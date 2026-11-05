@@ -11,7 +11,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     slug: "hud-232",
     family: "senior-living",
     name: "HUD Section 232",
-    title: "HUD 232 senior housing loans",
+    title: "HUD 232 senior living loans in California",
     description:
       "HUD Section 232 insures long-term, non-recourse loans on assisted living, board and care, memory care and skilled nursing. See leverage, costs and fit.",
     summary: "FHA-insured, long-term, non-recourse debt for licensed healthcare real estate.",
@@ -194,7 +194,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     slug: "assisted-living",
     family: "senior-living",
     name: "Assisted living",
-    title: "Assisted living facility loans",
+    title: "Assisted living loans in California",
     description:
       "Financing paths for assisted living communities: HUD 232, SBA 504 for owner-operators, bank debt and bridge loans. Compare by size, seasoning and operator.",
     summary: "Compare HUD, SBA, bank and bridge options for assisted living communities.",
@@ -248,7 +248,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     slug: "rcfe",
     family: "senior-living",
     name: "California RCFE",
-    title: "California RCFE loans",
+    title: "RCFE loans for California care homes",
     description:
       "Loans for California residential care facilities for the elderly: Title 22 licensing, SBA 504 for owner-operators, HUD 232 for larger homes and bridge options.",
     summary: "Financing a California residential care facility for the elderly under Title 22.",
@@ -302,7 +302,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     slug: "memory-care",
     family: "senior-living",
     name: "Memory care",
-    title: "Memory care facility financing",
+    title: "Memory care facility loans in California",
     description:
       "How lenders finance memory care communities: licensing, staffing, HUD 232, SBA 504 and bridge loans for dementia care assisted living properties.",
     summary: "Loans for memory care and dementia care communities.",
@@ -355,7 +355,7 @@ export const seniorLivingPrograms: ProgramEntry[] = [
     slug: "skilled-nursing",
     family: "senior-living",
     name: "Skilled nursing",
-    title: "Skilled nursing facility loans",
+    title: "Skilled nursing loans in California",
     description:
       "Financing for skilled nursing facilities: HUD 232 long-term non-recourse debt, bridge loans and what lenders review for Medicaid and Medicare operators.",
     summary: "HUD 232, bridge and bank options for skilled nursing facilities.",

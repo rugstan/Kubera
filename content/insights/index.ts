@@ -10,6 +10,8 @@ export const INSIGHTS_BASE = "/insights";
 
 export const INSIGHTS_INDEX = {
   title: "Insights",
+  /** `<title>` text; `title` stays short for breadcrumbs. */
+  metaTitle: "Commercial real estate loan insights",
   description: "Plain-English analysis of HUD, SBA, CMBS and bridge loans for senior living, hotels and multifamily, plus guides to construction and hard money financing.",
 } as const;
 

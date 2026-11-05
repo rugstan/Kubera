@@ -37,7 +37,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "office-loans",
     family: "commercial",
     name: "Office building loans",
-    title: "Office building loans",
+    title: "Office building loans in California",
     description:
       "Office building loans for California owners and buyers. Compare bank, life company, CMBS and bridge options, and see how lenders weigh leases and rollover.",
     summary: "Bank, life company, CMBS and bridge debt for office buildings.",
@@ -102,7 +102,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "industrial-loans",
     family: "commercial",
     name: "Industrial and warehouse loans",
-    title: "Industrial and warehouse loans",
+    title: "Industrial property loans in California",
     description:
       "Financing for California warehouse, distribution, flex and light industrial property. Compare bank, life company, CMBS, SBA and bridge loans.",
     summary: "Debt for warehouse, distribution, flex and light industrial buildings.",
@@ -166,7 +166,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "retail-loans",
     family: "commercial",
     name: "Retail property loans",
-    title: "Retail property loans",
+    title: "Retail property loans in California",
     description:
       "Loans for California shopping centers, strip retail and single-tenant net lease buildings. Compare bank, life company, CMBS and bridge options.",
     summary: "Debt for strip centers, anchored centers and single-tenant net lease retail.",
@@ -230,7 +230,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "self-storage-loans",
     family: "commercial",
     name: "Self-storage loans",
-    title: "Self-storage loans",
+    title: "Self-storage loans in California",
     description:
       "Self-storage financing for California facilities: bank, SBA, life company, CMBS and bridge options for stabilized, lease-up and expansion projects.",
     summary: "Debt for stabilized, lease-up and expanding self-storage facilities.",
@@ -288,7 +288,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "medical-office-loans",
     family: "commercial",
     name: "Medical office building loans",
-    title: "Medical office building loans",
+    title: "Medical office loans in California",
     description:
       "Financing for medical office buildings and outpatient clinics in California: bank, SBA, life company and CMBS options for investors and physician owners.",
     summary: "Debt for medical office buildings, clinics and outpatient space.",
@@ -346,7 +346,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "mixed-use-loans",
     family: "commercial",
     name: "Mixed-use property loans",
-    title: "Mixed-use property loans",
+    title: "Mixed-use property loans in California",
     description:
       "Loans for California mixed-use buildings with apartments over retail or office. See how lenders weigh residential and commercial income and which programs fit.",
     summary: "Debt for buildings that combine apartments with retail or office space.",
@@ -399,7 +399,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "mobile-home-park-loans",
     family: "commercial",
     name: "Manufactured housing communities",
-    title: "Mobile home park and MHC loans",
+    title: "Mobile home park loans in California",
     description:
       "Financing for California mobile home parks and manufactured housing communities: agency, bank, CMBS and bridge options, and how local rent rules affect sizing.",
     summary: "Debt for mobile home parks and manufactured housing communities.",
@@ -527,7 +527,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "mezzanine-preferred-equity",
     family: "commercial",
     name: "Mezzanine and preferred equity",
-    title: "Mezzanine and preferred equity",
+    title: "Mezzanine loans and preferred equity",
     description:
       "Mezzanine loans and preferred equity fill the gap between a senior loan and sponsor equity. See how each is structured, priced and secured in a capital stack.",
     summary: "Subordinate capital that fills the gap between senior debt and common equity.",
@@ -593,7 +593,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "life-company-loans",
     family: "commercial",
     name: "Life company loans",
-    title: "Life insurance company loans",
+    title: "Life insurance company commercial loans",
     description:
       "Life company loans offer long fixed-rate, often non-recourse debt for stabilized, lower-leverage commercial property. See who they lend to and what they need.",
     summary: "Long fixed-rate debt from insurers for stabilized, lower-leverage property.",
@@ -712,7 +712,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "cmbs-loans",
     family: "commercial",
     name: "CMBS conduit loans",
-    title: "CMBS conduit loans",
+    title: "CMBS conduit loans in California",
     description: `CMBS conduit loans offer ${years(CMBS.termYears)} fixed, non-recourse debt for stabilized commercial property. See how conduits size loans and the trade-offs after closing.`,
     summary: "Fixed-rate, non-recourse conduit debt for stabilized commercial property.",
     definition:
@@ -766,7 +766,7 @@ export const commercialPrograms: ProgramEntry[] = [
     slug: "debt-fund-bridge-loans",
     family: "commercial",
     name: "Debt fund bridge loans",
-    title: "Debt fund bridge loans",
+    title: "Debt fund bridge loans in California",
     description:
       "Debt fund bridge loans finance commercial property in transition: lease-up, renovation or a maturing loan. See leverage, term, pricing and the exit test.",
     summary: "Floating-rate transitional debt from institutional debt funds.",
