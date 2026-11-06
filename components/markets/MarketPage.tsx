@@ -4,7 +4,9 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { MAIN_COLUMN, PageContainer, SIDEBAR_GRID, SIDE_COLUMN } from "@/components/site/PageContainer";
 import { CALIFORNIA_BASE, CALIFORNIA_INDEX, MARKETS, getMarket, marketDisclaimer, marketPath, type MarketPage as MarketEntry } from "@/content/markets/california";
-import { marketServiceSchema } from "@/lib/growth/schemas";
+import { collectionSchema, marketServiceSchema } from "@/lib/growth/schemas";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
+import { RelatedInsights } from "@/components/insights/RelatedInsights";
 
 // Laid out like the financing pages: the hero, then the sections and FAQ in
 // the main column beside the local figures and a sticky call to action, then
@@ -32,6 +34,7 @@ export function MarketPage({ entry }: { entry: MarketEntry }) {
             <p className="eyebrow">California markets</p>
             <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name} commercial real estate loans</h1>
             <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
+            <UpdatedLine path={marketPath(entry.slug)} />
             <div className="mt-6">
               <CtaLinks />
             </div>
@@ -57,6 +60,7 @@ export function MarketPage({ entry }: { entry: MarketEntry }) {
             </div>
           </div>
           <RelatedPages slugs={entry.relatedPrograms} heading="Programs we arrange here" />
+          <RelatedInsights path={marketPath(entry.slug)} />
           <section aria-labelledby="nearby-heading" className="mt-14">
             <h2 id="nearby-heading" className="text-2xl font-semibold md:text-3xl">
               Other California markets
@@ -88,7 +92,12 @@ export function CaliforniaIndex() {
   ];
   return (
     <>
-      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd
+        data={[
+          breadcrumbSchema(crumbs),
+          collectionSchema({ name: CALIFORNIA_INDEX.title, description: CALIFORNIA_INDEX.description, path: CALIFORNIA_BASE, items: MARKETS.map((m) => ({ name: m.name, path: marketPath(m.slug) })) }),
+        ]}
+      />
       <PageContainer className="py-12 md:py-20">
         <PageHero breadcrumbs={crumbs}>
           <p className="eyebrow">California markets</p>

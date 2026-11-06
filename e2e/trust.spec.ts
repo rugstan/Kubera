@@ -168,7 +168,7 @@ test.describe("trust pages", () => {
     for (const name of ["About Corin", "Representative structures", "Contact"]) {
       await expect(footer.getByRole("link", { name })).toBeVisible();
     }
-    // The e2e build has no published closings and only a placeholder advisor, so the
+    // The e2e build has no published closings and no officer DRE number (so the advisor card is hidden), so the
     // two proof pages stay out of the footer until they have something to show.
     await expect(footer.getByRole("link", { name: "Track record", exact: true })).toHaveCount(0);
     await expect(footer.getByRole("link", { name: "Our advisors", exact: true })).toHaveCount(0);

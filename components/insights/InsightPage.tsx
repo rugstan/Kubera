@@ -8,6 +8,8 @@ import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { NewsletterSignup } from "@/components/newsletter/NewsletterSignup";
 import { INSIGHTS_BASE, INSIGHTS_INDEX, insightAuthor, insightPath, readingMinutes, relatedInsights, wordCount, type Insight } from "@/content/insights";
 import { articleSchema } from "@/lib/growth/schemas";
+import { canonicalUrl } from "@/lib/seo/hosts";
+import { insightImage, ogImagePath } from "@/lib/seo/og";
 
 export function formatDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -26,6 +28,7 @@ export function insightJsonLd(i: Insight) {
       author,
       section: i.category,
       wordCount: wordCount(i),
+      image: canonicalUrl(ogImagePath(insightImage(i.related))),
     }),
     breadcrumbSchema([
       { name: "Home", path: "/" },

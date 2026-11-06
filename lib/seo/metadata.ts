@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { site } from "@/lib/site";
+import type { SiteImage } from "@/content/images";
 import { canonicalUrl } from "./hosts";
+import { shareImage } from "./og";
 
 export const MAX_TITLE_LENGTH = 60;
 export const MAX_DESCRIPTION_LENGTH = 160;
-
-// A page-level `openGraph` replaces the root `opengraph-image` file convention, so
-// the image is attached explicitly. It resolves against `metadataBase`.
-const SHARE_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "Corin Commercial: commercial real estate loan brokerage" };
 
 interface PageMetadataInput {
   /** Short page title; the root layout template appends the brand. */
@@ -17,6 +15,11 @@ interface PageMetadataInput {
   description: string;
   /** Path on the canonical site, e.g. `/express`. */
   path: string;
+  /**
+   * The page's own photo (content/images.ts). Its 1200x630 crop becomes the
+   * og:image and twitter:image; without one the brand card is used.
+   */
+  image?: SiteImage | null;
 }
 
 /** The title as it renders, given the root layout's `%s · Corin Commercial` template. */
@@ -32,11 +35,14 @@ export function renderedTitle({ title, absoluteTitle }: Pick<PageMetadataInput, 
 export function pageMetadata(input: PageMetadataInput): Metadata {
   const url = canonicalUrl(input.path);
   const full = renderedTitle(input);
+  // A page-level `openGraph` replaces the root `opengraph-image` file convention,
+  // so the image is always attached explicitly. It resolves against `metadataBase`.
+  const image = shareImage(input.image);
   return {
     title: input.absoluteTitle ? { absolute: input.absoluteTitle } : input.title,
     description: input.description,
     alternates: { canonical: url },
-    openGraph: { type: "website", siteName: site.name, locale: "en_US", url, title: full, description: input.description, images: [SHARE_IMAGE] },
-    twitter: { card: "summary_large_image", title: full, description: input.description, images: [SHARE_IMAGE.url] },
+    openGraph: { type: "website", siteName: site.name, locale: "en_US", url, title: full, description: input.description, images: [image] },
+    twitter: { card: "summary_large_image", title: full, description: input.description, images: [{ url: image.url, alt: image.alt, width: image.width, height: image.height }] },
   };
 }

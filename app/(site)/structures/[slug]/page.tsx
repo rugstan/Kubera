@@ -13,6 +13,7 @@ import { TRUST_PAGES } from "@/content/trust-pages";
 import { ASSUMPTIONS_REVIEWED } from "@/lib/sizing/assumptions";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
 
 // The rates job (app/api/cron/rates) expires the "rates" cache tag, which the
 // rate ticker in app/(site)/layout.tsx uses, so this page is rendered again
@@ -20,6 +21,12 @@ import { disclosures, licenseLine } from "@/lib/site";
 // Prefetching that render fails (NEXT_STATIC_GEN_BAILOUT, a 500) unless the
 // route may wait for its params, like `fallback: 'blocking'`.
 export const instant = false;
+
+// After the rates job a visit must re-render the whole page as static HTML.
+// Without this the stale path is answered from the route's generic fallback
+// shell plus a per-request resume, sent as `Cache-Control: private, no-store`
+// and about 60% heavier, which is what crawlers saw on most visits.
+export const ensureStatic = "navigation";
 
 // With Cache Components every slug must be listed up front; unknown slugs 404.
 export function generateStaticParams() {
@@ -31,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const s = getDealStructure(slug);
   // An unknown slug is a 404, not a page with empty metadata.
   if (!s) notFound();
-  return pageMetadata({ title: s.metaTitle, description: s.summary, path: structurePath(s.slug) });
+  return pageMetadata({ title: s.metaTitle, description: s.metaDescription, path: structurePath(s.slug), image: structureImage(s.slug) });
 }
 
 export default async function StructurePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -47,7 +54,12 @@ export default async function StructurePage({ params }: { params: Promise<{ slug
     <PageShell
       eyebrow={`Illustrative structure · ${s.program}`}
       title={`${s.amount} ${s.asset}`}
-      intro={<p>{s.situation}</p>}
+      intro={
+        <>
+          <p>{s.situation}</p>
+          <UpdatedLine path={path} />
+        </>
+      }
       breadcrumb={[
         { href: TRUST_PAGES.structures.path, label: "Representative structures" },
         { href: path, label: s.asset },

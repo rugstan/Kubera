@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalUrl, expressAction, isExpressHost, isPreviewDeployment, normalizeHost } from "./hosts";
+import { aliasHost, aliasRedirect, canonicalHost, canonicalUrl, classifyHost, expressAction, isExpressHost, isPreviewDeployment, normalizeHost } from "./hosts";
 
 describe("host detection", () => {
   it("normalizes ports, case and forwarded lists", () => {
@@ -60,5 +60,47 @@ describe("canonicalUrl", () => {
     expect(canonicalUrl("/express")).toMatch(/^https?:\/\/[^/]+\/express$/);
     expect(canonicalUrl("partners")).toMatch(/\/partners$/);
     expect(canonicalUrl("/express")).not.toContain("kubera.loans");
+  });
+});
+
+describe("classifyHost (keyed off the configured site URL)", () => {
+  const SITE = "https://corincommercial.com";
+
+  it("derives the canonical host and its www twin from the site URL", () => {
+    expect(canonicalHost(SITE)).toBe("corincommercial.com");
+    expect(aliasHost(SITE)).toBe("www.corincommercial.com");
+    expect(aliasHost("https://www.example.com")).toBe("example.com");
+    // A bare host such as localhost has no twin.
+    expect(aliasHost("http://localhost:3999")).toBe("");
+  });
+
+  it("sorts request hosts into canonical, alias, express and other", () => {
+    expect(classifyHost("corincommercial.com", {}, SITE)).toBe("canonical");
+    expect(classifyHost("CorinCommercial.com:443", {}, SITE)).toBe("canonical");
+    expect(classifyHost("www.corincommercial.com", {}, SITE)).toBe("alias");
+    expect(classifyHost("kubera.loans", {}, SITE)).toBe("express");
+    expect(classifyHost("kubera-tau.vercel.app", {}, SITE)).toBe("other");
+    expect(classifyHost("203.0.113.7", {}, SITE)).toBe("other");
+    expect(classifyHost("localhost:3000", {}, SITE)).toBe("other");
+    // No host header at all (an internal request) is never treated as a duplicate.
+    expect(classifyHost(null, {}, SITE)).toBe("canonical");
+  });
+
+  it("keeps local runs indexable when the site URL is local (dev and e2e)", () => {
+    expect(classifyHost("localhost:3999", {}, "http://localhost:3999")).toBe("canonical");
+    expect(classifyHost("127.0.0.1", { EXPRESS_HOSTS: "127.0.0.1" }, "http://localhost:3999")).toBe("express");
+  });
+});
+
+describe("aliasRedirect", () => {
+  const SITE = "https://corincommercial.com";
+
+  it("301s GET and HEAD to the same path and query on the canonical host", () => {
+    expect(aliasRedirect("/financing/hud-232", "?utm_source=x&b=2", "GET", SITE)).toEqual({ url: "https://corincommercial.com/financing/hud-232?utm_source=x&b=2", status: 301 });
+    expect(aliasRedirect("/", "", "HEAD", SITE)).toEqual({ url: "https://corincommercial.com/", status: 301 });
+  });
+
+  it("uses 308 for other methods so a POST body is not dropped", () => {
+    expect(aliasRedirect("/api/qualify", "", "POST", SITE).status).toBe(308);
   });
 });

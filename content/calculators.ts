@@ -43,8 +43,8 @@ export const CALCULATORS: readonly CalculatorPage[] = [
   {
     slug: "dscr",
     name: "DSCR calculator",
-    title: "DSCR calculator",
-    description: "Find debt service coverage, debt yield and the largest loan your net operating income supports at a lender's required coverage.",
+    title: "DSCR calculator for commercial loans",
+    description: "Free DSCR calculator: find debt service coverage, debt yield and the largest loan your net operating income supports at a lender's required coverage.",
     summary: "Coverage, debt yield and maximum loan from net operating income, rate and amortization.",
     definition:
       "Debt service coverage ratio (DSCR) is a property's annual net operating income divided by its annual loan payments. A DSCR of 1.25x means the property earns $1.25 for every $1.00 it owes the lender each year. Most commercial lenders set a minimum, and on many deals coverage, not loan-to-value, is the limit that decides how much you can borrow.",
@@ -71,8 +71,8 @@ export const CALCULATORS: readonly CalculatorPage[] = [
   {
     slug: "hud-mip",
     name: "HUD MIP calculator",
-    title: "HUD MIP calculator",
-    description: "Estimate the HUD mortgage insurance premium for 223(f), 221(d)(4) and Section 232 loans: upfront and annual MIP, payment and ten-year cost.",
+    title: "HUD mortgage insurance (MIP) calculator",
+    description: "Estimate the HUD mortgage insurance premium for 223(f), 221(d)(4) and Section 232 loans: upfront and annual MIP, the payment with MIP and the ten-year cost.",
     summary: "Upfront and annual HUD mortgage insurance premium and the payment with MIP.",
     definition:
       "The HUD mortgage insurance premium (MIP) is the fee a borrower pays for FHA insurance on a HUD-insured multifamily or healthcare loan. It has two parts: an upfront premium paid at closing, and an annual premium charged as a percentage of the average outstanding principal balance and collected monthly with the payment.",
@@ -98,7 +98,7 @@ export const CALCULATORS: readonly CalculatorPage[] = [
   {
     slug: "sba-504",
     name: "SBA 504 calculator",
-    title: "SBA 504 calculator",
+    title: "SBA 504 loan and debenture calculator",
     description: "Model an SBA 504 loan: the bank first lien, the CDC debenture, your equity injection, blended rate, payments and coverage for a project cost.",
     summary: "Bank, debenture and equity split for an SBA 504 project, with payments and coverage.",
     definition:
@@ -124,7 +124,7 @@ export const CALCULATORS: readonly CalculatorPage[] = [
   {
     slug: "hotel-debt-yield",
     name: "Hotel debt yield calculator",
-    title: "Hotel debt yield calculator",
+    title: "Hotel debt yield and loan size calculator",
     description: "Calculate a hotel's debt yield, RevPAR and loan per key, and see the largest CMBS loan across the debt yield, coverage and loan-to-value limits.",
     summary: "Debt yield, RevPAR and the largest hotel CMBS loan across the three limits.",
     definition:
@@ -158,7 +158,7 @@ export function calculatorPath(slug: string): string {
 }
 
 export const CALCULATORS_INDEX = {
-  title: "Commercial loan calculators",
+  title: "Commercial real estate loan calculators",
   description: "Free calculators for DSCR, HUD mortgage insurance, SBA 504 and hotel debt yield, plus construction and hard money sizers on the same Corin assumptions.",
 } as const;
 

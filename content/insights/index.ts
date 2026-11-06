@@ -10,6 +10,8 @@ export const INSIGHTS_BASE = "/insights";
 
 export const INSIGHTS_INDEX = {
   title: "Insights",
+  /** `<title>` text; `title` stays short for breadcrumbs. */
+  metaTitle: "Commercial real estate loan insights",
   description: "Plain-English analysis of HUD, SBA, CMBS and bridge loans for senior living, hotels and multifamily, plus guides to construction and hard money financing.",
 } as const;
 
@@ -56,6 +58,15 @@ export function insightAuthor(): { name: string; jobTitle: string; path: string 
   return { name: officer.name, jobTitle: officer.title, path: "/team" };
 }
 
+/**
+ * Articles whose "read next" links point at `path` (e.g. `/calculators/dscr`),
+ * newest first. Lets a program, calculator or city page link back to the
+ * articles that cite it, so no article depends on the /insights index alone.
+ */
+export function insightsLinkingTo(path: string): Insight[] {
+  return insightsNewestFirst().filter((i) => i.related.some((r) => r.href.split("#")[0] === path));
+}
+
 /** Articles that share a category with `slug`, then the rest, up to `limit`. */
 export function relatedInsights(slug: string, limit = 3): Insight[] {
   const current = getInsight(slug);
@@ -71,6 +82,7 @@ export const insightRoutes: SitemapRoute[] = [
     description: INSIGHTS_INDEX.description,
     changeFrequency: "weekly",
     priority: 0.7,
+    lastModified: INSIGHTS.map((i) => i.updated).sort().at(-1),
     section: "Resources",
   },
   ...INSIGHTS.map(

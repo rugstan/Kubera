@@ -44,6 +44,19 @@ describe("sitemap", () => {
     expect(routes.map((r) => r.path)).toEqual(["/a", "/"]);
   });
 
+  it("dates every page from its content, never from the build clock", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const dated = entries.filter((e) => e.lastModified);
+    // Only /rates, whose figures change every business day, has no date.
+    expect(entries.filter((e) => !e.lastModified).map((e) => new URL(e.url).pathname)).toEqual(["/rates"]);
+    for (const e of dated) {
+      expect(String(e.lastModified), e.url).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(String(e.lastModified) <= today, `${e.url} is dated in the future`).toBe(true);
+    }
+    // A build-time "now" would give every page the same date.
+    expect(new Set(dated.map((e) => e.lastModified)).size).toBeGreaterThan(2);
+  });
+
   it("omits lastModified unless known", () => {
     expect(toSitemap([{ path: "/x", title: "X" }])[0]).not.toHaveProperty("lastModified");
     expect(toSitemap([{ path: "/x", title: "X", lastModified: "2026-01-01" }])[0]).toHaveProperty("lastModified", "2026-01-01");

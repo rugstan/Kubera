@@ -13,7 +13,7 @@ export const hubs: HubEntry[] = [
     slug: "senior-living",
     family: "senior-living",
     name: "Senior living financing",
-    title: "Senior living financing",
+    title: "Senior living financing in California",
     description:
       "Compare HUD 232, bridge-to-HUD, SBA 504 and bank loans for assisted living, RCFE, memory care and skilled nursing. Advisor-led, licensed California broker.",
     summary: "HUD, SBA, bridge and bank options for senior living owners.",
@@ -55,12 +55,12 @@ export const hubs: HubEntry[] = [
     slug: "hotels",
     family: "hotels",
     name: "Hotel financing",
-    title: "Hotel financing",
+    title: "Hotel loans in California: SBA, CMBS, PIP",
     description:
       "Compare SBA 504, 7(a) + 504 stacks, hotel CMBS and PIP bridge loans for flagged and independent hotels. Advisor-led, licensed California broker.",
     summary: "SBA, CMBS and bridge options for hotel owners and buyers.",
     definition:
-      "Hotel financing is commercial real estate debt secured by a lodging property, underwritten on the hotel's operating performance (ADR, occupancy, RevPAR), franchise standing and property condition. Programs differ in recourse, leverage and flexibility.",
+      "Hotel financing is commercial real estate debt secured by a lodging property, underwritten on the hotel's operating performance (ADR, occupancy, RevPAR), franchise standing and property condition. Programs differ in recourse, leverage and flexibility. Corin arranges SBA 504 and 7(a), hotel CMBS, PIP bridge and bank loans for flagged and independent hotels as a licensed broker, not a lender.",
     sections: [
       {
         heading: "How to choose a path",
@@ -97,7 +97,7 @@ export const hubs: HubEntry[] = [
     slug: "multifamily",
     family: "multifamily",
     name: "Multifamily financing",
-    title: "Multifamily financing",
+    title: "Multifamily loans in California",
     description:
       "Compare HUD 223(f) and 221(d)(4), Fannie Mae, Freddie Mac, bridge and DSCR investor loans for apartments. Advisor-led, licensed California broker.",
     summary: "HUD, agency, bridge and DSCR options for apartment owners.",
@@ -140,7 +140,7 @@ export const hubs: HubEntry[] = [
     slug: "commercial",
     family: "commercial",
     name: "Commercial property financing",
-    title: "Commercial property financing",
+    title: "Commercial property loans in California",
     description:
       "Compare bank, life company, CMBS, debt fund bridge and mezzanine options for office, industrial, retail, self-storage and more. Licensed broker, not a lender.",
     summary: "Bank, life company, CMBS, bridge and mezzanine options for income property.",
@@ -191,7 +191,7 @@ export const hubs: HubEntry[] = [
     slug: "construction",
     family: "construction",
     name: "Construction financing",
-    title: "Construction financing",
+    title: "Construction financing in California",
     description:
       "Compare bank, debt fund, private, HUD construction-to-permanent and C-PACE options for ground-up and heavy renovation projects. Licensed broker, not a lender.",
     summary: "Bank, debt fund, HUD and C-PACE options for construction projects.",

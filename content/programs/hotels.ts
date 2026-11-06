@@ -11,7 +11,7 @@ export const hotelPrograms: ProgramEntry[] = [
     slug: "sba-504-hotel",
     family: "hotels",
     name: "SBA 504 hotel loans",
-    title: "SBA 504 hotel loans",
+    title: "SBA 504 hotel loans in California",
     description:
       "SBA 504 pairs a bank first lien with a long-term fixed CDC debenture for owner-operated hotels. See equity, caps, fees and how a hotel qualifies.",
     summary: `Bank first lien plus a ${years(SBA.cdcAmortYears)} fixed CDC debenture for owner-operated hotels.`,
@@ -74,7 +74,7 @@ export const hotelPrograms: ProgramEntry[] = [
     slug: "sba-7a-504-hotel-stack",
     family: "hotels",
     name: "SBA 7(a) + 504 hotel stack",
-    title: "SBA 7(a) + 504 hotel stack",
+    title: "SBA 7(a) + 504 hotel loan stack",
     description:
       "Combine an SBA 7(a) loan with a 504 debenture on larger hotel and care-facility projects. See the modeled exposure cap, fees and when the stack fits.",
     summary: "A combined 7(a) and 504 structure for larger hotel projects.",
@@ -135,7 +135,7 @@ export const hotelPrograms: ProgramEntry[] = [
     slug: "hotel-cmbs",
     family: "hotels",
     name: "Hotel CMBS",
-    title: "Hotel CMBS loans",
+    title: "Hotel CMBS conduit loans in California",
     description: `Hotel CMBS loans are ${years(CMBS.termYears)} fixed, non-recourse conduit debt for stabilized hotels. See leverage, debt yield, DSCR, loan size and prepayment.`,
     summary: "Fixed-rate, non-recourse conduit debt for stabilized hotels.",
     definition:
@@ -195,7 +195,7 @@ export const hotelPrograms: ProgramEntry[] = [
     slug: "pip-bridge",
     family: "hotels",
     name: "PIP bridge",
-    title: "Hotel PIP bridge loans",
+    title: "Hotel PIP bridge loans in California",
     description:
       "A PIP bridge funds a franchise property improvement plan with a floating, interest-only loan and renovation holdbacks, then exits to CMBS or SBA 504.",
     summary: "Floating, interest-only debt to complete a franchise renovation before a permanent takeout.",

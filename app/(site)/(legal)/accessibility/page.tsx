@@ -15,6 +15,7 @@ export default function AccessibilityPage() {
   return (
     <LegalPage
       title="Accessibility statement"
+      path="/accessibility"
       intro={
         <p>
           We want everyone to be able to use our sites, including people who use screen readers, keyboards, magnification, captions, or other assistive technology. Our goal is to

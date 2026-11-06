@@ -17,19 +17,19 @@ export interface TrustPageMeta {
 export const TRUST_PAGES = {
   about: {
     path: "/about",
-    title: "About us",
+    title: "About us: licensed California loan broker",
     description: "Corin Commercial is a licensed California real estate broker that arranges commercial loans. We are not a lender. See our licenses and how we work.",
     priority: 0.7,
   },
   team: {
     path: "/team",
-    title: "Our advisors",
-    description: "The licensed advisors who lead every Corin Commercial engagement, with their California DRE license numbers.",
+    title: "Our licensed commercial loan advisors",
+    description: "Meet the licensed advisors who lead every Corin Commercial engagement, starting with designated officer Neeli Khanna, and see their California DRE licenses.",
     priority: 0.5,
   },
   contact: {
     path: "/contact",
-    title: "Contact",
+    title: "Contact a commercial loan advisor",
     description: "Reach Corin Commercial by email, phone or scheduled call. See which mailbox to use for borrowers, lenders, partners, vendors and compliance.",
     priority: 0.7,
   },
@@ -64,7 +64,7 @@ export const trustRoutes: SitemapRoute[] = [
   ...DEAL_STRUCTURES.map((s) => ({
     path: structurePath(s.slug),
     title: s.metaTitle,
-    description: s.summary,
+    description: s.metaDescription,
     changeFrequency: "monthly" as const,
     priority: 0.5,
     section: "Programs" as const,

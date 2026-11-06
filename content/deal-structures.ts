@@ -45,8 +45,10 @@ export interface DealStructure {
   amount: string;
   asset: string;
   program: string;
-  /** One-sentence summary used on the home card and in metadata. */
+  /** One-sentence summary used on the home card and the /structures card. */
   summary: string;
+  /** Meta description, 140 to 160 characters; says the structure is illustrative. */
+  metaDescription: string;
   tags: readonly string[];
   gold?: boolean;
   /** The situation that makes this structure worth considering. */
@@ -129,6 +131,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     asset: "58-bed assisted living",
     program: "SBA 504 refinance",
     summary: "Below HUD's efficient size: 504 avoids six figures of HUD closing costs and the $20k/yr audit.",
+    metaDescription: "Illustrative SBA 504 refinance of a $2.5M, 58-bed assisted living community: a bank first lien plus a 25-year fixed CDC debenture, below HUD's efficient size.",
     tags: ["25-yr fixed CDC", "Bank 1st", "No HUD audit"],
     situation:
       "An owner-operator of a 58-bed assisted living community wants longer fixed-rate debt on a loan around $2.5 million. That is below the size where HUD's fixed costs usually make sense.",
@@ -174,6 +177,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     asset: "110-key flagged hotel + PIP",
     program: "SBA 504 Green $5.5M + Bank 1st",
     summary: "Acquisition with the franchise PIP financed in project cost under the energy-efficiency 504 cap.",
+    metaDescription: "Illustrative $14.5M purchase of a 110-key flagged hotel, with the franchise PIP financed in project cost under the SBA 504 energy-efficiency debenture cap.",
     tags: ["Premium flag", "15% equity", "PIP financed"],
     gold: true,
     situation:
@@ -218,6 +222,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     asset: "96-bed memory care",
     program: "Bridge-to-HUD 232/223(f)",
     summary: "Floating bridge through census lease-up, sized for a potential 35-year non-recourse HUD takeout.",
+    metaDescription: "Illustrative $16.8M bridge loan on a 96-bed memory care community: floating-rate debt through census lease-up, sized for a potential HUD 232 takeout.",
     tags: ["Interest-only", "Non-recourse", "HUD exit"],
     gold: true,
     situation:
@@ -261,6 +266,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     asset: "Boutique hotel → assisted living",
     program: "Conversion bridge · California",
     summary: "Acquisition plus RCFE conversion budget, with licensing and stabilization milestones built in.",
+    metaDescription: "Illustrative $9.2M bridge loan to buy a boutique hotel and convert it to assisted living, with RCFE licensing and stabilization milestones built in.",
     tags: ["Title 22 RCFE", "Value-add", "HUD 232 path"],
     situation:
       "A California operator wants to buy a boutique hotel and convert it to a residential care facility for the elderly (RCFE). The loan has to cover the purchase and the conversion work, and then carry the property through licensing and lease-up.",
@@ -300,6 +306,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     asset: "120-unit ground-up apartments",
     program: "Bank construction loan + C-PACE",
     summary: "A bank construction loan sized on cost, with C-PACE covering qualifying building systems and a permanent loan as the exit.",
+    metaDescription: "Illustrative $24M, 120-unit ground-up apartment build: a bank construction loan sized on cost, C-PACE for qualifying building systems and a permanent exit.",
     tags: ["Bank 1st", "C-PACE", "Perm takeout"],
     situation:
       "A developer with land and entitlements for a 120-unit apartment project needs construction financing with a clear permanent exit.",
@@ -339,6 +346,7 @@ const STRUCTURE_LIST: DealStructure[] = [
     asset: "8-unit apartment purchase and rehab",
     program: "Private lender · purchase + rehab",
     summary: "Short-term private loan for an investor buying and renovating an 8-unit building, sized on cost and after-repair value.",
+    metaDescription: "Illustrative $2.1M private hard money loan for an investor buying and renovating an 8-unit apartment building, sized on cost and after-repair value.",
     tags: ["Interest-only", "Rehab holdback", "Refi or sale exit"],
     situation:
       "An experienced investor is buying an 8-unit building that needs renovation before it can qualify for a bank or agency loan.",

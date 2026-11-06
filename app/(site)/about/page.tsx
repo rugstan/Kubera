@@ -15,7 +15,7 @@ import { disclosures, licenseLine, site } from "@/lib/site";
 
 const meta = TRUST_PAGES.about;
 
-export const metadata: Metadata = pageMetadata({ title: meta.title, description: meta.description, path: meta.path });
+export const metadata: Metadata = pageMetadata({ title: meta.title, description: meta.description, path: meta.path, image: ABOUT_IMAGE });
 
 const PRINCIPLES = [
   {

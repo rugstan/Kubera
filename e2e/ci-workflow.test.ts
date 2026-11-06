@@ -58,7 +58,19 @@ describe("CI workflow", () => {
 });
 
 describe("vercel.json", () => {
-  const vercel = JSON.parse(read("vercel.json")) as { framework?: string; crons: { path: string; schedule: string }[] };
+  const vercel = JSON.parse(read("vercel.json")) as {
+    framework?: string;
+    crons: { path: string; schedule: string }[];
+    redirects?: { source: string; has?: { type: string; value: string }[]; destination: string; permanent?: boolean }[];
+  };
+
+  it("sends the Vercel production alias to the canonical site, except the API its crons call", () => {
+    const rule = vercel.redirects?.find((r) => r.has?.some((h) => h.type === "host" && h.value === "kubera-tau.vercel.app"));
+    expect(rule).toMatchObject({ destination: "https://corincommercial.com/:path", permanent: true });
+    const pattern = new RegExp(`^/${rule!.source.match(/^\/:path\((.*)\)$/)![1]}$`);
+    for (const p of ["/", "/financing/hud-232", "/robots.txt", "/sitemap.xml"]) expect(pattern.test(p), p).toBe(true);
+    for (const p of ["/api/cron/rates", "/api/qualify"]) expect(pattern.test(p), p).toBe(false);
+  });
 
   it("pins the Next.js framework preset so git-triggered builds never fall back to a static build", () => {
     expect(vercel.framework).toBe("nextjs");

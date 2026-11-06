@@ -7,12 +7,14 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { breadcrumbSchema, faqSchema } from "@/components/seo/schemas";
 import { CALCULATORS, CALCULATORS_BASE, CALCULATORS_INDEX, calculatorPath, type CalculatorPage as CalculatorEntry } from "@/content/calculators";
 import { getTerm } from "@/content/glossary";
-import { webApplicationSchema } from "@/lib/growth/schemas";
+import { collectionSchema, webApplicationSchema } from "@/lib/growth/schemas";
 import { getMarketSnapshot } from "@/lib/rates";
 import { DscrCalculator } from "./DscrCalculator";
 import { HotelDebtYieldCalculator } from "./HotelDebtYieldCalculator";
 import { HudMipCalculator } from "./HudMipCalculator";
 import { Sba504Calculator } from "./Sba504Calculator";
+import { UpdatedLine } from "@/components/seo/UpdatedLine";
+import { RelatedInsights } from "@/components/insights/RelatedInsights";
 
 /** Construction and hard money are sized on the homepage sizer; these cards open it on the right tab. */
 const SIZER_CARDS = [
@@ -76,6 +78,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
           <p className="eyebrow">Calculator</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">{entry.name}</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink/85">{entry.definition}</p>
+          <UpdatedLine path={calculatorPath(entry.slug)} />
         </PageHero>
 
         <div className="mt-10">
@@ -110,6 +113,7 @@ export function CalculatorPage({ entry }: { entry: CalculatorEntry }) {
 
         <FaqList faq={entry.faq} columns={2} />
         <RelatedPages slugs={entry.relatedPrograms} heading="Related financing" />
+        <RelatedInsights path={calculatorPath(entry.slug)} />
 
         {terms.length > 0 && (
           <section aria-labelledby="terms-heading" className="mt-14">
@@ -159,7 +163,12 @@ export function CalculatorsIndex() {
   ];
   return (
     <>
-      <JsonLd data={breadcrumbSchema(crumbs)} />
+      <JsonLd
+        data={[
+          breadcrumbSchema(crumbs),
+          collectionSchema({ name: CALCULATORS_INDEX.title, description: CALCULATORS_INDEX.description, path: CALCULATORS_BASE, items: CALCULATORS.map((c) => ({ name: c.name, path: calculatorPath(c.slug) })) }),
+        ]}
+      />
       <PageContainer className="py-12 md:py-20">
         <PageHero breadcrumbs={crumbs}>
           <p className="eyebrow">Calculators</p>

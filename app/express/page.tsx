@@ -6,11 +6,13 @@ import { LEGAL_PAGES } from "@/components/legal/legal";
 import { PAGE_CONTAINER, PageContainer } from "@/components/site/PageContainer";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { disclosures, licenseLine } from "@/lib/site";
+import { JsonLd, SiteJsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbSchema } from "@/components/seo/schemas";
 
 // One canonical for the qualifier: the main-site URL. kubera.loans serves the same
 // page at `/` but is noindex (proxy.ts) and points here.
 export const metadata: Metadata = pageMetadata({
-  title: "60-second deal qualifier",
+  title: "60-second commercial loan deal qualifier",
   description:
     "Tell us about your senior living, hotel, multifamily, commercial property, construction or hard money deal. A licensed advisor maps the programs that may fit.",
   path: "/express",
@@ -30,6 +32,13 @@ export default function ExpressPage() {
     <div className="flex min-h-dvh flex-col">
       <ExpressHeader />
       <main id="main-content" className="flex-1 pb-16">
+        <SiteJsonLd />
+        <JsonLd
+          data={breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "60-second deal qualifier", path: "/express" },
+          ])}
+        />
         {/* From lg: the title and how it works on the left, the qualifier on the right across both rows
             (the second row takes any extra height, so the left column stays together). The DOM keeps
             title, qualifier, how it works, so a phone reaches the form first, as before. */}

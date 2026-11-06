@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildLlmsTxt } from "./llms";
+import { buildLlmsFullTxt, buildLlmsTxt } from "./llms";
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, pageMetadata, renderedTitle } from "./metadata";
 
 // Keep in sync with the metadata exports in app/(site)/page.tsx, partners/page.tsx and express/page.tsx.
 const PAGES = [
-  { title: "Commercial real estate loan broker", absoluteTitle: "Corin Commercial | Commercial Real Estate Loan Broker", path: "/" },
-  { title: "60-second deal qualifier", path: "/express" },
-  { title: "Partner portal", path: "/partners" },
+  { title: "Commercial real estate loan broker", absoluteTitle: "Corin Commercial | California Commercial Real Estate Loans", path: "/" },
+  { title: "60-second commercial loan deal qualifier", path: "/express" },
+  { title: "Lender, broker and vendor partner portal", path: "/partners" },
 ];
 
 describe("pageMetadata", () => {
@@ -26,7 +26,7 @@ describe("pageMetadata", () => {
   it("attaches the share image to openGraph and twitter", () => {
     const m = pageMetadata({ title: "t", description: "d", path: "/x" });
     expect((m.openGraph as { images: { url: string }[] }).images[0]!.url).toBe("/opengraph-image");
-    expect((m.twitter as { images: string[] }).images).toEqual(["/opengraph-image"]);
+    expect((m.twitter as { images: { url: string }[] }).images[0]!.url).toBe("/opengraph-image");
   });
 
   it("uses an absolute title without the template when requested", () => {
@@ -64,5 +64,30 @@ describe("llms.txt", () => {
   it("links the sitemap and the qualifier with absolute urls", () => {
     expect(text).toMatch(/\]\(https?:\/\/[^)]+\/sitemap\.xml\)/);
     expect(text).toMatch(/\]\(https?:\/\/[^)]+\/express\)/);
+  });
+});
+
+describe("llms-full.txt", () => {
+  const text = buildLlmsFullTxt();
+
+  it("carries every financing page's definition and FAQ, every city guide and the glossary", async () => {
+    const { programs, hubs } = await import("@/content/programs");
+    for (const p of [...hubs, ...programs]) {
+      expect(text, p.slug).toContain(`/financing/${p.slug}`);
+      expect(text, p.slug).toContain(p.faq[0]!.question);
+    }
+    expect(text).toMatch(/## California city guides/);
+    expect(text).toMatch(/## Glossary/);
+  });
+
+  it("keeps the broker-not-lender and indicative-terms disclosures and avoids prohibited claims", () => {
+    expect(text).toMatch(/is not a lender/);
+    expect(text).toContain("not a commitment to lend");
+    expect(text).toMatch(/not closed transactions/);
+    expect(text).not.toMatch(/\bAI\b|autonomous|pre-?approved|guaranteed approval/i);
+  });
+
+  it("is linked from llms.txt", () => {
+    expect(buildLlmsTxt()).toMatch(/\/llms-full\.txt/);
   });
 });

@@ -35,6 +35,8 @@ export type ArticleInput = {
   section?: string;
   wordCount?: number;
   keywords?: readonly string[];
+  /** Absolute URL of the article's image; the brand card when omitted. */
+  image?: string;
 };
 
 export function articleSchema(a: ArticleInput): JsonLdNode {
@@ -48,7 +50,7 @@ export function articleSchema(a: ArticleInput): JsonLdNode {
       description: a.description,
       url,
       mainEntityOfPage: { "@type": "WebPage", "@id": url },
-      image: [canonicalUrl("/opengraph-image")],
+      image: [a.image ?? canonicalUrl("/opengraph-image")],
       datePublished: a.datePublished,
       dateModified: a.dateModified,
       author: personSchema(a.author),

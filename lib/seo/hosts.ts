@@ -66,6 +66,50 @@ export function expressAction(pathname: string): ExpressAction {
 
 export const NOINDEX_HEADER = "noindex, follow";
 
+/** Lowercased hostname of the configured site URL (NEXT_PUBLIC_SITE_URL), e.g. `corincommercial.com`. */
+export function canonicalHost(siteUrl: string = site.siteUrl): string {
+  try {
+    return new URL(siteUrl).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+/** The other spelling of the canonical host: `www.` added, or removed when the site URL has it. */
+export function aliasHost(siteUrl: string = site.siteUrl): string {
+  const host = canonicalHost(siteUrl);
+  if (!host || !host.includes(".")) return "";
+  return host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+}
+
+/**
+ * How a request host relates to the configured site URL:
+ * - `canonical`: the site URL's own host (also a request with no host header).
+ * - `alias`: its www / non-www twin, which 301s to the canonical host.
+ * - `express`: the qualifier-only domain (kubera.loans).
+ * - `other`: anything else (the Vercel copy, the VPS's bare IP, localhost
+ *   when the site URL names the real domain). Served, but never indexed.
+ */
+export type HostKind = "canonical" | "alias" | "express" | "other";
+
+export function classifyHost(rawHost: string | null | undefined, env: Env = process.env, siteUrl: string = site.siteUrl): HostKind {
+  const host = normalizeHost(rawHost);
+  if (isExpressHost(host, env)) return "express";
+  if (!host || host === canonicalHost(siteUrl)) return "canonical";
+  if (host === aliasHost(siteUrl)) return "alias";
+  return "other";
+}
+
+/**
+ * Where a request on the alias host goes: the same path and query on the
+ * canonical origin. 301 for GET and HEAD (what search engines consolidate on);
+ * 308 for other methods so a form POST is not turned into a GET.
+ */
+export function aliasRedirect(pathname: string, search: string, method: string, siteUrl: string = site.siteUrl): { url: string; status: 301 | 308 } {
+  const target = new URL(pathname + search, siteUrl);
+  return { url: target.toString(), status: method === "GET" || method === "HEAD" ? 301 : 308 };
+}
+
 /** Absolute URL on the canonical (main) site. */
 export function canonicalUrl(path: string): string {
   const base = site.siteUrl.replace(/\/+$/, "");

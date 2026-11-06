@@ -119,7 +119,7 @@ export const MARKETS: readonly MarketPage[] = [
   {
     slug: "los-angeles",
     name: "Los Angeles",
-    title: "Los Angeles commercial loans",
+    title: "Los Angeles commercial real estate loans",
     description: "How Los Angeles rent rules, licensing, seismic retrofit and transfer taxes shape senior living, hotel, multifamily, construction and hard money loans.",
     summary: "Rent stabilization, care-facility licensing and seismic diligence in the City and County of Los Angeles.",
     definition:
@@ -195,7 +195,7 @@ export const MARKETS: readonly MarketPage[] = [
   {
     slug: "orange-county",
     name: "Orange County",
-    title: "Orange County commercial loans",
+    title: "Orange County commercial property loans",
     description: "Orange County hotels, senior living and apartments: how resort demand, few local rent ordinances and Mello-Roos assessments shape the loan programs we arrange.",
     summary: "Resort and coastal hotels, owner-operated senior living and mostly statewide rent rules in Orange County.",
     definition:
@@ -269,7 +269,7 @@ export const MARKETS: readonly MarketPage[] = [
   {
     slug: "bay-area",
     name: "Bay Area",
-    title: "Bay Area commercial loans",
+    title: "Bay Area commercial real estate loans",
     description: "San Francisco Bay Area multifamily, hotel and senior living loans: city-by-city rent rules, soft-story retrofit, seismic diligence and construction costs.",
     summary: "City-by-city rent rules, seismic diligence and high construction costs across the San Francisco Bay Area.",
     definition:
