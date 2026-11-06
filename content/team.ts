@@ -8,7 +8,7 @@
 // is shown in production, because California expects the license number on
 // first-point-of-contact material (Bus. & Prof. Code § 10140.6).
 
-import { DRE_LICENSE_OF_RECORD, DRE_LICENSE_PATTERN, dreLookupUrl, site } from "@/lib/site";
+import { DRE_LICENSE_PATTERN, dreLookupUrl, site } from "@/lib/site";
 
 export type TeamRole = "broker" | "salesperson" | "analyst" | "operations";
 
@@ -40,11 +40,8 @@ export const TEAM: readonly TeamMember[] = [
     role: "broker",
     // Same variable the licensing page uses; empty means "not confirmed yet".
     licenseId: site.dreOfficerLicense,
-    // Role facts only, from the firm's DRE license and the site's own disclosures:
-    // no years of experience, schools, closed deals or credentials. Extend it with
-    // anything Neeli adds, but never with details that cannot be verified.
-    bio: `${site.designatedOfficer} is the designated officer and broker of ${site.legalName}, a California real estate broker licensed by the Department of Real Estate (corporate license #${DRE_LICENSE_OF_RECORD}). As designated officer she is responsible for supervising the firm's licensed activity, including the Mortgage Loan Disclosure Statement each borrower receives on a loan secured by real property. She leads Corin's engagements across senior living, hotel, multifamily, commercial property, construction and hard money financing with HUD, SBA, agency, CMBS, bank, life company and private lenders. Corin is a broker, not a lender: lenders make every credit decision and fund each loan.`,
-    focus: ["Senior living", "Hotels", "Multifamily", "Commercial property", "Construction", "Hard money and bridge"],
+    bio: `${BIO_PLACEHOLDER_MARKER}. Replace with a bio written or approved by ${site.designatedOfficer}.`,
+    focus: [],
   },
 ];
 

@@ -24,7 +24,7 @@ export const TRUST_PAGES = {
   team: {
     path: "/team",
     title: "Our licensed commercial loan advisors",
-    description: "Meet the licensed advisors who lead every Corin Commercial engagement, starting with designated officer Neeli Khanna, and see their California DRE licenses.",
+    description: "The licensed advisors who lead Corin Commercial engagements, and how to verify any California real estate license with the Department of Real Estate.",
     priority: 0.5,
   },
   contact: {

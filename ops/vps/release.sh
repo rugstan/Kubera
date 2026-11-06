@@ -29,10 +29,20 @@ switch_to() {
 }
 
 healthy() {
-  local code="000"
+  local code="000" headers=""
   for _ in $(seq 1 90); do
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H "Host: $HEALTH_HOST" "$HEALTH_URL" || true)"
-    if [ "$code" = "200" ]; then echo "Health check passed (HTTP 200)."; return 0; fi
+    headers="$(curl -s -o /dev/null -D - --max-time 10 -H "Host: $HEALTH_HOST" "$HEALTH_URL" || true)"
+    code="$(printf '%s\n' "$headers" | awk 'toupper($1) ~ /^HTTP\// { c = $2 } END { print (c ? c : "000") }')"
+    if [ "$code" = "200" ]; then
+      # A 200 that tells search engines to drop the page would take the whole
+      # site out of search (for example a build made with the wrong site URL).
+      if printf '%s\n' "$headers" | grep -qiE '^x-robots-tag:.*noindex'; then
+        echo "Health check failed: $HEALTH_HOST answers with X-Robots-Tag noindex. Check NEXT_PUBLIC_SITE_URL in the build." >&2
+        return 1
+      fi
+      echo "Health check passed (HTTP 200, indexable)."
+      return 0
+    fi
     sleep 1
   done
   echo "Health check failed (last answer: HTTP $code)." >&2

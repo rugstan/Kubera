@@ -19,7 +19,7 @@ export const CONTENT_UPDATED = {
   california: "2026-11-02",
   glossary: "2026-11-02",
   about: "2026-11-04",
-  team: "2026-11-01",
+  team: "2026-11-06",
   contact: "2026-11-02",
   newsletter: "2026-11-02",
   legal: "2026-11-02",
