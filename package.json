@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "kb:ingest": "tsx scripts/ingest-kb.ts",
+    "twenty:fields": "tsx --conditions=react-server scripts/twenty-fields.ts",
     "evals": "tsx --conditions=react-server scripts/run-evals.ts",
     "a11y": "node --experimental-strip-types scripts/axe.ts",
     "test:migrations": "node --experimental-strip-types scripts/test-migrations.ts",

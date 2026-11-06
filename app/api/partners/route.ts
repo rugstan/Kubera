@@ -60,6 +60,7 @@ export async function POST(req: Request) {
     try {
       const refs = await pushPartner(reg, {
         consentEventId,
+        partnerId,
         // A STOP already in the ledger for this number keeps it out of Twenty.
         smsConsent: smsConsentLookup(notifyRuntime().consent),
         onProgress: async (progress) => {
