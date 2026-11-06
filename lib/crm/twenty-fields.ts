@@ -60,8 +60,14 @@ const fixAcronyms = (s: string) =>
     .replace(/\b7a\b/gi, "7(a)")
     .replace(/\b(\d) (\d)\b/g, "$1–$2");
 const label = (value: string) => fixAcronyms(humanize(value));
-const options = (values: readonly string[], labels: Record<string, string> = {}): TwentyOption[] => values.map((value) => ({ value, label: labels[value] ?? label(value) }));
-const fromList = (list: readonly { value: string; label: string }[]): TwentyOption[] => list.map(({ value, label }) => ({ value, label }));
+/**
+ * Twenty 2.40 refuses a comma in any field or option label ("Label must not
+ * contain a comma"), so ", " becomes " / " (the CRM's schema script applies the
+ * same swap). The forms keep their own wording.
+ */
+export const crmLabel = (text: string) => text.replace(/,\s*/g, " / ");
+const options = (values: readonly string[], labels: Record<string, string> = {}): TwentyOption[] => values.map((value) => ({ value, label: crmLabel(labels[value] ?? label(value)) }));
+const fromList = (list: readonly { value: string; label: string }[]): TwentyOption[] => list.map(({ value, label }) => ({ value, label: crmLabel(label) }));
 
 /** intake.source → the Lead source select. */
 export const LEAD_SOURCES: TwentyOption[] = [
@@ -139,8 +145,8 @@ const FLAG_LABELS: Record<(typeof OPTIMIZATION_FLAGS)[number], string> = {
 };
 const PROGRAM_OPTIONS = options(PROGRAM_FITS, PROGRAM_LABELS);
 
-const opp = (name: string, labelText: string, type: TwentyFieldType, description: string, opts?: TwentyOption[]): TwentyFieldSpec => ({ object: "opportunity", name, label: labelText, type, description, ...(opts ? { options: opts } : {}) });
-const co = (name: string, labelText: string, type: TwentyFieldType, description: string, opts?: TwentyOption[]): TwentyFieldSpec => ({ object: "company", name, label: labelText, type, description, ...(opts ? { options: opts } : {}) });
+const opp = (name: string, labelText: string, type: TwentyFieldType, description: string, opts?: TwentyOption[]): TwentyFieldSpec => ({ object: "opportunity", name, label: crmLabel(labelText), type, description, ...(opts ? { options: opts } : {}) });
+const co = (name: string, labelText: string, type: TwentyFieldType, description: string, opts?: TwentyOption[]): TwentyFieldSpec => ({ object: "company", name, label: crmLabel(labelText), type, description, ...(opts ? { options: opts } : {}) });
 
 export const TWENTY_FIELDS: readonly TwentyFieldSpec[] = [
   // --- Leads: where they came from -----------------------------------------

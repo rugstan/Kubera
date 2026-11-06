@@ -47,6 +47,17 @@ describe("TWENTY_FIELDS", () => {
     }
   });
 
+  it("keeps commas out of every label, which Twenty 2.40 refuses", () => {
+    for (const f of TWENTY_FIELDS) {
+      expect(f.label, f.name).not.toContain(",");
+      for (const o of f.options ?? []) expect(o.label, `${f.name}: ${o.value}`).not.toContain(",");
+    }
+    // The three labels the CRM was created with after that rule.
+    expect(fieldSpec("opportunity", "franchiseTier")!.options!.find((o) => o.value === "PREMIUM_FLAG")!.label).toBe("Marriott / Hilton / IHG or Hyatt");
+    expect(fieldSpec("opportunity", "monthlyTaxesInsuranceHoa")!.label).toBe("Monthly taxes / insurance / HOA");
+    expect(fieldSpec("company", "maxLtcPct")!.label).toBe("Max LTC / construction %");
+  });
+
   it("offers every value the forms and the qualifier can send", () => {
     const covers = (object: TwentyObjectName, name: string, values: readonly string[]) => expect(optionValues(object, name), name).toEqual(expect.arrayContaining([...values]));
     covers("opportunity", "propertyType", PROPERTY_TYPES);
