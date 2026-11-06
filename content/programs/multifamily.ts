@@ -78,7 +78,7 @@ export const multifamilyPrograms: ProgramEntry[] = [
       "HUD 223(f) refinances or acquires existing apartments with a long fixed-rate, non-recourse loan. See current LTV, DSCR and MIP for market-rate and affordable.",
     summary: "Long-term, fixed-rate, non-recourse refinance for existing apartment communities.",
     definition:
-      `HUD 223(f) is an FHA mortgage insurance program that finances the purchase or refinance of existing multifamily rental properties with a long-term, fixed-rate, fully amortizing, non-recourse loan, offered through HUD-licensed MAP lenders. The term runs up to ${years(mf.s223f.termYears)}, and market-rate loans size to about ${pct(mf.s223f.maxLtv)} loan-to-value at a ${x(mf.s223f.minDscr)} minimum DSCR.`,
+      `HUD 223(f) is an FHA mortgage insurance program that finances the purchase or refinance of existing multifamily rental properties with a long-term, fixed-rate, fully amortizing, non-recourse loan, offered through HUD-licensed MAP lenders. The term runs up to ${mf.s223f.termYears} years, and market-rate loans size to about ${pct(mf.s223f.maxLtv)} loan-to-value at a ${x(mf.s223f.minDscr)} minimum DSCR.`,
     loanType: "FHA-insured multifamily refinance mortgage (brokered)",
     loanTermYears: mf.s223f.termYears,
     facts: [

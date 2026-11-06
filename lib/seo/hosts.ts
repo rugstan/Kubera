@@ -83,9 +83,19 @@ export function aliasHost(siteUrl: string = site.siteUrl): string {
 }
 
 /**
+ * The firm's own domain and its www twin. They are the main site whatever
+ * NEXT_PUBLIC_SITE_URL says: a build with a mistyped, staging or localhost site
+ * URL must never send `noindex` (or a disallow-all robots.txt) from
+ * corincommercial.com, which would drop the live site from search.
+ */
+const PRIMARY_HOST = site.primaryDomain.toLowerCase();
+const PRIMARY_ALIAS = `www.${PRIMARY_HOST}`;
+
+/**
  * How a request host relates to the configured site URL:
- * - `canonical`: the site URL's own host (also a request with no host header).
- * - `alias`: its www / non-www twin, which 301s to the canonical host.
+ * - `canonical`: the site URL's own host or the firm's primary domain (also a
+ *   request with no host header).
+ * - `alias`: their www / non-www twin, which 301s to the canonical host.
  * - `express`: the qualifier-only domain (kubera.loans).
  * - `other`: anything else (the Vercel copy, the VPS's bare IP, localhost
  *   when the site URL names the real domain). Served, but never indexed.
@@ -95,18 +105,30 @@ export type HostKind = "canonical" | "alias" | "express" | "other";
 export function classifyHost(rawHost: string | null | undefined, env: Env = process.env, siteUrl: string = site.siteUrl): HostKind {
   const host = normalizeHost(rawHost);
   if (isExpressHost(host, env)) return "express";
-  if (!host || host === canonicalHost(siteUrl)) return "canonical";
-  if (host === aliasHost(siteUrl)) return "alias";
+  if (!host || host === canonicalHost(siteUrl) || host === PRIMARY_HOST) return "canonical";
+  if (host === aliasHost(siteUrl) || host === PRIMARY_ALIAS) return "alias";
   return "other";
 }
 
 /**
  * Where a request on the alias host goes: the same path and query on the
- * canonical origin. 301 for GET and HEAD (what search engines consolidate on);
- * 308 for other methods so a form POST is not turned into a GET.
+ * canonical origin (www.corincommercial.com always goes to
+ * https://corincommercial.com). 301 for GET and HEAD (what search engines
+ * consolidate on); 308 for other methods so a form POST is not turned into a
+ * GET. The path is set on the canonical origin, never resolved against it, so
+ * a `//other.host/...` path cannot send the visitor to another site.
  */
-export function aliasRedirect(pathname: string, search: string, method: string, siteUrl: string = site.siteUrl): { url: string; status: 301 | 308 } {
-  const target = new URL(pathname + search, siteUrl);
+export function aliasRedirect(
+  pathname: string,
+  search: string,
+  method: string,
+  siteUrl: string = site.siteUrl,
+  rawHost?: string | null,
+): { url: string; status: 301 | 308 } {
+  const target = new URL(normalizeHost(rawHost) === PRIMARY_ALIAS ? `https://${PRIMARY_HOST}` : siteUrl);
+  target.pathname = pathname;
+  target.search = search;
+  target.hash = "";
   return { url: target.toString(), status: method === "GET" || method === "HEAD" ? 301 : 308 };
 }
 

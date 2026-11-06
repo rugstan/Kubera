@@ -31,7 +31,7 @@ export function proxy(req: NextRequest) {
   const kind = classifyHost(host);
 
   if (kind === "alias") {
-    const { url, status } = aliasRedirect(req.nextUrl.pathname, req.nextUrl.search, req.method);
+    const { url, status } = aliasRedirect(req.nextUrl.pathname, req.nextUrl.search, req.method, undefined, host);
     return NextResponse.redirect(url, status);
   }
 

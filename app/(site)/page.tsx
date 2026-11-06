@@ -17,7 +17,7 @@ import { HOME_HERO_IMAGE } from "@/content/images";
 
 export const metadata: Metadata = pageMetadata({
   title: "Commercial real estate loan broker",
-  absoluteTitle: "Corin Commercial | California Commercial Real Estate Loans",
+  absoluteTitle: "Corin Commercial | California Commercial Loan Broker",
   description:
     "Licensed California broker arranging HUD, SBA, CMBS, agency, construction, bridge and hard money loans for senior living, hotels and multifamily. Not a lender.",
   path: "/",

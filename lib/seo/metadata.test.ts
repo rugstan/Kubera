@@ -4,7 +4,7 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH, pageMetadata, renderedTitle }
 
 // Keep in sync with the metadata exports in app/(site)/page.tsx, partners/page.tsx and express/page.tsx.
 const PAGES = [
-  { title: "Commercial real estate loan broker", absoluteTitle: "Corin Commercial | California Commercial Real Estate Loans", path: "/" },
+  { title: "Commercial real estate loan broker", absoluteTitle: "Corin Commercial | California Commercial Loan Broker", path: "/" },
   { title: "60-second commercial loan deal qualifier", path: "/express" },
   { title: "Lender, broker and vendor partner portal", path: "/partners" },
 ];

@@ -90,6 +90,15 @@ describe("classifyHost (keyed off the configured site URL)", () => {
     expect(classifyHost("localhost:3999", {}, "http://localhost:3999")).toBe("canonical");
     expect(classifyHost("127.0.0.1", { EXPRESS_HOSTS: "127.0.0.1" }, "http://localhost:3999")).toBe("express");
   });
+
+  it.each(["http://localhost:3000", "https://kubera-tau.vercel.app", "https://staging.corincommercial.com", "https://www.corincommercial.com"])(
+    "never treats corincommercial.com as a duplicate, even when the site URL is %s",
+    (siteUrl) => {
+      // A wrong NEXT_PUBLIC_SITE_URL in a production build must not noindex the live site.
+      expect(classifyHost("corincommercial.com", {}, siteUrl)).toBe("canonical");
+      expect(classifyHost("www.corincommercial.com", {}, siteUrl)).not.toBe("other");
+    },
+  );
 });
 
 describe("aliasRedirect", () => {
@@ -102,5 +111,14 @@ describe("aliasRedirect", () => {
 
   it("uses 308 for other methods so a POST body is not dropped", () => {
     expect(aliasRedirect("/api/qualify", "", "POST", SITE).status).toBe(308);
+  });
+
+  it("sends www.corincommercial.com to https://corincommercial.com whatever the site URL says", () => {
+    expect(aliasRedirect("/rates", "?a=1", "GET", "http://localhost:3000", "www.corincommercial.com")).toEqual({ url: "https://corincommercial.com/rates?a=1", status: 301 });
+  });
+
+  it("keeps the visitor on the canonical origin for a protocol-relative path", () => {
+    expect(new URL(aliasRedirect("//evil.example/x", "", "GET", SITE).url).origin).toBe("https://corincommercial.com");
+    expect(new URL(aliasRedirect("/\\evil.example/x", "", "GET", SITE).url).origin).toBe("https://corincommercial.com");
   });
 });
