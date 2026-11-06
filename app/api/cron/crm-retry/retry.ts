@@ -171,6 +171,7 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
       const refs = await deps.crm.pushLead(intake, contact, jev, {
         progress: row.crm_progress as CrmProgress | null | undefined,
         onProgress: (progress) => deps.store.saveLeadProgress(row.id, progress),
+        leadId: row.id,
         ...(deps.smsConsent ? { smsConsent: deps.smsConsent } : {}),
       });
       await deps.store.updateLead(row.id, {
@@ -214,6 +215,7 @@ export async function runCrmRetry(deps: RetryDeps): Promise<RetrySummary> {
       const refs = await deps.crm.pushPartner(parsed.data, {
         progress: row.crm_progress as CrmProgress | null | undefined,
         onProgress: (progress) => deps.store.savePartnerProgress(row.id, progress),
+        partnerId: row.id,
         ...(deps.smsConsent ? { smsConsent: deps.smsConsent } : {}),
       });
       await deps.store.updatePartner(row.id, {

@@ -9,6 +9,7 @@
 import type { JevResult } from "@/lib/ai/jev";
 import { toE164 } from "@/lib/notify/phone";
 import type { Contact, Intake, PartnerRegistration } from "@/lib/validation";
+import { companyFields, opportunityFields, type TwentyFieldValues } from "./twenty-fields";
 
 type Json = Record<string, unknown>;
 
@@ -158,6 +159,10 @@ export type PushOptions = {
    * from Twenty and the person is marked `smsOptOut`.
    */
   smsConsent?: (phoneE164: string) => Promise<"granted" | "revoked" | "none">;
+  /** The lead's id in the site database, written to the opportunity's Site lead ID field. */
+  leadId?: string | null;
+  /** The registration's id in the site database, written to the company's Site partner ID field. */
+  partnerId?: string | null;
 };
 
 /** Accepts only string ids from a stored (untyped) checkpoint. */
@@ -190,6 +195,30 @@ function checkpoint(opts: PushOptions = {}) {
       return id;
     },
   };
+}
+
+/**
+ * Writes the structured form fields (lib/crm/twenty-fields.ts) on a record that
+ * already exists. A PATCH with the same values is harmless, so a retry simply
+ * writes them again and no checkpoint is needed.
+ *
+ * Twenty answers 400 when a field or select option is missing from the
+ * workspace (ops/twenty/fields.json has not been applied yet). That is logged
+ * and skipped: the lead or partner still reaches the CRM with its note, the
+ * full record. Timeouts, 429 and 5xx fail the step, so crm-retry tries again.
+ */
+async function patchFields(object: "opportunities" | "companies", id: string, values: TwentyFieldValues): Promise<void> {
+  if (Object.keys(values).length === 0) return;
+  try {
+    await call("PATCH", `${object}/${encodeURIComponent(id)}`, values);
+  } catch (err) {
+    const status = err instanceof TwentyError ? err.status : undefined;
+    if (status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429) {
+      console.warn(`Twenty: the form fields on ${object}/${id} were refused (${status}); apply ops/twenty/fields.json to the workspace. ${(err as Error).message.slice(0, 300)}`);
+      return;
+    }
+    throw err;
+  }
 }
 
 async function attachNote(cp: ReturnType<typeof checkpoint>, title: string, markdown: string, targets: Json): Promise<void> {
@@ -260,6 +289,7 @@ export async function pushLead(intake: Intake, contact: Contact, jev: JevResult 
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
   }));
+  await patchFields("opportunities", opportunityId, opportunityFields(intake, jev, { leadId: opts?.leadId }));
 
   const md = [
     `## Contact\n- ${consentLine(contact, cc, opts?.consentEventId)}`,
@@ -300,6 +330,7 @@ async function pushReviewLead(cp: ReturnType<typeof checkpoint>, intake: Intake,
     pointOfContactId: personId,
     ...(companyId ? { companyId } : {}),
   }));
+  await patchFields("opportunities", opportunityId, opportunityFields(intake, null, { leadId: opts?.leadId, advisorOnly: true }));
   const md = [
     `## Contact\n- ${consentLine(contact, cc, opts?.consentEventId)}`,
     ...sourceSection(intake),
@@ -322,6 +353,7 @@ export async function pushPartner(reg: PartnerRegistration, opts?: PushOptions):
   const orgName = "organization" in reg && reg.organization ? reg.organization : `${reg.contact.firstName} ${reg.contact.lastName}`;
   const website = reg.partnerType === "LENDER" && reg.website ? { domainName: { primaryLinkUrl: reg.website } } : {};
   const companyId = await cp.step("companyId", () => create("companies", { name: orgName, ...website }));
+  await patchFields("companies", companyId, companyFields(reg, opts?.partnerId));
   const cc = await crmConsent(reg.contact, opts);
   const personId = await cp.step("personId", () => upsertPerson(reg.contact, cc, companyId));
   const { contact: _contact, ...profile } = reg;

@@ -121,3 +121,62 @@ describe("Twenty push for a financing-page lead", () => {
     expect((posts.find((p) => p.path === "notes")!.body as { title: string }).title).toMatch(/^Jev intake — /);
   });
 });
+
+describe("Twenty form fields", () => {
+  const rates = { fiveYear: 4.0, tenYear: 4.25, sofr30: 4.0, prime: 7.0 };
+  const intake = intakeFromQuick(
+    { assetType: "MULTIFAMILY", transaction: "REFINANCE", loanAmount: 4_000_000, timelineDays: 90, notes: "", slug: "multifamily" },
+    { slug: "multifamily", path: "/financing/multifamily", name: "Multifamily financing" },
+  );
+  const contact = { firstName: "Pat", lastName: "Lee", email: "pat@example.com", phone: "", company: "", consent: false };
+  const jev = { ...decideWithRules(intake, rates), engine: "rules" as const, latencyMs: 1 };
+
+  /** Twenty that answers `patchStatus` to every PATCH and records each request. */
+  function twentyWithPatch(patchStatus: number) {
+    const requests: { method: string; path: string; body?: Record<string, unknown> }[] = [];
+    vi.stubEnv("TWENTY_API_URL", "https://twenty.test");
+    vi.stubEnv("TWENTY_API_KEY", "test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+        const path = url.pathname.replace(/^\/rest\//, "");
+        const method = init?.method ?? "GET";
+        requests.push({ method, path, ...(init?.body ? { body: JSON.parse(String(init.body)) as Record<string, unknown> } : {}) });
+        if (method === "GET") return Response.json({ data: { people: [] } });
+        if (method === "PATCH") return patchStatus < 300 ? Response.json({ data: { update: { id: path.split("/")[1] } } }) : new Response('{"messages":["field not found"]}', { status: patchStatus });
+        return Response.json({ data: { [`create${path}`]: { id: `${path}-id` } } });
+      }),
+    );
+    return requests;
+  }
+
+  it("writes the lead's form fields on its opportunity", async () => {
+    const requests = twentyWithPatch(200);
+    await pushLead(intake, contact, jev, { leadId: "lead-9" });
+    const patch = requests.find((r) => r.method === "PATCH" && r.path === "opportunities/opportunities-id");
+    expect(patch?.body).toMatchObject({ siteLeadId: "lead-9", leadSource: "FINANCING_PAGE", sourcePage: "/financing/multifamily", propertyType: "MULTIFAMILY", transactionType: "REFINANCE" });
+  });
+
+  it("still delivers the lead, with its note, when the workspace refuses the fields (400)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const requests = twentyWithPatch(400);
+    const refs = await pushLead(intake, contact, jev);
+    expect(refs.opportunityId).toBe("opportunities-id");
+    expect(requests.some((r) => r.method === "POST" && r.path === "notes")).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/apply ops\/twenty\/fields\.json/));
+    warn.mockRestore();
+  });
+
+  it.each([429, 503])("fails the push on a %i so crm-retry writes the fields later", async (status) => {
+    twentyWithPatch(status);
+    await expect(pushLead(intake, contact, jev)).rejects.toMatchObject({ status });
+  });
+
+  it("writes a partner's fields on its company", async () => {
+    const requests = twentyWithPatch(200);
+    await pushPartner(reg, { partnerId: "partner-9" });
+    const patch = requests.find((r) => r.method === "PATCH" && r.path === "companies/companies-id");
+    expect(patch?.body).toEqual({ sitePartnerId: "partner-9", partnerType: "VENDOR", vendorServices: ["PHASE_I_ESA"], marketsServed: "CA" });
+  });
+});

@@ -147,6 +147,7 @@ export async function POST(req: Request) {
       // instead of creating a second company and opportunity.
       const refs = await pushLead(intake, contact, jev, {
         consentEventId,
+        leadId,
         // A STOP already in the ledger for this number keeps it out of Twenty.
         smsConsent: smsConsentLookup(notifyRuntime().consent),
         onProgress: async (progress) => {

@@ -421,7 +421,16 @@ describe("contact consent in the CRM push", () => {
     const twenty = stubTwenty();
     twenty.setExistingPeople(["person-existing"]);
     await pushLead(intake as Intake, withPhone, rebuildJev(intake as Intake, { decision: hot, rationale: [], engine: "rules", latency_ms: 1 }));
-    expect(twenty.bodies.filter((b) => b.method === "PATCH")).toEqual([]);
+    // The only PATCH is the opportunity's form fields; the existing person is left alone.
+    expect(twenty.bodies.filter((b) => b.method === "PATCH" && b.object.startsWith("people/"))).toEqual([]);
+    expect(twenty.bodies.filter((b) => b.method === "PATCH").map((b) => b.object)).toEqual([expect.stringMatching(/^opportunities\//)]);
+  });
+
+  it("writes the lead's form fields on the opportunity, with its site id", async () => {
+    const twenty = stubTwenty();
+    await run(new FakeStore([leadRow()]), realTwenty);
+    const patch = twenty.bodies.find((b) => b.method === "PATCH" && b.object.startsWith("opportunities/"));
+    expect(patch?.body).toMatchObject({ siteLeadId: expect.any(String), propertyType: (intake as Intake).assetType, leadSource: expect.any(String) });
   });
 
   it("records a partner without consent as email only", async () => {

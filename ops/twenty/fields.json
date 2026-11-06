@@ -1,0 +1,975 @@
+{
+  "$comment": "Generated from lib/crm/twenty-fields.ts by `npm run twenty:fields`. Do not edit by hand.",
+  "fields": [
+    {
+      "object": "opportunity",
+      "name": "siteLeadId",
+      "label": "Site lead ID",
+      "type": "TEXT",
+      "description": "The lead's id on corincommercial.com (staff lead record)."
+    },
+    {
+      "object": "opportunity",
+      "name": "leadSource",
+      "label": "Lead source",
+      "type": "SELECT",
+      "description": "Which form the lead used.",
+      "options": [
+        {
+          "value": "EXPRESS",
+          "label": "60-second qualifier"
+        },
+        {
+          "value": "FINANCING_PAGE",
+          "label": "Financing page form"
+        },
+        {
+          "value": "SIZER",
+          "label": "Loan sizer"
+        },
+        {
+          "value": "ASK",
+          "label": "Ask an advisor"
+        },
+        {
+          "value": "WEBSITE",
+          "label": "Website"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "sourcePage",
+      "label": "Source page",
+      "type": "TEXT",
+      "description": "The page the form was on, e.g. /financing/office-loans or /express."
+    },
+    {
+      "object": "opportunity",
+      "name": "advisorOnly",
+      "label": "Advisor-only handling",
+      "type": "BOOLEAN",
+      "description": "The person asked for human review only: no automated scoring or AI tools."
+    },
+    {
+      "object": "opportunity",
+      "name": "propertyType",
+      "label": "Property type",
+      "type": "SELECT",
+      "description": "Property type the visitor chose.",
+      "options": [
+        {
+          "value": "ASSISTED_LIVING",
+          "label": "Assisted living"
+        },
+        {
+          "value": "MEMORY_CARE",
+          "label": "Memory care"
+        },
+        {
+          "value": "RCFE",
+          "label": "RCFE / board and care"
+        },
+        {
+          "value": "SNF",
+          "label": "Skilled nursing"
+        },
+        {
+          "value": "HOTEL_FLAGGED",
+          "label": "Flagged hotel"
+        },
+        {
+          "value": "HOTEL_BOUTIQUE",
+          "label": "Boutique hotel / motel"
+        },
+        {
+          "value": "HOTEL_TO_SENIOR_CONVERSION",
+          "label": "Hotel to senior living"
+        },
+        {
+          "value": "MULTIFAMILY",
+          "label": "Multifamily"
+        },
+        {
+          "value": "MIXED_USE",
+          "label": "Mixed-use"
+        },
+        {
+          "value": "COMMERCIAL",
+          "label": "Commercial / bridge"
+        },
+        {
+          "value": "RESIDENTIAL_2_4",
+          "label": "2 to 4 unit rental"
+        },
+        {
+          "value": "OFFICE",
+          "label": "Office"
+        },
+        {
+          "value": "INDUSTRIAL",
+          "label": "Industrial"
+        },
+        {
+          "value": "RETAIL",
+          "label": "Retail"
+        },
+        {
+          "value": "SELF_STORAGE",
+          "label": "Self-storage"
+        },
+        {
+          "value": "MEDICAL_OFFICE",
+          "label": "Medical office"
+        },
+        {
+          "value": "MANUFACTURED_HOUSING",
+          "label": "Manufactured housing"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "transactionType",
+      "label": "Transaction",
+      "type": "SELECT",
+      "description": "Purchase, refinance, construction and so on.",
+      "options": [
+        {
+          "value": "PURCHASE",
+          "label": "Purchase"
+        },
+        {
+          "value": "REFINANCE",
+          "label": "Refinance"
+        },
+        {
+          "value": "CONSTRUCTION",
+          "label": "Construction"
+        },
+        {
+          "value": "CONVERSION",
+          "label": "Conversion"
+        },
+        {
+          "value": "HARD_MONEY",
+          "label": "Hard money / bridge"
+        },
+        {
+          "value": "OTHER",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "closeTimelineDays",
+      "label": "Close needed in (days)",
+      "type": "NUMBER",
+      "description": "How soon the visitor needs to close."
+    },
+    {
+      "object": "opportunity",
+      "name": "borrowerNotes",
+      "label": "Borrower notes",
+      "type": "TEXT",
+      "description": "The visitor's own notes from the form."
+    },
+    {
+      "object": "opportunity",
+      "name": "noi",
+      "label": "NOI (trailing 12 months)",
+      "type": "CURRENCY",
+      "description": "Trailing 12-month net operating income."
+    },
+    {
+      "object": "opportunity",
+      "name": "propertyValue",
+      "label": "Property value",
+      "type": "CURRENCY",
+      "description": "Estimated value or purchase price."
+    },
+    {
+      "object": "opportunity",
+      "name": "unitCount",
+      "label": "Beds / keys / units",
+      "type": "NUMBER",
+      "description": "Licensed beds, hotel keys or residential units."
+    },
+    {
+      "object": "opportunity",
+      "name": "occupancyPct",
+      "label": "Occupancy %",
+      "type": "NUMBER",
+      "description": "Current occupancy, 0 to 100."
+    },
+    {
+      "object": "opportunity",
+      "name": "adr",
+      "label": "ADR",
+      "type": "CURRENCY",
+      "description": "Hotel average daily rate."
+    },
+    {
+      "object": "opportunity",
+      "name": "pipBudget",
+      "label": "PIP budget",
+      "type": "CURRENCY",
+      "description": "Hotel property improvement plan budget."
+    },
+    {
+      "object": "opportunity",
+      "name": "franchiseTier",
+      "label": "Hotel flag",
+      "type": "SELECT",
+      "description": "Hotel brand tier.",
+      "options": [
+        {
+          "value": "PREMIUM_FLAG",
+          "label": "Marriott / Hilton / IHG or Hyatt"
+        },
+        {
+          "value": "ECONOMY_FLAG",
+          "label": "Economy or midscale flag"
+        },
+        {
+          "value": "BOUTIQUE_INDEPENDENT",
+          "label": "Independent"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "nonRecourseOnly",
+      "label": "Non-recourse only",
+      "type": "BOOLEAN",
+      "description": "The borrower wants non-recourse debt only."
+    },
+    {
+      "object": "opportunity",
+      "name": "greenBuilding",
+      "label": "Green / energy upgrade",
+      "type": "BOOLEAN",
+      "description": "Energy or green improvements (Green MIP or Green 504 candidate)."
+    },
+    {
+      "object": "opportunity",
+      "name": "ownerOperator",
+      "label": "Owner-operator",
+      "type": "BOOLEAN",
+      "description": "The borrower operates the property."
+    },
+    {
+      "object": "opportunity",
+      "name": "creditBand",
+      "label": "Guarantor credit band",
+      "type": "SELECT",
+      "description": "Self-reported guarantor credit band (a band, not a score).",
+      "options": [
+        {
+          "value": "CREDIT_740_PLUS",
+          "label": "740+"
+        },
+        {
+          "value": "CREDIT_700_739",
+          "label": "700–739"
+        },
+        {
+          "value": "CREDIT_660_699",
+          "label": "660–699"
+        },
+        {
+          "value": "CREDIT_BELOW_660",
+          "label": "Below 660"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "hardMoneyStrategy",
+      "label": "Hard money strategy",
+      "type": "SELECT",
+      "description": "Fix and flip, bridge or rental.",
+      "options": [
+        {
+          "value": "FIX_AND_FLIP",
+          "label": "Fix and flip"
+        },
+        {
+          "value": "BRIDGE",
+          "label": "Bridge"
+        },
+        {
+          "value": "RENTAL",
+          "label": "Rental"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "rehabBudget",
+      "label": "Rehab budget",
+      "type": "CURRENCY",
+      "description": "Hard money rehab budget."
+    },
+    {
+      "object": "opportunity",
+      "name": "afterRepairValue",
+      "label": "After-repair value",
+      "type": "CURRENCY",
+      "description": "After-repair or as-stabilized value."
+    },
+    {
+      "object": "opportunity",
+      "name": "loanTermMonths",
+      "label": "Loan term (months)",
+      "type": "NUMBER",
+      "description": "Requested hard money term."
+    },
+    {
+      "object": "opportunity",
+      "name": "existingPayoff",
+      "label": "Existing payoff",
+      "type": "CURRENCY",
+      "description": "Existing loan payoff on a refinance."
+    },
+    {
+      "object": "opportunity",
+      "name": "completedProjects",
+      "label": "Completed projects (36 months)",
+      "type": "NUMBER",
+      "description": "Comparable projects completed in the last 36 months."
+    },
+    {
+      "object": "opportunity",
+      "name": "landCost",
+      "label": "Land cost",
+      "type": "CURRENCY",
+      "description": "Construction: land cost."
+    },
+    {
+      "object": "opportunity",
+      "name": "hardCosts",
+      "label": "Hard costs",
+      "type": "CURRENCY",
+      "description": "Construction: hard costs."
+    },
+    {
+      "object": "opportunity",
+      "name": "softCosts",
+      "label": "Soft costs",
+      "type": "CURRENCY",
+      "description": "Construction: soft costs."
+    },
+    {
+      "object": "opportunity",
+      "name": "constructionMonths",
+      "label": "Construction months",
+      "type": "NUMBER",
+      "description": "Construction period."
+    },
+    {
+      "object": "opportunity",
+      "name": "asCompletedValue",
+      "label": "As-completed value",
+      "type": "CURRENCY",
+      "description": "Construction: value once complete."
+    },
+    {
+      "object": "opportunity",
+      "name": "gmpContract",
+      "label": "GMP contract",
+      "type": "BOOLEAN",
+      "description": "Guaranteed maximum price construction contract."
+    },
+    {
+      "object": "opportunity",
+      "name": "monthlyRent",
+      "label": "Monthly rent",
+      "type": "CURRENCY",
+      "description": "1–4 unit rental: monthly rent."
+    },
+    {
+      "object": "opportunity",
+      "name": "monthlyTaxesInsuranceHoa",
+      "label": "Monthly taxes / insurance / HOA",
+      "type": "CURRENCY",
+      "description": "1–4 unit rental: monthly taxes, insurance and HOA."
+    },
+    {
+      "object": "opportunity",
+      "name": "primaryProgram",
+      "label": "Primary program fit",
+      "type": "SELECT",
+      "description": "The program the rules engine matched first.",
+      "options": [
+        {
+          "value": "HUD_232_223F",
+          "label": "HUD 232/223(f)"
+        },
+        {
+          "value": "HUD_232_NEW_CONST",
+          "label": "HUD 232 new construction"
+        },
+        {
+          "value": "SBA_504_STANDARD",
+          "label": "SBA 504"
+        },
+        {
+          "value": "SBA_504_PLUS_7A_10M_STACK",
+          "label": "SBA 504 + 7(a) $10M stack"
+        },
+        {
+          "value": "HOSPITALITY_CMBS_NON_RECOURSE",
+          "label": "Hotel CMBS (non-recourse)"
+        },
+        {
+          "value": "HOSPITALITY_PIP_BRIDGE",
+          "label": "Hotel PIP bridge"
+        },
+        {
+          "value": "BRIDGE_TO_HUD_232",
+          "label": "Bridge to HUD 232"
+        },
+        {
+          "value": "WHITE_LABEL_CRE_BRIDGE",
+          "label": "CRE bridge"
+        },
+        {
+          "value": "HUD_221D4_223F_MULTIFAMILY",
+          "label": "HUD 221(d)(4) / 223(f) multifamily"
+        },
+        {
+          "value": "AGENCY_FANNIE_FREDDIE",
+          "label": "Agency (Fannie Mae / Freddie Mac)"
+        },
+        {
+          "value": "HARD_MONEY",
+          "label": "Hard money"
+        },
+        {
+          "value": "CONSTRUCTION_BANK",
+          "label": "Construction (bank)"
+        },
+        {
+          "value": "CONSTRUCTION_DEBT_FUND",
+          "label": "Construction (debt fund)"
+        },
+        {
+          "value": "CONSTRUCTION_PRIVATE",
+          "label": "Construction (private)"
+        },
+        {
+          "value": "AGENCY_FANNIE_MAE",
+          "label": "Fannie Mae"
+        },
+        {
+          "value": "AGENCY_FREDDIE_MAC",
+          "label": "Freddie Mac"
+        },
+        {
+          "value": "DSCR_INVESTOR_2_4",
+          "label": "DSCR investor (2–4 units)"
+        },
+        {
+          "value": "DSCR_INVESTOR_5_PLUS",
+          "label": "DSCR investor (5+ units)"
+        },
+        {
+          "value": "HUD_223A7",
+          "label": "HUD 223(a)(7)"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "secondaryProgram",
+      "label": "Secondary program fit",
+      "type": "SELECT",
+      "description": "The runner-up program, if any.",
+      "options": [
+        {
+          "value": "HUD_232_223F",
+          "label": "HUD 232/223(f)"
+        },
+        {
+          "value": "HUD_232_NEW_CONST",
+          "label": "HUD 232 new construction"
+        },
+        {
+          "value": "SBA_504_STANDARD",
+          "label": "SBA 504"
+        },
+        {
+          "value": "SBA_504_PLUS_7A_10M_STACK",
+          "label": "SBA 504 + 7(a) $10M stack"
+        },
+        {
+          "value": "HOSPITALITY_CMBS_NON_RECOURSE",
+          "label": "Hotel CMBS (non-recourse)"
+        },
+        {
+          "value": "HOSPITALITY_PIP_BRIDGE",
+          "label": "Hotel PIP bridge"
+        },
+        {
+          "value": "BRIDGE_TO_HUD_232",
+          "label": "Bridge to HUD 232"
+        },
+        {
+          "value": "WHITE_LABEL_CRE_BRIDGE",
+          "label": "CRE bridge"
+        },
+        {
+          "value": "HUD_221D4_223F_MULTIFAMILY",
+          "label": "HUD 221(d)(4) / 223(f) multifamily"
+        },
+        {
+          "value": "AGENCY_FANNIE_FREDDIE",
+          "label": "Agency (Fannie Mae / Freddie Mac)"
+        },
+        {
+          "value": "HARD_MONEY",
+          "label": "Hard money"
+        },
+        {
+          "value": "CONSTRUCTION_BANK",
+          "label": "Construction (bank)"
+        },
+        {
+          "value": "CONSTRUCTION_DEBT_FUND",
+          "label": "Construction (debt fund)"
+        },
+        {
+          "value": "CONSTRUCTION_PRIVATE",
+          "label": "Construction (private)"
+        },
+        {
+          "value": "AGENCY_FANNIE_MAE",
+          "label": "Fannie Mae"
+        },
+        {
+          "value": "AGENCY_FREDDIE_MAC",
+          "label": "Freddie Mac"
+        },
+        {
+          "value": "DSCR_INVESTOR_2_4",
+          "label": "DSCR investor (2–4 units)"
+        },
+        {
+          "value": "DSCR_INVESTOR_5_PLUS",
+          "label": "DSCR investor (5+ units)"
+        },
+        {
+          "value": "HUD_223A7",
+          "label": "HUD 223(a)(7)"
+        },
+        {
+          "value": "NONE",
+          "label": "None"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "leadTier",
+      "label": "Lead tier",
+      "type": "SELECT",
+      "description": "Urgency tier from the qualifier.",
+      "options": [
+        {
+          "value": "TIER_1_INSTITUTIONAL_HOT",
+          "label": "Tier 1 · hot"
+        },
+        {
+          "value": "TIER_2_QUALIFIED_MIDMARKET",
+          "label": "Tier 2 · qualified"
+        },
+        {
+          "value": "TIER_3_NURTURE",
+          "label": "Tier 3 · nurture"
+        },
+        {
+          "value": "UNQUALIFIED",
+          "label": "Unqualified"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "assetVertical",
+      "label": "Asset vertical",
+      "type": "SELECT",
+      "description": "The engine's asset grouping.",
+      "options": [
+        {
+          "value": "SENIOR_LIVING_CARE",
+          "label": "Senior living and care"
+        },
+        {
+          "value": "HOSPITALITY_HOTEL",
+          "label": "Hotels"
+        },
+        {
+          "value": "HOTEL_TO_CARE_CONVERSION",
+          "label": "Hotel to care conversion"
+        },
+        {
+          "value": "MULTIFAMILY",
+          "label": "Multifamily"
+        },
+        {
+          "value": "GENERAL_CRE_OR_CONSTRUCTION",
+          "label": "Commercial or construction"
+        },
+        {
+          "value": "HARD_MONEY_PRIVATE",
+          "label": "Hard money / private"
+        },
+        {
+          "value": "RESIDENTIAL_INVESTOR",
+          "label": "Residential investor"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "sizingFlag",
+      "label": "Sizing flag",
+      "type": "SELECT",
+      "description": "The engine's structuring note, e.g. needs broker review.",
+      "options": [
+        {
+          "value": "OPTIMAL_FOR_HUD_232",
+          "label": "Fits HUD 232"
+        },
+        {
+          "value": "LOAN_UNDER_3_5M_USE_SBA_504_TO_AVOID_HUD_COSTS",
+          "label": "Under $3.5M: SBA 504 before HUD"
+        },
+        {
+          "value": "USE_2026_SBA_10M_STACK_FOR_LARGE_HOTEL_OR_CARE_FACILITY",
+          "label": "SBA $10M stack for a large hotel or care facility"
+        },
+        {
+          "value": "NEEDS_STABILIZATION_OR_PIP_BRIDGE_FIRST",
+          "label": "Needs stabilization or a PIP bridge first"
+        },
+        {
+          "value": "OPTIMAL_AS_STRUCTURED",
+          "label": "Fits as structured"
+        },
+        {
+          "value": "EXIT_SHORTFALL_NEEDS_RESTRUCTURE",
+          "label": "Exit shortfall: needs restructuring"
+        },
+        {
+          "value": "NEEDS_BROKER_REVIEW",
+          "label": "Needs broker review"
+        }
+      ]
+    },
+    {
+      "object": "opportunity",
+      "name": "callRightAway",
+      "label": "Call right away",
+      "type": "BOOLEAN",
+      "description": "The engine flagged the lead for an immediate broker call."
+    },
+    {
+      "object": "opportunity",
+      "name": "recommendedLenders",
+      "label": "Recommended lenders",
+      "type": "TEXT",
+      "description": "Wholesale lenders the engine suggested, in order."
+    },
+    {
+      "object": "company",
+      "name": "sitePartnerId",
+      "label": "Site partner ID",
+      "type": "TEXT",
+      "description": "The registration's id on corincommercial.com."
+    },
+    {
+      "object": "company",
+      "name": "partnerType",
+      "label": "Partner type",
+      "type": "SELECT",
+      "description": "Which partner form they used.",
+      "options": [
+        {
+          "value": "LENDER",
+          "label": "Lender"
+        },
+        {
+          "value": "REFERRAL",
+          "label": "Referral partner"
+        },
+        {
+          "value": "OPERATOR",
+          "label": "Operator"
+        },
+        {
+          "value": "VENDOR",
+          "label": "Vendor"
+        }
+      ]
+    },
+    {
+      "object": "company",
+      "name": "lenderType",
+      "label": "Lender type",
+      "type": "SELECT",
+      "description": "Lenders: what kind of lender.",
+      "options": [
+        {
+          "value": "BANK",
+          "label": "Bank / credit union"
+        },
+        {
+          "value": "DEBT_FUND",
+          "label": "Debt fund"
+        },
+        {
+          "value": "CMBS_DESK",
+          "label": "CMBS conduit desk"
+        },
+        {
+          "value": "SBA_CDC",
+          "label": "SBA 504 CDC"
+        },
+        {
+          "value": "SBA_7A_LENDER",
+          "label": "SBA 7(a) lender"
+        },
+        {
+          "value": "HUD_LENDER",
+          "label": "HUD MAP / LEAN lender"
+        },
+        {
+          "value": "LIFE_CO",
+          "label": "Life company"
+        },
+        {
+          "value": "PRIVATE",
+          "label": "Private lender"
+        }
+      ]
+    },
+    {
+      "object": "company",
+      "name": "minLoan",
+      "label": "Min loan",
+      "type": "CURRENCY",
+      "description": "Lenders: smallest loan."
+    },
+    {
+      "object": "company",
+      "name": "maxLoan",
+      "label": "Max loan",
+      "type": "CURRENCY",
+      "description": "Lenders: largest loan."
+    },
+    {
+      "object": "company",
+      "name": "lendingVerticals",
+      "label": "Appetite",
+      "type": "MULTI_SELECT",
+      "description": "Lenders: asset classes they lend on.",
+      "options": [
+        {
+          "value": "SENIOR_LIVING",
+          "label": "Senior living & care"
+        },
+        {
+          "value": "HOSPITALITY",
+          "label": "Hospitality"
+        },
+        {
+          "value": "MULTIFAMILY",
+          "label": "Multifamily"
+        },
+        {
+          "value": "COMMERCIAL",
+          "label": "Commercial"
+        },
+        {
+          "value": "CONSTRUCTION",
+          "label": "Construction"
+        }
+      ]
+    },
+    {
+      "object": "company",
+      "name": "maxLtvPct",
+      "label": "Max LTV / LTC %",
+      "type": "NUMBER",
+      "description": "Lenders: maximum loan-to-value or loan-to-cost."
+    },
+    {
+      "object": "company",
+      "name": "maxLtcPct",
+      "label": "Max LTC / construction %",
+      "type": "NUMBER",
+      "description": "Lenders: maximum loan-to-cost on construction."
+    },
+    {
+      "object": "company",
+      "name": "minDscr",
+      "label": "Min DSCR",
+      "type": "NUMBER",
+      "description": "Lenders: minimum debt service coverage."
+    },
+    {
+      "object": "company",
+      "name": "minDebtYieldPct",
+      "label": "Min debt yield %",
+      "type": "NUMBER",
+      "description": "Lenders: minimum debt yield."
+    },
+    {
+      "object": "company",
+      "name": "flagRequirements",
+      "label": "Flag requirements",
+      "type": "TEXT",
+      "description": "Lenders: hotel flag requirements."
+    },
+    {
+      "object": "company",
+      "name": "brokerFeeProtectionPct",
+      "label": "Broker fee protection %",
+      "type": "NUMBER",
+      "description": "Lenders: broker fee they protect."
+    },
+    {
+      "object": "company",
+      "name": "marketsServed",
+      "label": "Markets served",
+      "type": "TEXT",
+      "description": "States or markets they cover."
+    },
+    {
+      "object": "company",
+      "name": "licenseType",
+      "label": "License type",
+      "type": "SELECT",
+      "description": "Referral partners: their license.",
+      "options": [
+        {
+          "value": "CA_DRE_BROKER",
+          "label": "California DRE broker"
+        },
+        {
+          "value": "CA_DRE_SALESPERSON",
+          "label": "California DRE salesperson"
+        },
+        {
+          "value": "OTHER_STATE_LICENSE",
+          "label": "Other state license"
+        },
+        {
+          "value": "HOTEL_BROKER",
+          "label": "Hotel / business broker"
+        },
+        {
+          "value": "UNLICENSED_REFERRAL",
+          "label": "Not licensed (finder)"
+        }
+      ]
+    },
+    {
+      "object": "company",
+      "name": "licenseNumbers",
+      "label": "License numbers",
+      "type": "TEXT",
+      "description": "Referral or operator license numbers."
+    },
+    {
+      "object": "company",
+      "name": "operatorType",
+      "label": "Operator type",
+      "type": "SELECT",
+      "description": "Operators: what they operate.",
+      "options": [
+        {
+          "value": "RCFE_ASSISTED_LIVING",
+          "label": "RCFE / assisted living"
+        },
+        {
+          "value": "MEMORY_CARE",
+          "label": "Memory care"
+        },
+        {
+          "value": "SNF",
+          "label": "Skilled nursing"
+        },
+        {
+          "value": "HOTEL_MANAGEMENT",
+          "label": "Hotel management"
+        }
+      ]
+    },
+    {
+      "object": "company",
+      "name": "unitsUnderManagement",
+      "label": "Beds / keys under management",
+      "type": "NUMBER",
+      "description": "Operators: beds or keys under management."
+    },
+    {
+      "object": "company",
+      "name": "flagsApproved",
+      "label": "Flags approved",
+      "type": "TEXT",
+      "description": "Operators: hotel brands they are approved to manage."
+    },
+    {
+      "object": "company",
+      "name": "vendorServices",
+      "label": "Services",
+      "type": "MULTI_SELECT",
+      "description": "Vendors: services offered.",
+      "options": [
+        {
+          "value": "MAI_APPRAISAL_HEALTHCARE",
+          "label": "MAI appraisal — healthcare"
+        },
+        {
+          "value": "MAI_APPRAISAL_HOSPITALITY",
+          "label": "MAI appraisal — hospitality"
+        },
+        {
+          "value": "HVS_STR_FEASIBILITY",
+          "label": "HVS / STR feasibility"
+        },
+        {
+          "value": "PHASE_I_ESA",
+          "label": "Phase I ESA"
+        },
+        {
+          "value": "PCNA",
+          "label": "PCNA / property condition"
+        },
+        {
+          "value": "CPA_AUDIT",
+          "label": "CPA / HUD audit"
+        },
+        {
+          "value": "LEGAL",
+          "label": "Legal"
+        },
+        {
+          "value": "TITLE_ESCROW",
+          "label": "Title & escrow"
+        }
+      ]
+    },
+    {
+      "object": "company",
+      "name": "typicalTurnaroundDays",
+      "label": "Typical turnaround (days)",
+      "type": "NUMBER",
+      "description": "Vendors: typical turnaround."
+    }
+  ]
+}
