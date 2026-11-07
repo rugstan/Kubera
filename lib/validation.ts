@@ -3,6 +3,12 @@ import { PROPERTY_TYPES } from "./property-types";
 
 const money = z.coerce.number().finite().min(0).max(1_000_000_000);
 const optionalMoney = money.optional().transform((v) => (v ? v : undefined));
+/**
+ * An optional number a visitor can leave blank. Forms send a blank as null or
+ * "", and z.coerce.number() turns both into 0, so "left blank" would be stored
+ * (and shown in the CRM) as "0 days" or "min DSCR 0". A blank stays undefined.
+ */
+const optionalNumber = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === null || v === "" ? undefined : v), schema.optional());
 
 export const contactSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
@@ -33,7 +39,7 @@ export const hardMoneyIntakeSchema = z.object({
   /** After-repair (or as-stabilized) value. */
   arv: optionalMoney,
   termMonths: z.coerce.number().int().min(6).max(36).default(12),
-  holdMonths: z.coerce.number().int().min(1).max(60).optional(),
+  holdMonths: optionalNumber(z.coerce.number().int().min(1).max(60)),
   /** Comparable projects completed in the last 36 months. */
   completedProjects: z.coerce.number().int().min(0).max(1_000).default(0),
   existingPayoff: optionalMoney,
@@ -196,9 +202,9 @@ export const partnerSchema = z.discriminatedUnion("partnerType", [
     verticals,
     states: z.string().trim().max(400).optional().default(""),
     maxLtv: z.coerce.number().min(0).max(100),
-    maxLtc: z.coerce.number().min(0).max(100).optional(),
-    minDscr: z.coerce.number().min(0).max(5).optional(),
-    minDebtYield: z.coerce.number().min(0).max(50).optional(),
+    maxLtc: optionalNumber(z.coerce.number().min(0).max(100)),
+    minDscr: optionalNumber(z.coerce.number().min(0).max(5)),
+    minDebtYield: optionalNumber(z.coerce.number().min(0).max(50)),
     flagRequirements: z.string().trim().max(400).optional().default(""),
     brokerFeeProtectionPct: z.coerce.number().min(0).max(10),
   }),
@@ -227,7 +233,7 @@ export const partnerSchema = z.discriminatedUnion("partnerType", [
     organization: z.string().trim().min(1).max(160),
     services: z.array(z.enum(["MAI_APPRAISAL_HEALTHCARE", "MAI_APPRAISAL_HOSPITALITY", "HVS_STR_FEASIBILITY", "PHASE_I_ESA", "PCNA", "CPA_AUDIT", "LEGAL", "TITLE_ESCROW"])).min(1),
     markets: z.string().trim().max(400).optional().default(""),
-    typicalTurnaroundDays: z.coerce.number().int().min(0).max(365).optional(),
+    typicalTurnaroundDays: optionalNumber(z.coerce.number().int().min(0).max(365)),
   }),
 ]);
 

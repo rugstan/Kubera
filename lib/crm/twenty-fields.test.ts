@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LENDER_KINDS, LICENSE_TYPES, OPERATOR_KINDS, SERVICES, VERTICALS } from "@/components/partners/schema";
 import { ASSET_VERTICALS, OPTIMIZATION_FLAGS, PROGRAM_FITS, URGENCY_TIERS, decideWithRules } from "@/lib/ai/jev";
 import { PROPERTY_TYPES } from "@/lib/property-types";
-import { creditBands, intakeFromQuick, intakeSchema, type Intake, type PartnerRegistration } from "@/lib/validation";
+import { creditBands, intakeFromQuick, intakeSchema, partnerSchema, type Intake, type PartnerRegistration } from "@/lib/validation";
 import { TWENTY_FIELDS, companyFields, fieldSpec, fieldsManifest, opportunityFields, type TwentyObjectName } from "./twenty-fields";
 
 const jevFor = (intake: Intake) => ({ ...decideWithRules(intake), engine: "rules" as const, latencyMs: 1 });
@@ -182,6 +182,31 @@ describe("companyFields", () => {
       brokerFeeProtectionPct: 1,
       marketsServed: "CA, NV",
     });
+  });
+
+  it("leaves out numbers the partner left blank instead of writing 0", () => {
+    // The partner form sends a blank number as null; it must not reach Twenty as "0 days" or "min DSCR 0".
+    const vendor = partnerSchema.parse({ partnerType: "VENDOR", contact, organization: "Rivera Appraisal", services: ["PHASE_I_ESA"], markets: "", typicalTurnaroundDays: null });
+    expect(companyFields(vendor)).toEqual({ partnerType: "VENDOR", vendorServices: ["PHASE_I_ESA"] });
+    const lender = partnerSchema.parse({
+      partnerType: "LENDER",
+      contact,
+      organization: "Pacific Bank",
+      lenderKind: "BANK",
+      minLoan: 1_000_000,
+      maxLoan: 5_000_000,
+      maxLtv: 70,
+      maxLtc: null,
+      minDscr: "",
+      minDebtYield: null,
+      brokerFeeProtectionPct: 0,
+    });
+    const values = companyFields(lender);
+    for (const name of ["maxLtcPct", "minDscr", "minDebtYieldPct"]) expect(values, name).not.toHaveProperty(name);
+    // A real zero the form requires (fee protection) is kept.
+    expect(values).toMatchObject({ maxLtvPct: 70, brokerFeeProtectionPct: 0 });
+    // An answer that was given still comes through.
+    expect(companyFields(partnerSchema.parse({ partnerType: "VENDOR", contact, organization: "Rivera", services: ["PCNA"], typicalTurnaroundDays: "14" }))).toMatchObject({ typicalTurnaroundDays: 14 });
   });
 
   it.each([
