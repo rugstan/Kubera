@@ -82,15 +82,64 @@ export function Loading({ label }: { label: string }) {
   );
 }
 
-export function Field({ label, name, type = "text", defaultValue, required, placeholder, step, hint }: { label: string; name: string; type?: string; defaultValue?: string | number | null; required?: boolean; placeholder?: string; step?: string; hint?: string }) {
-  const hintId = hint ? `${name}-hint` : undefined;
+type FieldProps = {
+  label: string;
+  name: string;
+  type?: string;
+  defaultValue?: string | number | null;
+  required?: boolean;
+  placeholder?: string;
+  step?: string;
+  hint?: string;
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  spellCheck?: boolean;
+  /** Makes the hint id `${idPrefix}-${name}-hint`; per-row forms pass one so ids never repeat. */
+  idPrefix?: string;
+  /** Asks password managers not to offer to fill or save this field (account numbers). */
+  passwordManagerIgnore?: boolean;
+};
+
+export function Field({ label, name, type = "text", defaultValue, required, placeholder, step, hint, autoComplete, inputMode, maxLength, spellCheck, idPrefix, passwordManagerIgnore }: FieldProps) {
+  const hintId = hint ? `${idPrefix ? `${idPrefix}-` : ""}${name}-hint` : undefined;
+  const ignore = passwordManagerIgnore ? { "data-1p-ignore": "true", "data-lpignore": "true", "data-bwignore": "true", "data-form-type": "other" } : {};
   return (
     <label className="block">
       <span className="field-label">
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
       </span>
-      <input aria-describedby={hintId} className="field" defaultValue={defaultValue ?? undefined} name={name} placeholder={placeholder} required={required} step={step} type={type} />
+      <input
+        aria-describedby={hintId}
+        autoComplete={autoComplete}
+        className="field"
+        defaultValue={defaultValue ?? undefined}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        spellCheck={spellCheck}
+        step={step}
+        type={type}
+        {...ignore}
+      />
+      {hint ? (
+        <span className="mt-1 block text-xs text-titanium" id={hintId}>
+          {hint}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+export function TextArea({ label, name, defaultValue, maxLength, hint, rows = 4, idPrefix }: { label: string; name: string; defaultValue?: string | null; maxLength?: number; hint?: string; rows?: number; idPrefix?: string }) {
+  const hintId = hint ? `${idPrefix ? `${idPrefix}-` : ""}${name}-hint` : undefined;
+  return (
+    <label className="block">
+      <span className="field-label">{label}</span>
+      <textarea aria-describedby={hintId} className="field" defaultValue={defaultValue ?? undefined} maxLength={maxLength} name={name} rows={rows} />
       {hint ? (
         <span className="mt-1 block text-xs text-titanium" id={hintId}>
           {hint}

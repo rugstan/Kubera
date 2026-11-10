@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { lenderCategories } from "@/lib/compliance/schemas";
 import { LENDER_STALE_AFTER_DAYS, lenderStaleness } from "@/lib/deals/lenders";
@@ -43,17 +44,23 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
       <Section title="Panel">
         <Table
           empty="No lenders on the panel yet."
-          head={["Lender", "Programs", "Size", "Fee split", "Verified", ""]}
+          head={["Lender", "Contact", "Programs", "Size", "Fee split", "Verified", ""]}
           rows={lenders.map((l) => {
             const s = lenderStaleness(l, now);
             return [
               <span key="n">
-                <span className="font-medium">{l.name}</span>
+                <Link className="font-medium hover:underline" href={`/deals/lenders/${l.id}`}>
+                  {l.name}
+                </Link>
                 <span className="mt-1 flex flex-wrap gap-1">
                   {l.brokerFriendly ? <Badge tone="good">Broker-friendly</Badge> : null}
                   {!l.active ? <Badge tone="bad">Inactive</Badge> : null}
                   <Badge>{l.category.replace(/_/g, " ").toLowerCase()}</Badge>
                 </span>
+              </span>,
+              <span className="flex flex-col gap-1" key="c">
+                <span>{l.primaryContactName ?? <span className="text-titanium">No primary contact</span>}</span>
+                <span className="break-all">{l.contactEmail ?? <Badge tone="warn">No email on file</Badge>}</span>
               </span>,
               l.programs.map((p) => DEAL_PROGRAM_LABELS[p]).join(", "),
               `${money(l.minLoanCents)} – ${money(l.maxLoanCents)}`,
@@ -110,8 +117,8 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
             <Field label="Split value" name="feeSplitValue" step="0.0001" type="number" />
             <Field label="Fee / correspondent agreement ref" name="feeAgreementRef" />
             <Field label="Appetite notes" name="appetiteNotes" />
-            <Field label="Contact name" name="contactName" />
-            <Field label="Contact email" name="contactEmail" type="email" />
+            <Field autoComplete="off" label="Primary contact name" name="contactName" />
+            <Field autoComplete="off" hint="A name creates the primary contact; an email alone becomes the submission inbox." label="Primary contact email" name="contactEmail" type="email" />
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Check label="Broker-friendly" name="brokerFriendly" />
               <Check defaultChecked label="Appetite and split verified today" name="verifiedNow" />
