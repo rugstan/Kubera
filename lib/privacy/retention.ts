@@ -297,6 +297,18 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
     retainDays: 2 * YEAR,
     hasLegalHold: false,
   },
+  {
+    // Active contacts stay while the lender relationship is active; contacts of an
+    // inactive lender are reviewed by hand (there is no deactivation date yet).
+    id: "lender_contacts_left",
+    table: "lender_contacts",
+    description: "Lender contacts who left the lender",
+    basis: "Privacy policy: professional information, three years after the relationship ends",
+    dateColumn: "left_at",
+    retainDays: 3 * YEAR + 1,
+    filters: [{ column: "status", op: "eq", value: "left" }],
+    hasLegalHold: false,
+  },
 ];
 
 export type DeleteResult = { deleted: RowId[]; failed: { id: RowId; error: string }[] };
@@ -576,6 +588,11 @@ export const CONTACT_RECORDS: readonly ContactRecordSpec[] = [
     keepColumns: ["status"],
     keep: (r) => (r.status === "pending" ? "Text opt-out still being copied to our CRM; kept until it is, so the opt-out is honored" : null),
   },
+  // People at lenders (lender_contacts). Their audit rows are already redacted; deleting a
+  // primary contact moves the package recipient to the lender's submission inbox.
+  { table: "lender_contacts", column: "email", match: "email", hasLegalHold: false },
+  { table: "lender_contacts", column: "phone_direct", match: "phone", hasLegalHold: false },
+  { table: "lender_contacts", column: "phone_mobile", match: "phone", hasLegalHold: false },
 ];
 
 export type DeletionRequestSummary = { processed: number; completed: number; partial: number; errors: string[] };

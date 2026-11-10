@@ -14,6 +14,7 @@ import { emailClientFromEnv } from "@/lib/notify/email";
 import { notifyRuntime } from "@/lib/notify/runtime";
 import type { EsignProvider } from "@/lib/esign/types";
 import { supabaseIdempotencyStore, type IdempotencyStore } from "@/lib/workflows/idempotency";
+import { piiKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { site } from "@/lib/site";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 import { demoDesks, type DemoDesks } from "./demo";
@@ -54,6 +55,12 @@ export type DealDeskRuntime = {
   lenderMailer: LenderMailer | null;
   baseUrl: string;
   now: () => Date;
+  /**
+   * Seals and opens lender account numbers (lib/deals/lender-accounts.ts). Production:
+   * PII_ENCRYPTION_KEY (null when unset: saving a number fails closed). Demo: the public
+   * demo key, never the environment. Always pass it explicitly to the crypto helpers.
+   */
+  keyring: PiiKeyring | null;
   /** WS-U checklist / screening services: sanctions holds and the closing gate. */
   checklist: ChecklistDeps | null;
   /** Milestone notifications for stage changes (WS-J). */
@@ -91,6 +98,7 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     ...deskMailers(),
     baseUrl: site.siteUrl,
     now: () => new Date(),
+    keyring: piiKeyring(),
     checklist: checklistFromDesk(),
     stageEvents: stageEventSink(),
     async vaultDocuments(leadId) {
@@ -131,6 +139,8 @@ function demoRuntime(demo: DemoDesks): DealDeskRuntime {
     ...deskMailers(),
     baseUrl: site.siteUrl,
     now: () => new Date(),
+    // Read on every call: tests swap it to model a server without a key.
+    keyring: demo.keyring,
     checklist: checklistFromDesk(),
     stageEvents: null,
     async vaultDocuments() {

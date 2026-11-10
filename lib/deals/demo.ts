@@ -24,9 +24,11 @@ import { FakeSanctionsClient } from "@/lib/screening/fake";
 import { MemoryDealHoldStore, MemoryScreeningStore } from "@/lib/screening/store";
 import { MemorySpreadStore } from "@/lib/spreads/store";
 import { MemoryIdempotencyStore } from "@/lib/workflows/idempotency";
+import { sealLenderAccountNumber } from "./lender-accounts";
+import { EMPTY_LENDER_CONTACT_INFO } from "./lender-contacts";
 import { stageTemplate, templateDigest } from "./stages";
 import { MemoryDealDeskStore } from "./store";
-import type { Deal, DealProgram, LenderPanelEntry } from "./types";
+import type { Deal, DealProgram, LenderContact, LenderRow } from "./types";
 
 /** True when the in-memory demo desks are in use (fake-auth mode). */
 export function demoDesksEnabled(env: Record<string, string | undefined> = process.env): boolean {
@@ -51,6 +53,18 @@ export const DEMO_LENDER_IDS = {
   bank: "20000000-0000-4000-8000-000000000001",
   privateFund: "20000000-0000-4000-8000-000000000002",
 } as const;
+
+export const DEMO_LENDER_CONTACT_IDS = {
+  bankPrimary: "21000000-0000-4000-8000-000000000001",
+  bankUnderwriter: "21000000-0000-4000-8000-000000000002",
+  fundPrimary: "21000000-0000-4000-8000-000000000003",
+} as const;
+
+/** The demo bank's broker ID, sealed with the demo key (only when a keyring is passed to seedDemoDealDesk). */
+export const DEMO_LENDER_ACCOUNT = { id: "30000000-0000-4000-8000-000000000001", kind: "broker_id", label: "Broker ID", value: "DEMO-BRK-48210937" } as const;
+
+// Public demo key: it only ever encrypts invented data held in memory.
+export const DEMO_PII_KEYRING: PiiKeyring = createKeyring({ version: 1, key: Buffer.alloc(32, 0x4b) });
 
 export type DemoDesks = {
   deals: MemoryDealDeskStore;
@@ -86,7 +100,8 @@ const DEMO_DEALS: DemoDeal[] = [
   { id: DEMO_EXTRA_DEAL_IDS.cedarCourt, title: "Cedar Court Refinance (demo)", program: "HUD_MULTIFAMILY", stage: "lost", status: "lost", borrowerName: "Cedar Court Example LP", propertyAddress: "800 Sample Ct, Stockton", loanAmountCents: 2_200_000_000, collateralRealProperty: true, updatedAt: "2026-10-10T12:00:00.000Z" },
 ];
 
-const DEMO_LENDERS: LenderPanelEntry[] = [
+// Contact info uses only fictional .example domains and 555-01xx numbers.
+const DEMO_LENDERS: LenderRow[] = [
   {
     id: DEMO_LENDER_IDS.bank,
     partnerId: null,
@@ -103,14 +118,21 @@ const DEMO_LENDERS: LenderPanelEntry[] = [
     feeSplitKind: "percent_of_lender_fee",
     feeSplitValue: 50,
     feeAgreementRef: "demo://agreements/example-bank.pdf",
-    contactName: "Demo Lender Contact",
-    contactEmail: "lending@bank.example",
     verifiedAt: "2026-10-01T00:00:00.000Z",
     verifiedBy: "staff:broker@corin.test",
     active: true,
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",
     updatedBy: "staff:broker@corin.test",
+    ...EMPTY_LENDER_CONTACT_INFO,
+    mainPhone: "+13105550100",
+    submissionEmail: "submissions@bank.example",
+    websiteUrl: "https://bank.example/",
+    addressLine1: "100 Example Way",
+    city: "Los Angeles",
+    addressState: "CA",
+    postalCode: "90012",
+    contactInfoVersion: 1,
   },
   {
     id: DEMO_LENDER_IDS.privateFund,
@@ -128,21 +150,54 @@ const DEMO_LENDERS: LenderPanelEntry[] = [
     feeSplitKind: "none",
     feeSplitValue: 0,
     feeAgreementRef: null,
-    contactName: "Demo Fund Contact",
-    contactEmail: "deals@fund.example",
     verifiedAt: "2026-10-01T00:00:00.000Z",
     verifiedBy: "staff:broker@corin.test",
     active: true,
     createdAt: "2026-10-01T00:00:00.000Z",
     updatedAt: "2026-10-01T00:00:00.000Z",
     updatedBy: "staff:broker@corin.test",
+    ...EMPTY_LENDER_CONTACT_INFO,
+    websiteUrl: "https://fund.example/",
+    contactInfoVersion: 1,
   },
+];
+
+const demoContact = (c: Pick<LenderContact, "id" | "lenderId" | "fullName" | "email" | "role" | "isPrimary"> & Partial<LenderContact>): LenderContact => ({
+  title: null,
+  phoneDirect: null,
+  phoneExt: null,
+  phoneMobile: null,
+  preferredChannel: null,
+  territory: null,
+  notes: null,
+  status: "active",
+  leftAt: null,
+  source: "staff",
+  verifiedAt: null,
+  verifiedBy: null,
+  recordVersion: 1,
+  createdAt: "2026-10-01T00:00:00.000Z",
+  createdBy: "staff:broker@corin.test",
+  updatedAt: "2026-10-01T00:00:00.000Z",
+  updatedBy: null,
+  ...c,
+});
+
+// The primaries' emails are the submission recipients the demo flows used before contacts existed.
+const DEMO_LENDER_CONTACTS: LenderContact[] = [
+  demoContact({ id: DEMO_LENDER_CONTACT_IDS.bankPrimary, lenderId: DEMO_LENDER_IDS.bank, fullName: "Demo Lender Contact", email: "lending@bank.example", role: "account_executive", isPrimary: true, phoneDirect: "+13105550123" }),
+  demoContact({ id: DEMO_LENDER_CONTACT_IDS.bankUnderwriter, lenderId: DEMO_LENDER_IDS.bank, fullName: "Demo Underwriter", email: "underwriting@bank.example", role: "underwriter", isPrimary: false }),
+  demoContact({ id: DEMO_LENDER_CONTACT_IDS.fundPrimary, lenderId: DEMO_LENDER_IDS.privateFund, fullName: "Demo Fund Contact", email: "deals@fund.example", role: "other", isPrimary: true }),
 ];
 
 const POST_TERM_SHEET_STAGES = new Set(["application", "third_party_reports", "plan_and_cost_review", "hud_review", "firm_commitment", "lender_underwriting", "sba_authorization", "underwriting", "commitment", "closing", "closed"]);
 
-/** Writes the demo deals and lender panel into `store` (synchronously, so the first request sees them). */
-export function seedDemoDealDesk(store: MemoryDealDeskStore = new MemoryDealDeskStore()): MemoryDealDeskStore {
+/**
+ * Writes the demo deals and lender panel into `store` (synchronously, so the
+ * first request sees them). With a keyring, the demo bank also gets a sealed
+ * broker ID.
+ */
+export function seedDemoDealDesk(store: MemoryDealDeskStore = new MemoryDealDeskStore(), keyring?: PiiKeyring | null): MemoryDealDeskStore {
   for (const d of DEMO_DEALS) {
     const template = stageTemplate(d.program);
     const key = `${template.program}:${template.version}`;
@@ -179,6 +234,24 @@ export function seedDemoDealDesk(store: MemoryDealDeskStore = new MemoryDealDesk
     store.deals.set(deal.id, deal);
   }
   for (const l of DEMO_LENDERS) store.lenders.set(l.id, structuredClone(l));
+  for (const c of DEMO_LENDER_CONTACTS) store.lenderContacts.set(c.id, structuredClone(c));
+  if (keyring) {
+    const sealed = sealLenderAccountNumber(DEMO_LENDER_ACCOUNT.id, DEMO_LENDER_ACCOUNT.value, keyring);
+    store.lenderAccounts.set(DEMO_LENDER_ACCOUNT.id, {
+      id: DEMO_LENDER_ACCOUNT.id,
+      lenderId: DEMO_LENDER_IDS.bank,
+      kind: DEMO_LENDER_ACCOUNT.kind,
+      label: DEMO_LENDER_ACCOUNT.label,
+      numberEnc: sealed.numberEnc,
+      numberLast4: sealed.numberLast4,
+      notes: null,
+      recordVersion: 1,
+      createdAt: "2026-10-01T00:00:00.000Z",
+      createdBy: "staff:admin@corin.test",
+      updatedAt: "2026-10-01T00:00:00.000Z",
+      updatedBy: null,
+    });
+  }
   return store;
 }
 
@@ -196,7 +269,7 @@ function buildDemoDesks(): DemoDesks {
     disciplinaryAction: false,
   });
   return {
-    deals: seedDemoDealDesk(),
+    deals: seedDemoDealDesk(new MemoryDealDeskStore(), DEMO_PII_KEYRING),
     disclosures: new MemoryDisclosureStore(),
     storage: new MemoryDocumentStorage(),
     effects: new MemoryIdempotencyStore(),
@@ -206,8 +279,7 @@ function buildDemoDesks(): DemoDesks {
     screenings: new MemoryScreeningStore(),
     holds: new MemoryDealHoldStore(),
     sanctions: new FakeSanctionsClient([{ entryId: "demo-sdn-0001", name: DEMO_SANCTIONED_NAME, kind: "individual", programs: ["DEMO"] }], { listVersion: "demo-sdn@2026-10-31" }),
-    // Public demo key: it only ever encrypts invented data held in memory.
-    keyring: createKeyring({ version: 1, key: Buffer.alloc(32, 0x4b) }),
+    keyring: DEMO_PII_KEYRING,
     construction: new MemoryConstructionStore(),
     licenses,
     lenderStore: new MemoryLenderMatchStore(),

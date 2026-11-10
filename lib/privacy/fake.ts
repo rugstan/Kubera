@@ -178,6 +178,13 @@ export class MemoryPrivacyDb implements RetentionDb, SubjectDataSource, PrivacyR
     return this.rows("newsletter_subscribers").filter((r) => r.email === email.toLowerCase());
   }
 
+  async lenderContacts(email: string): Promise<ExportRecord[]> {
+    const names = new Map(this.rows("lender_panel").map((l) => [l.id, l.name]));
+    return this.rows("lender_contacts")
+      .filter((r) => String(r.email ?? "").toLowerCase() === email.toLowerCase())
+      .map((r) => ({ ...r, lender_name: names.get(r.lender_id as RowId) ?? null }));
+  }
+
   // --- PrivacyRequestStore -------------------------------------------------------
 
   async insert(row: NewPrivacyRequest): Promise<{ row: PrivacyRequestRow; duplicate: boolean }> {

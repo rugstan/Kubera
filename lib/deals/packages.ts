@@ -207,6 +207,9 @@ async function decideOutreach(
         packageId: pkg.id,
         packageVersion: pkg.version,
         manifestSha256: pkg.manifestSha256,
+        // The derived submission recipient (lib/deals/lender-contacts.ts deriveLenderContacts):
+        // the primary contact's email, else the lender's submission inbox. Changing either
+        // after the request changes this hash, which surfaces as "contact email changed".
         to: lender.contactEmail,
         staleLenderOverride: input.staleLenderOverride,
       },

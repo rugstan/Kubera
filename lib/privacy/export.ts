@@ -34,6 +34,8 @@ export interface SubjectDataSource {
   /** Emails and texts we sent to `email` or `phones`, or about one of `leadIds`. */
   notificationsFor(q: { email: string; phones: readonly string[]; leadIds: readonly string[] }): Promise<ExportRecord[]>;
   newsletter(email: string): Promise<ExportRecord[]>;
+  /** People at lenders Corin works with (lender_contacts), matched by email, with the lender's name as lender_name. */
+  lenderContacts(email: string): Promise<ExportRecord[]>;
 }
 
 /** Columns exported per table; anything else is internal plumbing. */
@@ -49,6 +51,8 @@ export const EXPORT_COLUMNS = {
   sms_messages: ["id", "created_at", "direction", "from_number", "to_number", "body", "status", "keyword"],
   notifications: ["id", "created_at", "channel", "template_id", "recipient", "subject", "status", "sent_at", "delivered_at", "audience"],
   newsletter_subscribers: ["id", "created_at", "email", "status", "source_page", "consent_text_version", "confirmed_at", "unsubscribed_at"],
+  // lender_accounts is never exported: it holds Corin's own business identifiers, not information about the person.
+  lender_contacts: ["id", "created_at", "lender_name", "full_name", "title", "role", "email", "phone_direct", "phone_ext", "phone_mobile", "territory", "notes", "status", "left_at", "source"],
 } as const satisfies Record<string, readonly string[]>;
 
 type ExportTable = keyof typeof EXPORT_COLUMNS;
@@ -94,6 +98,7 @@ export type SubjectExport = {
     textMessages: ExportRecord[];
     notificationsSent: ExportRecord[];
     newsletter: ExportRecord[];
+    lenderContacts: ExportRecord[];
   };
   withheld: { table: string; id: unknown; field: string; reason: string }[];
   notes: string[];
@@ -164,7 +169,7 @@ export async function buildSubjectExport(
 ): Promise<SubjectExport> {
   const email = normalizeEmail(rawEmail);
   const withheld: SubjectExport["withheld"] = [];
-  const [leads, partners, consent, requests, prefs, mail, newsletter] = await Promise.all([
+  const [leads, partners, consent, requests, prefs, mail, newsletter, lenderContacts] = await Promise.all([
     source.leads(email),
     source.partners(email),
     source.consentEvents(email),
@@ -172,6 +177,7 @@ export async function buildSubjectExport(
     source.preferences(email),
     source.mailFrom(email),
     source.newsletter(email),
+    source.lenderContacts(email),
   ]);
   const leadIds = leads.map((l) => String(l.id));
   const phones = subjectPhones(opts.phones ?? [], leads, partners, consent);
@@ -198,6 +204,7 @@ export async function buildSubjectExport(
         "Lenders and third-party report providers working on your loan",
         "Public sources such as property records and license lookups",
         "Your browser or device when you visit our sites",
+        "Lenders we work with, their public websites, and business cards or email signatures you shared with us",
       ],
       purposes: PURPOSES,
       recipients: [
@@ -219,6 +226,7 @@ export async function buildSubjectExport(
       textMessages: [...sms].sort(byTime("created_at")).map((r) => pick("sms_messages", r, withheld, opts.keyring)),
       notificationsSent: [...sent].sort(byTime("created_at")).map((r) => pick("notifications", r, withheld, opts.keyring)),
       newsletter: newsletter.map((r) => pick("newsletter_subscribers", r, withheld, opts.keyring)),
+      lenderContacts: lenderContacts.map((r) => pick("lender_contacts", r, withheld, opts.keyring)),
     },
     withheld,
     notes: [
