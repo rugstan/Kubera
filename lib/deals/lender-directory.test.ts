@@ -83,6 +83,19 @@ describe("saveLenderContactInfo", () => {
     expect(saved.submissionEmail).toBe("Inquiry@pccpllc.com");
     expect(saved.contactEmail).toBe("Inquiry@pccpllc.com");
   });
+
+  it("keeps a backfilled website with a query string when the form sends it back unchanged", async () => {
+    const { deps, store } = await world();
+    // As the contacts backfill stores it from the directory notes.
+    const legacy = await store.insertLender(lenderInput({ name: "Byline", websiteUrl: "https://www.bylinebank.com/?p=12061" }), "x", T0);
+    const v1 = await saveLenderContactInfo(deps, legacy.id, 1, { websiteUrl: "https://www.bylinebank.com/?p=12061", mainPhone: "(310) 555-0100" }, {}, "x");
+    expect(v1).toMatchObject({ websiteUrl: "https://www.bylinebank.com/?p=12061", mainPhone: "+13105550100" });
+    // A new address still loses its query and fragment; clearing the field clears it.
+    const v2 = await saveLenderContactInfo(deps, legacy.id, 2, { websiteUrl: "https://www.bylinebank.com/cre?utm_source=x#top" }, {}, "x");
+    expect(v2.websiteUrl).toBe("https://www.bylinebank.com/cre");
+    const v3 = await saveLenderContactInfo(deps, legacy.id, 3, { websiteUrl: "" }, {}, "x");
+    expect(v3.websiteUrl).toBeNull();
+  });
 });
 
 describe("account numbers", () => {

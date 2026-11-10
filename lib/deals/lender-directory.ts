@@ -30,6 +30,14 @@ async function lenderOrThrow(deps: DirectoryDeps, lenderId: string): Promise<Len
 /** Keeps a stored address when only its letter case differs (the legacy rows keep theirs, so the approval recipient does not change). */
 const sameEmail = (next: string | null, cur: string | null) => (next !== null && cur !== null && next.toLowerCase() === cur.toLowerCase() ? cur : next);
 
+/**
+ * Keeps a stored website when the form sends it back unchanged. New addresses
+ * lose their query and fragment (optHttpsUrl), but a backfilled one such as
+ * "https://bank.example/?p=12061" must not turn into the home page because
+ * staff edited the phone number in the same form.
+ */
+const sameUrl = (raw: unknown, next: string | null, cur: string | null) => (cur !== null && typeof raw === "string" && raw.trim() === cur ? cur : next);
+
 // --- Contacts ---------------------------------------------------------------------------------------
 
 export async function addLenderContact(deps: DirectoryDeps, lenderId: string, rawInput: unknown, opts: { makePrimary?: boolean }, actor: string): Promise<LenderContact> {
@@ -104,7 +112,13 @@ export async function saveLenderContactInfo(
 ): Promise<LenderPanelEntry> {
   const input = parseLenderContactInfo(rawInput);
   const cur = await lenderOrThrow(deps, lenderId);
-  const next: Partial<LenderContactInfo> = { ...input, submissionEmail: sameEmail(input.submissionEmail, cur.submissionEmail), generalEmail: sameEmail(input.generalEmail, cur.generalEmail) };
+  const raw = rawInput && typeof rawInput === "object" ? (rawInput as Record<string, unknown>) : {};
+  const next: Partial<LenderContactInfo> = {
+    ...input,
+    submissionEmail: sameEmail(input.submissionEmail, cur.submissionEmail),
+    generalEmail: sameEmail(input.generalEmail, cur.generalEmail),
+    websiteUrl: sameUrl(raw.websiteUrl, input.websiteUrl, cur.websiteUrl),
+  };
   const callbackChanged = next.mainPhone !== cur.mainPhone || next.mainPhoneExt !== cur.mainPhoneExt || next.submissionEmail !== cur.submissionEmail;
   const now = deps.now();
   if (opts.verifiedNow) Object.assign(next, { contactVerifiedAt: now.toISOString(), contactVerifiedBy: actor });
