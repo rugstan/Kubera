@@ -525,5 +525,16 @@ describe("lender contacts", () => {
     expect(db.find("lender_contacts", other.id)).toBeDefined();
     expect(db.find("lender_panel", lender.id)).toBeDefined();
     expect(r.contactRecords).toEqual(expect.arrayContaining([{ table: "lender_contacts", deleted: 3, objectsRemoved: 0 }]));
+    expect(r.retained.filter((x) => x.table === "audit_log")).toEqual([]);
+  });
+
+  it("erasure reports the pre-migration audit copy of a contact backfilled from the legacy lender columns", async () => {
+    const lender = db.insertRow("lender_panel", { name: "Cambridge" });
+    const backfilled = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Pat", email: "pat@example.com", status: "active", created_by: "migration:20261105120000_int_lender_contacts" });
+    const later = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Pat (new desk)", email: "Pat@Example.com", status: "active", created_by: "broker:ana" });
+    const r = await eraseSubject("pat@example.com", { db, storage }, NOW);
+    for (const c of [backfilled, later]) expect(db.find("lender_contacts", c.id)).toBeUndefined();
+    expect(r.retained).toEqual([{ table: "audit_log", id: backfilled.id, reason: expect.stringMatching(/append-only change log/) }]);
+    expect(JSON.stringify(r.retained)).not.toContain("pat@example.com");
   });
 });

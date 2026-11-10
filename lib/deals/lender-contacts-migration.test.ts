@@ -170,6 +170,51 @@ describe("lender contacts migration", () => {
     expect(await n(`select count(*)::int as n from public.audit_log where old_row::text ~ 'pii1\\.' or new_row::text ~ 'pii1\\.'`)).toBe(0);
   });
 
+  it("copies no legacy contact name or email into audit_log during the backfill", async () => {
+    type A = { action: string; actor: string; changed: string[]; old_name: string | null; old_email: string | null; new_name: string | null };
+    const backfill = await rows<A>(
+      `select action, actor, changed, old_row ->> 'contact_name' as old_name, old_row ->> 'contact_email' as old_email, new_row ->> 'contact_name' as new_name
+         from public.audit_log where table_name = 'lender_panel' and action = 'UPDATE' and 'contact_name' = any (changed)`,
+    );
+    expect(backfill.length).toBeGreaterThanOrEqual(55);
+    for (const r of backfill) {
+      expect(r.old_name, r.actor).toBe("[redacted]");
+      expect([null, "[redacted]"]).toContain(r.old_email);
+      expect(r.new_name).toBeNull();
+    }
+    const mack = await one<{ n: number }>(
+      `select count(*)::int as n from public.audit_log where table_name = 'lender_panel' and action = 'UPDATE' and (old_row::text || new_row::text) ~* 'Brett Kaplan|Regina Lubin'`,
+    );
+    expect(mack.n).toBe(0);
+    // The documented exception: only the directory seed INSERTs, written before this
+    // migration, still hold a legacy name (audit_log is append-only).
+    const holders = await rows<{ action: string; actor: string }>(
+      `select distinct action, actor from public.audit_log where table_name = 'lender_panel' and coalesce(old_row ->> 'contact_name', new_row ->> 'contact_name', '[redacted]') <> '[redacted]'`,
+    );
+    expect(holders.length).toBeGreaterThan(0);
+    for (const h of holders) {
+      expect(h.action).toBe("INSERT");
+      expect(h.actor).toMatch(/^seed:lender-directory/);
+    }
+  });
+
+  it("redacts the free-text fields of lender_panel in audit_log but keeps the business fields", async () => {
+    const a = await lender("Free text");
+    await db.query(`update public.lender_panel set submission_instructions = 'Upload to the portal', credentials_location = '1Password > Lenders', main_phone = '+13105550100', updated_by = 'staff:b' where id = $1`, [a]);
+    const r = await one<{ changed: string[]; new_row: Record<string, unknown> }>(`select changed, new_row from public.audit_log where table_name = 'lender_panel' and row_id = $1 and action = 'UPDATE' order by id desc limit 1`, [a]);
+    expect(r.changed).toEqual(expect.arrayContaining(["submission_instructions", "credentials_location", "main_phone"]));
+    expect(r.new_row).toMatchObject({ submission_instructions: "[redacted]", credentials_location: "[redacted]", main_phone: "+13105550100" });
+  });
+
+  it("refuses an account label with a run of six digits", async () => {
+    const a = await lender("Label");
+    const id = "44444444-4444-4444-8444-444444444444";
+    const { numberEnc } = sealLenderAccountNumber(id, "SVC-0099887766", createKeyring({ version: 1, key: Buffer.alloc(32, 7) }));
+    for (const label of ["Acct 000123456789", "123456"])
+      await expect(db.query(`insert into public.lender_accounts (id, lender_id, kind, label, number_enc, created_by) values ($1, $2, 'other', $3, $4, 'staff:a')`, [id, a, label, numberEnc]), label).rejects.toThrow(/lender_accounts_label_check/);
+    await db.query(`insert into public.lender_accounts (id, lender_id, kind, label, number_enc, created_by) values ($1, $2, 'other', 'Servicing 2026', $3, 'staff:a')`, [id, a, numberEnc]);
+  });
+
   it("cascades a lender delete to its contacts and accounts with redacted audit rows", async () => {
     const a = await lender("Gone");
     const c = await contact(a, { email: "gone@x.example" });
@@ -225,6 +270,27 @@ describe("lender contacts migration on staff-created rows", () => {
       { full_name: "Lee", email: null, is_primary: true, source: "staff", created_by: MARKER },
       { full_name: "Pat Doe", email: "Pat@Lender.example", is_primary: true, source: "staff", created_by: MARKER },
     ]);
+  });
+
+  it("writes one redacted audit row per backfilled lender", async () => {
+    const audit = (
+      await fresh.query<{ name: string; actor: string; changed: string[]; old_name: string | null; old_email: string | null; new_sub: string | null }>(
+        `select l.name, a.actor, a.changed, a.old_row ->> 'contact_name' as old_name, a.old_row ->> 'contact_email' as old_email, a.new_row ->> 'submission_email' as new_sub
+           from public.audit_log a join public.lender_panel l on l.id::text = a.row_id
+          where a.table_name = 'lender_panel' and a.action = 'UPDATE' order by l.name`,
+      )
+    ).rows;
+    expect(audit.map((r) => [r.name, r.actor])).toEqual([
+      ["Bad Email", MARKER],
+      ["Inbox Only", MARKER],
+      ["Staff Lender", MARKER],
+    ]);
+    expect(audit.find((r) => r.name === "Staff Lender")).toMatchObject({ old_name: "[redacted]", old_email: "[redacted]", changed: expect.arrayContaining(["contact_name", "contact_email"]) });
+    // A shared inbox is business data: it moves to submission_email, which stays audited in clear.
+    expect(audit.find((r) => r.name === "Inbox Only")).toMatchObject({ old_email: "[redacted]", new_sub: "loans@inbox.example" });
+    const blob = (await fresh.query<{ t: string }>(`select string_agg(coalesce(old_row::text, '') || coalesce(new_row::text, ''), ' ') as t from public.audit_log where table_name = 'lender_panel' and action = 'UPDATE'`)).rows[0]!.t;
+    expect(blob).not.toContain("Pat Doe");
+    expect(blob).not.toContain("Pat@Lender.example");
   });
 
   it("still loads the seeds after the non-seed migrations", async () => {

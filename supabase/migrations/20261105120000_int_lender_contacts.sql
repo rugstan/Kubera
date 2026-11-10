@@ -18,8 +18,16 @@
 -- historical seed migrations insert into them), but their data moves here:
 -- a named person becomes a primary contact, an inbox with no name becomes the
 -- lender's submission_email. The app never writes the legacy columns again.
+-- lender_panel_audit now redacts them too (with the two free-text fields a
+-- pasted password or wire detail would land in), so the backfill below copies
+-- no name or email into audit_log. Known exception: the audit rows written
+-- before this migration (the directory seed INSERTs of 2026-11-02 and any
+-- staff edit of the legacy columns) still hold those names and emails, and
+-- audit_log is append-only. lib/privacy/retention.ts reports that copy when a
+-- backfilled contact is erased (VERIFY with counsel: kept for security and
+-- integrity, Civ. Code §1798.105(d)(2)).
 
--- 1. Lender-level contact info (business data, fully audited by lender_panel_audit)
+-- 1. Lender-level contact info (business data, audited by lender_panel_audit; section 4 redacts the free text)
 alter table public.lender_panel
   add column main_phone text
     check (main_phone is null or main_phone ~ '^\+[1-9][0-9]{7,14}$'),
@@ -136,7 +144,9 @@ create table public.lender_accounts (
   updated_by text check (updated_by is null or length(updated_by) between 1 and 200),
   record_version integer not null default 1 check (record_version > 0),
   kind text not null check (kind in ('broker_id', 'client_account', 'portal_username', 'other')),
-  label text not null check (length(label) between 1 and 80 and label = btrim(label) and label !~ '[[:cntrl:]]'),
+  -- Stored in clear and shown to every staff role, so never the number itself:
+  -- no run of six digits (lib/deals/lender-accounts.ts LABEL_DIGITS_RE).
+  label text not null check (length(label) between 1 and 80 and label = btrim(label) and label !~ '[[:cntrl:]]' and label !~ '[0-9]{6}'),
   number_enc text not null check (number_enc ~ '^pii1\.\d{1,5}\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{22}$'),
   -- Up to the last four letters or digits, fewer for short values (lib/deals/lender-accounts.ts maskHint); not secret.
   number_last4 text check (number_last4 is null or number_last4 ~ '^[A-Za-z0-9]{2,4}$'),
@@ -197,6 +207,14 @@ create trigger lender_contacts_audit after insert or update or delete on public.
   for each row execute function public.audit_row_change_redacted('full_name', 'title', 'email', 'phone_direct', 'phone_ext', 'phone_mobile', 'territory', 'notes');
 create trigger lender_accounts_audit after insert or update or delete on public.lender_accounts
   for each row execute function public.audit_row_change_redacted('number_enc', 'notes');
+
+-- lender_panel keeps its full audit for business fields, except the legacy
+-- personal columns (a person's name and email; the backfill below empties them)
+-- and the two free-text fields where a pasted password, login or wire detail
+-- would otherwise be copied into audit_log for good. changed[] still names them.
+drop trigger lender_panel_audit on public.lender_panel;
+create trigger lender_panel_audit after insert or update or delete on public.lender_panel
+  for each row execute function public.audit_row_change_redacted('contact_name', 'contact_email', 'submission_instructions', 'credentials_location');
 
 create trigger lender_contacts_touch before update on public.lender_contacts
   for each row execute function public.touch_updated_at();
@@ -271,7 +289,9 @@ select n.lender_id,
 -- An inbox with no name becomes the submission inbox; website and main phone
 -- come from the directory notes ("| Website: https://… | Phone: 424.346.6100 |")
 -- only when they parse cleanly (annotated numbers stay in the notes for a
--- broker to confirm). One UPDATE per lender, so one audit row. Seeded rows keep
+-- broker to confirm). One UPDATE per lender, so one audit row, written by the
+-- redacting lender_panel_audit above: it names contact_name / contact_email in
+-- changed[] but holds "[redacted]" instead of the values. Seeded rows keep
 -- their updated_by (lib/agents/lenders/directory-seed.test.ts and later
 -- seed rounds recognise them by it); every other row is attributed to this
 -- migration.
