@@ -35,9 +35,13 @@ import {
   removeLenderAccount,
   revealLenderAccount,
   saveLenderContactInfo,
+  saveLenderLoanTypes,
   type LenderContactOp,
   type RevealFailure,
 } from "@/lib/deals/lender-directory";
+import { boxNotesFor } from "@/lib/deals/lender-boxes";
+import { parseLenderListQuery, serializeLenderListQuery } from "@/lib/deals/lender-list";
+import { deriveLenderLoanTypes } from "@/lib/deals/loan-types";
 import { requestFingerprint } from "@/lib/auth/dal";
 import { authServices } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/ratelimit";
@@ -612,6 +616,7 @@ const contactFields = (f: FormData) => ({
 export async function saveLenderAction(f: FormData): Promise<never> {
   let created: string | null = null;
   let contactError: string | null = null;
+  let suggested = false;
   try {
     const staff = requirePermission(await currentStaff(), "write");
     const rt = dealDeskRuntime();
@@ -623,6 +628,7 @@ export async function saveLenderAction(f: FormData): Promise<never> {
       category: str(f, "category"),
       categoryEvidenceRef: opt(f, "categoryEvidenceRef"),
       programs: ids(f, "programs"),
+      loanTypes: ids(f, "loanTypes"),
       minLoanCents: cents(f, "minLoan"),
       maxLoanCents: cents(f, "maxLoan"),
       states: str(f, "states") ? str(f, "states").split(/[\s,]+/).filter(Boolean) : [],
@@ -635,6 +641,9 @@ export async function saveLenderAction(f: FormData): Promise<never> {
       verifiedAt: bool(f, "verifiedNow") ? rt.now().toISOString() : null,
       verifiedBy: bool(f, "verifiedNow") ? staff.actor : null,
     });
+    // No loan type ticked: fill them in from the programs, category, notes and asset types.
+    suggested = input.loanTypes.length === 0;
+    if (suggested) input.loanTypes = deriveLenderLoanTypes({ programs: input.programs, category: input.category, appetiteNotes: input.appetiteNotes, assetTypes: input.assetTypes, boxNotes: [] });
     // Validate the optional contact before anything is stored: a name creates the
     // primary contact; an email alone becomes the submission inbox.
     const contact = contactName ? parseLenderContact({ fullName: contactName, email: contactEmail }) : null;
@@ -652,11 +661,18 @@ export async function saveLenderAction(f: FormData): Promise<never> {
     redirect(withParam("/deals/lenders", "error", messageOf(err)));
   }
   revalidatePath("/deals/lenders");
-  redirect(contactError ? withParam(lenderPath(created!), "error", contactError) : withParam(lenderPath(created!), "notice", "Lender added. Add contact info, contacts and account numbers below."));
+  const notice = suggested ? "Lender added. Loan types were filled in from its programs and notes; check them below." : "Lender added. Add contact info, contacts and account numbers below.";
+  redirect(contactError ? withParam(lenderPath(created!), "error", contactError) : withParam(lenderPath(created!), "notice", notice));
 }
 
 export async function lenderAction(f: FormData): Promise<never> {
-  const back = str(f, "back") === "detail" && UUID.test(str(f, "lenderId")) ? lenderPath(str(f, "lenderId")) : "/deals/lenders";
+  // Back to the detail page, or to the same filtered panel view: listQuery is
+  // re-parsed and re-serialized, so only whitelisted keys and values (never a
+  // free or absolute URL) reach the redirect.
+  const back =
+    str(f, "back") === "detail" && UUID.test(str(f, "lenderId"))
+      ? lenderPath(str(f, "lenderId"))
+      : `/deals/lenders${serializeLenderListQuery(parseLenderListQuery(new URLSearchParams(str(f, "listQuery").slice(0, 2000))))}`;
   return run(back, "write", async ({ staff, rt }) => {
     const id = uuidField(f, "lenderId");
     const op = str(f, "op");
@@ -669,6 +685,17 @@ export async function lenderAction(f: FormData): Promise<never> {
     if (!l) throw new DealError("Lender not found");
     await rt.store.updateLender(id, { active: !l.active }, staff.actor, rt.now());
     return l.active ? `${l.name} deactivated.` : `${l.name} reactivated.`;
+  });
+}
+
+export async function saveLenderLoanTypesAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    const raw = str(f, "op");
+    if (raw !== "save" && raw !== "suggest") throw new DealError("Unknown loan type action");
+    const { changed } = await saveLenderLoanTypes({ store: rt.store, now: rt.now, boxNotes: boxNotesFor }, id, { op: raw, loanTypes: ids(f, "loanTypes"), was: str(f, "loanTypesWas") }, staff.actor);
+    return !changed ? "Loan types unchanged." : raw === "suggest" ? "Loan types set from the suggestions." : "Loan types saved.";
   });
 }
 

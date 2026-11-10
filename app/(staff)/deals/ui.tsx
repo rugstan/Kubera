@@ -1,6 +1,7 @@
 // Presentational pieces shared by the deal desk pages (server components).
 
 import Link from "next/link";
+import { LENDER_LOAN_TYPE_GROUPS, LENDER_LOAN_TYPE_LABELS, LENDER_LOAN_TYPE_SHORT_LABELS, type LenderLoanType } from "@/lib/deals/loan-types";
 import { formatCents } from "@/lib/deals/money";
 
 export function money(cents: number | null | undefined): string {
@@ -220,5 +221,46 @@ export function Table({ head, rows, empty, label }: { head: string[]; rows: Reac
         </tbody>
       </table>
     </div>
+  );
+}
+
+const CHIP =
+  "group inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-black/30 px-4 py-2 text-sm font-medium text-ink/80 transition hover:border-black/50 has-[input:checked]:border-accent has-[input:checked]:bg-accent/10 has-[input:checked]:text-accent-hover has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent";
+
+/** Loan-type checkboxes as chips, grouped by LENDER_LOAN_TYPE_GROUPS. Native checkboxes: work in a GET form with no JS. */
+export function LoanTypeFieldset({ legend, name, selected, counts }: { legend: string; name: string; selected: readonly LenderLoanType[]; counts?: Record<LenderLoanType, number> }) {
+  return (
+    <fieldset>
+      <legend className="field-label">{legend}</legend>
+      <div className="mt-1 grid gap-3">
+        {LENDER_LOAN_TYPE_GROUPS.map((g) => (
+          <fieldset key={g.label}>
+            <legend className="text-xs font-medium uppercase tracking-wide text-titanium">{g.label}</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {g.types.map((t) => (
+                <label className={CHIP} key={t}>
+                  <input className="size-4 accent-[var(--color-accent)]" defaultChecked={selected.includes(t)} name={name} type="checkbox" value={t} />
+                  {LENDER_LOAN_TYPE_LABELS[t]}
+                  {counts ? <span className="text-titanium group-has-[input:checked]:text-accent-hover">({counts[t]})</span> : null}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+export function LoanTypeBadges({ types, empty = "No loan types" }: { types: readonly LenderLoanType[]; empty?: string }) {
+  if (!types.length) return <span className="text-xs text-titanium">{empty}</span>;
+  return (
+    <ul aria-label="Loan types" className="flex flex-wrap gap-1">
+      {types.map((t) => (
+        <li key={t}>
+          <Badge>{LENDER_LOAN_TYPE_SHORT_LABELS[t]}</Badge>
+        </li>
+      ))}
+    </ul>
   );
 }

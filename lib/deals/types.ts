@@ -10,6 +10,7 @@ import type { ModificationEvaluation } from "@/lib/compliance/gates";
 import type { BrokerOfRecordElements, LenderCategory, LenderChargesInput, ModificationFacts } from "@/lib/compliance/schemas";
 import type { EsignProviderName } from "@/lib/esign/types";
 import type { Form159Data } from "./form159";
+import type { LenderLoanType } from "./loan-types";
 
 /** Deal-desk programs. Each has a stage template (lib/deals/stages.ts). */
 export const dealPrograms = [
@@ -149,6 +150,8 @@ type LenderPanelFields = {
   category: LenderCategory;
   categoryEvidenceRef: string | null;
   programs: DealProgram[];
+  /** User-facing loan types (lib/deals/loan-types.ts), canonical order. Staff-owned after the backfill; not read by the matcher or panelForDeal. */
+  loanTypes: LenderLoanType[];
   minLoanCents: number | null;
   maxLoanCents: number | null;
   /** Two-letter states the lender lends in; empty = nationwide. */

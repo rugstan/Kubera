@@ -5,6 +5,7 @@
 
 import { assertSealedAccount, isUuid } from "./lender-accounts";
 import { EMPTY_LENDER_CONTACT_INFO, deriveLenderContacts } from "./lender-contacts";
+import { sortLoanTypes } from "./loan-types";
 import { loanBrokerOfRecordFromRow } from "./rows";
 import type { StageTemplate } from "./stages";
 import {
@@ -346,14 +347,16 @@ export class MemoryDealDeskStore implements DealDeskStore {
 
   async insertLender(input: NewLender, actor: string, now: Date): Promise<LenderPanelEntry> {
     const ts = now.toISOString();
-    const row: LenderRow = { ...EMPTY_LENDER_CONTACT_INFO, ...clone(lenderWritable(input)), id: this.id(), createdAt: ts, updatedAt: ts, updatedBy: actor, contactInfoVersion: 1 };
+    const row: LenderRow = { ...EMPTY_LENDER_CONTACT_INFO, ...clone(lenderWritable(input)), loanTypes: sortLoanTypes(input.loanTypes ?? []), id: this.id(), createdAt: ts, updatedAt: ts, updatedBy: actor, contactInfoVersion: 1 };
     this.lenders.set(row.id, row);
     this.log("lender_panel", row, "INSERT", actor, now);
     return this.withContacts(row);
   }
 
   async updateLender(id: string, patch: Partial<NewLender>, actor: string, now: Date): Promise<LenderPanelEntry> {
-    return this.withContacts(this.patchRow("lender_panel", this.lenders, id, { ...lenderWritable(patch), updatedBy: actor } as Partial<LenderRow>, actor, now));
+    const next = lenderWritable(patch);
+    if (next.loanTypes) next.loanTypes = sortLoanTypes(next.loanTypes);
+    return this.withContacts(this.patchRow("lender_panel", this.lenders, id, { ...next, updatedBy: actor } as Partial<LenderRow>, actor, now));
   }
 
   async updateLenderContactInfo(id: string, expectedVersion: number, patch: Partial<LenderContactInfo>, actor: string, now: Date): Promise<LenderPanelEntry> {

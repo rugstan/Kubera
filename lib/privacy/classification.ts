@@ -145,6 +145,7 @@ export const FIELD_CLASSIFICATION: Readonly<Record<string, FieldRule>> = {
   "lender_panel.portal_url": I("partner"),
   "lender_panel.submission_instructions": I("partner"),
   "lender_panel.credentials_location": I("system"),
+  "lender_panel.loan_types": I("partner"),
   "lender_contacts.full_name": C("partner"),
   "lender_contacts.title": C("partner"),
   "lender_contacts.email": C("partner"),

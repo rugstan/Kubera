@@ -52,6 +52,8 @@ export const DEMO_EXTRA_DEAL_IDS = {
 export const DEMO_LENDER_IDS = {
   bank: "20000000-0000-4000-8000-000000000001",
   privateFund: "20000000-0000-4000-8000-000000000002",
+  /** Inactive and with no deal programs: panelForDeal, the matcher and outreach never pick it. */
+  dscrFund: "20000000-0000-4000-8000-000000000003",
 } as const;
 
 export const DEMO_LENDER_CONTACT_IDS = {
@@ -109,6 +111,8 @@ const DEMO_LENDERS: LenderRow[] = [
     category: "STATE_BANK",
     categoryEvidenceRef: "demo://charter/example-bank",
     programs: ["HUD_232", "SBA_7A", "SBA_504", "BANK_LIFE_CO", "CONSTRUCTION", "AGENCY"],
+    // Each demo lender's loan types equal deriveLenderLoanTypes() of its own fields (lib/deals/demo.test.ts).
+    loanTypes: ["construction", "sba", "hud_fha", "agency", "bank"],
     minLoanCents: 100_000_000,
     maxLoanCents: 5_000_000_000,
     states: ["CA"],
@@ -141,6 +145,7 @@ const DEMO_LENDERS: LenderRow[] = [
     category: "CFL_LICENSEE",
     categoryEvidenceRef: "demo://cfl/sample-fund",
     programs: ["PRIVATE_BRIDGE", "HARD_MONEY", "PIP_BRIDGE"],
+    loanTypes: ["bridge", "private_money", "hotel"],
     minLoanCents: 25_000_000,
     maxLoanCents: 2_500_000_000,
     states: [],
@@ -158,6 +163,32 @@ const DEMO_LENDERS: LenderRow[] = [
     updatedBy: "staff:broker@corin.test",
     ...EMPTY_LENDER_CONTACT_INFO,
     websiteUrl: "https://fund.example/",
+    contactInfoVersion: 1,
+  },
+  {
+    id: DEMO_LENDER_IDS.dscrFund,
+    partnerId: null,
+    name: "Sample DSCR Lender (demo)",
+    category: "CFL_LICENSEE",
+    categoryEvidenceRef: null,
+    programs: [],
+    loanTypes: ["fix_flip", "dscr"],
+    minLoanCents: 10_000_000,
+    maxLoanCents: 300_000_000,
+    states: [],
+    assetTypes: ["SFR 1-4 (investor)"],
+    appetiteNotes: "Invented lender for the demo desk: DSCR rental and fix & flip loans for investors. | Lends in CA: Unconfirmed",
+    brokerFriendly: false,
+    feeSplitKind: "none",
+    feeSplitValue: 0,
+    feeAgreementRef: null,
+    verifiedAt: null,
+    verifiedBy: null,
+    active: false,
+    createdAt: "2026-10-15T00:00:00.000Z",
+    updatedAt: "2026-10-15T00:00:00.000Z",
+    updatedBy: "staff:broker@corin.test",
+    ...EMPTY_LENDER_CONTACT_INFO,
     contactInfoVersion: 1,
   },
 ];

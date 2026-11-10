@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { EXEMPT_LENDER_CATEGORIES, lenderCategories } from "@/lib/compliance/schemas";
+import { lenderLoanTypes, sortLoanTypes } from "./loan-types";
 import { dealPrograms, feeSplitKinds, type DealProgram, type LenderPanelEntry, type NewLender } from "./types";
 
 /** Appetite older than this is stale (VERIFY with the desk: 180 days). */
@@ -27,6 +28,7 @@ export const lenderInputSchema = z
     category: z.enum(lenderCategories),
     categoryEvidenceRef: z.string().trim().max(200).nullable().default(null),
     programs: z.array(z.enum(dealPrograms)).min(1, "Pick at least one program"),
+    loanTypes: z.array(z.enum(lenderLoanTypes)).max(lenderLoanTypes.length).default([]).transform((t) => sortLoanTypes(t)),
     minLoanCents: z.number().int().nonnegative().nullable().default(null),
     maxLoanCents: z.number().int().nonnegative().nullable().default(null),
     states: z.array(z.string().trim().length(2).toUpperCase()).default([]),

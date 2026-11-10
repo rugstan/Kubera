@@ -3,10 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LENDER_ACCOUNT_KIND_LABELS, maskedNumber } from "@/lib/deals/lender-accounts";
+import { boxNotesFor } from "@/lib/deals/lender-boxes";
 import { LENDER_CONTACT_CHANNEL_LABELS, LENDER_CONTACT_ROLE_LABELS, LENDER_CONTACT_SOURCE_LABELS, formatPhone, telHref } from "@/lib/deals/lender-contacts";
+import { suggestedLoanTypes } from "@/lib/deals/lender-directory";
+import { LENDER_LOAN_TYPE_LABELS, type LoanTypeReason } from "@/lib/deals/loan-types";
 import { currentStaff, dealDeskRuntime } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
-import { lenderAccountKinds, lenderContactRoles, lenderContactSources, type LenderAccount, type LenderContact, type LenderPanelEntry } from "@/lib/deals/types";
+import { DEAL_PROGRAM_LABELS, lenderAccountKinds, lenderContactRoles, lenderContactSources, type LenderAccount, type LenderContact, type LenderPanelEntry } from "@/lib/deals/types";
 import { piiKeyring } from "@/lib/privacy/crypto";
 import {
   addLenderAccountAction,
@@ -15,10 +18,11 @@ import {
   lenderAction,
   lenderContactOpAction,
   saveLenderContactInfoAction,
+  saveLenderLoanTypesAction,
   updateLenderAccountAction,
   updateLenderContactAction,
 } from "../../actions";
-import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, TextArea, when } from "../../ui";
+import { Badge, Check, Field, Flash, Loading, LoanTypeBadges, LoanTypeFieldset, NotConfigured, Section, Select, SignInRequired, Submit, Table, TextArea, when } from "../../ui";
 import { RevealAccount } from "./RevealAccount";
 
 export const metadata: Metadata = { title: "Lender" };
@@ -133,6 +137,21 @@ function External({ href }: { href: string | null }) {
   );
 }
 
+function formatLoanTypeReason(r: LoanTypeReason): string {
+  switch (r.kind) {
+    case "program":
+      return `deal program ${DEAL_PROGRAM_LABELS[r.program]}`;
+    case "desk":
+      return `directory desk “${r.desk}”`;
+    case "keyword":
+      return `mentioned: “${r.excerpt}”`;
+    case "category":
+      return `lender category ${r.category.replace(/_/g, " ").toLowerCase()}`;
+    case "bank_life_co":
+      return "deal program Bank / life company, and nothing says life company or investor lending";
+  }
+}
+
 function MaskedHint({ hint }: { hint: string | null }) {
   if (!hint) return <span>Masked</span>;
   return (
@@ -152,6 +171,9 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
   if (!UUID.test(id)) notFound();
   const [lender, contacts, accounts] = await Promise.all([rt.store.getLender(id), rt.store.listLenderContacts(id, { includeLeft: true }), rt.store.listLenderAccounts(id)]);
   if (!lender) notFound();
+  const boxNotes = await boxNotesFor(id);
+  const { types: suggested, reasons } = await suggestedLoanTypes({ store: rt.store, now: rt.now, boxNotes: async () => boxNotes }, lender);
+  const differs = suggested.join(",") !== lender.loanTypes.join(",");
   const write = can(staff, "write");
   const reveal = can(staff, "reveal_account");
   const encryption = Boolean(rt.keyring ?? piiKeyring());
@@ -179,6 +201,51 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
         ) : null}
       </div>
       <Flash error={sp.error} notice={sp.notice} />
+
+      <Section description="How the Lender panel filters this lender. Deal programs, below, still drive matching and stage templates." id="loan-types" title="Loan types">
+        <LoanTypeBadges empty="No loan types yet." types={lender.loanTypes} />
+        <p className="mt-3 text-sm text-titanium">Deal programs: {lender.programs.map((p) => DEAL_PROGRAM_LABELS[p]).join(", ") || "none"}.</p>
+        {differs ? (
+          <>
+            <p className="mt-3 text-sm">Suggested from its deal programs, directory desk and notes: {suggested.length ? suggested.map((t) => LENDER_LOAN_TYPE_LABELS[t]).join(", ") : "none"}.</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-sm text-accent">Why these suggestions</summary>
+              <ul className="mt-2 grid gap-1 text-sm text-titanium">
+                {suggested.map((t) => (
+                  <li className="break-words" key={t}>
+                    {LENDER_LOAN_TYPE_LABELS[t]}: {(reasons.get(t) ?? []).map(formatLoanTypeReason).join("; ")}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </>
+        ) : null}
+        {write ? (
+          <div className="mt-4 grid gap-3">
+            <details>
+              <summary className="cursor-pointer text-sm font-medium text-accent">Edit loan types</summary>
+              <form action={saveLenderLoanTypesAction} className="mt-3 grid gap-4">
+                <input name="lenderId" type="hidden" value={lender.id} />
+                <input name="loanTypesWas" type="hidden" value={lender.loanTypes.join(",")} />
+                <LoanTypeFieldset legend="Loan types" name="loanTypes" selected={lender.loanTypes} />
+                <div>
+                  <Submit name="op" value="save">
+                    Save loan types
+                  </Submit>
+                </div>
+              </form>
+            </details>
+            {differs ? (
+              <form action={saveLenderLoanTypesAction}>
+                <input name="lenderId" type="hidden" value={lender.id} />
+                <input name="loanTypesWas" type="hidden" value={lender.loanTypes.join(",")} />
+                <input name="op" type="hidden" value="suggest" />
+                <Submit tone="glass">Use the suggested loan types</Submit>
+              </form>
+            ) : null}
+          </div>
+        ) : null}
+      </Section>
 
       <Section id="contact-info" title="Contact info">
         <dl className="grid gap-4 sm:grid-cols-2">
@@ -304,9 +371,9 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                 </div>
               </details>
             ))}
-            <details>
-              <summary className="cursor-pointer text-sm font-medium text-accent">Add a contact</summary>
-              <form action={addLenderContactAction} className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div className="mt-2">
+              <h3 className="text-base font-semibold text-ink">Add a contact</h3>
+              <form action={addLenderContactAction} aria-label="Add a contact" className="mt-3 grid gap-4 sm:grid-cols-2">
                 <input name="lenderId" type="hidden" value={lender.id} />
                 <ContactFields prefix="nc" />
                 <div className="sm:col-span-2">
@@ -316,7 +383,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                   <Submit>Add contact</Submit>
                 </div>
               </form>
-            </details>
+            </div>
           </div>
         ) : null}
       </Section>
@@ -383,9 +450,9 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
               </details>
             ))}
             {encryption ? (
-              <details>
-                <summary className="cursor-pointer text-sm font-medium text-accent">Add an account number</summary>
-                <form action={addLenderAccountAction} className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div className="mt-2">
+                <h3 className="text-base font-semibold text-ink">Add an account number</h3>
+                <form action={addLenderAccountAction} aria-label="Add an account number" className="mt-3 grid gap-4 sm:grid-cols-2">
                   <input name="lenderId" type="hidden" value={lender.id} />
                   <Select label="Type" name="kind" options={lenderAccountKinds.map((k) => ({ value: k, label: LENDER_ACCOUNT_KIND_LABELS[k] }))} />
                   <Field autoComplete="off" hint="Optional for the standard types, for example Broker ID." idPrefix="na" label="Label" maxLength={80} name="label" />
@@ -397,7 +464,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                     <Submit>Save account number</Submit>
                   </div>
                 </form>
-              </details>
+              </div>
             ) : null}
           </div>
         ) : null}

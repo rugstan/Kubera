@@ -9,10 +9,12 @@
 // swapped across lenders never touches another lender's row.
 
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import type { AuditSink } from "@/lib/auth/audit";
 import { piiKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { openLenderAccountNumber, parseLenderAccount, sealLenderAccountNumber } from "./lender-accounts";
 import { LenderDirectoryError, parseLenderContact, parseLenderContactInfo } from "./lender-contacts";
+import { explainLenderLoanTypes, lenderLoanTypes, sortLoanTypes, type LenderLoanType, type LoanTypeReason } from "./loan-types";
 import { can, type StaffSession } from "./session";
 import { ConcurrentUpdateError, type DealDeskStore } from "./store";
 import type { LenderAccount, LenderContact, LenderContactInfo, LenderPanelEntry } from "./types";
@@ -214,4 +216,43 @@ export async function revealLenderAccount(deps: RevealDeps, staff: StaffSession,
     console.error("[deals] lender account reveal failed", name);
     return { ok: false, reason: "cannot_open" };
   }
+}
+
+// --- Loan types ---------------------------------------------------------------------------------------
+
+export type LoanTypeDeps = { store: DealDeskStore; now: () => Date; boxNotes?: (lenderId: string) => Promise<(string | null)[]> };
+
+/** Suggested types for a stored lender (programs, category, notes, asset types, its credit-box notes). */
+export async function suggestedLoanTypes(deps: LoanTypeDeps, lender: LenderPanelEntry): Promise<{ types: LenderLoanType[]; reasons: Map<LenderLoanType, LoanTypeReason[]> }> {
+  const reasons = explainLenderLoanTypes({
+    programs: lender.programs,
+    category: lender.category,
+    appetiteNotes: lender.appetiteNotes,
+    assetTypes: lender.assetTypes,
+    boxNotes: (await deps.boxNotes?.(lender.id)) ?? [],
+  });
+  return { types: sortLoanTypes(reasons.keys()), reasons };
+}
+
+const loanTypeList = z.array(z.enum(lenderLoanTypes)).max(lenderLoanTypes.length);
+
+/**
+ * op "save" stores the ticked types; op "suggest" stores the current suggestion.
+ * `was` is the comma list the form was rendered with: a mismatch means someone else
+ * changed them (ConcurrentUpdateError). The read-then-write window is accepted;
+ * the cost of a lost update here is one re-tick.
+ */
+export async function saveLenderLoanTypes(
+  deps: LoanTypeDeps,
+  lenderId: string,
+  input: { op: "save" | "suggest"; loanTypes: string[]; was: string },
+  actor: string,
+): Promise<{ lender: LenderPanelEntry; changed: boolean }> {
+  const lender = await deps.store.getLender(lenderId);
+  if (!lender) throw new LenderDirectoryError("Lender not found");
+  const current = sortLoanTypes(lender.loanTypes).join(",");
+  if (sortLoanTypes(input.was.split(",")).join(",") !== current) throw new ConcurrentUpdateError("Lender loan types");
+  const next = input.op === "suggest" ? (await suggestedLoanTypes(deps, lender)).types : sortLoanTypes(loanTypeList.parse(input.loanTypes));
+  if (next.join(",") === current) return { lender, changed: false };
+  return { lender: await deps.store.updateLender(lenderId, { loanTypes: next }, actor, deps.now()), changed: true };
 }
