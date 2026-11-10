@@ -7,7 +7,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 import { ConcurrentUpdateError, GuardError } from "@/lib/deals/store";
 import { DealError, advanceDeal, createDeal, editDeal } from "@/lib/deals/service";
 import { LockedFieldError } from "@/lib/deals/stages";
@@ -24,6 +24,23 @@ import { DisclosureBlockedError } from "@/lib/disclosures/service";
 import { InvalidTransitionError } from "@/lib/disclosures/state";
 import { mldsTemplateId } from "@/lib/esign";
 import { parseLender } from "@/lib/deals/lenders";
+import { LenderDirectoryError, optEmail, parseLenderContact } from "@/lib/deals/lender-contacts";
+import {
+  LENDER_CONTACT_OPS,
+  addLenderAccount,
+  addLenderContact,
+  editLenderAccount,
+  editLenderContact,
+  lenderContactOp,
+  removeLenderAccount,
+  revealLenderAccount,
+  saveLenderContactInfo,
+  type LenderContactOp,
+  type RevealFailure,
+} from "@/lib/deals/lender-directory";
+import { requestFingerprint } from "@/lib/auth/dal";
+import { authServices } from "@/lib/auth/server";
+import { rateLimit } from "@/lib/ratelimit";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
 import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, corinAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { StaffAccessError, can, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
@@ -31,11 +48,14 @@ import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from
 import { lenderCategories, type LenderCategory, type LenderChargesInput, type ModificationFacts } from "@/lib/compliance/schemas";
 import { BrokerOfRecordError, approveLoanBrokerOfRecord, recordLoanBrokerOfRecord, type LoanFileInput } from "@/lib/deals/broker-of-record";
 
-const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, LockedFieldError, LedgerError, MoneyError, InvoiceError, PackageError, ModificationError, BrokerOfRecordError, Form159BlockedError, MldsDeskError, DisclosureBlockedError, InvalidTransitionError];
+const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, LockedFieldError, LedgerError, MoneyError, InvoiceError, PackageError, ModificationError, BrokerOfRecordError, Form159BlockedError, MldsDeskError, DisclosureBlockedError, InvalidTransitionError, LenderDirectoryError];
+
+const NO_KEY_FOR_ACCOUNTS = "Account numbers cannot be saved: encryption (PII_ENCRYPTION_KEY) is not configured on this server. Contacts and contact info still save.";
 
 function messageOf(err: unknown): string {
   if (err instanceof ZodError) return err.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
   if (KNOWN.some((K) => err instanceof K)) return (err as Error).message;
+  if (err instanceof Error && err.name === "PiiKeyError") return NO_KEY_FOR_ACCOUNTS;
   if (err instanceof ApprovalConflictError) return "A send for this document is already in the approvals queue with different details; approve or reject that one first.";
   console.error("[deals] action failed", err instanceof Error ? err.message : err);
   return "Something went wrong; nothing further was changed. Try again or check the audit log.";
@@ -556,8 +576,48 @@ export async function releaseMldsAction(f: FormData): Promise<never> {
 
 // Lender panel -------------------------------------------------------------------------------------
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const lenderPath = (id: string) => (UUID.test(id) ? `/deals/lenders/${id}` : "/deals/lenders");
+const uuidField = (f: FormData, k: string) => {
+  const v = str(f, k);
+  if (!UUID.test(v)) throw new DealError("Not found");
+  return v;
+};
+const version = (f: FormData, k: string) => {
+  const n = Number(str(f, k));
+  if (!Number.isInteger(n) || n < 1) throw new DealError("Reload the page and try again");
+  return n;
+};
+const directoryDeps = (rt: DealDeskRuntime) => ({ store: rt.store, now: rt.now, keyring: rt.keyring });
+const primaryEmail = z.object({ contactEmail: optEmail });
+
+/** The contact form fields (add and edit share them). Never logged: they are personal information. */
+const contactFields = (f: FormData) => ({
+  fullName: str(f, "fullName"),
+  title: str(f, "title"),
+  role: str(f, "role"),
+  email: str(f, "email"),
+  phoneDirect: str(f, "phoneDirect"),
+  phoneExt: str(f, "phoneExt"),
+  phoneMobile: str(f, "phoneMobile"),
+  preferredChannel: str(f, "preferredChannel"),
+  territory: str(f, "territory"),
+  notes: str(f, "notes"),
+  source: str(f, "source"),
+});
+
+// Notices and errors travel in the redirect URL, so every one below is a fixed
+// string: no contact detail, account number or label ever goes into a URL.
+
 export async function saveLenderAction(f: FormData): Promise<never> {
-  return run("/deals/lenders", "write", async ({ staff, rt }) => {
+  let created: string | null = null;
+  let contactError: string | null = null;
+  try {
+    const staff = requirePermission(await currentStaff(), "write");
+    const rt = dealDeskRuntime();
+    if (!rt) throw new DealError("Deal desk storage is not configured");
+    const contactName = opt(f, "contactName");
+    const contactEmail = opt(f, "contactEmail");
     const input = parseLender({
       name: str(f, "name"),
       category: str(f, "category"),
@@ -572,28 +632,182 @@ export async function saveLenderAction(f: FormData): Promise<never> {
       feeSplitKind: str(f, "feeSplitKind") || "none",
       feeSplitValue: num(f, "feeSplitValue") ?? 0,
       feeAgreementRef: opt(f, "feeAgreementRef"),
-      contactName: opt(f, "contactName"),
-      contactEmail: opt(f, "contactEmail"),
       verifiedAt: bool(f, "verifiedNow") ? rt.now().toISOString() : null,
       verifiedBy: bool(f, "verifiedNow") ? staff.actor : null,
     });
-    const l = await rt.store.insertLender(input, staff.actor, rt.now());
-    return `${l.name} added to the panel.`;
-  });
+    // Validate the optional contact before anything is stored: a name creates the
+    // primary contact; an email alone becomes the submission inbox.
+    const contact = contactName ? parseLenderContact({ fullName: contactName, email: contactEmail }) : null;
+    const inbox = !contactName && contactEmail ? primaryEmail.parse({ contactEmail }).contactEmail : null;
+    const lender = await rt.store.insertLender(inbox ? { ...input, submissionEmail: inbox } : input, staff.actor, rt.now());
+    created = lender.id;
+    if (contact) {
+      try {
+        await addLenderContact(directoryDeps(rt), lender.id, contact, { makePrimary: true }, staff.actor);
+      } catch (err) {
+        contactError = messageOf(err);
+      }
+    }
+  } catch (err) {
+    redirect(withParam("/deals/lenders", "error", messageOf(err)));
+  }
+  revalidatePath("/deals/lenders");
+  redirect(contactError ? withParam(lenderPath(created!), "error", contactError) : withParam(lenderPath(created!), "notice", "Lender added. Add contact info, contacts and account numbers below."));
 }
 
 export async function lenderAction(f: FormData): Promise<never> {
-  return run("/deals/lenders", "write", async ({ staff, rt }) => {
-    const id = str(f, "lenderId");
-    if (str(f, "op") === "verify") {
+  const back = str(f, "back") === "detail" && UUID.test(str(f, "lenderId")) ? lenderPath(str(f, "lenderId")) : "/deals/lenders";
+  return run(back, "write", async ({ staff, rt }) => {
+    const id = uuidField(f, "lenderId");
+    const op = str(f, "op");
+    if (op === "verify") {
       await rt.store.updateLender(id, { verifiedAt: rt.now().toISOString(), verifiedBy: staff.actor }, staff.actor, rt.now());
       return "Verification date updated.";
     }
+    if (op !== "toggle") throw new DealError("Unknown lender action");
     const l = await rt.store.getLender(id);
     if (!l) throw new DealError("Lender not found");
     await rt.store.updateLender(id, { active: !l.active }, staff.actor, rt.now());
     return l.active ? `${l.name} deactivated.` : `${l.name} reactivated.`;
   });
+}
+
+export async function saveLenderContactInfoAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    await saveLenderContactInfo(
+      directoryDeps(rt),
+      id,
+      version(f, "contactInfoVersion"),
+      {
+        mainPhone: str(f, "mainPhone"),
+        mainPhoneExt: str(f, "mainPhoneExt"),
+        submissionEmail: str(f, "submissionEmail"),
+        generalEmail: str(f, "generalEmail"),
+        websiteUrl: str(f, "websiteUrl"),
+        portalUrl: str(f, "portalUrl"),
+        addressLine1: str(f, "addressLine1"),
+        addressLine2: str(f, "addressLine2"),
+        city: str(f, "city"),
+        addressState: str(f, "addressState"),
+        postalCode: str(f, "postalCode"),
+        country: str(f, "country"),
+        nmlsId: str(f, "nmlsId"),
+        submissionInstructions: str(f, "submissionInstructions"),
+        credentialsLocation: str(f, "credentialsLocation"),
+      },
+      { verifiedNow: bool(f, "verifiedNow") },
+      staff.actor,
+    );
+    return "Contact info saved.";
+  });
+}
+
+export async function addLenderContactAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    await addLenderContact(directoryDeps(rt), id, contactFields(f), { makePrimary: bool(f, "makePrimary") }, staff.actor);
+    return "Contact added.";
+  });
+}
+
+export async function updateLenderContactAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    await editLenderContact(directoryDeps(rt), id, uuidField(f, "contactId"), version(f, "recordVersion"), contactFields(f), staff.actor);
+    return "Contact updated.";
+  });
+}
+
+const CONTACT_OP_NOTICE: Record<LenderContactOp, string> = {
+  make_primary: "Primary contact set.",
+  clear_primary: "Contact updated.",
+  mark_left: "Contact marked as left.",
+  reactivate: "Contact updated.",
+  verify: "Contact updated.",
+  delete: "Contact deleted.",
+};
+
+export async function lenderContactOpAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    const op = str(f, "op");
+    if (!(LENDER_CONTACT_OPS as readonly string[]).includes(op)) throw new DealError("Unknown contact action");
+    await lenderContactOp(directoryDeps(rt), { lenderId: id, contactId: uuidField(f, "contactId"), expectedVersion: version(f, "recordVersion"), op: op as LenderContactOp }, staff.actor);
+    return CONTACT_OP_NOTICE[op as LenderContactOp];
+  });
+}
+
+export async function addLenderAccountAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    await addLenderAccount(directoryDeps(rt), id, { kind: str(f, "kind"), label: str(f, "label"), number: str(f, "accountNumber"), notes: str(f, "notes") }, staff.actor);
+    return "Account number saved.";
+  });
+}
+
+export async function updateLenderAccountAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+    uuidField(f, "lenderId");
+    const replacing = str(f, "accountNumber") !== "";
+    await editLenderAccount(directoryDeps(rt), id, uuidField(f, "accountId"), version(f, "recordVersion"), { label: str(f, "label"), number: str(f, "accountNumber"), notes: str(f, "notes") }, staff.actor);
+    return replacing ? "Account number replaced." : "Account number saved.";
+  });
+}
+
+export async function deleteLenderAccountAction(f: FormData): Promise<never> {
+  const id = str(f, "lenderId");
+  return run(lenderPath(id), "write", async ({ rt }) => {
+    uuidField(f, "lenderId");
+    await removeLenderAccount(directoryDeps(rt), id, uuidField(f, "accountId"));
+    return "Account number deleted.";
+  });
+}
+
+export type RevealAccountState = { value?: string; label?: string; error?: string; nonce?: number };
+
+const REVEAL_MESSAGES: Record<RevealFailure, string> = {
+  forbidden: "Only an administrator or the designated officer can reveal account numbers.",
+  rate_limited: "Too many reveals. Wait a few minutes and try again.",
+  not_found: "Account number not found.",
+  no_key: "Account numbers cannot be shown: encryption (PII_ENCRYPTION_KEY) is not configured on this server.",
+  audit_unavailable: "The audit trail is unavailable, so nothing was revealed. Try again.",
+  cannot_open: "This account number could not be opened with the configured key.",
+};
+
+/**
+ * Reveals one account number to an admin or the designated officer
+ * (lib/deals/lender-directory.ts revealLenderAccount: rate limited, audited
+ * before decrypting). The value goes back only in this return state, for the
+ * RevealAccount client component to show and re-mask: no redirect, no
+ * revalidation, no cookie, no log.
+ */
+export async function revealLenderAccountAction(_prev: RevealAccountState, f: FormData): Promise<RevealAccountState> {
+  try {
+    const staff = await currentStaff();
+    if (!staff) return { error: "Sign in again to reveal account numbers." };
+    const lenderId = str(f, "lenderId");
+    const accountId = str(f, "accountId");
+    if (!UUID.test(lenderId) || !UUID.test(accountId)) return { error: REVEAL_MESSAGES.not_found };
+    const rt = dealDeskRuntime();
+    if (!rt) return { error: "Deal desk storage is not configured." };
+    const r = await revealLenderAccount(
+      { store: rt.store, now: rt.now, keyring: rt.keyring, audit: authServices()?.audit ?? null, allow: rateLimit, fingerprint: requestFingerprint },
+      staff,
+      { lenderId, accountId },
+    );
+    if (!r.ok) return { error: REVEAL_MESSAGES[r.reason] };
+    return { value: r.value, label: r.label, nonce: Date.now() };
+  } catch (err) {
+    console.error("[deals] reveal failed", err instanceof Error ? err.name : "Error");
+    return { error: "Something went wrong; nothing was revealed." };
+  }
 }
 
 // DRE reporting ---------------------------------------------------------------------------------------
