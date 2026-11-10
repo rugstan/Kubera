@@ -488,3 +488,42 @@ describe("deletion requests", () => {
     expect(r.notes.length).toBeGreaterThan(0);
   });
 });
+
+describe("lender contacts", () => {
+  const PHONE = "+13105550100";
+
+  it("has a three-year policy for contacts who left", () => {
+    const policy = RETENTION_POLICIES.find((p) => p.id === "lender_contacts_left")!;
+    expect(policy).toBeDefined();
+    expect(policy.table).toBe("lender_contacts");
+    expect(policy.dateColumn).toBe("left_at");
+    expect(policy.retainDays).toBeGreaterThanOrEqual(3 * 365);
+    expect(policy.filters).toEqual([{ column: "status", op: "eq", value: "left" }]);
+    expect(policy.hasLegalHold).toBe(false);
+  });
+
+  it("purges a contact who left more than three years ago and keeps active ones", async () => {
+    const lender = db.insertRow("lender_panel", { name: "Cambridge" });
+    const gone = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Gone", status: "left", left_at: OLD, created_at: OLD });
+    const recent = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Recent", status: "left", left_at: RECENT, created_at: OLD });
+    const active = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Active", status: "active", left_at: null, created_at: OLD });
+    await runRetention({ db, storage, now: () => NOW });
+    expect(db.find("lender_contacts", gone.id)).toBeUndefined();
+    expect(db.find("lender_contacts", recent.id)).toBeDefined();
+    expect(db.find("lender_contacts", active.id)).toBeDefined();
+  });
+
+  it("erasure deletes the person's lender contacts found by email and by direct or mobile phone", async () => {
+    lead(RECENT, "pat@example.com", { contact: { firstName: "Pat", email: "pat@example.com", phone: "(310) 555-0100" } });
+    const lender = db.insertRow("lender_panel", { name: "Cambridge" });
+    const byEmail = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Pat", email: "PAT@example.com", status: "active" });
+    const byDirect = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Pat (old desk)", email: "pat@oldlender.example", phone_direct: PHONE, status: "active" });
+    const byMobile = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Pat (mobile)", email: null, phone_mobile: PHONE, status: "left" });
+    const other = db.insertRow("lender_contacts", { lender_id: lender.id, full_name: "Kim", email: "kim@example.com", phone_direct: "+13105550199", status: "active" });
+    const r = await eraseSubject("pat@example.com", { db, storage }, NOW);
+    for (const c of [byEmail, byDirect, byMobile]) expect(db.find("lender_contacts", c.id)).toBeUndefined();
+    expect(db.find("lender_contacts", other.id)).toBeDefined();
+    expect(db.find("lender_panel", lender.id)).toBeDefined();
+    expect(r.contactRecords).toEqual(expect.arrayContaining([{ table: "lender_contacts", deleted: 3, objectsRemoved: 0 }]));
+  });
+});

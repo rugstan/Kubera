@@ -18,7 +18,7 @@ async function world(gateDefault: "approved" | "pending" = "approved", loanOver 
   const ctx = setup(gateDefault);
   const deal = await newDeal(ctx.store, ctx.now, { program: "PRIVATE_BRIDGE", title: "Oakland bridge", loanAmountCents: 400_000_000 });
   ctx.store.seedLoanBrokerOfRecord(loanRecord(deal.id, loanOver));
-  await ctx.store.insertLender(lenderInput({ name: "Fidelis Private Fund", category: "PRIVATE_NON_EXEMPT", categoryEvidenceRef: null, contactEmail: "servicing@fidelis.example", programs: ["PRIVATE_BRIDGE"] }), "a", ctx.now());
+  await ctx.store.insertLender(lenderInput({ name: "Fidelis Private Fund", category: "PRIVATE_NON_EXEMPT", categoryEvidenceRef: null, submissionEmail: "servicing@fidelis.example", programs: ["PRIVATE_BRIDGE"] }), "a", ctx.now());
   return { ...ctx, deal, m: mailer() };
 }
 

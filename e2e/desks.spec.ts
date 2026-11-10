@@ -73,10 +73,10 @@ test.afterAll(() => {
   server?.kill("SIGTERM");
 });
 
-async function signIn(page: Page, next: string) {
+async function signIn(page: Page, next: string, email = "broker@corin.test") {
   await page.goto(`${base}${next}`);
   await expect(page).toHaveURL(/\/login\?next=/);
-  await page.getByLabel("Work email").fill("broker@corin.test");
+  await page.getByLabel("Work email").fill(email);
   await page.getByRole("button", { name: "Email me a code" }).click();
   await expect(page).toHaveURL(/\/login\/verify$/);
   const code = (await page.getByTestId("fake-code").textContent())?.trim() ?? "";
@@ -309,6 +309,153 @@ test("a broker adds a credit box, approves it, and the deal matches it", async (
   await page.goto(`${base}/lenders`);
   await expect(page.getByRole("link", { name: "SBA 504 hotels, California (demo)" })).toBeVisible();
   await expectAccessibleAndReflows(page, "credit boxes");
+
+  // The Lender panel's loan-type filter, on each box's linked lender.
+  await page.goto(`${base}/lenders?type=sba`);
+  await expect(page.getByRole("link", { name: "SBA 504 hotels, California (demo)" })).toBeVisible();
+  await page.goto(`${base}/lenders?type=dscr`);
+  await expect(page.getByRole("link", { name: "SBA 504 hotels, California (demo)" })).toHaveCount(0);
+  await expect(page.getByText("No credit boxes match these filters.")).toBeVisible();
+});
+
+const BANK_LENDER = "20000000-0000-4000-8000-000000000001";
+
+test("a broker completes a lender's contact info, contacts and account numbers, which stay masked", async ({ page }) => {
+  await signIn(page, "/deals/lenders");
+  await page.getByRole("link", { name: "Example Community Bank (demo)", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Example Community Bank (demo)", level: 1 })).toBeVisible();
+
+  const info = section(page, "Contact info");
+  await info.getByText("Edit contact info").click();
+  await info.getByLabel("Main phone").fill("(310) 555-0142");
+  await info.getByLabel("Website").fill("https://bank.example/lending");
+  await info.getByRole("button", { name: "Save contact info" }).click();
+  await expect(notice(page, "Contact info saved.")).toBeVisible();
+  await expect(section(page, "Contact info").locator('a[href="tel:+13105550142"]')).toBeVisible();
+
+  const contacts = section(page, "Contacts");
+  const add = contacts.getByRole("form", { name: "Add a contact" });
+  await add.getByRole("textbox", { name: "Full name" }).fill("Riley Chen (demo)");
+  await add.getByLabel("Role").selectOption({ label: "Underwriter" });
+  await add.getByRole("textbox", { name: "Email" }).fill("riley@bank.example");
+  await add.getByLabel("Make primary contact").check();
+  await add.getByRole("button", { name: "Add contact" }).click();
+  await expect(notice(page, "Contact added.")).toBeVisible();
+  const riley = section(page, "Contacts").getByRole("row").filter({ hasText: "Riley Chen (demo)" });
+  await expect(riley.getByText("Primary", { exact: true })).toBeVisible();
+
+  const accounts = section(page, "Account numbers");
+  const addAccount = accounts.getByRole("form", { name: "Add an account number" });
+  await addAccount.getByRole("combobox", { name: /^Type/ }).selectOption({ label: "Account number at lender" });
+  await addAccount.getByRole("textbox", { name: "Label" }).fill("Servicing account");
+  await addAccount.getByRole("textbox", { name: "Account number" }).fill("SVC-0099887766");
+  await addAccount.getByRole("button", { name: "Save account number" }).click();
+  await expect(notice(page, "Account number saved.")).toBeVisible();
+  await expect(section(page, "Account numbers").getByText("7766")).toBeVisible();
+  // The broker is not the designated officer: no reveal.
+  await expect(page.getByRole("button", { name: /Reveal/ })).toHaveCount(0);
+
+  expect(page.url()).not.toContain("0099887766");
+  const html = await (await page.request.get(page.url())).text();
+  expect(html).not.toContain("SVC-0099887766");
+  expect(html).not.toContain("0099887766");
+  expect(html).not.toMatch(/pii1\.\d/);
+  await expectAccessibleAndReflows(page, "lender detail");
+
+  await page.goto(`${base}/deals/lenders`);
+  const row = section(page, "Panel").getByRole("row").filter({ has: page.getByRole("link", { name: "Example Community Bank (demo)", exact: true }) });
+  await expect(row).toContainText("Riley Chen (demo)");
+});
+
+test("an administrator reveals an account number, and it is masked again", async ({ page }) => {
+  await signIn(page, `/deals/lenders/${BANK_LENDER}`, "admin@corin.test");
+  const accounts = section(page, "Account numbers");
+  await accounts.getByRole("button", { name: "Reveal Broker ID" }).click();
+  await expect(accounts.getByText("DEMO-BRK-48210937")).toBeVisible();
+  await accounts.getByRole("button", { name: "Hide" }).click();
+  await expect(accounts.getByText("DEMO-BRK-48210937")).toHaveCount(0);
+  expect(page.url()).not.toContain("DEMO-BRK");
+  await expectAccessibleAndReflows(page, "lender detail (admin)");
+});
+
+test("a broker filters the lender panel by loan type, and the filtered view is a shareable URL", async ({ page }) => {
+  await signIn(page, "/deals/lenders");
+  const panel = section(page, "Panel");
+  const chips = panel.getByRole("group", { name: "Loan type" });
+  const row = (name: string) => panel.getByRole("row").filter({ has: page.getByRole("link", { name, exact: true }) });
+  const apply = () => panel.getByRole("button", { name: "Show lenders" }).click();
+  for (const n of ["Example Community Bank (demo)", "Sample Private Fund (demo)", "Sample DSCR Lender (demo)"]) await expect(row(n)).toHaveCount(1);
+  await expect(row("Sample Private Fund (demo)")).toContainText("Private money");
+
+  // OR within loan types
+  await chips.getByRole("checkbox", { name: /^DSCR \(investor rental\)/ }).check();
+  await chips.getByRole("checkbox", { name: /^Bridge/ }).check();
+  await apply();
+  await expect(page).toHaveURL(/[?&]type=bridge&type=dscr/);
+  await expect(row("Sample Private Fund (demo)")).toHaveCount(1);
+  await expect(row("Sample DSCR Lender (demo)")).toHaveCount(1);
+  await expect(row("Example Community Bank (demo)")).toHaveCount(0);
+  await expect(panel.getByText(/Showing 1–2 of 2 lenders/)).toBeVisible();
+
+  // AND: no demo lender does both, and the empty state offers a way out
+  await panel.getByRole("radio", { name: "All selected types" }).check();
+  await apply();
+  await expect(panel.getByRole("status").filter({ hasText: "No lenders match these filters." })).toBeVisible();
+  await panel.getByRole("link", { name: "Match any selected loan type instead" }).click();
+  await expect(row("Sample DSCR Lender (demo)")).toHaveCount(1);
+
+  // The URL is the state
+  await page.goto(page.url());
+  await expect(chips.getByRole("checkbox", { name: /^Bridge/ })).toBeChecked();
+  await expect(chips.getByRole("checkbox", { name: /^Construction/ })).not.toBeChecked();
+
+  // Remove one applied filter
+  await panel.getByRole("link", { name: "Remove filter: Bridge" }).click();
+  await expect(row("Sample Private Fund (demo)")).toHaveCount(0);
+  await expect(chips.getByRole("checkbox", { name: /^Bridge/ })).not.toBeChecked();
+
+  // Active only, search, sort
+  await page.goto(`${base}/deals/lenders`);
+  await panel.getByLabel("Active lenders only").check();
+  await apply();
+  await expect(row("Sample DSCR Lender (demo)")).toHaveCount(0);
+  await page.goto(`${base}/deals/lenders?q=fund`);
+  await expect(row("Sample Private Fund (demo)")).toHaveCount(1);
+  await expect(row("Example Community Bank (demo)")).toHaveCount(0);
+  await page.goto(`${base}/deals/lenders?sort=added`);
+  await expect(panel.getByRole("row").nth(1)).toContainText("Sample DSCR Lender (demo)");
+
+  // A row action keeps the filtered view
+  await page.goto(`${base}/deals/lenders?type=construction`);
+  await row("Example Community Bank (demo)").getByRole("button", { name: "Verified today" }).click();
+  await expect(notice(page, "Verification date updated.")).toBeVisible();
+  await expect(page).toHaveURL(/[?&]type=construction/);
+
+  // Server-rendered: the raw HTML of a filtered URL is already filtered (no client JS needed)
+  const html = await (await page.request.get(`${base}/deals/lenders?type=dscr`)).text();
+  expect(html).toContain("Sample DSCR Lender (demo)");
+  expect(html).not.toContain("Sample Private Fund (demo)");
+  const form = panel.getByRole("search", { name: "Find lenders" });
+  await expect(form).toHaveAttribute("action", "/deals/lenders");
+  expect(await form.getAttribute("method")).not.toBe("post");
+
+  await page.goto(`${base}/deals/lenders?type=bridge&type=dscr`);
+  await expectAccessibleAndReflows(page, "lender panel filters");
+});
+
+test("a broker edits a lender's loan types on its page", async ({ page }) => {
+  await signIn(page, "/deals/lenders/20000000-0000-4000-8000-000000000002");
+  const types = section(page, "Loan types");
+  await types.getByText("Edit loan types").click();
+  await types.getByRole("checkbox", { name: "Mezzanine / pref equity" }).check();
+  await types.getByRole("button", { name: "Save loan types" }).click();
+  await expect(notice(page, "Loan types saved.")).toBeVisible();
+  await expect(types.getByRole("list", { name: "Loan types" })).toContainText("Mezz / pref");
+  await expect(types.getByText(/^Suggested from/)).toBeVisible();
+  await types.getByRole("button", { name: "Use the suggested loan types" }).click();
+  await expect(notice(page, "Loan types set from the suggestions.")).toBeVisible();
+  await expect(types.getByRole("list", { name: "Loan types" })).not.toContainText("Mezz / pref");
+  await expectAccessibleAndReflows(page, "lender loan types");
 });
 
 test("a principal opens a portal link and saves their profile", async ({ page, browser }) => {

@@ -13,3 +13,21 @@ describe("staff session", () => {
     expect(() => requirePermission(base, "write")).toThrow(/write access/);
   });
 });
+
+describe("reveal_account", () => {
+  const base: StaffSession = { userId: "u", email: "a@k", name: "A", role: "analyst", dreLicense: null, designatedOfficer: false, actor: "staff:a@k" };
+
+  it("is for an admin or the designated officer only", () => {
+    expect(can(base, "reveal_account")).toBe(false);
+    expect(can({ ...base, role: "broker", dreLicense: "01234567" }, "reveal_account")).toBe(false);
+    expect(can({ ...base, role: "broker", designatedOfficer: true, dreLicense: "01234567" }, "reveal_account")).toBe(true);
+    expect(can({ ...base, role: "broker", designatedOfficer: true, dreLicense: null }, "reveal_account")).toBe(false);
+    expect(can({ ...base, role: "admin" }, "reveal_account")).toBe(true);
+    // Writers can still add and replace numbers without reading them.
+    expect(can({ ...base, role: "broker" }, "write")).toBe(true);
+  });
+
+  it("explains the refusal", () => {
+    expect(() => requirePermission(base, "reveal_account")).toThrow("Only an administrator or the designated officer can reveal account numbers");
+  });
+});

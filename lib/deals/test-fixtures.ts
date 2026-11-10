@@ -7,9 +7,10 @@ import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import { addPrincipal } from "@/lib/principals/service";
 import { screenDeal } from "@/lib/screening/service";
 import type { FakeListEntry } from "@/lib/screening/fake";
+import { EMPTY_LENDER_CONTACT_INFO, deriveLenderContacts } from "./lender-contacts";
 import { createDeal } from "./service";
-import { MemoryDealDeskStore } from "./store";
-import type { Deal, LoanBrokerOfRecord, NewDeal, NewLender, PackageItem } from "./types";
+import { MemoryDealDeskStore, type DealDeskStore } from "./store";
+import type { Deal, LenderContact, LenderPanelEntry, LoanBrokerOfRecord, NewDeal, NewLender, PackageItem } from "./types";
 
 export const T0 = new Date("2026-11-03T17:00:00.000Z");
 
@@ -39,6 +40,7 @@ export const lenderInput = (over: Partial<NewLender> = {}): NewLender => ({
   category: "STATE_BANK",
   categoryEvidenceRef: "CA DFPI charter 1234",
   programs: ["HUD_232", "HUD_MULTIFAMILY", "SBA_7A", "HARD_MONEY"],
+  loanTypes: [],
   minLoanCents: 100_000_000,
   maxLoanCents: 10_000_000_000,
   states: [],
@@ -48,13 +50,29 @@ export const lenderInput = (over: Partial<NewLender> = {}): NewLender => ({
   feeSplitKind: "percent_of_lender_fee",
   feeSplitValue: 50,
   feeAgreementRef: "vault://agreements/cambridge-2026.pdf",
-  contactName: "Dana Lee",
-  contactEmail: "dana@lender.example",
+  // The submission inbox is the derived recipient while there is no primary contact.
+  submissionEmail: "dana@lender.example",
   verifiedAt: "2026-10-01T00:00:00.000Z",
   verifiedBy: "broker:ana",
   active: true,
   ...over,
 });
+
+/** Adds a contact and makes it the lender's primary (the submission recipient). */
+export async function addPrimaryContact(store: DealDeskStore, lenderId: string, c: { fullName: string; email: string | null }, now: Date = T0): Promise<LenderContact> {
+  const contact = await store.insertLenderContact(
+    { lenderId, fullName: c.fullName, email: c.email, title: null, role: "account_executive", phoneDirect: null, phoneExt: null, phoneMobile: null, preferredChannel: null, territory: null, notes: null, source: "staff" },
+    "broker:ana",
+    now,
+  );
+  return store.setPrimaryLenderContact(lenderId, contact.id, "broker:ana", now);
+}
+
+/** A LenderPanelEntry built by hand (for tests that never touch a store). */
+export function toPanelEntry(l: NewLender, id: string, contacts: Pick<LenderContact, "id" | "fullName" | "email" | "isPrimary" | "status">[] = []): LenderPanelEntry {
+  const info = { ...EMPTY_LENDER_CONTACT_INFO, ...l };
+  return { ...info, id, createdAt: T0.toISOString(), updatedAt: T0.toISOString(), updatedBy: null, contactInfoVersion: 1, ...deriveLenderContacts(info, contacts) };
+}
 
 export const docs = (n: number, salt = "a"): PackageItem[] =>
   Array.from({ length: n }, (_, i) => ({
