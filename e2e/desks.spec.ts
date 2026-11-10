@@ -475,13 +475,44 @@ test("a broker filters the lender panel by loan type, and the filtered view is a
   await expect(notice(page, "Verification date updated.")).toBeVisible();
   await expect(page).toHaveURL(/[?&]type=construction/);
 
-  // Server-rendered: the raw HTML of a filtered URL is already filtered (no client JS needed)
-  const html = await (await page.request.get(`${base}/deals/lenders?type=dscr`)).text();
-  expect(html).toContain("Sample DSCR Lender (demo)");
-  expect(html).not.toContain("Sample Private Fund (demo)");
+  // The URL is the whole state: a filtered link opened fresh shows those rows and ticks, and the form is a GET.
+  await page.goto(`${base}/deals/lenders?type=dscr`);
+  await expect(row("Sample DSCR Lender (demo)")).toHaveCount(1);
+  await expect(row("Sample Private Fund (demo)")).toHaveCount(0);
+  await expect(chips.getByRole("checkbox", { name: /^DSCR \(investor rental\)/ })).toBeChecked();
   const form = panel.getByRole("search", { name: "Find lenders" });
   await expect(form).toHaveAttribute("action", "/deals/lenders");
   expect(await form.getAttribute("method")).not.toBe("post");
+
+  // Keyboard: applying filters, or removing one, moves focus to the results summary instead of <body>.
+  await page.goto(`${base}/deals/lenders`);
+  await chips.getByRole("checkbox", { name: /^Bridge/ }).check();
+  await panel.getByRole("button", { name: "Show lenders" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/[?&]type=bridge/);
+  await expect(page.locator("#lender-results")).toBeFocused();
+  await panel.getByRole("link", { name: "Remove filter: Bridge" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(`${base}/deals/lenders`);
+  await expect(page.locator("#lender-results")).toBeFocused();
+
+  // Loan amounts: the CRE shorthand applies, and one that cannot be read is said so and kept.
+  await page.goto(`${base}/deals/lenders?amount=2.5MM`);
+  await expect(panel.getByRole("link", { name: "Remove filter: Fits a $2,500,000.00 loan" })).toBeVisible();
+  await page.goto(`${base}/deals/lenders?amount=about%202%20million`);
+  await expect(notice(page, "Couldn’t read the loan amount “about 2 million”, so every loan size is shown.")).toBeVisible();
+  await expect(panel.getByLabel("Loan amount (USD)")).toHaveValue("about 2 million");
+
+  // At 390px the chips wrap several to a row, a skip link reaches the results, and badges do not break mid-word.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`${base}/deals/lenders`);
+  const chipRows = await chips.locator("label").evaluateAll((labels) => new Set(labels.map((l) => Math.round(l.getBoundingClientRect().top))).size);
+  expect(chipRows).toBeLessThanOrEqual(9);
+  const badge = row("Sample DSCR Lender (demo)").getByText("No email on file");
+  expect((await badge.boundingBox())!.height).toBeLessThan(30);
+  await panel.getByRole("link", { name: "Skip to results" }).click();
+  await expect(page.locator("#lender-results")).toBeFocused();
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto(`${base}/deals/lenders?type=bridge&type=dscr`);
   await expectAccessibleAndReflows(page, "lender panel filters");

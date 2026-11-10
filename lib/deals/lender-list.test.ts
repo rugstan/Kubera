@@ -15,6 +15,7 @@ import {
   normalizeForSearch,
   parseAmount,
   parseLenderListQuery,
+  unreadAmount,
   serializeLenderListQuery,
   sortLenders,
   type LenderListQuery,
@@ -74,8 +75,26 @@ describe("parseAmount", () => {
     expect(parseAmount("1200000.50")).toBe(120_000_050);
   });
 
+  it("reads the CRE shorthand MM and spelled-out scales", () => {
+    for (const v of ["$2.5MM", "2.5mm", "2.5 million", "2.5 Mil", "2,500 thousand", "2500K"]) expect(parseAmount(v), v).toBe(250_000_000);
+    expect(parseAmount("1.2b")).toBe(120_000_000_000);
+    expect(parseAmount("1.2 billion")).toBe(120_000_000_000);
+    for (const v of ["2.5mmm", "2.5 m m", "2.5 millions", "11b"]) expect(parseAmount(v), v).toBeNull();
+  });
+
   it("refuses junk, zero, bad grouping and amounts over $10B", () => {
     for (const v of ["abc", "0", "1,23", "99999999999", "", "-5"]) expect(parseAmount(v), v).toBeNull();
+  });
+
+  it("hands back an amount it could not read, so the page can say so instead of showing every size", () => {
+    expect(unreadAmount({ amount: "about 2 million" })).toBe("about 2 million");
+    expect(unreadAmount(new URLSearchParams("amount=2.5MM"))).toBeNull();
+    expect(unreadAmount({ amount: "2.5m" })).toBeNull();
+    expect(unreadAmount({ amount: "   " })).toBeNull();
+    expect(unreadAmount({})).toBeNull();
+    expect(unreadAmount({ amount: "x".repeat(200) })).toHaveLength(40);
+    expect(unreadAmount({ amount: "2\u202e5m" })).toBe("25m");
+    expect(parseLenderListQuery({ amount: "2.5MM" }).amountCents).toBe(250_000_000);
   });
 });
 

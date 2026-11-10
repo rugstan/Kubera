@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { lenderCategories } from "@/lib/compliance/schemas";
-import { appliedFilters, caStatus, emptyStateSuggestions, lenderListHref, lenderListView, parseLenderListQuery, serializeLenderListQuery, type FilterLink, type LenderListQuery, type LenderListView } from "@/lib/deals/lender-list";
+import { appliedFilters, caStatus, emptyStateSuggestions, lenderListHref, lenderListView, parseLenderListQuery, serializeLenderListQuery, unreadAmount, type FilterLink as FilterLinkSpec, type LenderListQuery, type LenderListView } from "@/lib/deals/lender-list";
 import { LENDER_STALE_AFTER_DAYS, lenderStaleness } from "@/lib/deals/lenders";
 import { currentStaff, dealDeskRuntime } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
 import { DEAL_PROGRAM_LABELS, dealPrograms } from "@/lib/deals/types";
 import { lenderAction, saveLenderAction } from "../actions";
 import { Badge, Check, Field, Flash, Loading, LoanTypeBadges, LoanTypeFieldset, NotConfigured, Section, Select, SignInRequired, Submit, Table, money, when } from "../ui";
+import { FilterLink, ResultsSummary } from "./_components/FilterNav";
 import { LenderFilters } from "./_components/LenderFilters";
 
 export const metadata: Metadata = { title: "Lender panel" };
@@ -43,20 +44,20 @@ function AppliedFilters({ query }: { query: LenderListQuery }) {
       <ul aria-labelledby="applied-filters-label" className="flex flex-wrap gap-2">
         {links.map((f) => (
           <li key={f.key}>
-            <Link aria-label={`Remove filter: ${f.label}`} className="pill pill-glass min-h-11 max-w-full whitespace-normal text-xs" href={f.href}>
+            <FilterLink aria-label={`Remove filter: ${f.label}`} className="pill pill-glass min-h-11 max-w-full whitespace-normal text-xs" href={f.href}>
               {f.label} <span aria-hidden="true">×</span>
-            </Link>
+            </FilterLink>
           </li>
         ))}
       </ul>
-      <Link className="inline-flex min-h-11 items-center text-sm text-accent underline" href="/deals/lenders">
+      <FilterLink className="inline-flex min-h-11 items-center text-sm text-accent underline" href="/deals/lenders">
         Clear all
-      </Link>
+      </FilterLink>
     </div>
   );
 }
 
-function EmptyState({ links }: { links: FilterLink[] }) {
+function EmptyState({ links }: { links: FilterLinkSpec[] }) {
   return (
     <div className="rounded-2xl border border-dashed border-black/15 p-5" role="status">
       <p className="font-medium text-ink">No lenders match these filters.</p>
@@ -64,9 +65,9 @@ function EmptyState({ links }: { links: FilterLink[] }) {
       <ul className="mt-2 flex flex-wrap gap-2">
         {links.map((l) => (
           <li key={l.key}>
-            <Link className="pill pill-glass min-h-11 max-w-full whitespace-normal text-center" href={l.href}>
+            <FilterLink className="pill pill-glass min-h-11 max-w-full whitespace-normal text-center" href={l.href}>
               {l.label}
-            </Link>
+            </FilterLink>
           </li>
         ))}
       </ul>
@@ -78,17 +79,17 @@ function Pagination<T>({ query, view }: { query: LenderListQuery; view: LenderLi
   return (
     <nav aria-label="Lender list pages" className="mt-4 flex flex-wrap items-center gap-3">
       {view.page > 1 ? (
-        <Link className="pill pill-glass min-h-11" href={lenderListHref(query, { page: view.page - 1 })} rel="prev">
+        <FilterLink className="pill pill-glass min-h-11" href={lenderListHref(query, { page: view.page - 1 })} rel="prev">
           Previous
-        </Link>
+        </FilterLink>
       ) : null}
       <span className="text-sm text-titanium">
         Page {view.page} of {view.pages}
       </span>
       {view.page < view.pages ? (
-        <Link className="pill pill-glass min-h-11" href={lenderListHref(query, { page: view.page + 1 })} rel="next">
+        <FilterLink className="pill pill-glass min-h-11" href={lenderListHref(query, { page: view.page + 1 })} rel="next">
           Next
-        </Link>
+        </FilterLink>
       ) : null}
     </nav>
   );
@@ -100,6 +101,7 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
   const rt = dealDeskRuntime();
   if (!rt) return <NotConfigured />;
   const query = parseLenderListQuery(sp);
+  const amountText = unreadAmount(sp);
   const lenders = await rt.store.listLenders();
   const view = lenderListView(lenders, query);
   // The row actions post this back so a click returns to the same filtered page.
@@ -113,11 +115,16 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
     <>
       <Flash error={one("error")} notice={one("notice")} />
       <Section description="Filter by the kind of loan a lender makes; deal programs still drive matching." id="panel" title="Panel">
-        <LenderFilters counts={view.counts} query={query} />
-        <p aria-live="polite" className="mt-4 text-sm text-titanium" id="lender-results">
+        <LenderFilters amountText={amountText} counts={view.counts} query={query} resultsId="lender-results" />
+        {amountText ? (
+          <p className="notice-warning mt-4 rounded-2xl px-4 py-3 text-sm" role="status">
+            Couldn’t read the loan amount “{amountText}”, so every loan size is shown. Try 2500000, 2.5m or 2.5MM.
+          </p>
+        ) : null}
+        <ResultsSummary className="mt-4 text-sm text-titanium" id="lender-results" query={`${serializeLenderListQuery({ ...query, page: view.page })}|${amountText ?? ""}`}>
           {view.total ? `Showing ${view.from}–${view.to} of ${view.total} lenders` : "No lenders match"}
           {filtered ? ` (${view.panelTotal} on the panel)` : ""}
-        </p>
+        </ResultsSummary>
         <AppliedFilters query={query} />
         <div className="mt-4">
           {view.total === 0 && lenders.length === 0 ? (
@@ -147,7 +154,13 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
                   </span>,
                   <span className="flex flex-col gap-1" key="c">
                     <span>{l.primaryContactName ?? <span className="text-titanium">No primary contact</span>}</span>
-                    <span className="break-all">{l.contactEmail ?? <Badge tone="warn">No email on file</Badge>}</span>
+                    {l.contactEmail ? (
+                      <span className="[overflow-wrap:anywhere]">{l.contactEmail}</span>
+                    ) : (
+                      <span className="whitespace-nowrap">
+                        <Badge tone="warn">No email on file</Badge>
+                      </span>
+                    )}
                   </span>,
                   l.programs.map((p) => DEAL_PROGRAM_LABELS[p]).join(", ") || "—",
                   `${money(l.minLoanCents)} – ${money(l.maxLoanCents)}`,

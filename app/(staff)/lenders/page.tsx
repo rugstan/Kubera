@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { ResultsSummary } from "@/app/(staff)/deals/lenders/_components/FilterNav";
 import { LenderFilters } from "@/app/(staff)/deals/lenders/_components/LenderFilters";
 import { Badge, Flash, Loading, LoanTypeBadges, NotConfigured, Section, SignInRequired, Submit, Table, money, when } from "@/app/(staff)/deals/ui";
 import { boxStaleness } from "@/lib/agents/lenders/credit-box";
 import { lenderRuntime } from "@/lib/agents/lenders/runtime";
 import type { CreditBox } from "@/lib/agents/lenders/types";
-import { loanTypeFacet, matchesTokens, normalizeForSearch, parseLenderListQuery, searchTokens } from "@/lib/deals/lender-list";
+import { loanTypeFacet, matchesTokens, normalizeForSearch, parseLenderListQuery, searchTokens, serializeLenderListQuery } from "@/lib/deals/lender-list";
 import { currentStaff } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
 import { DEAL_PROGRAM_LABELS } from "@/lib/deals/types";
@@ -96,11 +97,11 @@ async function BoxesData({ searchParams }: { searchParams: Search }) {
             </Link>
           </div>
         ) : null}
-        <LenderFilters action="/lenders" counts={counts} full={false} query={query} />
-        <p aria-live="polite" className="mt-4 text-sm text-titanium">
+        <LenderFilters action="/lenders" counts={counts} full={false} query={query} resultsId="box-results" />
+        <ResultsSummary className="mt-4 text-sm text-titanium" id="box-results" query={serializeLenderListQuery(query)}>
           Showing {matched.length} of {boxes.length} boxes.
           {hiddenUnlinked ? ` ${hiddenUnlinked} ${hiddenUnlinked === 1 ? "box" : "boxes"} not linked to a panel lender ${hiddenUnlinked === 1 ? "is" : "are"} hidden while a loan type is selected.` : ""}
-        </p>
+        </ResultsSummary>
         <div className="mt-4">
           {boxes.length > 0 && matched.length === 0 ? (
             <p className="text-sm text-titanium">

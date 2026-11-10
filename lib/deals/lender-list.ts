@@ -64,13 +64,29 @@ export function cleanSearch(raw: string): string {
     .slice(0, LENDER_SEARCH_MAX);
 }
 
-/** "2,500,000", "$2.5m", "750k", "1200000.50" -> cents; anything else (or 0, or over $10B) -> null. */
+const AMOUNT_SCALES: Readonly<Record<string, number>> = { k: 1e3, thousand: 1e3, m: 1e6, mm: 1e6, mil: 1e6, million: 1e6, b: 1e9, bn: 1e9, billion: 1e9 };
+
+/**
+ * "2,500,000", "$2.5m", "$2.5MM" (the CRE shorthand), "2.5 million", "750k", "1200000.50" -> cents;
+ * anything else (or 0, or over $10B) -> null.
+ */
 export function parseAmount(raw: string): number | null {
-  const m = /^\$?\s*(\d{1,3}(?:,\d{3})+|\d{1,13})(?:\.(\d{1,6}))?\s*([km])?$/i.exec(raw.trim());
+  const m = /^\$?\s*(\d{1,3}(?:,\d{3})+|\d{1,13})(?:\.(\d{1,6}))?\s*(k|thousand|mm|m|mil|million|bn|b|billion)?$/i.exec(raw.trim());
   if (!m) return null;
-  const scale = m[3]?.toLowerCase() === "m" ? 1_000_000 : m[3]?.toLowerCase() === "k" ? 1_000 : 1;
+  const scale = m[3] ? AMOUNT_SCALES[m[3].toLowerCase()]! : 1;
   const cents = Math.round(Number(`${m[1]!.replace(/,/g, "")}.${m[2] ?? "0"}`) * scale * 100);
   return Number.isSafeInteger(cents) && cents > 0 && cents <= MAX_AMOUNT_CENTS ? cents : null;
+}
+
+/**
+ * The loan amount the URL asked for when parseAmount cannot read it (cleaned, at
+ * most 40 characters), so the page can say so and keep it in the field instead
+ * of silently showing every size. Null when there is none or it was read.
+ */
+export function unreadAmount(sp: SearchInput): string | null {
+  const original = first(sp, "amount");
+  if (parseAmount(original) !== null) return null;
+  return cleanSearch(original).slice(0, 40) || null;
 }
 
 /** Reads the query string. Unknown keys and values are ignored, never an error. */

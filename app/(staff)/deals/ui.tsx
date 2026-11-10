@@ -225,9 +225,13 @@ export function Table({ head, rows, empty, label }: { head: string[]; rows: Reac
 }
 
 const CHIP =
-  "group inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-black/30 px-4 py-2 text-sm font-medium text-ink/80 transition hover:border-black/50 has-[input:checked]:border-accent has-[input:checked]:bg-accent/10 has-[input:checked]:text-accent-hover has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent";
+  "group inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border border-black/30 px-3 py-2 text-sm font-medium text-ink/80 transition hover:border-black/50 sm:gap-2 sm:px-4 has-[input:checked]:border-accent has-[input:checked]:bg-accent/10 has-[input:checked]:text-accent-hover has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent";
 
-/** Loan-type checkboxes as chips, grouped by LENDER_LOAN_TYPE_GROUPS. Native checkboxes: work in a GET form with no JS. */
+/**
+ * Loan-type checkboxes as chips, grouped by LENDER_LOAN_TYPE_GROUPS. Native checkboxes in a
+ * GET form. Below the sm breakpoint the chips use the short labels ("DSCR", "Bank / CU") and
+ * tighter padding, so the 14 chips wrap two or three to a row instead of one.
+ */
 export function LoanTypeFieldset({ legend, name, selected, counts }: { legend: string; name: string; selected: readonly LenderLoanType[]; counts?: Record<LenderLoanType, number> }) {
   return (
     <fieldset>
@@ -240,7 +244,8 @@ export function LoanTypeFieldset({ legend, name, selected, counts }: { legend: s
               {g.types.map((t) => (
                 <label className={CHIP} key={t}>
                   <input className="size-4 accent-[var(--color-accent)]" defaultChecked={selected.includes(t)} name={name} type="checkbox" value={t} />
-                  {LENDER_LOAN_TYPE_LABELS[t]}
+                  <span className="hidden sm:inline">{LENDER_LOAN_TYPE_LABELS[t]}</span>
+                  <span className="sm:hidden">{LENDER_LOAN_TYPE_SHORT_LABELS[t]}</span>
                   {counts ? <span className="text-titanium group-has-[input:checked]:text-accent-hover">({counts[t]})</span> : null}
                 </label>
               ))}
