@@ -56,8 +56,19 @@ const KNOWN = [StaffAccessError, GuardError, ConcurrentUpdateError, DealError, L
 
 const NO_KEY_FOR_ACCOUNTS = "Account numbers cannot be saved: encryption (PII_ENCRYPTION_KEY) is not configured on this server. Contacts and contact info still save.";
 
-function messageOf(err: unknown): string {
-  if (err instanceof ZodError) return err.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
+/**
+ * The message an action shows for an error. Zod paths are schema keys
+ * (mainPhone, loanTypes); `labels` maps them to the form's visible labels so
+ * the message reads "Main phone: …". Unmapped keys stay as they are.
+ */
+function messageOf(err: unknown, labels: Readonly<Record<string, string>> = {}): string {
+  if (err instanceof ZodError)
+    return err.issues
+      .map((i) => {
+        const key = typeof i.path[0] === "string" ? i.path[0] : "";
+        return `${(Object.hasOwn(labels, key) ? labels[key] : i.path.join(".")) || "input"}: ${i.message}`;
+      })
+      .join("; ");
   if (KNOWN.some((K) => err instanceof K)) return (err as Error).message;
   if (err instanceof Error && err.name === "PiiKeyError") return NO_KEY_FOR_ACCOUNTS;
   if (err instanceof ApprovalConflictError) return "A send for this document is already in the approvals queue with different details; approve or reject that one first.";
@@ -69,7 +80,7 @@ const withParam = (path: string, key: string, value: string) => `${path}${path.i
 
 type Ctx = { staff: StaffSession; rt: DealDeskRuntime };
 
-async function run(path: string, permission: Permission, fn: (ctx: Ctx) => Promise<string>): Promise<never> {
+async function run(path: string, permission: Permission, fn: (ctx: Ctx) => Promise<string>, labels?: Readonly<Record<string, string>>): Promise<never> {
   let target: string;
   try {
     const staff = requirePermission(await currentStaff(), permission);
@@ -77,7 +88,7 @@ async function run(path: string, permission: Permission, fn: (ctx: Ctx) => Promi
     if (!rt) throw new DealError("Deal desk storage is not configured");
     target = withParam(path, "notice", await fn({ staff, rt }));
   } catch (err) {
-    target = withParam(path, "error", messageOf(err));
+    target = withParam(path, "error", messageOf(err, labels));
   }
   revalidatePath(path.split("?")[0]!);
   redirect(target);
@@ -610,8 +621,85 @@ const contactFields = (f: FormData) => ({
   source: str(f, "source"),
 });
 
-// Notices and errors travel in the redirect URL, so every one below is a fixed
-// string: no contact detail, account number or label ever goes into a URL.
+// Notices and errors travel in the redirect URL or the form state, so every one
+// below is a fixed string: no contact detail, account number or label ever goes
+// into a URL or back to the browser.
+
+/** Visible labels of the lender detail forms (app/(staff)/deals/lenders/[id]/page.tsx), by schema key. */
+const LENDER_FIELD_LABELS: Readonly<Record<string, string>> = {
+  mainPhone: "Main phone",
+  mainPhoneExt: "Ext.",
+  submissionEmail: "Submission inbox",
+  generalEmail: "General inbox",
+  websiteUrl: "Website",
+  portalUrl: "Broker portal URL",
+  addressLine1: "Address line 1",
+  addressLine2: "Address line 2",
+  city: "City",
+  addressState: "State",
+  postalCode: "ZIP / postal code",
+  country: "Country",
+  nmlsId: "NMLS ID",
+  submissionInstructions: "Submission instructions",
+  credentialsLocation: "Where the portal password is kept",
+  fullName: "Full name",
+  title: "Title",
+  role: "Role",
+  email: "Email",
+  phoneDirect: "Direct phone",
+  phoneExt: "Ext.",
+  phoneMobile: "Mobile",
+  preferredChannel: "Preferred channel",
+  territory: "Territory",
+  notes: "Notes",
+  source: "Source",
+  kind: "Type",
+  label: "Label",
+  number: "Account number",
+  loanTypes: "Loan types",
+};
+
+/** The panel's Add a lender form (app/(staff)/deals/lenders/page.tsx). */
+const NEW_LENDER_LABELS: Readonly<Record<string, string>> = {
+  name: "Name",
+  category: "Lender category",
+  categoryEvidenceRef: "Category evidence",
+  programs: "Programs",
+  loanTypes: "Loan types",
+  minLoanCents: "Minimum loan",
+  maxLoanCents: "Maximum loan",
+  states: "States",
+  assetTypes: "Asset types",
+  feeSplitKind: "Fee split",
+  feeSplitValue: "Split value",
+  feeAgreementRef: "Fee / correspondent agreement ref",
+  appetiteNotes: "Appetite notes",
+  fullName: "Primary contact name",
+  email: "Primary contact email",
+  contactEmail: "Primary contact email",
+};
+
+/** What a lender-detail form (DirectoryForm) gets back: a fixed message, and `at` so a repeat is a new state. */
+export type DirectoryFormState = { error?: string; notice?: string; at?: number };
+
+/**
+ * Runs a lender-detail form action and returns its result instead of
+ * redirecting, so a validation error keeps what the user typed. Success
+ * revalidates the page; an error does not, so the form keeps the record
+ * versions it was rendered with and a concurrent change is still refused.
+ */
+async function runDirectoryForm(path: string, fn: (ctx: Ctx) => Promise<string>): Promise<DirectoryFormState> {
+  try {
+    const staff = requirePermission(await currentStaff(), "write");
+    const rt = dealDeskRuntime();
+    if (!rt) throw new DealError("Deal desk storage is not configured");
+    const notice = await fn({ staff, rt });
+    revalidatePath(path);
+    return { notice, at: Date.now() };
+  } catch (err) {
+    return { error: messageOf(err, LENDER_FIELD_LABELS), at: Date.now() };
+  }
+}
 
 export async function saveLenderAction(f: FormData): Promise<never> {
   let created: string | null = null;
@@ -654,11 +742,11 @@ export async function saveLenderAction(f: FormData): Promise<never> {
       try {
         await addLenderContact(directoryDeps(rt), lender.id, contact, { makePrimary: true }, staff.actor);
       } catch (err) {
-        contactError = messageOf(err);
+        contactError = messageOf(err, NEW_LENDER_LABELS);
       }
     }
   } catch (err) {
-    redirect(withParam("/deals/lenders", "error", messageOf(err)));
+    redirect(withParam("/deals/lenders", "error", messageOf(err, NEW_LENDER_LABELS)));
   }
   revalidatePath("/deals/lenders");
   const notice = suggested ? "Lender added. Loan types were filled in from its programs and notes; check them below." : "Lender added. Add contact info, contacts and account numbers below.";
@@ -696,12 +784,12 @@ export async function saveLenderLoanTypesAction(f: FormData): Promise<never> {
     if (raw !== "save" && raw !== "suggest") throw new DealError("Unknown loan type action");
     const { changed } = await saveLenderLoanTypes({ store: rt.store, now: rt.now, boxNotes: boxNotesFor }, id, { op: raw, loanTypes: ids(f, "loanTypes"), was: str(f, "loanTypesWas") }, staff.actor);
     return !changed ? "Loan types unchanged." : raw === "suggest" ? "Loan types set from the suggestions." : "Loan types saved.";
-  });
+  }, LENDER_FIELD_LABELS);
 }
 
-export async function saveLenderContactInfoAction(f: FormData): Promise<never> {
+export async function saveLenderContactInfoAction(_prev: DirectoryFormState, f: FormData): Promise<DirectoryFormState> {
   const id = str(f, "lenderId");
-  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+  return runDirectoryForm(lenderPath(id), async ({ staff, rt }) => {
     uuidField(f, "lenderId");
     await saveLenderContactInfo(
       directoryDeps(rt),
@@ -731,18 +819,18 @@ export async function saveLenderContactInfoAction(f: FormData): Promise<never> {
   });
 }
 
-export async function addLenderContactAction(f: FormData): Promise<never> {
+export async function addLenderContactAction(_prev: DirectoryFormState, f: FormData): Promise<DirectoryFormState> {
   const id = str(f, "lenderId");
-  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+  return runDirectoryForm(lenderPath(id), async ({ staff, rt }) => {
     uuidField(f, "lenderId");
     await addLenderContact(directoryDeps(rt), id, contactFields(f), { makePrimary: bool(f, "makePrimary") }, staff.actor);
     return "Contact added.";
   });
 }
 
-export async function updateLenderContactAction(f: FormData): Promise<never> {
+export async function updateLenderContactAction(_prev: DirectoryFormState, f: FormData): Promise<DirectoryFormState> {
   const id = str(f, "lenderId");
-  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+  return runDirectoryForm(lenderPath(id), async ({ staff, rt }) => {
     uuidField(f, "lenderId");
     await editLenderContact(directoryDeps(rt), id, uuidField(f, "contactId"), version(f, "recordVersion"), contactFields(f), staff.actor);
     return "Contact updated.";
@@ -769,18 +857,18 @@ export async function lenderContactOpAction(f: FormData): Promise<never> {
   });
 }
 
-export async function addLenderAccountAction(f: FormData): Promise<never> {
+export async function addLenderAccountAction(_prev: DirectoryFormState, f: FormData): Promise<DirectoryFormState> {
   const id = str(f, "lenderId");
-  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+  return runDirectoryForm(lenderPath(id), async ({ staff, rt }) => {
     uuidField(f, "lenderId");
     await addLenderAccount(directoryDeps(rt), id, { kind: str(f, "kind"), label: str(f, "label"), number: str(f, "accountNumber"), notes: str(f, "notes") }, staff.actor);
     return "Account number saved.";
   });
 }
 
-export async function updateLenderAccountAction(f: FormData): Promise<never> {
+export async function updateLenderAccountAction(_prev: DirectoryFormState, f: FormData): Promise<DirectoryFormState> {
   const id = str(f, "lenderId");
-  return run(lenderPath(id), "write", async ({ staff, rt }) => {
+  return runDirectoryForm(lenderPath(id), async ({ staff, rt }) => {
     uuidField(f, "lenderId");
     const replacing = str(f, "accountNumber") !== "";
     await editLenderAccount(directoryDeps(rt), id, uuidField(f, "accountId"), version(f, "recordVersion"), { label: str(f, "label"), number: str(f, "accountNumber"), notes: str(f, "notes") }, staff.actor);

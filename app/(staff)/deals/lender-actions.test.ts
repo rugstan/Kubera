@@ -1,6 +1,9 @@
 // Lender panel server actions (contact info, contacts, account numbers and the
 // reveal) against the in-memory demo desks in fake-auth mode: permissions,
-// UUID checks, fixed messages, and no account number in any URL or log.
+// UUID checks, fixed messages with the forms' field labels, and no account
+// number in any URL, form state or log. The detail-page forms (contact info,
+// contacts, account numbers) return their state instead of redirecting, so a
+// validation error keeps what the user typed.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MemoryAuditSink } from "@/lib/auth/audit";
 import type { PiiKeyring } from "@/lib/privacy/crypto";
@@ -97,23 +100,35 @@ async function call(fn: () => Promise<never>): Promise<URL> {
 
 const as = (p: Principal) => signedIn.mockResolvedValue(p);
 
+type FormState = import("./actions").DirectoryFormState;
+/** Runs a detail-page form action (DirectoryForm): it returns its state and must never redirect. */
+async function submit(fn: (prev: FormState, f: FormData) => Promise<FormState>, fields: Record<string, string>): Promise<FormState> {
+  const state = await fn({}, form(fields));
+  expect(typeof state.at).toBe("number");
+  expect(Boolean(state.error) !== Boolean(state.notice)).toBe(true);
+  return state;
+}
+
 describe("write actions", () => {
   it("refuse an analyst and change nothing", async () => {
     as(who.analyst);
     const before = JSON.stringify({ l: [...store().lenders.values()], c: [...store().lenderContacts.values()], a: [...store().lenderAccounts.values()] });
     const contact = [...store().lenderContacts.values()].find((c) => c.lenderId === BANK)!;
     const urls = [
-      await call(() => actions.saveLenderContactInfoAction(form({ lenderId: BANK, contactInfoVersion: "1", mainPhone: "(310) 555-0142" }))),
-      await call(() => actions.addLenderContactAction(form({ lenderId: BANK, fullName: "Riley Chen" }))),
       await call(() => actions.lenderContactOpAction(form({ lenderId: BANK, contactId: contact.id, recordVersion: "1", op: "mark_left" }))),
-      await call(() => actions.addLenderAccountAction(form({ lenderId: BANK, kind: "broker_id", accountNumber: "BRK-12345678" }))),
-      await call(() => actions.updateLenderAccountAction(form({ lenderId: BANK, accountId: ACCOUNT, recordVersion: "1", label: "Changed" }))),
       await call(() => actions.deleteLenderAccountAction(form({ lenderId: BANK, accountId: ACCOUNT }))),
     ];
     for (const u of urls) {
       expect(u.pathname).toBe(`/deals/lenders/${BANK}`);
       expect(u.searchParams.get("error")).toMatch(/needs write access/);
     }
+    const states = [
+      await submit(actions.saveLenderContactInfoAction, { lenderId: BANK, contactInfoVersion: "1", mainPhone: "(310) 555-0142" }),
+      await submit(actions.addLenderContactAction, { lenderId: BANK, fullName: "Riley Chen" }),
+      await submit(actions.addLenderAccountAction, { lenderId: BANK, kind: "broker_id", accountNumber: "BRK-12345678" }),
+      await submit(actions.updateLenderAccountAction, { lenderId: BANK, accountId: ACCOUNT, recordVersion: "1", label: "Changed" }),
+    ];
+    for (const st of states) expect(st.error).toMatch(/needs write access/);
     expect(JSON.stringify({ l: [...store().lenders.values()], c: [...store().lenderContacts.values()], a: [...store().lenderAccounts.values()] })).toBe(before);
   });
 });
@@ -176,23 +191,23 @@ describe("account numbers", () => {
     (demo.demoDesks()! as { keyring: PiiKeyring | null }).keyring = null;
     crypto.setPiiKeyring(null);
     const before = store().lenderAccounts.size;
-    const u = await call(() => actions.addLenderAccountAction(form({ lenderId: BANK, kind: "client_account", label: "Servicing account", accountNumber: "SVC-0099887766" })));
-    expect(u.searchParams.get("error")).toBe("Account numbers cannot be saved: encryption (PII_ENCRYPTION_KEY) is not configured on this server. Contacts and contact info still save.");
+    const u = await submit(actions.addLenderAccountAction, { lenderId: BANK, kind: "client_account", label: "Servicing account", accountNumber: "SVC-0099887766" });
+    expect(u.error).toBe("Account numbers cannot be saved: encryption (PII_ENCRYPTION_KEY) is not configured on this server. Contacts and contact info still save.");
     expect(store().lenderAccounts.size).toBe(before);
-    const c = await call(() => actions.addLenderContactAction(form({ lenderId: BANK, fullName: "Riley Chen (demo)", email: "riley@bank.example" })));
-    expect(c.searchParams.get("notice")).toBe("Contact added.");
+    const c = await submit(actions.addLenderContactAction, { lenderId: BANK, fullName: "Riley Chen (demo)", email: "riley@bank.example" });
+    expect(c.notice).toBe("Contact added.");
   });
 
   it("refuse an account number typed into the label, storing nothing and echoing nothing", async () => {
     as(who.broker);
     const before = JSON.stringify([...store().lenderAccounts.values()]);
     for (const label of ["Acct 000123456789", "SSN 123-45-6789", "Card 4111 1111 1111 1111", "pw: Summer2026!"]) {
-      const u = await call(() => actions.addLenderAccountAction(form({ lenderId: BANK, kind: "other", label, accountNumber: "CORIN-1" })));
-      expect(u.searchParams.get("error"), label).toMatch(/a label cannot hold an account, card or Social Security number or a password/);
-      expect(u.href).not.toMatch(/000123456789|6789|4111|Summer/);
+      const u = await submit(actions.addLenderAccountAction, { lenderId: BANK, kind: "other", label, accountNumber: "CORIN-1" });
+      expect(u.error, label).toBe("Label: Put the number itself in Account number: a label cannot hold an account, card or Social Security number or a password.");
+      expect(JSON.stringify(u)).not.toMatch(/000123456789|6789|4111|Summer/);
     }
-    const u = await call(() => actions.updateLenderAccountAction(form({ lenderId: BANK, accountId: ACCOUNT, recordVersion: "1", label: "Acct 000123456789" })));
-    expect(u.searchParams.get("error")).toMatch(/a label cannot hold/);
+    const u = await submit(actions.updateLenderAccountAction, { lenderId: BANK, accountId: ACCOUNT, recordVersion: "1", label: "Acct 000123456789" });
+    expect(u.error).toMatch(/^Label: .*a label cannot hold/);
     expect(JSON.stringify([...store().lenderAccounts.values()])).toBe(before);
     expect((await store().listLenderAccounts(BANK)).map((a) => a.label)).not.toContain("Acct 000123456789");
   });
@@ -201,10 +216,13 @@ describe("account numbers", () => {
     as(who.broker);
     const spies = (["log", "info", "warn", "error", "debug"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));
     try {
-      const u = await call(() => actions.addLenderAccountAction(form({ lenderId: BANK, kind: "client_account", label: "Servicing account", accountNumber: "SVC-0099887766" })));
-      expect(u.searchParams.get("notice")).toBe("Account number saved.");
-      expect(u.href).not.toContain("0099887766");
-      expect(u.href).not.toContain("SVC");
+      const u = await submit(actions.addLenderAccountAction, { lenderId: BANK, kind: "client_account", label: "Servicing account", accountNumber: "SVC-0099887766" });
+      expect(u.notice).toBe("Account number saved.");
+      expect(JSON.stringify(u)).not.toContain("0099887766");
+      expect(JSON.stringify(u)).not.toContain("SVC");
+      const bad = await submit(actions.addLenderAccountAction, { lenderId: BANK, kind: "broker_id", label: "Second", accountNumber: "123-45-6789" });
+      expect(bad.error).toBe("Account number: This looks like a card number or SSN; Corin does not store those");
+      expect(JSON.stringify(bad)).not.toContain("6789");
       for (const s of spies) for (const args of s.mock.calls) expect(JSON.stringify(args)).not.toMatch(/0099887766|SVC-/);
     } finally {
       for (const s of spies) s.mockRestore();
@@ -218,11 +236,10 @@ describe("account numbers", () => {
 describe("contacts", () => {
   it("refuse a password in the notes with the fixed message and keep the value out of the URL", async () => {
     as(who.broker);
-    const u = await call(() => actions.addLenderContactAction(form({ lenderId: BANK, fullName: "Riley Chen", notes: "password: x" })));
-    expect(u.searchParams.get("error")).toBe("Notes: remove account numbers, passwords and bank details. Put lender account numbers under Account numbers; keep passwords in the password manager.");
-    expect(u.href).not.toContain("x");
-    const v = await call(() => actions.addLenderContactAction(form({ lenderId: BANK, fullName: "Riley Chen", notes: "portal password: hunter2" })));
-    expect(v.href).not.toContain("hunter2");
+    const u = await submit(actions.addLenderContactAction, { lenderId: BANK, fullName: "Riley Chen", notes: "password: x" });
+    expect(u.error).toBe("Notes: remove account numbers, passwords and bank details. Put lender account numbers under Account numbers; keep passwords in the password manager.");
+    const v = await submit(actions.addLenderContactAction, { lenderId: BANK, fullName: "Riley Chen", notes: "portal password: hunter2" });
+    expect(JSON.stringify(v)).not.toContain("hunter2");
   });
 
   it("refuse making another lender's contact primary", async () => {
@@ -239,15 +256,19 @@ describe("contacts", () => {
   it("refuse a stale record version", async () => {
     as(who.broker);
     const c = [...store().lenderContacts.values()].find((x) => x.lenderId === BANK && x.isPrimary)!;
-    const u = await call(() => actions.updateLenderContactAction(form({ lenderId: BANK, contactId: c.id, recordVersion: String(c.recordVersion + 3), fullName: "Changed", email: c.email ?? "" })));
-    expect(u.searchParams.get("error")).toMatch(/modified concurrently; reload/);
+    const u = await submit(actions.updateLenderContactAction, { lenderId: BANK, contactId: c.id, recordVersion: String(c.recordVersion + 3), fullName: "Changed", email: c.email ?? "" });
+    expect(u.error).toMatch(/modified concurrently; reload/);
     expect(store().lenderContacts.get(c.id)!.fullName).toBe(c.fullName);
   });
 
   it("save the contact info, then the contact op notices are fixed strings", async () => {
     as(who.broker);
-    const u = await call(() => actions.saveLenderContactInfoAction(form({ lenderId: BANK, contactInfoVersion: "1", mainPhone: "(310) 555-0142", websiteUrl: "https://bank.example/lending", submissionEmail: "submissions@bank.example" })));
-    expect(u.searchParams.get("notice")).toBe("Contact info saved.");
+    const bad = await submit(actions.saveLenderContactInfoAction, { lenderId: BANK, contactInfoVersion: "1", mainPhone: "call me", websiteUrl: "http://bank.example" });
+    expect(bad.error).toBe("Main phone: Enter a phone number like (310) 555-0100 or +44 20 7946 0000; put an extension in Ext.; Website: Enter a full https:// address with no username, password or port");
+    expect(bad.error).not.toMatch(/mainPhone|websiteUrl|call me/);
+    expect((await store().getLender(BANK))!.contactInfoVersion).toBe(1);
+    const u = await submit(actions.saveLenderContactInfoAction, { lenderId: BANK, contactInfoVersion: "1", mainPhone: "(310) 555-0142", websiteUrl: "https://bank.example/lending", submissionEmail: "submissions@bank.example" });
+    expect(u.notice).toBe("Contact info saved.");
     expect((await store().getLender(BANK))!).toMatchObject({ mainPhone: "+13105550142", websiteUrl: "https://bank.example/lending", contactInfoVersion: 2 });
     const underwriter = [...store().lenderContacts.values()].find((c) => c.lenderId === BANK && !c.isPrimary)!;
     const p = await call(() => actions.lenderContactOpAction(form({ lenderId: BANK, contactId: underwriter.id, recordVersion: "1", op: "make_primary" })));
@@ -332,7 +353,7 @@ describe("loan types", () => {
     const count = store().lenders.size;
     const bad = await call(() => actions.saveLenderAction(lenderForm({}, ["bogus"])));
     expect(bad.pathname).toBe("/deals/lenders");
-    expect(bad.searchParams.get("error")).toMatch(/loanTypes/);
+    expect(bad.searchParams.get("error")).toMatch(/^Loan types: /);
     expect(store().lenders.size).toBe(count);
   });
 

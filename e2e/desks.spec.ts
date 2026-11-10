@@ -325,10 +325,24 @@ test("a broker completes a lender's contact info, contacts and account numbers, 
   await page.getByRole("link", { name: "Example Community Bank (demo)", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Example Community Bank (demo)", level: 1 })).toBeVisible();
 
+  // The header verifies appetite and split, and says so next to the contact-info badges.
+  await page.getByRole("button", { name: "Appetite and split verified today" }).click();
+  await expect(notice(page, "Verification date updated.")).toBeVisible();
+  await expect(page.getByText(/^Appetite and split verified [A-Z][a-z]{2} \d/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Verified today", exact: true })).toHaveCount(0);
+
   const info = section(page, "Contact info");
   await info.getByText("Edit contact info").click();
-  await info.getByLabel("Main phone").fill("(310) 555-0142");
+  // A validation error names the field by its label, takes focus and keeps everything typed.
+  await info.getByLabel("Main phone").fill("call me");
   await info.getByLabel("Website").fill("https://bank.example/lending");
+  await info.getByRole("button", { name: "Save contact info" }).click();
+  const infoError = info.getByRole("alert").filter({ hasText: /^Main phone: Enter a phone number/ });
+  await expect(infoError).toBeVisible();
+  await expect(infoError).toBeFocused();
+  await expect(info.getByLabel("Main phone")).toHaveValue("call me");
+  await expect(info.getByLabel("Website")).toHaveValue("https://bank.example/lending");
+  await info.getByLabel("Main phone").fill("(310) 555-0142");
   await info.getByRole("button", { name: "Save contact info" }).click();
   await expect(notice(page, "Contact info saved.")).toBeVisible();
   await expect(section(page, "Contact info").locator('a[href="tel:+13105550142"]')).toBeVisible();
@@ -343,14 +357,24 @@ test("a broker completes a lender's contact info, contacts and account numbers, 
   await expect(notice(page, "Contact added.")).toBeVisible();
   const riley = section(page, "Contacts").getByRole("row").filter({ hasText: "Riley Chen (demo)" });
   await expect(riley.getByText("Primary", { exact: true })).toBeVisible();
+  // Each row's buttons name their contact.
+  await expect(riley.getByRole("button", { name: "Verified today: Riley Chen (demo)" })).toBeVisible();
+  await expect(riley.getByRole("button", { name: "Mark as left: Riley Chen (demo)" })).toBeVisible();
+  // A successful add clears the form for the next contact.
+  await expect(add.getByRole("textbox", { name: "Full name" })).toHaveValue("");
 
   const accounts = section(page, "Account numbers");
   const addAccount = accounts.getByRole("form", { name: "Add an account number" });
   await addAccount.getByRole("combobox", { name: /^Type/ }).selectOption({ label: "Account number at lender" });
   await addAccount.getByRole("textbox", { name: "Label" }).fill("Servicing account");
+  await addAccount.getByRole("textbox", { name: "Account number" }).fill("123-45-6789");
+  await addAccount.getByRole("button", { name: "Save account number" }).click();
+  await expect(addAccount.getByRole("alert")).toHaveText(/^Account number: This looks like a card number or SSN/);
+  await expect(addAccount.getByRole("textbox", { name: "Label" })).toHaveValue("Servicing account");
   await addAccount.getByRole("textbox", { name: "Account number" }).fill("SVC-0099887766");
   await addAccount.getByRole("button", { name: "Save account number" }).click();
   await expect(notice(page, "Account number saved.")).toBeVisible();
+  await expect(addAccount.getByRole("textbox", { name: "Account number" })).toHaveValue("");
   await expect(section(page, "Account numbers").getByText("7766")).toBeVisible();
   // The broker is not the designated officer: no reveal.
   await expect(page.getByRole("button", { name: /Reveal/ })).toHaveCount(0);
@@ -370,11 +394,31 @@ test("a broker completes a lender's contact info, contacts and account numbers, 
 test("an administrator reveals an account number, and it is masked again", async ({ page }) => {
   await signIn(page, `/deals/lenders/${BANK_LENDER}`, "admin@corin.test");
   const accounts = section(page, "Account numbers");
-  await accounts.getByRole("button", { name: "Reveal Broker ID" }).click();
+  // The live region is there, empty, before the reveal, so filling it is announced.
+  const live = accounts.locator("output[aria-live=polite]").first();
+  await expect(live).toBeAttached();
+  await expect(live).toHaveText("");
+  // Keyboard: Reveal moves focus to Hide, Hide moves it back to Reveal.
+  await accounts.getByRole("button", { name: "Reveal Broker ID" }).focus();
+  await page.keyboard.press("Enter");
   await expect(accounts.getByText("DEMO-BRK-48210937")).toBeVisible();
-  await accounts.getByRole("button", { name: "Hide" }).click();
+  await expect(live).toHaveText("DEMO-BRK-48210937");
+  await expect(accounts.getByRole("button", { name: "Hide Broker ID" })).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(accounts.getByText("DEMO-BRK-48210937")).toHaveCount(0);
+  await expect(accounts.getByRole("button", { name: "Reveal Broker ID" })).toBeFocused();
   expect(page.url()).not.toContain("DEMO-BRK");
+
+  // At 390px the revealed number is readable without scrolling the table sideways.
+  await page.setViewportSize({ width: 390, height: 900 });
+  await accounts.getByRole("button", { name: "Reveal Broker ID" }).click();
+  const value = accounts.getByText("DEMO-BRK-48210937");
+  await expect(value).toBeVisible();
+  const region = (await accounts.getByRole("region", { name: "Lender account numbers" }).boundingBox())!;
+  const box = (await value.boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(region.x + region.width + 0.5);
+  await accounts.getByRole("button", { name: "Hide Broker ID" }).click();
+  await page.setViewportSize({ width: 1280, height: 720 });
   await expectAccessibleAndReflows(page, "lender detail (admin)");
 });
 

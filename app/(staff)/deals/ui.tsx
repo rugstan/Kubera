@@ -182,9 +182,9 @@ export function Check({ label, name, defaultChecked }: { label: string; name: st
  * than its container wraps instead, so long action names ("Check waiting
  * outreach for broker decisions") never widen a 390px layout (WCAG 1.4.10).
  */
-export function Submit({ children, tone = "primary", name, value }: { children: React.ReactNode; tone?: "primary" | "glass"; name?: string; value?: string }) {
+export function Submit({ children, tone = "primary", name, value, ariaLabel }: { children: React.ReactNode; tone?: "primary" | "glass"; name?: string; value?: string; ariaLabel?: string }) {
   return (
-    <button className={`pill ${tone === "primary" ? "pill-primary" : "pill-glass"} min-h-11 max-w-full whitespace-normal text-center`} name={name} type="submit" value={value}>
+    <button aria-label={ariaLabel} className={`pill ${tone === "primary" ? "pill-primary" : "pill-glass"} min-h-11 max-w-full whitespace-normal text-center`} name={name} type="submit" value={value}>
       {children}
     </button>
   );

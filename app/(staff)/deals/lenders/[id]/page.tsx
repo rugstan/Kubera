@@ -6,6 +6,7 @@ import { LENDER_ACCOUNT_KIND_LABELS, maskedNumber } from "@/lib/deals/lender-acc
 import { boxNotesFor } from "@/lib/deals/lender-boxes";
 import { LENDER_CONTACT_CHANNEL_LABELS, LENDER_CONTACT_ROLE_LABELS, LENDER_CONTACT_SOURCE_LABELS, formatPhone, telHref } from "@/lib/deals/lender-contacts";
 import { suggestedLoanTypes } from "@/lib/deals/lender-directory";
+import { lenderStaleness } from "@/lib/deals/lenders";
 import { LENDER_LOAN_TYPE_LABELS, type LoanTypeReason } from "@/lib/deals/loan-types";
 import { currentStaff, dealDeskRuntime } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
@@ -23,6 +24,7 @@ import {
   updateLenderContactAction,
 } from "../../actions";
 import { Badge, Check, Field, Flash, Loading, LoanTypeBadges, LoanTypeFieldset, NotConfigured, Section, Select, SignInRequired, Submit, Table, TextArea, when } from "../../ui";
+import { DirectoryForm } from "./DirectoryForm";
 import { RevealAccount } from "./RevealAccount";
 
 export const metadata: Metadata = { title: "Lender" };
@@ -54,6 +56,7 @@ function LenderOp({ id, op, label }: { id: string; op: "verify" | "toggle"; labe
   );
 }
 
+/** A one-click contact op. Its accessible name starts with the visible label and names the contact, so rows are told apart. */
 function ContactOp({ lenderId, c, op, label }: { lenderId: string; c: LenderContact; op: string; label: string }) {
   return (
     <form action={lenderContactOpAction}>
@@ -61,7 +64,9 @@ function ContactOp({ lenderId, c, op, label }: { lenderId: string; c: LenderCont
       <input name="contactId" type="hidden" value={c.id} />
       <input name="recordVersion" type="hidden" value={c.recordVersion} />
       <input name="op" type="hidden" value={op} />
-      <Submit tone="glass">{label}</Submit>
+      <Submit ariaLabel={`${label}: ${c.fullName}`} tone="glass">
+        {label}
+      </Submit>
     </form>
   );
 }
@@ -178,6 +183,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
   const reveal = can(staff, "reveal_account");
   const encryption = Boolean(rt.keyring ?? piiKeyring());
   const incomplete = !lender.mainPhone || !lender.contactEmail || !lender.websiteUrl;
+  const appetite = lenderStaleness(lender, rt.now());
 
   return (
     <>
@@ -192,10 +198,15 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
           {lender.brokerFriendly ? <Badge tone="good">Broker-friendly</Badge> : null}
           {lender.contactVerifiedAt ? <Badge tone="good">Contact info verified {when(lender.contactVerifiedAt)}</Badge> : <Badge tone="warn">Contact info not verified</Badge>}
           {incomplete ? <Badge tone="warn">Contact info incomplete</Badge> : null}
+          {appetite.stale ? (
+            <Badge tone="warn">{appetite.ageDays === null ? "Appetite and split never verified" : `Appetite and split verified ${appetite.ageDays} days ago`}</Badge>
+          ) : (
+            <Badge tone="good">Appetite and split verified {when(lender.verifiedAt)}</Badge>
+          )}
         </div>
         {write ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            <LenderOp id={lender.id} label="Verified today" op="verify" />
+            <LenderOp id={lender.id} label="Appetite and split verified today" op="verify" />
             <LenderOp id={lender.id} label={lender.active ? "Deactivate" : "Reactivate"} op="toggle" />
           </div>
         ) : null}
@@ -268,7 +279,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
         {write ? (
           <details className="mt-4">
             <summary className="cursor-pointer text-sm font-medium text-accent">Edit contact info</summary>
-            <form action={saveLenderContactInfoAction} className="mt-3 grid gap-4 sm:grid-cols-2">
+            <DirectoryForm action={saveLenderContactInfoAction} className="mt-3 grid gap-4 sm:grid-cols-2">
               <input name="lenderId" type="hidden" value={lender.id} />
               <input name="contactInfoVersion" type="hidden" value={lender.contactInfoVersion} />
               <Field autoComplete="off" defaultValue={lender.mainPhone ? formatPhone(lender.mainPhone) : null} idPrefix="ci" label="Main phone" name="mainPhone" type="tel" />
@@ -311,7 +322,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
               <div className="sm:col-span-2">
                 <Submit>Save contact info</Submit>
               </div>
-            </form>
+            </DirectoryForm>
           </details>
         ) : null}
       </Section>
@@ -357,7 +368,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
             {contacts.map((c) => (
               <details key={c.id}>
                 <summary className="cursor-pointer text-sm font-medium text-accent">Edit {c.fullName}</summary>
-                <form action={updateLenderContactAction} className="mt-3 grid gap-4 sm:grid-cols-2">
+                <DirectoryForm action={updateLenderContactAction} className="mt-3 grid gap-4 sm:grid-cols-2">
                   <input name="lenderId" type="hidden" value={lender.id} />
                   <input name="contactId" type="hidden" value={c.id} />
                   <input name="recordVersion" type="hidden" value={c.recordVersion} />
@@ -365,7 +376,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                   <div className="sm:col-span-2">
                     <Submit>Save contact</Submit>
                   </div>
-                </form>
+                </DirectoryForm>
                 <div className="mt-3">
                   <ContactOp c={c} label="Delete contact" lenderId={lender.id} op="delete" />
                 </div>
@@ -373,7 +384,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
             ))}
             <div className="mt-2">
               <h3 className="text-base font-semibold text-ink">Add a contact</h3>
-              <form action={addLenderContactAction} aria-label="Add a contact" className="mt-3 grid gap-4 sm:grid-cols-2">
+              <DirectoryForm action={addLenderContactAction} className="mt-3 grid gap-4 sm:grid-cols-2" label="Add a contact">
                 <input name="lenderId" type="hidden" value={lender.id} />
                 <ContactFields prefix="nc" />
                 <div className="sm:col-span-2">
@@ -382,7 +393,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                 <div className="sm:col-span-2">
                   <Submit>Add contact</Submit>
                 </div>
-              </form>
+              </DirectoryForm>
             </div>
           </div>
         ) : null}
@@ -398,19 +409,19 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
             {NO_KEY_NOTICE}
           </p>
         ) : null}
+        {/* Label and number come first so a revealed number is readable at 390px without scrolling the table sideways. */}
         <Table
           empty="No account numbers on file."
-          head={["Type", "Label", "Number", "Updated", ""]}
+          head={["Label", "Number", "Type", "Updated"]}
           label="Lender account numbers"
           rows={accounts.map((a: LenderAccount) => [
-            LENDER_ACCOUNT_KIND_LABELS[a.kind],
             a.label,
             <span key="n">
               <MaskedHint hint={a.numberLast4} />
               {reveal && encryption ? <RevealAccount accountId={a.id} label={a.label} lenderId={lender.id} masked={maskedNumber(a.numberLast4)} /> : null}
             </span>,
+            LENDER_ACCOUNT_KIND_LABELS[a.kind],
             `${when(a.updatedAt)} by ${a.updatedBy ?? a.createdBy}`,
-            null,
           ])}
         />
         {write ? (
@@ -419,7 +430,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
               <details key={a.id}>
                 <summary className="cursor-pointer text-sm font-medium text-accent">Replace or delete {a.label}</summary>
                 {encryption ? (
-                  <form action={updateLenderAccountAction} className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <DirectoryForm action={updateLenderAccountAction} className="mt-3 grid gap-4 sm:grid-cols-2">
                     <input name="lenderId" type="hidden" value={lender.id} />
                     <input name="accountId" type="hidden" value={a.id} />
                     <input name="recordVersion" type="hidden" value={a.recordVersion} />
@@ -440,7 +451,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                     <div className="sm:col-span-2">
                       <Submit>Save changes</Submit>
                     </div>
-                  </form>
+                  </DirectoryForm>
                 ) : null}
                 <form action={deleteLenderAccountAction} className="mt-3">
                   <input name="lenderId" type="hidden" value={lender.id} />
@@ -452,7 +463,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
             {encryption ? (
               <div className="mt-2">
                 <h3 className="text-base font-semibold text-ink">Add an account number</h3>
-                <form action={addLenderAccountAction} aria-label="Add an account number" className="mt-3 grid gap-4 sm:grid-cols-2">
+                <DirectoryForm action={addLenderAccountAction} className="mt-3 grid gap-4 sm:grid-cols-2" label="Add an account number">
                   <input name="lenderId" type="hidden" value={lender.id} />
                   <Select label="Type" name="kind" options={lenderAccountKinds.map((k) => ({ value: k, label: LENDER_ACCOUNT_KIND_LABELS[k] }))} />
                   <Field autoComplete="off" hint="Optional for the standard types, for example Broker ID." idPrefix="na" label="Label" maxLength={80} name="label" />
@@ -463,7 +474,7 @@ async function LenderData({ params, searchParams }: { params: Params; searchPara
                   <div className="sm:col-span-2">
                     <Submit>Save account number</Submit>
                   </div>
-                </form>
+                </DirectoryForm>
               </div>
             ) : null}
           </div>
