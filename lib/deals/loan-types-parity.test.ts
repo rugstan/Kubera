@@ -1,4 +1,4 @@
-// public.derive_lender_loan_types() (supabase/migrations/20261105130000_int_lender_loan_types.sql)
+// public.derive_lender_loan_types() (supabase/migrations/20261105130000_int_lender_loan_types.sql, replaced by 20261105140000_int_lender_loan_types_non_bank.sql)
 // returns exactly what deriveLenderLoanTypes() (lib/deals/loan-types.ts) returns: on the shared
 // cases, on every lender after all migrations, and with the TS rules found verbatim in the
 // live function. Also the column check, the GIN index, grants, attribution and seed idempotency.
@@ -95,6 +95,46 @@ describe("loan_types column", () => {
 
   it("passes the no-custody guard", async () => {
     expect(await custodyViolations(db)).toEqual([]);
+  });
+});
+
+describe("the non-bank fix (20261105140000_int_lender_loan_types_non_bank.sql)", () => {
+  const FIX = "20261105140000_int_lender_loan_types_non_bank.sql";
+  const FIX_MARKER = "migration:20261105140000_int_lender_loan_types_non_bank";
+  let fresh: PGlite;
+
+  beforeAll(async () => {
+    fresh = await createStubbedDb();
+    await applyMigrations(fresh, listMigrations().filter((f) => f.name <= MIGRATION && !SEED.test(f.name)));
+    await fresh.query(
+      `insert into public.lender_panel (name, category, programs, appetite_notes, updated_by) values
+        ('Untouched CDFI', 'UNKNOWN', '{SBA_7A}', 'SBA 7(a) (Preferred Lender, non-bank)', 'broker:ana'),
+        ('Edited CDFI', 'UNKNOWN', '{SBA_7A}', 'SBA 7(a) (non-bank SBLC, Preferred Lender)', 'broker:ana'),
+        ('Real Bank', 'STATE_BANK', '{SBA_7A}', 'Community bank', 'broker:ana')`,
+    );
+    // What 20261105130000 derived for them, as the add-lender form would have stored it; then a broker edits one.
+    await fresh.exec(`update public.lender_panel set loan_types = public.derive_lender_loan_types(programs, category, appetite_notes, asset_types, '{}')`);
+    await fresh.query(`update public.lender_panel set loan_types = '{sba,bank,hotel}', updated_by = 'broker:lee' where name = 'Edited CDFI'`);
+    await applyMigrations(fresh, listMigrations().filter((f) => f.name === FIX));
+  }, 180_000);
+
+  afterAll(async () => {
+    await fresh?.close();
+  });
+
+  it("drops bank from an untouched non-bank lender, and leaves staff-edited and real banks alone", async () => {
+    const panel = (await fresh.query<{ name: string; loan_types: string[]; updated_by: string }>(`select name, loan_types, updated_by from public.lender_panel order by name`)).rows;
+    expect(panel).toEqual([
+      { name: "Edited CDFI", loan_types: ["sba", "bank", "hotel"], updated_by: "broker:lee" },
+      { name: "Real Bank", loan_types: ["sba", "bank"], updated_by: "broker:ana" },
+      { name: "Untouched CDFI", loan_types: ["sba"], updated_by: FIX_MARKER },
+    ]);
+  });
+
+  it("no longer tags the seeded non-bank lenders as banks", async () => {
+    const tagged = (await db.query<{ name: string }>(`select name from public.lender_panel where 'bank' = any (loan_types) and name in ('Community Reinvestment Fund, USA', 'Lendistry', 'Affinius Capital', 'Canyon Partners Real Estate')`)).rows;
+    expect(tagged).toEqual([]);
+    expect(Number((await db.query<{ n: number }>(`select count(*)::int as n from public.lender_panel where name in ('Community Reinvestment Fund, USA', 'Lendistry', 'Affinius Capital', 'Canyon Partners Real Estate')`)).rows[0]!.n)).toBe(4);
   });
 });
 

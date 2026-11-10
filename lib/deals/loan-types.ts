@@ -4,8 +4,8 @@
 // are not changed. Pure (no server-only), so tests and the add-lender action
 // share one derivation.
 //
-// deriveLenderLoanTypes() is mirrored by public.derive_lender_loan_types() in
-// supabase/migrations/20261105130000_int_lender_loan_types.sql; every pattern
+// deriveLenderLoanTypes() is mirrored by public.derive_lender_loan_types(), last
+// replaced in supabase/migrations/20261105140000_int_lender_loan_types_non_bank.sql; every pattern
 // below is a plain string that means the same thing to a JS RegExp ("i" flag)
 // and a Postgres ARE (~* / regexp_replace 'gi'): no \b, no lookaround, no
 // non-greedy quantifiers. lib/deals/loan-types-parity.test.ts proves the two agree.
@@ -194,6 +194,10 @@ export const LOAN_TYPE_CLEANUPS: readonly { id: string; pattern: string }[] = [
   { id: "takeout_named", pattern: "(hud|fha|agency)[^,;|()]*(exit|take[ -]?outs?)|bridge[ -](hud|fha)" },
   { id: "cmbs_investor", pattern: "cmbs[ -](b[ -]pieces?|investments?|bonds?|securities)|cmbs \\([^)|]*securities[^)|]*\\)" },
   { id: "affiliate", pattern: "(held|owned|funded|originated) by [^,;|()]*" },
+  // "SBA 7(a) (Preferred Lender, non-bank)", "nonbank SBLC": says the lender is not a bank.
+  { id: "non_bank", pattern: `${W}non[ -]?banks?` },
+  // "co-originated with Bank OZK", "co-lending with banks", "alongside banks": a partner, not this lender.
+  { id: "co_lending", pattern: "co[ -]?(lend|originat)[a-z]* (with|alongside) [^,;|()]*|alongside (a |the )?banks?" },
   { id: "dscr_minimum", pattern: "(min|minimum|max|maximum)[ .:]*dscr" },
   { id: "dscr_ratio_after", pattern: "dscr[ :]*(of|>=?|at least)?[ :]*[0-9]+\\.[0-9]+" },
   { id: "dscr_ratio_before", pattern: "[0-9]+\\.[0-9]+ ?x?[ ]*(min[a-z]*[ ]*)?dscr" },
