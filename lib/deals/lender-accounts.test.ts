@@ -6,6 +6,7 @@ import { PiiDecryptError, PiiKeyError, createKeyring, isEncrypted, setPiiKeyring
 import {
   BANNED_LABEL_MESSAGE,
   CARD_OR_SSN_MESSAGE,
+  LABEL_NUMBER_MESSAGE,
   NUMBER_SHAPE_MESSAGE,
   assertSealedAccount,
   lenderAccountContext,
@@ -67,6 +68,18 @@ describe("account number validation", () => {
     expect(messages(() => parseLenderAccount({ kind: "other", number: "1" }))).toContain("Give an Other account number a label");
     for (const label of ["Portal password", "PIN", "Wire", "Routing", "Bank account", "IBAN", "Swift code", "Passcode"]) expect(messages(() => parseLenderAccount({ kind: "other", label, number: "1" })), label).toContain(BANNED_LABEL_MESSAGE);
     expect(messages(() => parseLenderAccount({ kind: "broker_id", label: "x".repeat(81), number: "1" })).length).toBeGreaterThan(0);
+  });
+
+  it("refuses an account, card or Social Security number or a password in the label, which is stored in clear", () => {
+    for (const label of ["Acct 000123456789", "000123456789", "Broker 482109", "SSN 123-45-6789", "Card 4111 1111 1111 1111", "Routing number is 021000021", "pw: Summer2026!"]) {
+      const m = messages(() => parseLenderAccount({ kind: "other", label, number: "CORIN-1" }));
+      expect(m, label).toEqual([LABEL_NUMBER_MESSAGE]);
+      expect(m.join(" ")).not.toMatch(/0001|6789|1111|Summer/);
+    }
+    for (const label of ["Portal pw", "PWD", "OTP", "2FA", "Social Security", "Card number", "CVV"]) expect(messages(() => parseLenderAccount({ kind: "other", label, number: "CORIN-1" })), label).toEqual([BANNED_LABEL_MESSAGE]);
+    for (const label of ["Broker ID 2026", "Servicing (Wells, desk 12)", "SBA lender ID", "Portal username"]) expect(parseLenderAccount({ kind: "other", label, number: "CORIN-1" }).label, label).toBe(label);
+    // Edits use the same schema.
+    expect(messages(() => parseLenderAccount({ kind: "broker_id", label: "Acct 000123456789", number: "" }, { requireNumber: false }))).toEqual([LABEL_NUMBER_MESSAGE]);
   });
 
   it("scans notes for restricted values", () => {

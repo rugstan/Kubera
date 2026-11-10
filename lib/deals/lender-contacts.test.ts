@@ -138,9 +138,53 @@ describe("restricted text", () => {
     expect(problem(() => parseLenderContact({ fullName: "Dana Lee", territory: "SSN 123-45-6789" }))).toBe(restrictedTextMessage("Territory"));
   });
 
+  it("refuses passwords, logins and bank numbers however they are phrased", () => {
+    const instructions = [
+      "Portal password is Summer2026!",
+      "Password - Summer2026!",
+      "Password — Summer2026!",
+      "pw: Summer2026!",
+      "PIN is 4821",
+      "Login: corin / Summer2026!",
+      "Login: corin/Summer2026!",
+      "Use credentials corin@broker.example / Summer2026!",
+      "Routing number is 021000021",
+      "Routing number is 123456789",
+      "Account number is 000123456789",
+      "Account number - 0001 2345 6789",
+      "Acct no. 000123456789",
+      "IBAN GB82 WEST 1234 5698 7654 32",
+    ];
+    for (const bad of instructions) {
+      const m = problem(() => parseLenderContactInfo({ submissionInstructions: bad }));
+      expect(m, bad).toBe(msg);
+      expect(m).not.toMatch(/Summer|0001|021000021/);
+    }
+    for (const bad of ["1Password > Arixa (pw: Summer2026!)", "user corin, password is Summer2026!", "Bitwarden; login: corin / Arixa-2026"])
+      expect(problem(() => parseLenderContactInfo({ credentialsLocation: bad })), bad).toBe(restrictedTextMessage("Where the portal password is kept"));
+    expect(problem(() => parseLenderContact({ fullName: "Dana Lee", notes: "Her password is Summer2026!" }))).toBe(restrictedTextMessage("Notes"));
+  });
+
   it("accepts a normal phone number or loan amount in the instructions", () => {
     expect(problem(() => parseLenderContactInfo({ submissionInstructions: "Call (310) 555-0100 before sending loans over $2,500,000 to the scenario desk." }))).toBeNull();
     expect(problem(() => parseLenderContactInfo({ credentialsLocation: "1Password › Lenders › Arixa" }))).toBeNull();
+  });
+
+  it("accepts text that only mentions passwords, logins or accounts", () => {
+    const fine = [
+      "Send password-protected PDFs only.",
+      "The portal password is kept in 1Password.",
+      "Password - see the Lenders vault.",
+      "Sign in: https://portal.lender.example/broker then upload.",
+      "Login: SSO / Okta",
+      "Account executive: Dana Lee, (310) 555-0100 ext. 22",
+      "Accounts over $5,000,000 go to the large-loan desk.",
+      "Loan #2024-118 closed in 30 days.",
+      "Do not wire funds; the lender never emails wire instructions.",
+    ];
+    for (const ok of fine) expect(problem(() => parseLenderContactInfo({ submissionInstructions: ok })), ok).toBeNull();
+    for (const ok of ["1Password > Lenders > Arixa", "Password is in 1Password > Lenders", "LastPass: Lenders folder", "Bitwarden > Shared-Lenders"])
+      expect(problem(() => parseLenderContactInfo({ credentialsLocation: ok })), ok).toBeNull();
   });
 });
 

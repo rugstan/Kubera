@@ -215,12 +215,24 @@ export const nmlsId = z.preprocess(clean(false), z.string().regex(NMLS_RE, "NMLS
 
 // --- Restricted text ---------------------------------------------------------------------------------
 
-const SECRET_LABEL = /\b(pass(word|code|wd)?|pwd|pin|otp|mfa code|2fa code)\s*[:=]/i;
+// A secret word, then the secret: "password: x" or "pin=x" always; "password is x"
+// and "password - x" unless the next word says where it is kept ("password is in
+// 1Password", "password - see the vault"). A hyphenated word ("password-protected
+// PDFs") and the 1Password name ("1Password > Lenders") are not secret labels.
+const SECRET_WORD = String.raw`(?:pass(?:word|code|wd|phrase)?|pwd|pw|pin|otp|mfa code|2fa code|one[- ]time code)`;
+const KEPT_WORD = String.raw`(?:in|is|kept|stored|saved|held|located|at|on|under|with|the|a|an|our|managed|shared|see|ask|via|from|reset|resets|expires|expired|required|needed|sent|changes?|changed|rotat[a-z]*|manager|vault|policy|protected)\b`;
+const SECRET_LABEL = new RegExp(String.raw`\b${SECRET_WORD}\b(?:\s*[:=]|\s+(?:-+|–|—|is)\s+(?!${KEPT_WORD})\S)`, "i");
+// "Login: corin / Summer2026!": a username and a password-like second token (a digit or a symbol).
+// Neither token holds a slash, so a URL after "Sign in:" is not a login.
+const LOGIN_PAIR = /\b(?:log[- ]?in|sign[- ]?in|credentials?|creds|user(?:name)?)\b\s*[:=-]?\s*[^\s/]+\s*\/\s*[^\s/]*[^A-Za-z\s/][^\s/]*/i;
+// "Routing number is 021000021", "Account number - 000123456789", "IBAN GB82…": a bank or
+// account word, then six or more digits. The shared detectors need the digits right after the label.
+const BANK_NUMBER = /\b(?:routing|aba|rtn|account|acct|a\/c)\b(?:\s*(?:#|no\.?|num(?:ber)?))?\s*(?:[:=#-]|\bis\b)?\s*\d[\d -]{4,20}\d|\biban\b\s*(?:[:#-]|\bis\b)?\s*[a-z]{2}\d{2}/i;
 
-/** True when text holds an SSN, card, routing or account number, a date of birth, or a "password: …". */
+/** True when text holds an SSN, card, routing or account number, a date of birth, or a password or login. */
 export function hasRestrictedText(text: string | null | undefined): boolean {
   if (!text) return false;
-  return SECRET_LABEL.test(text) || detectSensitiveValues(text).some((f) => f.level === "restricted");
+  return SECRET_LABEL.test(text) || LOGIN_PAIR.test(text) || BANK_NUMBER.test(text) || detectSensitiveValues(text).some((f) => f.level === "restricted");
 }
 
 export const restrictedTextMessage = (fieldLabel: string) =>

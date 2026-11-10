@@ -183,6 +183,20 @@ describe("account numbers", () => {
     expect(c.searchParams.get("notice")).toBe("Contact added.");
   });
 
+  it("refuse an account number typed into the label, storing nothing and echoing nothing", async () => {
+    as(who.broker);
+    const before = JSON.stringify([...store().lenderAccounts.values()]);
+    for (const label of ["Acct 000123456789", "SSN 123-45-6789", "Card 4111 1111 1111 1111", "pw: Summer2026!"]) {
+      const u = await call(() => actions.addLenderAccountAction(form({ lenderId: BANK, kind: "other", label, accountNumber: "CORIN-1" })));
+      expect(u.searchParams.get("error"), label).toMatch(/a label cannot hold an account, card or Social Security number or a password/);
+      expect(u.href).not.toMatch(/000123456789|6789|4111|Summer/);
+    }
+    const u = await call(() => actions.updateLenderAccountAction(form({ lenderId: BANK, accountId: ACCOUNT, recordVersion: "1", label: "Acct 000123456789" })));
+    expect(u.searchParams.get("error")).toMatch(/a label cannot hold/);
+    expect(JSON.stringify([...store().lenderAccounts.values()])).toBe(before);
+    expect((await store().listLenderAccounts(BANK)).map((a) => a.label)).not.toContain("Acct 000123456789");
+  });
+
   it("never put the number in the redirect URL or a log, and store it sealed", async () => {
     as(who.broker);
     const spies = (["log", "info", "warn", "error", "debug"] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));

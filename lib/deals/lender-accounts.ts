@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { detectSensitiveValues } from "@/lib/privacy/classification";
 import { decryptField, encryptField, isEncrypted, type PiiKeyring } from "@/lib/privacy/crypto";
-import { assertNoRestrictedText, optLine, optText } from "./lender-contacts";
+import { assertNoRestrictedText, hasRestrictedText, optLine, optText } from "./lender-contacts";
 import { GuardError } from "./store";
 import { lenderAccountKinds, type LenderAccountKind } from "./types";
 
@@ -41,8 +41,14 @@ export function lenderAccountContext(id: string): string {
   return `lender_accounts:${id}.number`;
 }
 
-const BANNED_LABEL = /pass(word|code)?|\bpin\b|secret|routing|\baba\b|swift|iban|wire|bank account/i;
-export const BANNED_LABEL_MESSAGE = "Corin does not store passwords, PINs, or bank and wire details.";
+const BANNED_LABEL = /pass(word|code|phrase)?|\bpwd?\b|\bpin\b|\botp\b|\b[m2]fa\b|secret|routing|\baba\b|swift|iban|wire|bank account|\bssn\b|social security|credit card|debit card|card number|\bcvv\b|\bcvc\b/i;
+export const BANNED_LABEL_MESSAGE = "Corin does not store passwords, PINs, card or Social Security numbers, or bank and wire details.";
+// The label is stored in clear, copied into audit_log and shown to every staff
+// role, so it must never hold the number itself: no restricted value (an
+// account, card, routing or Social Security number, a password) and no run of
+// six or more digits. lender_accounts.label has the same digit-run CHECK.
+export const LABEL_DIGITS_RE = /[0-9]{6}/;
+export const LABEL_NUMBER_MESSAGE = "Put the number itself in Account number: a label cannot hold an account, card or Social Security number or a password.";
 const NUMBER_SHAPE = /^[A-Za-z0-9][A-Za-z0-9 ._@+\-/#]*$/;
 export const NUMBER_SHAPE_MESSAGE = "Use 1 to 64 letters, digits, spaces and . _ @ + - / #";
 export const CARD_OR_SSN_MESSAGE = "This looks like a card number or SSN; Corin does not store those";
@@ -82,7 +88,8 @@ export function lenderAccountInputSchema(opts: { requireNumber?: boolean } = {})
     })
     .superRefine((v, ctx) => {
       if (!v.label && v.kind === "other") ctx.addIssue({ code: "custom", path: ["label"], message: "Give an Other account number a label" });
-      if (v.label && BANNED_LABEL.test(v.label)) ctx.addIssue({ code: "custom", path: ["label"], message: BANNED_LABEL_MESSAGE });
+      if (v.label && (LABEL_DIGITS_RE.test(v.label) || hasRestrictedText(v.label))) ctx.addIssue({ code: "custom", path: ["label"], message: LABEL_NUMBER_MESSAGE });
+      else if (v.label && BANNED_LABEL.test(v.label)) ctx.addIssue({ code: "custom", path: ["label"], message: BANNED_LABEL_MESSAGE });
       if (v.number === null) {
         if (requireNumber) ctx.addIssue({ code: "custom", path: ["number"], message: "Enter the account number" });
       } else {
