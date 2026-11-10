@@ -36,8 +36,6 @@ export const lenderInputSchema = z
     feeSplitKind: z.enum(feeSplitKinds).default("none"),
     feeSplitValue: z.number().finite().nonnegative().default(0),
     feeAgreementRef: z.string().trim().max(300).nullable().default(null),
-    contactName: z.string().trim().max(120).nullable().default(null),
-    contactEmail: z.email().nullable().default(null),
     verifiedAt: z.iso.datetime({ offset: true }).nullable().default(null),
     verifiedBy: z.string().trim().max(120).nullable().default(null),
     active: z.boolean().default(true),
@@ -48,6 +46,11 @@ export const lenderInputSchema = z
     if (l.feeSplitKind !== "none" && !l.feeAgreementRef) ctx.addIssue({ code: "custom", path: ["feeAgreementRef"], message: "A fee split needs the signed fee / correspondent agreement on file" });
   });
 
+/**
+ * A new panel lender (appetite, split, verification). Contacts and contact
+ * info are separate (lib/deals/lender-contacts.ts): the legacy
+ * contactName / contactEmail fields are no longer accepted.
+ */
 export function parseLender(input: unknown): NewLender {
   return lenderInputSchema.parse(input) as NewLender;
 }

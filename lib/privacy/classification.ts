@@ -137,6 +137,23 @@ export const FIELD_CLASSIFICATION: Readonly<Record<string, FieldRule>> = {
   // AI supervision (WS-O, Phase 3)
   "ai_guardrail_events.excerpt": C("borrower"),
   "ai_review_annotations.note": C("borrower"),
+  // lender panel contact info (business data) and lender contacts (WS-T, lender contacts)
+  "lender_panel.main_phone": I("partner"),
+  "lender_panel.general_email": C("partner", false),
+  "lender_panel.submission_email": C("partner", false),
+  "lender_panel.website_url": P("partner"),
+  "lender_panel.portal_url": I("partner"),
+  "lender_panel.submission_instructions": I("partner"),
+  "lender_panel.credentials_location": I("system"),
+  "lender_contacts.full_name": C("partner"),
+  "lender_contacts.title": C("partner"),
+  "lender_contacts.email": C("partner"),
+  "lender_contacts.phone_direct": C("partner"),
+  "lender_contacts.phone_mobile": C("partner"),
+  "lender_contacts.territory": C("partner"),
+  "lender_contacts.notes": C("partner"),
+  "lender_accounts.number_enc": R("partner", "Account numbers a lender assigned to Corin; sealed with lib/privacy/crypto.ts, context lender_accounts:<id>.number."),
+  "lender_accounts.number_last4": I("partner"),
   // public data
   "rate_snapshots.benchmarks": P("market"),
   "kb_chunks.content": P("market"),
