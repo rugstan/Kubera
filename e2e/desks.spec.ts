@@ -422,6 +422,28 @@ test("an administrator reveals an account number, and it is masked again", async
   await expectAccessibleAndReflows(page, "lender detail (admin)");
 });
 
+test("a revealed account number masks itself after 30 seconds, and focus on Hide returns to Reveal", async ({ page }) => {
+  // A controllable page clock: time still flows, and runFor() fires the re-mask timer without waiting 30 real seconds.
+  await page.clock.install();
+  await signIn(page, `/deals/lenders/${BANK_LENDER}`, "admin@corin.test");
+  const accounts = section(page, "Account numbers");
+  const live = accounts.locator("output[aria-live=polite]").first();
+  await accounts.getByRole("button", { name: "Reveal Broker ID" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(live).toHaveText("DEMO-BRK-48210937");
+  await expect(accounts.getByRole("button", { name: "Hide Broker ID" })).toBeFocused();
+  // Still shown well before 30 seconds...
+  await page.clock.runFor(25_000);
+  await expect(live).toHaveText("DEMO-BRK-48210937");
+  // ...and masked by 30, with no click: the value leaves the page and focus goes back to Reveal, not <body>.
+  await page.clock.runFor(5_500);
+  await expect(accounts.getByText("DEMO-BRK-48210937")).toHaveCount(0);
+  await expect(live).toBeAttached();
+  await expect(live).toHaveText("");
+  await expect(accounts.getByRole("button", { name: "Reveal Broker ID" })).toBeFocused();
+  expect(await page.evaluate(() => document.body.innerText.includes("DEMO-BRK"))).toBe(false);
+});
+
 test("a broker filters the lender panel by loan type, and the filtered view is a shareable URL", async ({ page }) => {
   await signIn(page, "/deals/lenders");
   const panel = section(page, "Panel");

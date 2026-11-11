@@ -187,6 +187,31 @@ describe("revealLenderAccount", () => {
     expect((await revealLenderAccount(deps, staff({ role: "admin" }), ids)).ok).toBe(true);
   });
 
+  it("rate limits at 100 reveals per day, even when spread out under the 10-minute limit", async () => {
+    let t = Date.parse("2026-11-03T01:00:00.000Z");
+    const limiter = new MemoryRateLimiter(() => t);
+    const refusedBy: string[] = [];
+    const allow = async (key: string, limit: number, windowMs: number) => {
+      const ok = (await limiter.limit(key, { limit, windowMs })).success;
+      if (!ok) refusedBy.push(key.split(":")[1]!);
+      return ok;
+    };
+    const { deps, ids, audit } = await revealWorld({ allow });
+    // 90 seconds apart: about 7 in any 10 minutes, so only the daily cap can stop them.
+    for (let i = 0; i < 100; i++) {
+      expect((await revealLenderAccount(deps, staff({ role: "admin" }), ids)).ok, `reveal ${i + 1}`).toBe(true);
+      t += 90_000;
+    }
+    expect(refusedBy).toEqual([]);
+    expect(await revealLenderAccount(deps, staff({ role: "admin" }), ids)).toEqual({ ok: false, reason: "rate_limited" });
+    expect(refusedBy).toEqual(["1d"]);
+    expect(audit.events.filter((e) => e.action === "lender.account_reveal")).toHaveLength(100);
+    expect(audit.events.at(-1)).toMatchObject({ action: "lender.account_reveal_denied", detail: { reason: "rate_limited" } });
+    // Two days later the daily window has slid past every earlier reveal.
+    t += 2 * 86_400_000;
+    expect((await revealLenderAccount(deps, staff({ role: "admin" }), ids)).ok).toBe(true);
+  });
+
   it("does not find an account under another lender", async () => {
     const { deps, ids, other, audit } = await revealWorld();
     expect(await revealLenderAccount(deps, staff({ role: "admin" }), { lenderId: other.id, accountId: ids.accountId })).toEqual({ ok: false, reason: "not_found" });
