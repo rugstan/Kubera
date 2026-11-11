@@ -7,7 +7,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations, createStubbedDb, custodyViolations, lintMigrationNames, lintWorkstreamSlots, listMigrations } from "../../scripts/test-migrations.ts";
 import { createKeyring } from "@/lib/privacy/crypto";
-import { EMAIL_DB_RE, HTTPS_DB_RE, PORTAL_DB_RE } from "./lender-contacts";
+import { EMAIL_DB_RE, HTTPS_DB_RE, PORTAL_DB_RE, deriveLenderContacts } from "./lender-contacts";
 import { sealLenderAccountNumber } from "./lender-accounts";
 
 const MIGRATION = "20261105120000_int_lender_contacts.sql";
@@ -297,5 +297,42 @@ describe("lender contacts migration on staff-created rows", () => {
     await applyMigrations(fresh, listMigrations().filter((f) => f.name > MIGRATION && !SEED.test(f.name)));
     for (const s of listMigrations().filter((f) => SEED.test(f.name))) await fresh.exec(s.sql);
     expect(Number((await fresh.query<{ n: number }>(`select count(*)::int as n from public.lender_panel where ${SEEDED}`)).rows[0]!.n)).toBe(374);
+  });
+});
+
+describe("lender contacts migration keeps every seeded lender's package recipient", () => {
+  let staged: PGlite;
+  let legacy: { id: string; contact_name: string | null; contact_email: string | null }[] = [];
+
+  beforeAll(async () => {
+    staged = await createStubbedDb();
+    await applyMigrations(staged, listMigrations().filter((f) => f.name < MIGRATION));
+    legacy = (await staged.query<{ id: string; contact_name: string | null; contact_email: string | null }>(`select id, contact_name, contact_email from public.lender_panel order by id`)).rows;
+    await applyMigrations(staged, listMigrations().filter((f) => f.name >= MIGRATION));
+  }, 240_000);
+
+  afterAll(async () => {
+    await staged?.close();
+  });
+
+  it("derives the same approval to: as the legacy contact_email, greeting the first person listed", async () => {
+    const lenders = new Map(
+      (await staged.query<{ id: string; submission_email: string | null; general_email: string | null }>(`select id, submission_email, general_email from public.lender_panel`)).rows.map((l) => [l.id, l]),
+    );
+    const contacts = (
+      await staged.query<{ id: string; lender_id: string; full_name: string; email: string | null; is_primary: boolean; status: "active" | "left" }>(
+        `select id, lender_id, full_name, email, is_primary, status from public.lender_contacts`,
+      )
+    ).rows;
+    expect(legacy).toHaveLength(374);
+    expect(legacy.filter((l) => l.contact_email).length).toBeGreaterThan(0);
+    for (const l of legacy) {
+      const now = lenders.get(l.id)!;
+      const own = contacts.filter((c) => c.lender_id === l.id).map((c) => ({ id: c.id, fullName: c.full_name, email: c.email, isPrimary: c.is_primary, status: c.status }));
+      const derived = deriveLenderContacts({ submissionEmail: now.submission_email, generalEmail: now.general_email }, own);
+      const before = l.contact_email?.trim() || null;
+      expect(derived.contactEmail, l.id).toBe(before);
+      if (before) expect(derived.contactName, l.id).toBe(l.contact_name ? l.contact_name.split(";")[0]!.trim() || null : null);
+    }
   });
 });
