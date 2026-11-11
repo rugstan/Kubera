@@ -10,6 +10,7 @@ import type { ModificationEvaluation } from "@/lib/compliance/gates";
 import type { BrokerOfRecordElements, LenderCategory, LenderChargesInput, ModificationFacts } from "@/lib/compliance/schemas";
 import type { EsignProviderName } from "@/lib/esign/types";
 import type { Form159Data } from "./form159";
+import type { LenderLoanType } from "./loan-types";
 
 /** Deal-desk programs. Each has a stage template (lib/deals/stages.ts). */
 export const dealPrograms = [
@@ -96,13 +97,61 @@ export type NewDeal = Pick<Deal, "title" | "program"> &
 export const feeSplitKinds = ["none", "percent_of_loan", "percent_of_lender_fee", "flat"] as const;
 export type FeeSplitKind = (typeof feeSplitKinds)[number];
 
-export type LenderPanelEntry = {
+export const lenderContactRoles = ["account_executive", "regional_manager", "scenario_desk", "underwriter", "processor", "closer", "servicing", "compliance_legal", "lender_counsel", "sba_bdo", "other"] as const;
+export type LenderContactRole = (typeof lenderContactRoles)[number];
+export const lenderContactSources = ["staff", "directory_import", "business_card", "email_signature", "lender_website", "referral"] as const;
+export type LenderContactSource = (typeof lenderContactSources)[number];
+export const lenderContactChannels = ["email", "phone", "mobile"] as const;
+export type LenderContactChannel = (typeof lenderContactChannels)[number];
+export const lenderAccountKinds = ["broker_id", "client_account", "portal_username", "other"] as const;
+export type LenderAccountKind = (typeof lenderAccountKinds)[number];
+
+/** Lender-level contact columns on lender_panel (business data: shared inboxes, main lines). */
+export type LenderContactInfo = {
+  /** E.164. */
+  mainPhone: string | null;
+  mainPhoneExt: string | null;
+  generalEmail: string | null;
+  /** The lender's submission inbox; the package recipient when there is no primary contact with an email. */
+  submissionEmail: string | null;
+  websiteUrl: string | null;
+  /** https, no query or fragment (no one-time links). */
+  portalUrl: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  addressState: string | null;
+  postalCode: string | null;
+  country: string;
+  nmlsId: string | null;
+  submissionInstructions: string | null;
+  /** Where the portal password is kept (a password-manager pointer). Never the password. */
+  credentialsLocation: string | null;
+  contactVerifiedAt: string | null;
+  contactVerifiedBy: string | null;
+};
+
+/** Read-only fields the store derives from lender_contacts (never written). */
+export type LenderDerivedContacts = {
+  primaryContactId: string | null;
+  primaryContactName: string | null;
+  /** Submission recipient: the primary contact's name when the recipient is that contact, else null. */
+  contactName: string | null;
+  /** Submission recipient email: primary contact's email, else submissionEmail, else null. Hashed into the outreach approval. */
+  contactEmail: string | null;
+  /** Lower-case email domains of active contacts, submissionEmail and generalEmail (deduped, sorted). */
+  contactDomains: string[];
+};
+
+type LenderPanelFields = {
   id: string;
   partnerId: string | null;
   name: string;
   category: LenderCategory;
   categoryEvidenceRef: string | null;
   programs: DealProgram[];
+  /** User-facing loan types (lib/deals/loan-types.ts), canonical order. Staff-owned after the backfill; not read by the matcher or panelForDeal. */
+  loanTypes: LenderLoanType[];
   minLoanCents: number | null;
   maxLoanCents: number | null;
   /** Two-letter states the lender lends in; empty = nationwide. */
@@ -114,17 +163,76 @@ export type LenderPanelEntry = {
   /** Percent (e.g. 0.5 = 0.5%) for percent kinds, cents for "flat". */
   feeSplitValue: number;
   feeAgreementRef: string | null;
-  contactName: string | null;
-  contactEmail: string | null;
   verifiedAt: string | null;
   verifiedBy: string | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
   updatedBy: string | null;
+  /** Optimistic-concurrency token for the contact-info columns only (lender_panel.contact_info_version). */
+  contactInfoVersion: number;
 };
 
-export type NewLender = Omit<LenderPanelEntry, "id" | "createdAt" | "updatedAt" | "updatedBy">;
+/**
+ * A panel lender. `contactName` / `contactEmail` (the submission recipient) are
+ * derived from lender_contacts and the submission inbox by the store; the
+ * legacy lender_panel.contact_name / contact_email columns are never read.
+ */
+export type LenderPanelEntry = LenderPanelFields & LenderContactInfo & LenderDerivedContacts;
+
+/** A lender_panel row as stored (no derived contact fields). */
+export type LenderRow = Omit<LenderPanelEntry, keyof LenderDerivedContacts>;
+
+export type NewLender = Omit<LenderPanelEntry, "id" | "createdAt" | "updatedAt" | "updatedBy" | "contactInfoVersion" | keyof LenderDerivedContacts | keyof LenderContactInfo> & Partial<LenderContactInfo>;
+
+export type LenderContact = {
+  id: string;
+  lenderId: string;
+  fullName: string;
+  title: string | null;
+  role: LenderContactRole;
+  email: string | null;
+  phoneDirect: string | null;
+  phoneExt: string | null;
+  phoneMobile: string | null;
+  preferredChannel: LenderContactChannel | null;
+  territory: string | null;
+  notes: string | null;
+  isPrimary: boolean;
+  status: "active" | "left";
+  leftAt: string | null;
+  source: LenderContactSource;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
+  recordVersion: number;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string | null;
+};
+export type NewLenderContact = Pick<LenderContact, "lenderId" | "fullName" | "title" | "role" | "email" | "phoneDirect" | "phoneExt" | "phoneMobile" | "preferredChannel" | "territory" | "notes" | "source">;
+/** isPrimary may only be cleared here; setPrimaryLenderContact makes a contact primary. */
+export type LenderContactPatch = Partial<Omit<NewLenderContact, "lenderId"> & Pick<LenderContact, "status" | "leftAt" | "verifiedAt" | "verifiedBy">> & { isPrimary?: false };
+
+/** Safe to render and to log: never carries the sealed number. */
+export type LenderAccount = {
+  id: string;
+  lenderId: string;
+  kind: LenderAccountKind;
+  label: string;
+  /** Up to the last four letters or digits (lib/deals/lender-accounts.ts maskHint); not secret. */
+  numberLast4: string | null;
+  notes: string | null;
+  recordVersion: number;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string | null;
+};
+/** Only for the reveal path (lib/deals/lender-directory.ts). */
+export type LenderAccountSecret = Pick<LenderAccount, "id" | "lenderId" | "kind" | "label"> & { numberEnc: string };
+export type NewLenderAccount = Pick<LenderAccount, "id" | "lenderId" | "kind" | "label" | "numberLast4" | "notes"> & { numberEnc: string };
+export type LenderAccountPatch = Partial<Pick<LenderAccount, "label" | "notes" | "numberLast4">> & { numberEnc?: string };
 
 // ---------------------------------------------------------------------------
 // Packages, share links, outreach

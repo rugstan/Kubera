@@ -3,8 +3,23 @@
 // locks, frozen ledger entries, locked package versions, append-only audit).
 // The Supabase implementation is store-supabase.ts (server only).
 
+import { assertSealedAccount, isUuid } from "./lender-accounts";
+import { EMPTY_LENDER_CONTACT_INFO, deriveLenderContacts } from "./lender-contacts";
+import { sortLoanTypes } from "./loan-types";
 import { loanBrokerOfRecordFromRow } from "./rows";
 import type { StageTemplate } from "./stages";
+import {
+  lenderAccountKinds,
+  type LenderAccount,
+  type LenderAccountPatch,
+  type LenderAccountSecret,
+  type LenderContact,
+  type LenderContactInfo,
+  type LenderContactPatch,
+  type LenderRow,
+  type NewLenderAccount,
+  type NewLenderContact,
+} from "./types";
 import type {
   AuditEntry,
   Deal,
@@ -39,6 +54,49 @@ export class GuardError extends Error {
 
 export type NewDealRow = NewDeal & { stage: string; stageTemplateVersion: number };
 
+/** Keys the store derives from lender_contacts (or owns); a lender insert or update never writes them. */
+export const LENDER_DERIVED_KEYS = ["contactName", "contactEmail", "primaryContactId", "primaryContactName", "contactDomains", "contactInfoVersion"] as const;
+
+/** `obj` without the derived lender keys (callers cannot write the submission recipient directly). */
+export function lenderWritable<T extends object>(obj: T): T {
+  const out = { ...obj } as Record<string, unknown>;
+  for (const k of LENDER_DERIVED_KEYS) delete out[k];
+  return out as T;
+}
+
+/**
+ * LenderContactPatch rules both stores enforce (the database checks
+ * lender_contacts_left and the partial unique index do the same): isPrimary can
+ * only be cleared, a contact who left is never primary and has a leftAt, and
+ * reactivating clears leftAt.
+ */
+export function assertContactPatch(patch: LenderContactPatch): void {
+  if ("isPrimary" in patch && patch.isPrimary !== undefined && patch.isPrimary !== false) throw new GuardError("Use setPrimaryLenderContact to make a contact primary");
+  if (patch.status === "left" && (patch.isPrimary !== false || !patch.leftAt)) throw new GuardError("Marking a contact as left also clears primary and records when they left");
+  if (patch.status === "active" && patch.leftAt !== null) throw new GuardError("Reactivating a contact clears the date they left");
+}
+
+/** Primary first, then active contacts by name, then those who left (most recent first). */
+export function sortLenderContacts<T extends Pick<LenderContact, "isPrimary" | "status" | "fullName" | "leftAt" | "id">>(rows: readonly T[]): T[] {
+  const rank = (c: T) => (c.isPrimary ? 0 : c.status === "active" ? 1 : 2);
+  return [...rows].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (a.status === "left" && b.status === "left" ? String(b.leftAt ?? "").localeCompare(String(a.leftAt ?? "")) : 0) ||
+      a.fullName.localeCompare(b.fullName, "en", { sensitivity: "base" }) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
+}
+
+/** Kind order (lenderAccountKinds), then label. */
+export function sortLenderAccounts<T extends Pick<LenderAccount, "kind" | "label" | "id">>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => lenderAccountKinds.indexOf(a.kind) - lenderAccountKinds.indexOf(b.kind) || a.label.localeCompare(b.label, "en", { sensitivity: "base" }) || (a.id < b.id ? -1 : 1));
+}
+
+export const DUPLICATE_ACCOUNT_MESSAGE = "This lender already has an account number of that type with that label.";
+export const CONTACT_NOT_FOUND = "Contact not found for this lender";
+export const ACCOUNT_NOT_FOUND = "Account number not found for this lender";
+
 export type ClosedLoan = { dealId: string; title: string; closedOn: string; loanAmountCents: number; collateralRealProperty: boolean; program: Deal["program"]; propertyState: string | null };
 
 export interface DealDeskStore {
@@ -60,6 +118,28 @@ export interface DealDeskStore {
   getLender(id: string): Promise<LenderPanelEntry | null>;
   insertLender(input: NewLender, actor: string, now: Date): Promise<LenderPanelEntry>;
   updateLender(id: string, patch: Partial<NewLender>, actor: string, now: Date): Promise<LenderPanelEntry>;
+
+  // Lender contact info (lender_panel columns; bumps contact_info_version)
+  updateLenderContactInfo(id: string, expectedVersion: number, patch: Partial<LenderContactInfo>, actor: string, now: Date): Promise<LenderPanelEntry>;
+
+  // Lender contacts (lender_contacts; personal information). Every call filters on the lender id too.
+  /** Primary first, then active by name, then those who left (most recent first). */
+  listLenderContacts(lenderId: string, opts?: { includeLeft?: boolean }): Promise<LenderContact[]>;
+  getLenderContact(lenderId: string, id: string): Promise<LenderContact | null>;
+  /** Always inserted active and not primary (setPrimaryLenderContact makes one primary). */
+  insertLenderContact(input: NewLenderContact, actor: string, now: Date): Promise<LenderContact>;
+  updateLenderContact(lenderId: string, id: string, expectedVersion: number, patch: LenderContactPatch, actor: string, now: Date): Promise<LenderContact>;
+  setPrimaryLenderContact(lenderId: string, id: string, actor: string, now: Date): Promise<LenderContact>;
+  deleteLenderContact(lenderId: string, id: string): Promise<void>;
+
+  // Lender accounts (lender_accounts; number sealed)
+  /** Never returns numberEnc. */
+  listLenderAccounts(lenderId: string): Promise<LenderAccount[]>;
+  /** The reveal path only (lib/deals/lender-directory.ts). */
+  getLenderAccountSecret(lenderId: string, id: string): Promise<LenderAccountSecret | null>;
+  insertLenderAccount(input: NewLenderAccount, actor: string, now: Date): Promise<LenderAccount>;
+  updateLenderAccount(lenderId: string, id: string, expectedVersion: number, patch: LenderAccountPatch, actor: string, now: Date): Promise<LenderAccount>;
+  deleteLenderAccount(lenderId: string, id: string): Promise<void>;
 
   // Packages
   listPackages(dealId: string): Promise<DealPackage[]>;
@@ -131,7 +211,10 @@ function uuid(n: number): string {
 export class MemoryDealDeskStore implements DealDeskStore {
   readonly deals = new Map<string, Deal>();
   readonly templates = new Map<string, { template: StageTemplate; digest: string }>();
-  readonly lenders = new Map<string, LenderPanelEntry>();
+  /** Stored rows; reads attach the derived contact fields. */
+  readonly lenders = new Map<string, LenderRow>();
+  readonly lenderContacts = new Map<string, LenderContact>();
+  readonly lenderAccounts = new Map<string, LenderAccount & { numberEnc: string }>();
   readonly packages = new Map<string, DealPackage>();
   readonly links = new Map<string, ShareLink>();
   readonly outreach = new Map<string, LenderOutreach>();
@@ -245,25 +328,176 @@ export class MemoryDealDeskStore implements DealDeskStore {
   }
 
   // Lenders ------------------------------------------------------------------------
+  private withContacts(row: LenderRow): LenderPanelEntry {
+    const contacts = [...this.lenderContacts.values()].filter((c) => c.lenderId === row.id);
+    return clone({ ...row, ...deriveLenderContacts(row, contacts) });
+  }
+
   async listLenders(opts: { activeOnly?: boolean } = {}): Promise<LenderPanelEntry[]> {
-    return [...this.lenders.values()].filter((l) => !opts.activeOnly || l.active).sort((a, b) => a.name.localeCompare(b.name)).map(clone);
+    return [...this.lenders.values()]
+      .filter((l) => !opts.activeOnly || l.active)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((l) => this.withContacts(l));
   }
 
   async getLender(id: string): Promise<LenderPanelEntry | null> {
     const l = this.lenders.get(id);
-    return l ? clone(l) : null;
+    return l ? this.withContacts(l) : null;
   }
 
   async insertLender(input: NewLender, actor: string, now: Date): Promise<LenderPanelEntry> {
     const ts = now.toISOString();
-    const row: LenderPanelEntry = { ...clone(input), id: this.id(), createdAt: ts, updatedAt: ts, updatedBy: actor };
+    const row: LenderRow = { ...EMPTY_LENDER_CONTACT_INFO, ...clone(lenderWritable(input)), loanTypes: sortLoanTypes(input.loanTypes ?? []), id: this.id(), createdAt: ts, updatedAt: ts, updatedBy: actor, contactInfoVersion: 1 };
     this.lenders.set(row.id, row);
     this.log("lender_panel", row, "INSERT", actor, now);
-    return clone(row);
+    return this.withContacts(row);
   }
 
   async updateLender(id: string, patch: Partial<NewLender>, actor: string, now: Date): Promise<LenderPanelEntry> {
-    return this.patchRow("lender_panel", this.lenders, id, { ...patch, updatedBy: actor } as Partial<LenderPanelEntry>, actor, now);
+    const next = lenderWritable(patch);
+    if (next.loanTypes) next.loanTypes = sortLoanTypes(next.loanTypes);
+    return this.withContacts(this.patchRow("lender_panel", this.lenders, id, { ...next, updatedBy: actor } as Partial<LenderRow>, actor, now));
+  }
+
+  async updateLenderContactInfo(id: string, expectedVersion: number, patch: Partial<LenderContactInfo>, actor: string, now: Date): Promise<LenderPanelEntry> {
+    const cur = this.lenders.get(id);
+    if (!cur || cur.contactInfoVersion !== expectedVersion) throw new ConcurrentUpdateError("Lender contact info");
+    return this.withContacts(this.patchRow("lender_panel", this.lenders, id, { ...lenderWritable(patch), contactInfoVersion: expectedVersion + 1, updatedBy: actor } as Partial<LenderRow>, actor, now));
+  }
+
+  // Lender contacts -------------------------------------------------------------------
+  private contactOf(lenderId: string, id: string): LenderContact | undefined {
+    const c = this.lenderContacts.get(id);
+    return c && c.lenderId === lenderId ? c : undefined;
+  }
+
+  /** The database checks on lender_contacts, applied to a candidate row. */
+  private checkContactRow(c: LenderContact): void {
+    const fail = (constraint: string) => {
+      throw new GuardError(`Lender contact: a value failed the ${constraint} check`);
+    };
+    if (!((c.status === "active" && c.leftAt === null) || (c.status === "left" && c.leftAt !== null && !c.isPrimary))) fail("lender_contacts_left");
+    if (c.phoneExt && !c.phoneDirect) fail("lender_contacts_ext_needs_phone");
+    if (c.preferredChannel && !{ email: c.email, phone: c.phoneDirect, mobile: c.phoneMobile }[c.preferredChannel]) fail("lender_contacts_channel_has_value");
+    if ((c.verifiedAt === null) !== (c.verifiedBy === null)) fail("lender_contacts_verified");
+    if (c.isPrimary && [...this.lenderContacts.values()].some((o) => o.id !== c.id && o.lenderId === c.lenderId && o.isPrimary)) throw new ConcurrentUpdateError("Lender contact");
+  }
+
+  async listLenderContacts(lenderId: string, opts: { includeLeft?: boolean } = {}): Promise<LenderContact[]> {
+    return sortLenderContacts([...this.lenderContacts.values()].filter((c) => c.lenderId === lenderId && (opts.includeLeft || c.status === "active"))).map(clone);
+  }
+
+  async getLenderContact(lenderId: string, id: string): Promise<LenderContact | null> {
+    const c = this.contactOf(lenderId, id);
+    return c ? clone(c) : null;
+  }
+
+  async insertLenderContact(input: NewLenderContact, actor: string, now: Date): Promise<LenderContact> {
+    if (!this.lenders.has(input.lenderId)) throw new GuardError(`lender_panel ${input.lenderId} not found`);
+    const ts = now.toISOString();
+    const row: LenderContact = {
+      ...clone(input),
+      id: this.id(),
+      isPrimary: false,
+      status: "active",
+      leftAt: null,
+      verifiedAt: null,
+      verifiedBy: null,
+      recordVersion: 1,
+      createdAt: ts,
+      createdBy: actor,
+      updatedAt: ts,
+      updatedBy: null,
+    };
+    this.checkContactRow(row);
+    this.lenderContacts.set(row.id, row);
+    this.log("lender_contacts", row, "INSERT", actor, now);
+    return clone(row);
+  }
+
+  async updateLenderContact(lenderId: string, id: string, expectedVersion: number, patch: LenderContactPatch, actor: string, now: Date): Promise<LenderContact> {
+    assertContactPatch(patch);
+    const cur = this.contactOf(lenderId, id);
+    if (!cur || cur.recordVersion !== expectedVersion) throw new ConcurrentUpdateError("Lender contact");
+    const { lenderId: _l, ...rest } = patch as LenderContactPatch & { lenderId?: string };
+    void _l;
+    this.checkContactRow({ ...cur, ...rest });
+    return this.patchRow("lender_contacts", this.lenderContacts, id, { ...rest, recordVersion: expectedVersion + 1, updatedBy: actor }, actor, now);
+  }
+
+  async setPrimaryLenderContact(lenderId: string, id: string, actor: string, now: Date): Promise<LenderContact> {
+    const target = this.contactOf(lenderId, id);
+    if (!target || target.status !== "active") throw new GuardError(CONTACT_NOT_FOUND);
+    if (target.isPrimary) return clone(target);
+    for (const c of [...this.lenderContacts.values()]) {
+      if (c.lenderId === lenderId && c.isPrimary && c.id !== id) this.patchRow("lender_contacts", this.lenderContacts, c.id, { isPrimary: false, updatedBy: actor, recordVersion: c.recordVersion + 1 }, actor, now);
+    }
+    return this.patchRow("lender_contacts", this.lenderContacts, id, { isPrimary: true, updatedBy: actor, recordVersion: target.recordVersion + 1 }, actor, now);
+  }
+
+  async deleteLenderContact(lenderId: string, id: string): Promise<void> {
+    const c = this.contactOf(lenderId, id);
+    if (!c) throw new GuardError(CONTACT_NOT_FOUND);
+    this.lenderContacts.delete(id);
+    this.log("lender_contacts", c, "DELETE", c.updatedBy ?? c.createdBy, new Date());
+  }
+
+  // Lender accounts ----------------------------------------------------------------------
+  private static publicAccount(a: LenderAccount & { numberEnc: string }): LenderAccount {
+    const { numberEnc: _n, ...rest } = a;
+    void _n;
+    return clone(rest);
+  }
+
+  private accountOf(lenderId: string, id: string): (LenderAccount & { numberEnc: string }) | undefined {
+    const a = this.lenderAccounts.get(id);
+    return a && a.lenderId === lenderId ? a : undefined;
+  }
+
+  private assertUniqueAccount(lenderId: string, kind: LenderAccount["kind"], label: string, exceptId: string): void {
+    if ([...this.lenderAccounts.values()].some((a) => a.id !== exceptId && a.lenderId === lenderId && a.kind === kind && a.label === label)) throw new GuardError(DUPLICATE_ACCOUNT_MESSAGE);
+  }
+
+  async listLenderAccounts(lenderId: string): Promise<LenderAccount[]> {
+    return sortLenderAccounts([...this.lenderAccounts.values()].filter((a) => a.lenderId === lenderId)).map(MemoryDealDeskStore.publicAccount);
+  }
+
+  async getLenderAccountSecret(lenderId: string, id: string): Promise<LenderAccountSecret | null> {
+    const a = this.accountOf(lenderId, id);
+    return a ? { id: a.id, lenderId: a.lenderId, kind: a.kind, label: a.label, numberEnc: a.numberEnc } : null;
+  }
+
+  async insertLenderAccount(input: NewLenderAccount, actor: string, now: Date): Promise<LenderAccount> {
+    if (!isUuid(input.id)) throw new GuardError("Lender account ids are generated by the app (a UUID) before sealing");
+    assertSealedAccount(input);
+    if (!this.lenders.has(input.lenderId)) throw new GuardError(`lender_panel ${input.lenderId} not found`);
+    if (this.lenderAccounts.has(input.id)) throw new GuardError(`lender_accounts ${input.id} already exists`);
+    this.assertUniqueAccount(input.lenderId, input.kind, input.label, input.id);
+    const ts = now.toISOString();
+    const row = { ...clone(input), recordVersion: 1, createdAt: ts, createdBy: actor, updatedAt: ts, updatedBy: null };
+    this.lenderAccounts.set(row.id, row);
+    this.log("lender_accounts", row, "INSERT", actor, now);
+    return MemoryDealDeskStore.publicAccount(row);
+  }
+
+  async updateLenderAccount(lenderId: string, id: string, expectedVersion: number, patch: LenderAccountPatch, actor: string, now: Date): Promise<LenderAccount> {
+    if (patch.numberEnc !== undefined) {
+      assertSealedAccount(patch);
+      if (!("numberLast4" in patch) || patch.numberLast4 === undefined) throw new GuardError("Replacing an account number also replaces its masked hint");
+    }
+    const cur = this.accountOf(lenderId, id);
+    if (!cur || cur.recordVersion !== expectedVersion) throw new ConcurrentUpdateError("Lender account");
+    if (patch.label !== undefined) this.assertUniqueAccount(lenderId, cur.kind, patch.label, id);
+    const { label, notes, numberLast4, numberEnc } = patch;
+    const clean = Object.fromEntries(Object.entries({ label, notes, numberLast4, numberEnc }).filter(([, v]) => v !== undefined));
+    return MemoryDealDeskStore.publicAccount(this.patchRow("lender_accounts", this.lenderAccounts, id, { ...clean, recordVersion: expectedVersion + 1, updatedBy: actor }, actor, now));
+  }
+
+  async deleteLenderAccount(lenderId: string, id: string): Promise<void> {
+    const a = this.accountOf(lenderId, id);
+    if (!a) throw new GuardError(ACCOUNT_NOT_FOUND);
+    this.lenderAccounts.delete(id);
+    this.log("lender_accounts", a, "DELETE", a.updatedBy ?? a.createdBy, new Date());
   }
 
   // Packages -------------------------------------------------------------------------

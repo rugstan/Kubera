@@ -297,6 +297,18 @@ export const RETENTION_POLICIES: readonly RetentionPolicy[] = [
     retainDays: 2 * YEAR,
     hasLegalHold: false,
   },
+  {
+    // Active contacts stay while the lender relationship is active; contacts of an
+    // inactive lender are reviewed by hand (there is no deactivation date yet).
+    id: "lender_contacts_left",
+    table: "lender_contacts",
+    description: "Lender contacts who left the lender",
+    basis: "Privacy policy: professional information, three years after the relationship ends",
+    dateColumn: "left_at",
+    retainDays: 3 * YEAR + 1,
+    filters: [{ column: "status", op: "eq", value: "left" }],
+    hasLegalHold: false,
+  },
 ];
 
 export type DeleteResult = { deleted: RowId[]; failed: { id: RowId; error: string }[] };
@@ -534,7 +546,22 @@ export type ContactRecordSpec = {
   keepColumns?: readonly string[];
   /** Why a matching row stays (null: delete it). `retainedLeads` maps kept lead ids to the reason. */
   keep?: (row: Record<string, unknown>, ctx: { retainedLeads: ReadonlyMap<string, string> }) => string | null;
+  /** A copy that outlives a deleted row (reported under `retained` as `audit_log`), or null. */
+  copyKept?: (row: Record<string, unknown>) => string | null;
 };
+
+const LENDER_CONTACTS_BACKFILL = "migration:20261105120000_int_lender_contacts";
+/**
+ * Contacts backfilled from the legacy lender_panel.contact_name / contact_email
+ * columns (created_by is the migration). The lender_panel audit rows written
+ * before that migration (the directory seed's INSERTs, earlier staff edits)
+ * still hold the name and email, and audit_log is append-only, so erasure says so.
+ */
+const legacyLenderAuditCopy = (r: Record<string, unknown>): string | null =>
+  r.created_by === LENDER_CONTACTS_BACKFILL
+    ? // VERIFY with counsel: kept for security and integrity, Civ. Code §1798.105(d)(2).
+      "Recorded before 5 Nov 2026 in the lender's contact fields; that earlier entry stays in our append-only change log for security and integrity"
+    : null;
 
 function keptWithLead(row: Record<string, unknown>, ctx: { retainedLeads: ReadonlyMap<string, string> }): string | null {
   const lead = str(row.lead_id);
@@ -576,6 +603,13 @@ export const CONTACT_RECORDS: readonly ContactRecordSpec[] = [
     keepColumns: ["status"],
     keep: (r) => (r.status === "pending" ? "Text opt-out still being copied to our CRM; kept until it is, so the opt-out is honored" : null),
   },
+  // People at lenders (lender_contacts). Their own audit rows are redacted; deleting a
+  // primary contact moves the package recipient to the lender's submission inbox. A
+  // contact backfilled from the legacy lender_panel columns also has its name and email
+  // in lender_panel audit rows from before 20261105120000_int_lender_contacts (copyKept).
+  { table: "lender_contacts", column: "email", match: "email", hasLegalHold: false, keepColumns: ["created_by"], copyKept: legacyLenderAuditCopy },
+  { table: "lender_contacts", column: "phone_direct", match: "phone", hasLegalHold: false, keepColumns: ["created_by"], copyKept: legacyLenderAuditCopy },
+  { table: "lender_contacts", column: "phone_mobile", match: "phone", hasLegalHold: false, keepColumns: ["created_by"], copyKept: legacyLenderAuditCopy },
 ];
 
 export type DeletionRequestSummary = { processed: number; completed: number; partial: number; errors: string[] };
@@ -631,6 +665,7 @@ async function eraseContactRecords(
       const columns = [...new Set(["id", ...(spec.hasLegalHold ? ["legal_hold"] : []), ...(spec.storage?.columns ?? []), ...(spec.keepColumns ?? [])])];
       const rows = await deps.db.selectByValue({ table: spec.table, column: spec.column, value, caseInsensitive: spec.match === "email", columns, limit: CONTACT_LIMIT });
       const doomed: RowId[] = [];
+      const doomedRows = new Map<RowId, Record<string, unknown>>();
       const objects = new Set<string>();
       for (const row of rows) {
         const id = row.id as RowId;
@@ -647,6 +682,7 @@ async function eraseContactRecords(
           continue;
         }
         doomed.push(id);
+        doomedRows.set(id, row);
         for (const o of spec.storage?.objects(row) ?? []) objects.add(objectKey(o.bucket, o.path));
       }
       if (!doomed.length) continue;
@@ -657,6 +693,10 @@ async function eraseContactRecords(
       }
       const res = await deps.db.deleteRows(spec.table, doomed);
       for (const f of res.failed) retained.push({ table: spec.table, id: f.id, reason: f.error.slice(0, 200) });
+      for (const id of res.deleted) {
+        const copy = spec.copyKept?.(doomedRows.get(id) ?? {}) ?? null;
+        if (copy) retained.push({ table: "audit_log", id, reason: copy });
+      }
       const c = counts.get(spec.table) ?? { deleted: 0, objectsRemoved: 0 };
       c.deleted += res.deleted.length;
       c.objectsRemoved += removal.removed;

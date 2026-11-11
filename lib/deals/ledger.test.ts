@@ -6,8 +6,8 @@ import { ApprovalService } from "@/lib/approvals/service";
 import { MemoryApprovalStore } from "@/lib/approvals/store";
 import { createInvoice, issueInvoice, issueInvoiceMessage, settleInvoice, voidInvoice, InvoiceError, INVOICE_TERMS } from "./invoices";
 import { lenderStaleness, panelForDeal, parseLender } from "./lenders";
-import { lenderInput, newDeal, setup } from "./test-fixtures";
-import type { FeeEntry } from "./types";
+import { lenderInput, newDeal, setup, toPanelEntry } from "./test-fixtures";
+import type { FeeEntry, NewLender } from "./types";
 
 describe("money", () => {
   it("parses dollars and rounds percentages half-up to the cent", () => {
@@ -213,8 +213,24 @@ describe("lender panel", () => {
     expect(parseLender({ ...lenderInput(), states: ["ca"] }).states).toEqual(["CA"]);
   });
 
+  it("no longer takes the legacy contact fields (contacts and the submission inbox live elsewhere)", () => {
+    const parsed = parseLender({ ...lenderInput(), contactName: "Dana Lee", contactEmail: "dana@lender.example" }) as Record<string, unknown>;
+    expect(parsed).not.toHaveProperty("contactName");
+    expect(parsed).not.toHaveProperty("contactEmail");
+    expect(parsed).not.toHaveProperty("submissionEmail");
+  });
+
+  it("defaults loan types to none and stores them sorted and deduped", () => {
+    expect(parseLender(lenderInput()).loanTypes).toEqual([]);
+    const { loanTypes: _l, ...noTypes } = lenderInput();
+    void _l;
+    expect(parseLender(noTypes).loanTypes).toEqual([]);
+    expect(parseLender({ ...lenderInput(), loanTypes: ["hotel", "bridge", "hotel"] }).loanTypes).toEqual(["bridge", "hotel"]);
+    expect(() => parseLender({ ...lenderInput(), loanTypes: ["bogus"] })).toThrow();
+  });
+
   it("filters the panel by program, size and state, broker-friendly and fresh first", () => {
-    const mk = (over: object, i: number) => ({ ...lenderInput(), id: `l${i}`, createdAt: "", updatedAt: "", updatedBy: null, ...over });
+    const mk = (over: Partial<NewLender>, i: number) => toPanelEntry({ ...lenderInput(), ...over }, `l${i}`);
     const lenders = [
       mk({ name: "Zeta", brokerFriendly: false }, 1),
       mk({ name: "Alpha", verifiedAt: "2025-01-01T00:00:00Z" }, 2),

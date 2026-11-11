@@ -206,12 +206,17 @@ async function readAttachments(source: TermSheetAttachmentSource | null | undefi
 const domainOf = (email: string | null | undefined) => (email ?? "").toLowerCase().split("@")[1]?.trim() ?? "";
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-/** The panel lender a term-sheet email came from: sender domain, then the name the sheet states. */
+/**
+ * The panel lender a term-sheet email came from: the sender's domain against
+ * every active contact's, the submission inbox's and the general inbox's
+ * (contactDomains), then the name the sheet states. A domain match is a
+ * routing hint, not authentication.
+ */
 export function resolveLender(mail: Pick<TermSheetMail, "fromAddress" | "fromName">, statedName: string | null, lenders: readonly LenderPanelEntry[]): LenderPanelEntry | null {
   const domain = domainOf(mail.fromAddress);
   const generic = /^(gmail|yahoo|outlook|hotmail|icloud|aol|proton(mail)?)\./.test(domain);
   if (domain && !generic) {
-    const byDomain = lenders.filter((l) => domainOf(l.contactEmail) === domain);
+    const byDomain = lenders.filter((l) => l.contactDomains.includes(domain));
     if (byDomain.length === 1) return byDomain[0]!;
   }
   const name = statedName ? normalize(statedName) : "";

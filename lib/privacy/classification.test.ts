@@ -41,6 +41,14 @@ describe("field registry", () => {
     );
     expect(encryptedFields("leads")).toEqual([]);
   });
+
+  it("registers lender contacts as partner PII and sealed lender account numbers as restricted", () => {
+    expect(fieldRule("lender_accounts.number_enc")).toMatchObject({ level: "restricted", encrypt: true, category: "partner" });
+    expect(fieldRule("lender_contacts.email")).toMatchObject({ level: "confidential", pii: true });
+    expect(encryptedFields("lender_accounts")).toEqual(["lender_accounts.number_enc"]);
+    expect(fieldRule("lender_panel.submission_email")).toMatchObject({ level: "confidential", pii: false });
+    expect(fieldRule("lender_panel.loan_types")).toMatchObject({ level: "internal", pii: false });
+  });
 });
 
 describe("key heuristics", () => {

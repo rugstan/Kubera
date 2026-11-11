@@ -1,5 +1,6 @@
 // Shared fixtures for lib/agents/lenders tests.
 
+import { EMPTY_LENDER_CONTACT_INFO } from "@/lib/deals/lender-contacts";
 import type { LenderPanelEntry } from "@/lib/deals/types";
 import type { CreditBox, DealProfile, QuoteTerms } from "./types";
 
@@ -47,6 +48,7 @@ export function panelLender(over: Partial<LenderPanelEntry> = {}): LenderPanelEn
     category: "STATE_BANK",
     categoryEvidenceRef: "CA DFPI charter 1234",
     programs: ["HUD_232", "HUD_MULTIFAMILY"],
+    loanTypes: [],
     minLoanCents: null,
     maxLoanCents: null,
     states: [],
@@ -64,6 +66,11 @@ export function panelLender(over: Partial<LenderPanelEntry> = {}): LenderPanelEn
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     updatedBy: null,
+    ...EMPTY_LENDER_CONTACT_INFO,
+    contactInfoVersion: 1,
+    primaryContactId: null,
+    primaryContactName: "Dana Lee",
+    contactDomains: ["cambridgerealty.example"],
     ...over,
   };
 }

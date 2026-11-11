@@ -1,8 +1,33 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { assertSealedAccount, isUuid } from "./lender-accounts";
+import { deriveLenderContacts } from "./lender-contacts";
 import { fromRow, loanBrokerOfRecordFromRow, toRow, type Row } from "./rows";
 import type { StageTemplate } from "./stages";
-import { ConcurrentUpdateError, GuardError, type ClosedLoan, type DealDeskStore, type NewDealRow } from "./store";
+import {
+  ACCOUNT_NOT_FOUND,
+  CONTACT_NOT_FOUND,
+  ConcurrentUpdateError,
+  DUPLICATE_ACCOUNT_MESSAGE,
+  GuardError,
+  assertContactPatch,
+  lenderWritable,
+  sortLenderAccounts,
+  sortLenderContacts,
+  type ClosedLoan,
+  type DealDeskStore,
+  type NewDealRow,
+} from "./store";
+import type {
+  LenderAccount,
+  LenderAccountPatch,
+  LenderAccountSecret,
+  LenderContact,
+  LenderContactInfo,
+  LenderContactPatch,
+  NewLenderAccount,
+  NewLenderContact,
+} from "./types";
 import type {
   AuditEntry,
   Deal,
@@ -26,7 +51,45 @@ import type {
 
 const DEAL_NUM = ["loanAmountCents", "recordVersion", "stageTemplateVersion"];
 const FEE_NUM = ["ratePct", "baseCents", "amountCents"];
-const LENDER_NUM = ["minLoanCents", "maxLoanCents", "feeSplitValue"];
+const LENDER_NUM = ["minLoanCents", "maxLoanCents", "feeSplitValue", "contactInfoVersion"];
+const CONTACT_NUM = ["recordVersion"];
+const ACCOUNT_NUM = ["recordVersion"];
+/** Rows per page when reading whole tables (stays under any PostgREST max-rows cap: the next page starts after what came back). */
+const PAGE = 1000;
+
+/** Every lender_accounts column except number_enc: list, insert and update never bring ciphertext back. */
+export const LENDER_ACCOUNT_COLUMNS = "id, lender_id, kind, label, number_last4, notes, record_version, created_at, created_by, updated_at, updated_by";
+const ACTIVE_CONTACT_COLUMNS = "id, lender_id, full_name, email, is_primary, status";
+
+type PgError = { message: string; code?: string };
+
+/**
+ * Directory (lender contacts and accounts) errors. Postgres puts the failing
+ * row ("Failing row contains (...)") in `details`, which for contacts is
+ * personal information, so only the code and the constraint name are read;
+ * `details` and `hint` are never read, logged or shown.
+ */
+function failDirectory(error: PgError | null, what: string, lenderId?: string): void {
+  if (!error) return;
+  const message = error.message ?? "";
+  if (error.code === "23505" && message.includes("lender_accounts_lender_id_kind_label_key")) throw new GuardError(DUPLICATE_ACCOUNT_MESSAGE);
+  if (error.code === "23505" && message.includes("lender_contacts_one_primary")) throw new ConcurrentUpdateError("Lender contact");
+  if (error.code === "23514") {
+    const constraint = /constraint "([a-z0-9_]+)"/.exec(message)?.[1] ?? "a";
+    throw new GuardError(`${what}: a value failed the ${constraint} check`);
+  }
+  if (error.code === "23503" && lenderId) throw new GuardError(`lender_panel ${lenderId} not found`);
+  fail(error, what);
+}
+
+/** The panel row without the legacy contact columns (never read again), with the derived recipient. */
+function lenderFromRow(row: Row, contacts: Row[]): LenderPanelEntry {
+  const r: Row = { ...row };
+  delete r.contact_name;
+  delete r.contact_email;
+  const lender = fromRow<Omit<LenderPanelEntry, "primaryContactId" | "primaryContactName" | "contactName" | "contactEmail" | "contactDomains">>(r, LENDER_NUM);
+  return { ...lender, ...deriveLenderContacts(lender, contacts.map((c) => fromRow<Pick<LenderContact, "id" | "fullName" | "email" | "isPrimary" | "status">>(c))) };
+}
 
 function fail(error: { message: string; code?: string } | null, what: string): never | void {
   if (!error) return;
@@ -127,24 +190,178 @@ export class SupabaseDealDeskStore implements DealDeskStore {
   }
 
   // Lenders -----------------------------------------------------------------------
+  /** Reads every page of a query; each page starts after the rows the last one returned, so a server-side cap cannot skip rows. */
+  private async selectAll(build: (from: number, to: number) => PromiseLike<{ data: unknown; error: PgError | null }>, what: string): Promise<Row[]> {
+    const out: Row[] = [];
+    for (let from = 0; ; ) {
+      const { data, error } = await build(from, from + PAGE - 1);
+      fail(error, what);
+      const rows = (data ?? []) as Row[];
+      if (!rows.length) return out;
+      out.push(...rows);
+      from += rows.length;
+    }
+  }
+
+  private async activeContactsOf(lenderId: string): Promise<Row[]> {
+    const { data, error } = await this.db.from("lender_contacts").select(ACTIVE_CONTACT_COLUMNS).eq("lender_id", lenderId).eq("status", "active");
+    fail(error, "read lender contacts");
+    return (data ?? []) as Row[];
+  }
+
   async listLenders(opts: { activeOnly?: boolean } = {}): Promise<LenderPanelEntry[]> {
-    let q = this.db.from("lender_panel").select("*").order("name");
-    if (opts.activeOnly) q = q.eq("active", true);
-    const { data, error } = await q;
-    fail(error, "list lenders");
-    return ((data ?? []) as Row[]).map((r) => fromRow<LenderPanelEntry>(r, LENDER_NUM));
+    const [lenders, contacts] = await Promise.all([
+      this.selectAll((from, to) => {
+        let q = this.db.from("lender_panel").select("*");
+        if (opts.activeOnly) q = q.eq("active", true);
+        return q.order("name").order("id").range(from, to);
+      }, "list lenders"),
+      this.selectAll((from, to) => this.db.from("lender_contacts").select(ACTIVE_CONTACT_COLUMNS).eq("status", "active").order("id").range(from, to), "list lender contacts"),
+    ]);
+    const byLender = new Map<string, Row[]>();
+    for (const c of contacts) byLender.set(String(c.lender_id), [...(byLender.get(String(c.lender_id)) ?? []), c]);
+    return lenders.map((r) => lenderFromRow(r, byLender.get(String(r.id)) ?? []));
   }
 
   async getLender(id: string): Promise<LenderPanelEntry | null> {
-    return this.byId<LenderPanelEntry>("lender_panel", id, LENDER_NUM);
+    const { data, error } = await this.db.from("lender_panel").select("*").eq("id", id).maybeSingle();
+    fail(error, "read lender_panel");
+    if (!data) return null;
+    return lenderFromRow(data as Row, await this.activeContactsOf(id));
   }
 
   async insertLender(input: NewLender, actor: string): Promise<LenderPanelEntry> {
-    return this.insert<LenderPanelEntry>("lender_panel", { ...toRow(input), updated_by: actor }, LENDER_NUM);
+    const { data, error } = await this.db.from("lender_panel").insert({ ...toRow(lenderWritable(input)), updated_by: actor }).select().single();
+    fail(error, "insert lender_panel");
+    return lenderFromRow(data as Row, []);
   }
 
   async updateLender(id: string, patch: Partial<NewLender>, actor: string): Promise<LenderPanelEntry> {
-    return this.patch<LenderPanelEntry>("lender_panel", id, { ...toRow(patch), updated_by: actor }, LENDER_NUM);
+    const { data, error } = await this.db.from("lender_panel").update({ ...toRow(lenderWritable(patch)), updated_by: actor }).eq("id", id).select().maybeSingle();
+    fail(error, "update lender_panel");
+    if (!data) throw new GuardError(`lender_panel ${id} not found`);
+    return lenderFromRow(data as Row, await this.activeContactsOf(id));
+  }
+
+  async updateLenderContactInfo(id: string, expectedVersion: number, patch: Partial<LenderContactInfo>, actor: string): Promise<LenderPanelEntry> {
+    const { data, error } = await this.db
+      .from("lender_panel")
+      .update({ ...toRow(lenderWritable(patch)), contact_info_version: expectedVersion + 1, updated_by: actor })
+      .eq("id", id)
+      .eq("contact_info_version", expectedVersion)
+      .select("id")
+      .maybeSingle();
+    failDirectory(error, "Lender contact info");
+    if (!data) throw new ConcurrentUpdateError("Lender contact info");
+    const lender = await this.getLender(id);
+    if (!lender) throw new ConcurrentUpdateError("Lender contact info");
+    return lender;
+  }
+
+  // Lender contacts ---------------------------------------------------------------------
+  async listLenderContacts(lenderId: string, opts: { includeLeft?: boolean } = {}): Promise<LenderContact[]> {
+    let q = this.db.from("lender_contacts").select("*").eq("lender_id", lenderId);
+    if (!opts.includeLeft) q = q.eq("status", "active");
+    const { data, error } = await q.order("full_name").order("id").limit(PAGE);
+    failDirectory(error, "List lender contacts");
+    return sortLenderContacts(((data ?? []) as Row[]).map((r) => fromRow<LenderContact>(r, CONTACT_NUM)));
+  }
+
+  async getLenderContact(lenderId: string, id: string): Promise<LenderContact | null> {
+    const { data, error } = await this.db.from("lender_contacts").select("*").eq("lender_id", lenderId).eq("id", id).maybeSingle();
+    failDirectory(error, "Read lender contact");
+    return data ? fromRow<LenderContact>(data as Row, CONTACT_NUM) : null;
+  }
+
+  async insertLenderContact(input: NewLenderContact, actor: string): Promise<LenderContact> {
+    const { data, error } = await this.db
+      .from("lender_contacts")
+      .insert({ ...toRow(input), is_primary: false, created_by: actor })
+      .select("*")
+      .single();
+    failDirectory(error, "Lender contact", input.lenderId);
+    return fromRow<LenderContact>(data as Row, CONTACT_NUM);
+  }
+
+  async updateLenderContact(lenderId: string, id: string, expectedVersion: number, patch: LenderContactPatch, actor: string): Promise<LenderContact> {
+    assertContactPatch(patch);
+    const { lenderId: _l, ...rest } = patch as LenderContactPatch & { lenderId?: string };
+    void _l;
+    const { data, error } = await this.db
+      .from("lender_contacts")
+      .update({ ...toRow(rest), record_version: expectedVersion + 1, updated_by: actor })
+      .eq("id", id)
+      .eq("lender_id", lenderId)
+      .eq("record_version", expectedVersion)
+      .select("*")
+      .maybeSingle();
+    failDirectory(error, "Lender contact");
+    if (!data) throw new ConcurrentUpdateError("Lender contact");
+    return fromRow<LenderContact>(data as Row, CONTACT_NUM);
+  }
+
+  async setPrimaryLenderContact(lenderId: string, id: string, actor: string): Promise<LenderContact> {
+    const { data, error } = await this.db.rpc("set_lender_primary_contact", { p_lender_id: lenderId, p_contact_id: id, p_actor: actor });
+    failDirectory(error, "Lender contact");
+    const row = Array.isArray(data) ? (data[0] as Row | undefined) : ((data as Row | null) ?? undefined);
+    if (!row) throw new GuardError(CONTACT_NOT_FOUND);
+    return fromRow<LenderContact>(row, CONTACT_NUM);
+  }
+
+  async deleteLenderContact(lenderId: string, id: string): Promise<void> {
+    const { data, error } = await this.db.from("lender_contacts").delete().eq("id", id).eq("lender_id", lenderId).select("id");
+    failDirectory(error, "Lender contact");
+    if (!((data ?? []) as Row[]).length) throw new GuardError(CONTACT_NOT_FOUND);
+  }
+
+  // Lender accounts --------------------------------------------------------------------------
+  async listLenderAccounts(lenderId: string): Promise<LenderAccount[]> {
+    const { data, error } = await this.db.from("lender_accounts").select(LENDER_ACCOUNT_COLUMNS).eq("lender_id", lenderId).limit(PAGE);
+    failDirectory(error, "List lender accounts");
+    return sortLenderAccounts(((data ?? []) as unknown as Row[]).map((r) => fromRow<LenderAccount>(r, ACCOUNT_NUM)));
+  }
+
+  async getLenderAccountSecret(lenderId: string, id: string): Promise<LenderAccountSecret | null> {
+    const { data, error } = await this.db.from("lender_accounts").select("id, lender_id, kind, label, number_enc").eq("lender_id", lenderId).eq("id", id).maybeSingle();
+    failDirectory(error, "Read lender account");
+    return data ? fromRow<LenderAccountSecret>(data as Row) : null;
+  }
+
+  async insertLenderAccount(input: NewLenderAccount, actor: string): Promise<LenderAccount> {
+    if (!isUuid(input.id)) throw new GuardError("Lender account ids are generated by the app (a UUID) before sealing");
+    assertSealedAccount(input);
+    const { data, error } = await this.db
+      .from("lender_accounts")
+      .insert({ ...toRow(input), created_by: actor })
+      .select(LENDER_ACCOUNT_COLUMNS)
+      .single();
+    failDirectory(error, "Lender account", input.lenderId);
+    return fromRow<LenderAccount>(data as unknown as Row, ACCOUNT_NUM);
+  }
+
+  async updateLenderAccount(lenderId: string, id: string, expectedVersion: number, patch: LenderAccountPatch, actor: string): Promise<LenderAccount> {
+    if (patch.numberEnc !== undefined) {
+      assertSealedAccount(patch);
+      if (!("numberLast4" in patch) || patch.numberLast4 === undefined) throw new GuardError("Replacing an account number also replaces its masked hint");
+    }
+    const { label, notes, numberLast4, numberEnc } = patch;
+    const { data, error } = await this.db
+      .from("lender_accounts")
+      .update({ ...toRow({ label, notes, numberLast4, numberEnc }), record_version: expectedVersion + 1, updated_by: actor })
+      .eq("id", id)
+      .eq("lender_id", lenderId)
+      .eq("record_version", expectedVersion)
+      .select(LENDER_ACCOUNT_COLUMNS)
+      .maybeSingle();
+    failDirectory(error, "Lender account");
+    if (!data) throw new ConcurrentUpdateError("Lender account");
+    return fromRow<LenderAccount>(data as unknown as Row, ACCOUNT_NUM);
+  }
+
+  async deleteLenderAccount(lenderId: string, id: string): Promise<void> {
+    const { data, error } = await this.db.from("lender_accounts").delete().eq("id", id).eq("lender_id", lenderId).select("id");
+    failDirectory(error, "Lender account");
+    if (!((data ?? []) as Row[]).length) throw new GuardError(ACCOUNT_NOT_FOUND);
   }
 
   // Packages ------------------------------------------------------------------------

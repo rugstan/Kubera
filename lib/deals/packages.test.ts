@@ -10,7 +10,7 @@ import { hashShareToken, resolveShareLink, tokenMatches } from "./share-links";
 import { MemoryDealHoldStore } from "@/lib/screening/store";
 import { syncDealHoldStatus } from "./holds";
 import { advanceDeal } from "./service";
-import { docs, lenderInput, newDeal, noHolds, setup } from "./test-fixtures";
+import { addPrimaryContact, docs, lenderInput, newDeal, noHolds, setup } from "./test-fixtures";
 
 const base = "https://corincommercial.com";
 
@@ -23,7 +23,7 @@ async function world(gateDefault: "approved" | "pending" | "rejected" | "expired
   const ctx = setup(gateDefault);
   const deal = await newDeal(ctx.store, ctx.now);
   const lender = await ctx.store.insertLender(lenderInput(), "broker:ana", ctx.now());
-  const other = await ctx.store.insertLender(lenderInput({ name: "Greystone", contactEmail: "desk@greystone.example" }), "broker:ana", ctx.now());
+  const other = await ctx.store.insertLender(lenderInput({ name: "Greystone", submissionEmail: "desk@greystone.example" }), "broker:ana", ctx.now());
   return { ...ctx, deal, lender, other };
 }
 
@@ -249,8 +249,39 @@ describe("checking a pending submission", () => {
   it("explains a changed lender contact instead of failing generically", async () => {
     const { store, gate, now, deal, lender } = await queued();
     const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
-    await store.updateLender(lender.id, { contactEmail: "new@cambridge.example" }, "a", now());
+    await store.updateLender(lender.id, { submissionEmail: "new@cambridge.example" }, "a", now());
     await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, a.outreach.id, "a")).rejects.toThrow(/contact email changed/);
+  });
+
+  it("explains a changed primary contact email the same way", async () => {
+    const { store, gate, now, deal, lender } = await queued();
+    const dana = await addPrimaryContact(store, lender.id, { fullName: "Dana Lee", email: "dana.lee@cambridge.example" });
+    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    await store.updateLenderContact(lender.id, dana.id, dana.recordVersion, { email: "dana@new-cambridge.example" }, "a", now());
+    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, a.outreach.id, "a")).rejects.toThrow(/contact email changed/);
+  });
+
+  it("mails the primary contact and greets by name", async () => {
+    const { store, gate, service, approve, now, deal, lender } = await queued();
+    await addPrimaryContact(store, lender.id, { fullName: "Dana Lee", email: "dana.lee@cambridge.example" });
+    const m = mailer();
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    expect((await service.getByKey(first.outreach.approvalKey))!.payload).toMatchObject({ to: "dana.lee@cambridge.example" });
+    await approve((await service.getByKey(first.outreach.approvalKey))!.id);
+    await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    expect(m.sent).toHaveLength(1);
+    expect(m.sent[0]!.to).toBe("dana.lee@cambridge.example");
+    expect(m.sent[0]!.text.startsWith("Dana Lee,")).toBe(true);
+  });
+
+  it("falls back to the submission inbox with Hello,", async () => {
+    const { store, gate, service, approve, now, deal, lender } = await queued();
+    const m = mailer();
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    await approve((await service.getByKey(first.outreach.approvalKey))!.id);
+    await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    expect(m.sent[0]!.to).toBe("dana@lender.example");
+    expect(m.sent[0]!.text.startsWith("Hello,")).toBe(true);
   });
 });
 

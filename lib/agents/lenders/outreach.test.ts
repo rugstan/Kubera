@@ -63,8 +63,8 @@ async function world(gateDefault: "approved" | "pending" | "rejected" | "expired
   const mailer = new RecordingMailer();
   const storage = new MemoryDocumentStorage();
   const a = await store.insertLender(lenderInput(), "broker:ana", now());
-  const b = await store.insertLender(lenderInput({ name: "Greystone", contactEmail: "kim@greystone.example" }), "broker:ana", now());
-  const c = await store.insertLender(lenderInput({ name: "Out Of Box Capital", contactEmail: "x@oob.example" }), "broker:ana", now());
+  const b = await store.insertLender(lenderInput({ name: "Greystone", submissionEmail: "kim@greystone.example" }), "broker:ana", now());
+  const c = await store.insertLender(lenderInput({ name: "Out Of Box Capital", submissionEmail: "x@oob.example" }), "broker:ana", now());
   await boxes.insertBox(approvedBox(a.id), "broker:ana", now());
   await boxes.insertBox(approvedBox(b.id), "broker:ana", now());
   await boxes.insertBox(approvedBox(c.id, { states: ["TX"] }), "broker:ana", now());

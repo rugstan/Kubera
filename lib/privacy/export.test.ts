@@ -111,6 +111,24 @@ describe("buildSubjectExport", () => {
   });
 });
 
+describe("lender contacts", () => {
+  it("exports the person's lender contact records by email, any case, with the lender's name and no account data", async () => {
+    const db = new MemoryPrivacyDb();
+    const lender = db.insertRow("lender_panel", { name: "Cambridge Realty Capital", contact_email: null });
+    db.insertRow("lender_contacts", { created_at: "2026-11-01T00:00:00Z", lender_id: lender.id, full_name: "Dana Lee", title: "VP", role: "account_executive", email: "Dana@Cambridge.example", phone_direct: "+13105550100", status: "active", source: "staff", created_by: "staff:a", record_version: 1 });
+    db.insertRow("lender_contacts", { created_at: "2026-11-01T00:00:00Z", lender_id: lender.id, full_name: "Kim Park", email: "kim@cambridge.example", status: "active", source: "staff" });
+    db.insertRow("lender_accounts", { lender_id: lender.id, kind: "broker_id", label: "Broker ID", number_enc: "pii1.1.AAAAAAAAAAAAAAAA.abc.AAAAAAAAAAAAAAAAAAAAAA", number_last4: "0937" });
+    const doc = await buildSubjectExport(db, "dana@CAMBRIDGE.example", { now: new Date("2026-11-20T00:00:00Z") });
+    expect(doc.records.lenderContacts).toHaveLength(1);
+    expect(doc.records.lenderContacts[0]).toMatchObject({ lender_name: "Cambridge Realty Capital", full_name: "Dana Lee", email: "Dana@Cambridge.example", phone_direct: "+13105550100" });
+    expect(doc.records.lenderContacts[0]).not.toHaveProperty("created_by");
+    expect(doc.records.lenderContacts[0]).not.toHaveProperty("record_version");
+    const json = JSON.stringify(doc);
+    for (const v of ["number_enc", "numberLast4", "number_last4", "pii1.", "Kim Park"]) expect(json).not.toContain(v);
+    expect(doc.about.sources.some((s) => /Lenders we work with/.test(s))).toBe(true);
+  });
+});
+
 describe("exactIlikePattern", () => {
   it("escapes LIKE wildcards so an email matches only itself", () => {
     expect(exactIlikePattern("a_b%c@x.co")).toBe("a\\_b\\%c@x.co");

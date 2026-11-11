@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { EXEMPT_LENDER_CATEGORIES, lenderCategories } from "@/lib/compliance/schemas";
+import { lenderLoanTypes, sortLoanTypes } from "./loan-types";
 import { dealPrograms, feeSplitKinds, type DealProgram, type LenderPanelEntry, type NewLender } from "./types";
 
 /** Appetite older than this is stale (VERIFY with the desk: 180 days). */
@@ -27,6 +28,7 @@ export const lenderInputSchema = z
     category: z.enum(lenderCategories),
     categoryEvidenceRef: z.string().trim().max(200).nullable().default(null),
     programs: z.array(z.enum(dealPrograms)).min(1, "Pick at least one program"),
+    loanTypes: z.array(z.enum(lenderLoanTypes)).max(lenderLoanTypes.length).default([]).transform((t) => sortLoanTypes(t)),
     minLoanCents: z.number().int().nonnegative().nullable().default(null),
     maxLoanCents: z.number().int().nonnegative().nullable().default(null),
     states: z.array(z.string().trim().length(2).toUpperCase()).default([]),
@@ -36,8 +38,6 @@ export const lenderInputSchema = z
     feeSplitKind: z.enum(feeSplitKinds).default("none"),
     feeSplitValue: z.number().finite().nonnegative().default(0),
     feeAgreementRef: z.string().trim().max(300).nullable().default(null),
-    contactName: z.string().trim().max(120).nullable().default(null),
-    contactEmail: z.email().nullable().default(null),
     verifiedAt: z.iso.datetime({ offset: true }).nullable().default(null),
     verifiedBy: z.string().trim().max(120).nullable().default(null),
     active: z.boolean().default(true),
@@ -48,6 +48,11 @@ export const lenderInputSchema = z
     if (l.feeSplitKind !== "none" && !l.feeAgreementRef) ctx.addIssue({ code: "custom", path: ["feeAgreementRef"], message: "A fee split needs the signed fee / correspondent agreement on file" });
   });
 
+/**
+ * A new panel lender (appetite, split, verification). Contacts and contact
+ * info are separate (lib/deals/lender-contacts.ts): the legacy
+ * contactName / contactEmail fields are no longer accepted.
+ */
 export function parseLender(input: unknown): NewLender {
   return lenderInputSchema.parse(input) as NewLender;
 }

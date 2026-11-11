@@ -8,7 +8,7 @@ import { gotoHydrated } from "./helpers";
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 type Violation = { id: string; impact: string | null; nodes: { target: string[] }[] };
 
-const PAGES = ["/deals", "/deals/lenders", "/deals/dre", "/deals/00000000-0000-4000-8000-000000000001"];
+const PAGES = ["/deals", "/deals/lenders", "/deals/lenders/20000000-0000-4000-8000-000000000001", "/deals/dre", "/deals/00000000-0000-4000-8000-000000000001"];
 
 test.describe("deal desk without a staff session", () => {
   for (const path of PAGES) {
@@ -20,6 +20,13 @@ test.describe("deal desk without a staff session", () => {
       await expect(page.getByRole("table")).toHaveCount(0);
     });
   }
+
+  test("a filtered lender panel URL also asks for sign-in and shows no lender", async ({ page }) => {
+    await gotoHydrated(page, "/deals/lenders?type=dscr&q=fund");
+    await expect(page).toHaveURL((url) => url.pathname === "/login" && (url.searchParams.get("next") ?? "").startsWith("/deals/lenders"));
+    await expect(page.getByRole("table")).toHaveCount(0);
+    await expect(page.getByText("Sample DSCR Lender (demo)")).toHaveCount(0);
+  });
 
   test("has no serious or critical axe violations and no horizontal scroll at 390px", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 });

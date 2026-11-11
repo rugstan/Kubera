@@ -1,6 +1,7 @@
 // Presentational pieces shared by the deal desk pages (server components).
 
 import Link from "next/link";
+import { LENDER_LOAN_TYPE_GROUPS, LENDER_LOAN_TYPE_LABELS, LENDER_LOAN_TYPE_SHORT_LABELS, type LenderLoanType } from "@/lib/deals/loan-types";
 import { formatCents } from "@/lib/deals/money";
 
 export function money(cents: number | null | undefined): string {
@@ -82,15 +83,64 @@ export function Loading({ label }: { label: string }) {
   );
 }
 
-export function Field({ label, name, type = "text", defaultValue, required, placeholder, step, hint }: { label: string; name: string; type?: string; defaultValue?: string | number | null; required?: boolean; placeholder?: string; step?: string; hint?: string }) {
-  const hintId = hint ? `${name}-hint` : undefined;
+type FieldProps = {
+  label: string;
+  name: string;
+  type?: string;
+  defaultValue?: string | number | null;
+  required?: boolean;
+  placeholder?: string;
+  step?: string;
+  hint?: string;
+  autoComplete?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  spellCheck?: boolean;
+  /** Makes the hint id `${idPrefix}-${name}-hint`; per-row forms pass one so ids never repeat. */
+  idPrefix?: string;
+  /** Asks password managers not to offer to fill or save this field (account numbers). */
+  passwordManagerIgnore?: boolean;
+};
+
+export function Field({ label, name, type = "text", defaultValue, required, placeholder, step, hint, autoComplete, inputMode, maxLength, spellCheck, idPrefix, passwordManagerIgnore }: FieldProps) {
+  const hintId = hint ? `${idPrefix ? `${idPrefix}-` : ""}${name}-hint` : undefined;
+  const ignore = passwordManagerIgnore ? { "data-1p-ignore": "true", "data-lpignore": "true", "data-bwignore": "true", "data-form-type": "other" } : {};
   return (
     <label className="block">
       <span className="field-label">
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
       </span>
-      <input aria-describedby={hintId} className="field" defaultValue={defaultValue ?? undefined} name={name} placeholder={placeholder} required={required} step={step} type={type} />
+      <input
+        aria-describedby={hintId}
+        autoComplete={autoComplete}
+        className="field"
+        defaultValue={defaultValue ?? undefined}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        spellCheck={spellCheck}
+        step={step}
+        type={type}
+        {...ignore}
+      />
+      {hint ? (
+        <span className="mt-1 block text-xs text-titanium" id={hintId}>
+          {hint}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+export function TextArea({ label, name, defaultValue, maxLength, hint, rows = 4, idPrefix }: { label: string; name: string; defaultValue?: string | null; maxLength?: number; hint?: string; rows?: number; idPrefix?: string }) {
+  const hintId = hint ? `${idPrefix ? `${idPrefix}-` : ""}${name}-hint` : undefined;
+  return (
+    <label className="block">
+      <span className="field-label">{label}</span>
+      <textarea aria-describedby={hintId} className="field" defaultValue={defaultValue ?? undefined} maxLength={maxLength} name={name} rows={rows} />
       {hint ? (
         <span className="mt-1 block text-xs text-titanium" id={hintId}>
           {hint}
@@ -132,9 +182,9 @@ export function Check({ label, name, defaultChecked }: { label: string; name: st
  * than its container wraps instead, so long action names ("Check waiting
  * outreach for broker decisions") never widen a 390px layout (WCAG 1.4.10).
  */
-export function Submit({ children, tone = "primary", name, value }: { children: React.ReactNode; tone?: "primary" | "glass"; name?: string; value?: string }) {
+export function Submit({ children, tone = "primary", name, value, ariaLabel }: { children: React.ReactNode; tone?: "primary" | "glass"; name?: string; value?: string; ariaLabel?: string }) {
   return (
-    <button className={`pill ${tone === "primary" ? "pill-primary" : "pill-glass"} min-h-11 max-w-full whitespace-normal text-center`} name={name} type="submit" value={value}>
+    <button aria-label={ariaLabel} className={`pill ${tone === "primary" ? "pill-primary" : "pill-glass"} min-h-11 max-w-full whitespace-normal text-center`} name={name} type="submit" value={value}>
       {children}
     </button>
   );
@@ -171,5 +221,51 @@ export function Table({ head, rows, empty, label }: { head: string[]; rows: Reac
         </tbody>
       </table>
     </div>
+  );
+}
+
+const CHIP =
+  "group inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border border-black/30 px-3 py-2 text-sm font-medium text-ink/80 transition hover:border-black/50 sm:gap-2 sm:px-4 has-[input:checked]:border-accent has-[input:checked]:bg-accent/10 has-[input:checked]:text-accent-hover has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-accent";
+
+/**
+ * Loan-type checkboxes as chips, grouped by LENDER_LOAN_TYPE_GROUPS. Native checkboxes in a
+ * GET form. Below the sm breakpoint the chips use the short labels ("DSCR", "Bank / CU") and
+ * tighter padding, so the 14 chips wrap two or three to a row instead of one.
+ */
+export function LoanTypeFieldset({ legend, name, selected, counts }: { legend: string; name: string; selected: readonly LenderLoanType[]; counts?: Record<LenderLoanType, number> }) {
+  return (
+    <fieldset>
+      <legend className="field-label">{legend}</legend>
+      <div className="mt-1 grid gap-3">
+        {LENDER_LOAN_TYPE_GROUPS.map((g) => (
+          <fieldset key={g.label}>
+            <legend className="text-xs font-medium uppercase tracking-wide text-titanium">{g.label}</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {g.types.map((t) => (
+                <label className={CHIP} key={t}>
+                  <input className="size-4 accent-[var(--color-accent)]" defaultChecked={selected.includes(t)} name={name} type="checkbox" value={t} />
+                  <span className="hidden sm:inline">{LENDER_LOAN_TYPE_LABELS[t]}</span>
+                  <span className="sm:hidden">{LENDER_LOAN_TYPE_SHORT_LABELS[t]}</span>
+                  {counts ? <span className="text-titanium group-has-[input:checked]:text-accent-hover">({counts[t]})</span> : null}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+export function LoanTypeBadges({ types, empty = "No loan types" }: { types: readonly LenderLoanType[]; empty?: string }) {
+  if (!types.length) return <span className="text-xs text-titanium">{empty}</span>;
+  return (
+    <ul aria-label="Loan types" className="flex flex-wrap gap-1">
+      {types.map((t) => (
+        <li key={t}>
+          <Badge>{LENDER_LOAN_TYPE_SHORT_LABELS[t]}</Badge>
+        </li>
+      ))}
+    </ul>
   );
 }

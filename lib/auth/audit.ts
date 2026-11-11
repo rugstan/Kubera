@@ -28,6 +28,9 @@ export const AUDIT_ACTIONS = [
   "privacy.legal_hold_set",
   "privacy.legal_hold_release",
   "privacy.step_up_failed",
+  // Lender account numbers (lib/deals/lender-directory.ts): the reveal is written before the value is decrypted.
+  "lender.account_reveal",
+  "lender.account_reveal_denied",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

@@ -171,7 +171,7 @@ function scoreBox(box: CreditBox, lender: LenderPanelEntry, deal: DealProfile, n
 
   if (deal.franchise && box.franchiseRequirements) warnings.push(`Flag requirements: ${box.franchiseRequirements}`);
   if (!EXEMPT_LENDER_CATEGORIES.has(lender.category) || !lender.categoryEvidenceRef) warnings.push("Not an evidenced exempt lender category: the usury gate applies above the art. XV cap.");
-  if (!lender.contactEmail) warnings.push("No contact email on the panel record; the broker sends the share link by hand.");
+  if (!lender.contactEmail) warnings.push("No primary contact email or submission inbox on the panel record; the broker sends the share link by hand.");
   return { score: Math.round(Math.min(100, score) * 10) / 10, reasons, warnings };
 }
 

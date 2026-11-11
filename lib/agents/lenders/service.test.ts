@@ -3,7 +3,7 @@ import { createGateway } from "@/lib/ai/gateway";
 import { FakeModelProvider } from "@/lib/ai/gateway/fake";
 import { MemoryTracer } from "@/lib/langfuse";
 import { sendPackageToLender } from "@/lib/deals/packages";
-import { docs, lenderInput, newDeal, noHolds, setup } from "@/lib/deals/test-fixtures";
+import { docs, lenderInput, newDeal, noHolds, setup, toPanelEntry } from "@/lib/deals/test-fixtures";
 import { buildPdf } from "@/lib/agents/documents/parse/pdf";
 import { harness } from "@/lib/agents/documents/testing";
 import { documentCleanHandler } from "@/lib/agents/documents/workflow";
@@ -44,7 +44,7 @@ const partner = (id: string, profile: Record<string, unknown>, over: Partial<Par
 async function world() {
   const { store: desk, gate, now, clock } = setup("approved");
   const boxes = new MemoryLenderMatchStore();
-  const lender = await desk.insertLender(lenderInput({ partnerId: "p-1", contactEmail: "dana@readycap.example", name: "Ready Capital" }), "broker:ana", now());
+  const lender = await desk.insertLender(lenderInput({ partnerId: "p-1", submissionEmail: "dana@readycap.example", name: "Ready Capital" }), "broker:ana", now());
   const deal = await newDeal(desk, now);
   return { desk, gate, now, clock, boxes, lender, deal };
 }
@@ -230,10 +230,24 @@ describe("term sheets → quotes", () => {
   });
 
   it("matches senders by domain, then by stated name", () => {
-    const lenders = [lenderInput({ name: "Ready Capital", contactEmail: "dana@readycap.example" }), lenderInput({ name: "Greystone", contactEmail: "kim@greystone.example" })].map((l, i) => ({ ...l, id: `l${i}`, createdAt: "", updatedAt: "", updatedBy: null }));
+    const lenders = [lenderInput({ name: "Ready Capital", submissionEmail: "dana@readycap.example" }), lenderInput({ name: "Greystone", submissionEmail: "kim@greystone.example" })].map((l, i) => toPanelEntry(l, `l${i}`));
     expect(resolveLender({ fromAddress: "chris@READYCAP.example", fromName: null }, null, lenders)?.id).toBe("l0");
     expect(resolveLender({ fromAddress: "banker@gmail.com", fromName: null }, "Greystone & Co", lenders)?.id).toBe("l1");
     expect(resolveLender({ fromAddress: "banker@gmail.com", fromName: null }, null, lenders)).toBeNull();
+  });
+
+  it("matches a sender at any active contact's domain, falls through to the name when two lenders share it, and ignores contacts who left", () => {
+    const ready = toPanelEntry(lenderInput({ name: "Ready Capital", submissionEmail: "deals@readycap.example" }), "l0", [
+      { id: "c1", fullName: "Dana", email: "dana@readycap.example", isPrimary: true, status: "active" },
+      { id: "c2", fullName: "Sam", email: "sam@readycap-sba.example", isPrimary: false, status: "active" },
+      { id: "c3", fullName: "Gone", email: "gone@old-desk.example", isPrimary: false, status: "left" },
+    ]);
+    const grey = toPanelEntry(lenderInput({ name: "Greystone", submissionEmail: "kim@greystone.example" }), "l1");
+    const shared = toPanelEntry(lenderInput({ name: "Arbor Realty", submissionEmail: "x@greystone.example" }), "l2");
+    expect(resolveLender({ fromAddress: "chris@readycap-sba.example", fromName: null }, null, [ready, grey])?.id).toBe("l0");
+    expect(resolveLender({ fromAddress: "pat@old-desk.example", fromName: null }, null, [ready, grey])).toBeNull();
+    expect(resolveLender({ fromAddress: "kim@greystone.example", fromName: null }, null, [ready, grey, shared])).toBeNull();
+    expect(resolveLender({ fromAddress: "kim@greystone.example", fromName: null }, "Arbor Realty Trust", [ready, grey, shared])?.id).toBe("l2");
   });
 });
 

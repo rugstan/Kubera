@@ -107,7 +107,7 @@ describe("matchLenders", () => {
   it("warns about non-exempt lenders and missing contacts", () => {
     const r = matchLenders({ profile: profile(), boxes: [creditBox()], lenders: [panelLender({ category: "PRIVATE_NON_EXEMPT", contactEmail: null })], now: NOW });
     expect(r.ranked[0]!.warnings.join(" ")).toMatch(/usury gate applies/);
-    expect(r.ranked[0]!.warnings.join(" ")).toMatch(/No contact email/);
+    expect(r.ranked[0]!.warnings.join(" ")).toMatch(/No primary contact email or submission inbox on the panel record/);
   });
 
   it("falls back to the static routing table when no approved box covers the program", () => {

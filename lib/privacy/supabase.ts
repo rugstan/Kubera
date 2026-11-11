@@ -162,6 +162,18 @@ export function supabaseSubjectSource(db: SupabaseClient): SubjectDataSource {
       if (error) fail("newsletter export failed", error);
       return (data ?? []) as unknown as ExportRecord[];
     },
+    async lenderContacts(email) {
+      // Not cols(): lender_name is the joined lender's name, not a column.
+      const { data, error } = await db
+        .from("lender_contacts")
+        .select("id, created_at, full_name, title, role, email, phone_direct, phone_ext, phone_mobile, territory, notes, status, left_at, source, lender:lender_panel(name)")
+        .ilike("email", exactIlikePattern(email))
+        .limit(500);
+      if (error) fail("lender contacts export failed", error);
+      return ((data ?? []) as unknown as (ExportRecord & { lender?: { name?: unknown } | { name?: unknown }[] | null })[])
+        .filter((r) => sameEmail(r.email, email))
+        .map(({ lender, ...r }) => ({ ...r, lender_name: (Array.isArray(lender) ? lender[0]?.name : lender?.name) ?? null }));
+    },
   };
 }
 
