@@ -45,9 +45,10 @@ const BANNED_LABEL = /pass(word|code|phrase)?|\bpwd?\b|\bpin\b|\botp\b|\b[m2]fa\
 export const BANNED_LABEL_MESSAGE = "Corin does not store passwords, PINs, card or Social Security numbers, or bank and wire details.";
 // The label is stored in clear, copied into audit_log and shown to every staff
 // role, so it must never hold the number itself: no restricted value (an
-// account, card, routing or Social Security number, a password) and no run of
-// six or more digits. lender_accounts.label has the same digit-run CHECK.
-export const LABEL_DIGITS_RE = /[0-9]{6}/;
+// account, card, routing or Social Security number, a password) and no six
+// digits in a row, even split by single spaces, dots, hyphens, slashes or
+// underscores ("0001 2345 6789", "021-000-021"). lender_accounts.label has the same CHECK.
+export const LABEL_DIGITS_RE = /[0-9](?:[\s._/-]?[0-9]){5}/;
 export const LABEL_NUMBER_MESSAGE = "Put the number itself in Account number: a label cannot hold an account, card or Social Security number or a password.";
 const NUMBER_SHAPE = /^[A-Za-z0-9][A-Za-z0-9 ._@+\-/#]*$/;
 export const NUMBER_SHAPE_MESSAGE = "Use 1 to 64 letters, digits, spaces and . _ @ + - / #";

@@ -222,6 +222,13 @@ export const nmlsId = z.preprocess(clean(false), z.string().regex(NMLS_RE, "NMLS
 const SECRET_WORD = String.raw`(?:pass(?:word|code|wd|phrase)?|pwd|pw|pin|otp|mfa code|2fa code|one[- ]time code)`;
 const KEPT_WORD = String.raw`(?:in|is|kept|stored|saved|held|located|at|on|under|with|the|a|an|our|managed|shared|see|ask|via|from|reset|resets|expires|expired|required|needed|sent|changes?|changed|rotat[a-z]*|manager|vault|policy|protected)\b`;
 const SECRET_LABEL = new RegExp(String.raw`\b${SECRET_WORD}\b(?:\s*[:=]|\s+(?:-+|–|—|is)\s+(?!${KEPT_WORD})\S)`, "i");
+// "Use pwd Summer2026", "PIN 4821", "pass Summer2026!": a secret word, a space, then a
+// password-like token (four or more characters with a digit in it; for the looser "pass",
+// six or more with a letter and a digit) that is not a word saying where it is kept.
+const SECRET_SPACED = new RegExp(
+  String.raw`\b(?:password|passcode|passwd|passphrase|pwd|pw|pin|otp)\s+(?!${KEPT_WORD})(?=\S*\d)\S{4,}|\bpass\s+(?=\S*[A-Za-z])(?=\S*\d)\S{6,}`,
+  "i",
+);
 // "Login: corin / Summer2026!": a username and a password-like second token (a digit or a symbol).
 // Neither token holds a slash, so a URL after "Sign in:" is not a login.
 const LOGIN_PAIR = /\b(?:log[- ]?in|sign[- ]?in|credentials?|creds|user(?:name)?)\b\s*[:=-]?\s*[^\s/]+\s*\/\s*[^\s/]*[^A-Za-z\s/][^\s/]*/i;
@@ -232,7 +239,7 @@ const BANK_NUMBER = /\b(?:routing|aba|rtn|account|acct|a\/c)\b(?:\s*(?:#|no\.?|n
 /** True when text holds an SSN, card, routing or account number, a date of birth, or a password or login. */
 export function hasRestrictedText(text: string | null | undefined): boolean {
   if (!text) return false;
-  return SECRET_LABEL.test(text) || LOGIN_PAIR.test(text) || BANK_NUMBER.test(text) || detectSensitiveValues(text).some((f) => f.level === "restricted");
+  return SECRET_LABEL.test(text) || SECRET_SPACED.test(text) || LOGIN_PAIR.test(text) || BANK_NUMBER.test(text) || detectSensitiveValues(text).some((f) => f.level === "restricted");
 }
 
 export const restrictedTextMessage = (fieldLabel: string) =>

@@ -206,11 +206,11 @@ describe("lender contacts migration", () => {
     expect(r.new_row).toMatchObject({ submission_instructions: "[redacted]", credentials_location: "[redacted]", main_phone: "+13105550100" });
   });
 
-  it("refuses an account label with a run of six digits", async () => {
+  it("refuses an account label with six digits in a row, even split by spaces or hyphens", async () => {
     const a = await lender("Label");
     const id = "44444444-4444-4444-8444-444444444444";
     const { numberEnc } = sealLenderAccountNumber(id, "SVC-0099887766", createKeyring({ version: 1, key: Buffer.alloc(32, 7) }));
-    for (const label of ["Acct 000123456789", "123456"])
+    for (const label of ["Acct 000123456789", "123456", "Ref 0001 2345 6789", "021-000-021", "000.123.456.789"])
       await expect(db.query(`insert into public.lender_accounts (id, lender_id, kind, label, number_enc, created_by) values ($1, $2, 'other', $3, $4, 'staff:a')`, [id, a, label, numberEnc]), label).rejects.toThrow(/lender_accounts_label_check/);
     await db.query(`insert into public.lender_accounts (id, lender_id, kind, label, number_enc, created_by) values ($1, $2, 'other', 'Servicing 2026', $3, 'staff:a')`, [id, a, numberEnc]);
   });

@@ -145,6 +145,10 @@ describe("restricted text", () => {
       "Password — Summer2026!",
       "pw: Summer2026!",
       "PIN is 4821",
+      "PIN 4821",
+      "Use pwd Summer2026",
+      "password Summer2026!",
+      "pass Summer2026!",
       "Login: corin / Summer2026!",
       "Login: corin/Summer2026!",
       "Use credentials corin@broker.example / Summer2026!",
@@ -181,6 +185,9 @@ describe("restricted text", () => {
       "Accounts over $5,000,000 go to the large-loan desk.",
       "Loan #2024-118 closed in 30 days.",
       "Do not wire funds; the lender never emails wire instructions.",
+      "PIN is sent by text; it is 4 digits.",
+      "Password reset 2026 goes through the vault.",
+      "Two pass reviews before 2026 closings.",
     ];
     for (const ok of fine) expect(problem(() => parseLenderContactInfo({ submissionInstructions: ok })), ok).toBeNull();
     for (const ok of ["1Password > Lenders > Arixa", "Password is in 1Password > Lenders", "LastPass: Lenders folder", "Bitwarden > Shared-Lenders"])

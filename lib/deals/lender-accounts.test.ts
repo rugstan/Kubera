@@ -71,13 +71,13 @@ describe("account number validation", () => {
   });
 
   it("refuses an account, card or Social Security number or a password in the label, which is stored in clear", () => {
-    for (const label of ["Acct 000123456789", "000123456789", "Broker 482109", "SSN 123-45-6789", "Card 4111 1111 1111 1111", "Routing number is 021000021", "pw: Summer2026!"]) {
+    for (const label of ["Acct 000123456789", "000123456789", "Broker 482109", "SSN 123-45-6789", "Card 4111 1111 1111 1111", "Routing number is 021000021", "pw: Summer2026!", "Ref 0001 2345 6789", "000.123.456.789", "Broker 12345 67890", "021-000-021", "ID 4821_09"]) {
       const m = messages(() => parseLenderAccount({ kind: "other", label, number: "CORIN-1" }));
       expect(m, label).toEqual([LABEL_NUMBER_MESSAGE]);
       expect(m.join(" ")).not.toMatch(/0001|6789|1111|Summer/);
     }
     for (const label of ["Portal pw", "PWD", "OTP", "2FA", "Social Security", "Card number", "CVV"]) expect(messages(() => parseLenderAccount({ kind: "other", label, number: "CORIN-1" })), label).toEqual([BANNED_LABEL_MESSAGE]);
-    for (const label of ["Broker ID 2026", "Servicing (Wells, desk 12)", "SBA lender ID", "Portal username"]) expect(parseLenderAccount({ kind: "other", label, number: "CORIN-1" }).label, label).toBe(label);
+    for (const label of ["Broker ID 2026", "Servicing (Wells, desk 12)", "SBA lender ID", "Portal username", "Desk 12 / ext 340"]) expect(parseLenderAccount({ kind: "other", label, number: "CORIN-1" }).label, label).toBe(label);
     // Edits use the same schema.
     expect(messages(() => parseLenderAccount({ kind: "broker_id", label: "Acct 000123456789", number: "" }, { requireNumber: false }))).toEqual([LABEL_NUMBER_MESSAGE]);
   });

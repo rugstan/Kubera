@@ -145,8 +145,9 @@ create table public.lender_accounts (
   record_version integer not null default 1 check (record_version > 0),
   kind text not null check (kind in ('broker_id', 'client_account', 'portal_username', 'other')),
   -- Stored in clear and shown to every staff role, so never the number itself:
-  -- no run of six digits (lib/deals/lender-accounts.ts LABEL_DIGITS_RE).
-  label text not null check (length(label) between 1 and 80 and label = btrim(label) and label !~ '[[:cntrl:]]' and label !~ '[0-9]{6}'),
+  -- no six digits in a row, even split by single spaces, dots, hyphens, slashes
+  -- or underscores (lib/deals/lender-accounts.ts LABEL_DIGITS_RE).
+  label text not null check (length(label) between 1 and 80 and label = btrim(label) and label !~ '[[:cntrl:]]' and label !~ '[0-9]([[:space:]._/-]?[0-9]){5}'),
   number_enc text not null check (number_enc ~ '^pii1\.\d{1,5}\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{22}$'),
   -- Up to the last four letters or digits, fewer for short values (lib/deals/lender-accounts.ts maskHint); not secret.
   number_last4 text check (number_last4 is null or number_last4 ~ '^[A-Za-z0-9]{2,4}$'),
