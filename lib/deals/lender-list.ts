@@ -40,7 +40,7 @@ export const DEFAULT_LENDER_LIST_QUERY: LenderListQuery = { types: [], match: "a
 /** The fields the list reads (contactEmail, mainPhone, primaryContactName come from spec.md's derived contacts). */
 export type LenderListRow = Pick<
   LenderPanelEntry,
-  "id" | "name" | "loanTypes" | "active" | "states" | "assetTypes" | "appetiteNotes" | "minLoanCents" | "maxLoanCents" | "verifiedAt" | "createdAt" | "contactEmail" | "mainPhone" | "primaryContactName"
+  "id" | "name" | "loanTypes" | "active" | "states" | "assetTypes" | "appetiteNotes" | "minLoanCents" | "maxLoanCents" | "verifiedAt" | "createdAt" | "contactEmail" | "generalEmail" | "mainPhone" | "primaryContactName"
 >;
 
 export type SearchInput = URLSearchParams | Record<string, string | string[] | undefined>;
@@ -145,8 +145,9 @@ export function caStatus(l: Pick<LenderPanelEntry, "states" | "appetiteNotes">):
 }
 
 /** A way to reach the lender: the submission recipient (primary contact or inbox) or the main phone. */
-export function hasContactInfo(l: Pick<LenderPanelEntry, "contactEmail" | "mainPhone">): boolean {
-  return Boolean(l.contactEmail || l.mainPhone);
+/** Reachable: a submission recipient, a general inbox or a main phone (the list's Contact column shows the same three). */
+export function hasContactInfo(l: Pick<LenderPanelEntry, "contactEmail" | "generalEmail" | "mainPhone">): boolean {
+  return Boolean(l.contactEmail || l.generalEmail || l.mainPhone);
 }
 
 export function normalizeForSearch(s: string): string {
