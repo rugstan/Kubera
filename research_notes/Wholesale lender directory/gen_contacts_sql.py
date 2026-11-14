@@ -182,6 +182,9 @@ for rec in records:
     seen.add(rid)
     if rec.get("status") is None or "NOT RESEARCHED" in (rec.get("notes") or ""):  # a later round fills it
         continue
+    if rec.get("confidence") == "low":  # blank beats wrong: kept in the research file, not loaded
+        warn(rec, "low confidence, not loaded")
+        continue
     is_routed = rid in ROUTED
     if not is_routed and not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", rid or ""):
         warn(rec, "unknown id")
