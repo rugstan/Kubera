@@ -75,6 +75,7 @@ def text(v, limit):
     return v if len(v) <= limit else v[: limit - 1].rstrip(" ,;") + "…"
 
 
+KEYPAD = str.maketrans({c: d for d, letters in {"2": "ABC", "3": "DEF", "4": "GHI", "5": "JKL", "6": "MNO", "7": "PQRS", "8": "TUV", "9": "WXYZ"}.items() for c in letters})
 EXT_RE = re.compile(r"\s*(?:x|ext\.?|extension)\s*(\d{1,6})\s*$", re.I)
 
 
@@ -91,6 +92,8 @@ def phone(v, rec, what):
     if not isinstance(v, str) or not v.strip():
         return None
     v, _ = split_ext(v)
+    # Vanity numbers: 1-888-PNC-BANK -> 18887622265 (phone keypad letters).
+    v = v.upper().translate(KEYPAD) if re.fullmatch(r"[\d\s().+-]*[A-Z][A-Z\s.-]*", v.upper()) else v
     digits = re.sub(r"\D", "", v)
     if len(digits) == 11 and digits.startswith("1"):
         digits = digits[1:]
