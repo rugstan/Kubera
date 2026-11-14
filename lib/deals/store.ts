@@ -135,6 +135,8 @@ export interface DealDeskStore {
   // Lender accounts (lender_accounts; number sealed)
   /** Never returns numberEnc. */
   listLenderAccounts(lenderId: string): Promise<LenderAccount[]>;
+  /** Every lender's accounts, for the panel list's "Our account #" column. Never returns numberEnc. */
+  listAllLenderAccounts(): Promise<LenderAccount[]>;
   /** The reveal path only (lib/deals/lender-directory.ts). */
   getLenderAccountSecret(lenderId: string, id: string): Promise<LenderAccountSecret | null>;
   insertLenderAccount(input: NewLenderAccount, actor: string, now: Date): Promise<LenderAccount>;
@@ -460,6 +462,10 @@ export class MemoryDealDeskStore implements DealDeskStore {
 
   async listLenderAccounts(lenderId: string): Promise<LenderAccount[]> {
     return sortLenderAccounts([...this.lenderAccounts.values()].filter((a) => a.lenderId === lenderId)).map(MemoryDealDeskStore.publicAccount);
+  }
+
+  async listAllLenderAccounts(): Promise<LenderAccount[]> {
+    return sortLenderAccounts([...this.lenderAccounts.values()]).map(MemoryDealDeskStore.publicAccount);
   }
 
   async getLenderAccountSecret(lenderId: string, id: string): Promise<LenderAccountSecret | null> {

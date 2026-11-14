@@ -41,6 +41,7 @@ function row(over: Partial<LenderListRow> = {}): LenderListRow {
     verifiedAt: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     contactEmail: null,
+    generalEmail: null,
     mainPhone: null,
     primaryContactName: null,
     ...over,
@@ -174,10 +175,11 @@ describe("filterLenders", () => {
       row({ name: "Inactive", active: false, mainPhone: "+13105550100" }),
       row({ name: "Unconfirmed", appetiteNotes: "| Lends in CA: Unconfirmed" }),
       row({ name: "Nevada", states: ["NV"] }),
+      row({ name: "General inbox", states: ["NV"], generalEmail: "info@x.example" }),
     ];
-    expect(names(filterLenders(rows, q({ activeOnly: true })))).toEqual(["Active CA", "Unconfirmed", "Nevada"]);
+    expect(names(filterLenders(rows, q({ activeOnly: true })))).toEqual(["Active CA", "Unconfirmed", "Nevada", "General inbox"]);
     expect(names(filterLenders(rows, q({ lendsInCa: true })))).toEqual(["Active CA", "Inactive"]);
-    expect(names(filterLenders(rows, q({ hasContact: true })))).toEqual(["Active CA", "Inactive"]);
+    expect(names(filterLenders(rows, q({ hasContact: true })))).toEqual(["Active CA", "Inactive", "General inbox"]);
   });
 
   it("keeps lenders whose size covers the amount, and those with unknown bounds", () => {

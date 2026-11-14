@@ -28,6 +28,8 @@ Source data for `reports/Wholesale lender directory.xlsx` and its summary, `repo
 | `build_workbook.py` | Builds the workbook from everything above |
 | `gen_report.py` | Writes the markdown summary from the finished workbook |
 | `gen_seed_sql.py` | Writes a database migration that loads the workbook into the staff Lender panel and Credit boxes |
+| `research3_contacts/` | Round 3 (2026-11-14): each lender's public phone, inboxes, broker page, HQ and named contacts; see its README |
+| `gen_contacts_sql.py` | Writes the migration that fills blank lender contact details from `research3_contacts/contacts.json` |
 
 Each JSON file has `lenders` and `excluded` lists. Some also carry the analyst's notes and any names left unresearched.
 

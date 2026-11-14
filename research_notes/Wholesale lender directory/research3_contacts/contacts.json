@@ -1,0 +1,3469 @@
+[
+ {
+  "id": "98c87f0d-4cd7-5b0d-9042-15ccf26f2ea5",
+  "name": "3650 Capital",
+  "status": "active",
+  "website_url": "https://3650capital.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Miami",
+   "state": "FL",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Jake Stahler",
+    "title": "Managing Director, Co-Head of Fixed Rate Lending (national originations), New York office",
+    "email": null,
+    "phone": null,
+    "source_url": "https://3650capital.com/portfolio-item/jake-stahler/"
+   },
+   {
+    "full_name": "Michael Fleischer",
+    "title": "Deputy Chief Investment Officer, head of Real Estate Credit Solutions",
+    "email": null,
+    "phone": null,
+    "source_url": "https://3650capital.com/portfolio-item/michael-fleischer/"
+   }
+  ],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": "https://3650capital.com/debt/"
+  },
+  "confidence": "medium",
+  "notes": "Formerly 3650 REIT (renamed 3650 Capital c. 2025). Lender site search surfaced no phone, email or contact page. Third-party directories (not accepted sources) list 305-901-1010 and 2977 McFarlane Rd, Suite 300, Miami, FL 33133; confirm before use. No broker program page found."
+ },
+ {
+  "id": "4cc59312-c8f8-5d53-be57-616066866765",
+  "name": "818 Capital Partners",
+  "status": "active",
+  "website_url": "https://www.818capitalpartners.com",
+  "main_phone": "(917) 993-9194",
+  "main_phone_ext": null,
+  "main_phone_label": "broker desk / deals",
+  "general_email": null,
+  "submission_email": "deals@818capitalpartners.com",
+  "broker_page_url": "https://www.818capitalpartners.com/guides/broker",
+  "hq": {
+   "line1": "110 Wall Street",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10005"
+  },
+  "contacts": [
+   {
+    "full_name": "Ravi Punn",
+    "title": "Founder & Principal",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.818capitalpartners.com/guides/broker"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.818capitalpartners.com/guides/broker",
+   "general_email": null,
+   "submission_email": "https://www.818capitalpartners.com/guides/broker",
+   "broker_page_url": "https://www.818capitalpartners.com/guides/broker",
+   "hq": "https://www.818capitalpartners.com/about",
+   "website_url": "https://www.818capitalpartners.com/"
+  },
+  "confidence": "high",
+  "notes": "NMLS #2832335. Broker comp up to 3 points; broker dealroom at dealroom.818capitalpartners.com. Collateral PDFs (supabase-hosted) reference a sign-up page at 818capitalpartners.com/broker-program. Describes itself as a direct lender with a 'best-execution panel' of anonymized capital partners; one trade listing calls it a lending brokerage, so confirm it funds as principal. Appears to be a new firm."
+ },
+ {
+  "id": "5c3db6cc-1def-5762-89af-4f3d15ba2f08",
+  "name": "A&D Mortgage",
+  "status": "active",
+  "website_url": "https://admortgage.com",
+  "main_phone": "(855) 710-7100",
+  "main_phone_ext": null,
+  "main_phone_label": "sales (broker)",
+  "general_email": "sales@admortgage.com",
+  "submission_email": "partnersupport@admortgage.com",
+  "broker_page_url": "https://admortgage.com/wp-content/uploads/Become_a_Preferred_Broker_AD_Products.pdf",
+  "hq": {
+   "line1": "899 W Cypress Creek Rd",
+   "city": "Fort Lauderdale",
+   "state": "FL",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://admortgage.com/wp-content/uploads/Become_a_Preferred_Broker_AD_Products.pdf",
+   "general_email": "https://admortgage.com/contacts/",
+   "submission_email": "https://admortgage.com/contacts/",
+   "broker_page_url": "https://admortgage.com/wp-content/uploads/Become_a_Preferred_Broker_AD_Products.pdf",
+   "hq": "https://admortgage.com/wp-content/uploads/Become_a_Preferred_Broker_AD_Products.pdf",
+   "website_url": "https://admortgage.com/contacts/"
+  },
+  "confidence": "high",
+  "notes": "Contacts page also lists main office 1-305-760-7000, toll-free 1-855-ADLOANS (855-235-6267) and Partner Support 1-855-510-5100 (weekdays 8am-9pm ET). Sales line 855-710-7100 is from the broker flyer; the contacts page layout is ambiguous, so confirm. partnersupport@ is for broker partners, not a stated deal-submission inbox."
+ },
+ {
+  "id": "575526b5-7826-56f3-a00d-e8f5a5d038cd",
+  "name": "A10 Capital",
+  "status": "active",
+  "website_url": "https://www.a10capital.com",
+  "main_phone": "(877) 577-5055",
+  "main_phone_ext": null,
+  "main_phone_label": "main (toll-free)",
+  "general_email": "info@a10capital.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "800 W. Main Street, Suite 1100",
+   "city": "Boise",
+   "state": "ID",
+   "zip": "83702"
+  },
+  "contacts": [
+   {
+    "full_name": "Joe Gomez",
+    "title": "Senior Director, Capital Markets & Originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://a10capital.com/team/joe-gomez"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://a10capital.com/contact",
+   "general_email": "https://a10capital.com/contact",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://a10capital.com/contact",
+   "website_url": "https://a10capital.com/contact"
+  },
+  "confidence": "high",
+  "notes": "Privacy notice lists (208) 577-5000. A10 originates bridge and fixed-rate loans largely through mortgage brokers (per its originations job posting) but no dedicated broker page or submission inbox was found."
+ },
+ {
+  "id": "3f677646-f463-5984-98ab-3b225f00f398",
+  "name": "Access Point Financial",
+  "status": "active",
+  "website_url": "https://accesspointfinancial.com",
+  "main_phone": "(844) 335-0444",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@accesspointfinancial.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1 Ravinia Drive, 9th Floor",
+   "city": "Atlanta",
+   "state": "GA",
+   "zip": "30346"
+  },
+  "contacts": [
+   {
+    "full_name": "Dan Zagoria",
+    "title": "Managing Director, Business Development",
+    "email": "dzagoria@accesspointfinancial.com",
+    "phone": null,
+    "source_url": "https://accesspointfinancial.com/contact-us/"
+   },
+   {
+    "full_name": "Michelle O'Brien",
+    "title": "Managing Director, Structured Finance (listed under Business Development)",
+    "email": "mobrien@accesspointfinancial.com",
+    "phone": null,
+    "source_url": "https://accesspointfinancial.com/contact-us/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://accesspointfinancial.com/contact-us/",
+   "general_email": "https://accesspointfinancial.com/contact-us/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://accesspointfinancial.com/contact-us/",
+   "website_url": "https://accesspointfinancial.com/"
+  },
+  "confidence": "high",
+  "notes": "Contact page also lists 404.382.9599. Hotel-only direct lender (bridge/PIP up to $25M, construction $10-30M, mezz, pref equity). No territory assignments published; other BD MDs: James Reivitis, Nicholas Meli. Contact page about 8 months old; confirm."
+ },
+ {
+  "id": "faa1d6f2-8d65-53b0-938f-d697a32e8033",
+  "name": "ACORE Capital",
+  "status": "active",
+  "website_url": "https://acorecapital.com",
+  "main_phone": "(415) 917-4400",
+  "main_phone_ext": null,
+  "main_phone_label": "San Francisco office",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "39 Mesa Street, Suite 109",
+   "city": "San Francisco",
+   "state": "CA",
+   "zip": "94129"
+  },
+  "contacts": [
+   {
+    "full_name": "Dimitar Goulev",
+    "title": "Managing Director, Los Angeles office (West Coast & Mountain States originations)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://acorecapital.com/leadership/dimitar-goulev/"
+   },
+   {
+    "full_name": "Tony Fineman",
+    "title": "Senior Managing Director, Head of Originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://acorecapital.com/leadership/tony-fineman/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://acorecapital.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://acorecapital.com/contact/",
+   "website_url": "https://acorecapital.com/contact/"
+  },
+  "confidence": "high",
+  "notes": "Contact page lists five offices: New York (1177 Ave of the Americas, Ste 0200, 212.235.1280), Los Angeles (11601 Wilshire Blvd, Ste 2400, 90025, 424.346.6100 - the earlier known phone), Miami, San Francisco, Dallas. Which office is formal HQ is unclear (NY listed first); SF used per input. No general email or broker page. Scott Swisher (MD, SF, West Coast construction/bridge) appears on an older team page."
+ },
+ {
+  "id": "ce37186e-6dc0-54cb-a32b-b1ba8c984fc6",
+  "name": "Acra Lending",
+  "status": "active",
+  "website_url": "https://acralending.com",
+  "main_phone": "(888) 800-7661",
+  "main_phone_ext": null,
+  "main_phone_label": "wholesale",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": "https://acralending.com/new-broker/",
+  "hq": {
+   "line1": "3 Ada Parkway, Suite 200A",
+   "city": "Irvine",
+   "state": "CA",
+   "zip": "92618"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://acralending.com/contact-us/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": "https://acralending.com/new-broker/",
+   "hq": "https://acralending.com/contact-us/",
+   "website_url": "https://acralending.com/"
+  },
+  "confidence": "high",
+  "notes": "Site email addresses are obfuscated, so none recorded. A 'Thank You' page lists Wholesale Sales (949) 900-6630 and a Lake Forest address; confirm current office. Broker approval needed (broker package, NMLS and state approval; can take about 24h). Submissions go through the broker portal; files emailed to an AE are not treated as submissions. Scenario form: https://acralending.com/submit-a-scenario/. Wholesale form shows NMLS ID 144549."
+ },
+ {
+  "id": "1d000a9b-ebc6-50f3-8796-3c99c7a80cdc",
+  "name": "ACRES Capital",
+  "status": "active",
+  "website_url": "https://acrescap.com",
+  "main_phone": "(516) 243-8686",
+  "main_phone_ext": null,
+  "main_phone_label": "loan origination",
+  "general_email": "acresinfo@acrescap.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "390 RXR Plaza",
+   "city": "Uniondale",
+   "state": "NY",
+   "zip": "11556"
+  },
+  "contacts": [
+   {
+    "full_name": "Marty Reasoner",
+    "title": "Managing Partner, Originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://acrescap.com/who-we-are/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://acrescap.com/contact-us/",
+   "general_email": "https://acrescap.com/contact-us/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://acrescap.com/contact-us/",
+   "website_url": "https://acrescap.com/contact-us/"
+  },
+  "confidence": "high",
+  "notes": "Main line (516) 535-0015 (also used in ACRES press releases). Contact and team pages appear several years old; confirm. Affiliated public REIT is ACRES Commercial Realty Corp. (NYSE: ACR); an unverified third-party note mentions a 2026 acquisition involving the REIT - confirm status."
+ },
+ {
+  "id": "fb34a07d-fe19-5984-bc80-0899f1a9a1d5",
+  "name": "Aegon Asset Management - Aegon Real Assets US",
+  "status": "active",
+  "website_url": "https://www.aegonam.com",
+  "main_phone": "(877) 234-6862",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Cedar Rapids)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "6300 C Street SW",
+   "city": "Cedar Rapids",
+   "state": "IA",
+   "zip": "52499"
+  },
+  "contacts": [
+   {
+    "full_name": "Kevin Connolly",
+    "title": "Managing Director & Production Manager, US Commercial Mortgage Loans (national origination)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.aegonam.com/staff-list/sales/kevin-connolly/"
+   },
+   {
+    "full_name": "Scott Rosburg",
+    "title": "Senior Director, construction-to-permanent loan originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.aegonam.com/staff-list/property/scott-rosburg/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.aegonam.com/about-us/contact-us/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.aegonam.com/about-us/contact-us/",
+   "website_url": "https://www.aegonam.com/funds-resources/real-assets/us-commercial-mortgage-loans/"
+  },
+  "confidence": "high",
+  "notes": "Phone is the corporate main line, not a CML desk. Lends through a network of about 62 mortgage banker correspondents, so a broker may need to route through a correspondent. A LIHTC page gives 6400 C Street SW instead of 6300; confirm. Staff pages 1.5-2.5 years old."
+ },
+ {
+  "id": "6c416673-1801-5012-aae8-c0c328954d6c",
+  "name": "Affinius Capital",
+  "status": "active",
+  "website_url": "https://www.affiniuscapital.com",
+  "main_phone": "(800) 531-8182",
+  "main_phone_ext": null,
+  "main_phone_label": "main (San Antonio HQ)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "9830 Colonnade Blvd., Suite 600",
+   "city": "San Antonio",
+   "state": "TX",
+   "zip": "78230"
+  },
+  "contacts": [
+   {
+    "full_name": "Jeff Fastov",
+    "title": "Co-Head of Debt Origination",
+    "email": null,
+    "phone": null,
+    "source_url": "https://affiniuscapital.com/contact/"
+   },
+   {
+    "full_name": "Eric Cohen",
+    "title": "Managing Director, Co-Head of Debt Origination",
+    "email": null,
+    "phone": null,
+    "source_url": "https://affiniuscapital.com/profile/eric-cohen/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://affiniuscapital.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://affiniuscapital.com/contact/",
+   "website_url": "https://affiniuscapital.com/contact/"
+  },
+  "confidence": "high",
+  "notes": "Contact page lists individual emails for the debt origination co-heads, but the search text describing them was inconsistent, so none recorded; read them off the page. NY office: 277 Park Ave, (212) 605-1000. Michael Lavipour (earlier known contact) is listed as a credit portfolio manager. Lends senior whole loans, stretch firsts, mezz and construction on institutional-quality property."
+ },
+ {
+  "id": "19ba6d95-5dd4-5479-a06c-ccb7b0c52a55",
+  "name": "AGM Financial Services",
+  "status": "active",
+  "website_url": "https://www.agmfinancial.com",
+  "main_phone": "(410) 727-2111",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "20 South Charles Street, Suite 1000",
+   "city": "Baltimore",
+   "state": "MD",
+   "zip": "21201"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.agmfinancial.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.agmfinancial.com/contact/",
+   "website_url": "https://www.agmfinancial.com/"
+  },
+  "confidence": "high",
+  "notes": "Toll-free 800.729.4266 appears across the site. FHA/HUD multifamily and healthcare lender and GNMA seller/servicer since 1990. No published email or broker page found; an MBA council listing names Walid Azzam (VP) and Troy D. Brown (SVP), not confirmed on AGM's site."
+ },
+ {
+  "id": "23815c9e-746c-5d64-b155-4da0aa5b0553",
+  "name": "AllianceBernstein Commercial Real Estate Debt / AB CarVal",
+  "status": "active",
+  "website_url": "https://www.alliancebernstein.com/americas/en/institutions/capabilities/alternatives/us-commercial-real-estate-debt.html",
+  "main_phone": "(615) 622-0000",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Nashville HQ)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "501 Commerce Street",
+   "city": "Nashville",
+   "state": "TN",
+   "zip": "37203"
+  },
+  "contacts": [
+   {
+    "full_name": "Taylor Callaway",
+    "title": "Managing Director, Co-Head of Originations, US Commercial Real Estate Debt (Los Angeles)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.alliancebernstein.com/americas/en/institutions/capabilities/alternatives/us-commercial-real-estate-debt.html"
+   },
+   {
+    "full_name": "Evan Katzin",
+    "title": "Managing Director, Co-Head of Originations, US Commercial Real Estate Debt (New York)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.alliancebernstein.com/americas/en/institutions/capabilities/alternatives/us-commercial-real-estate-debt.html"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.alliancebernstein.com/corporate/en/home/locations.html",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.alliancebernstein.com/corporate/en/home/locations.html",
+   "website_url": "https://www.alliancebernstein.com/americas/en/institutions/capabilities/alternatives/us-commercial-real-estate-debt.html"
+  },
+  "confidence": "high",
+  "notes": "Phone is the corporate HQ line; the Contact Us page lists 800-251-0539 for general inquiries. US-CRED team works from New York and Los Angeles. The team page may list member emails, but search results disagreed on which, so none recorded. Peter J. Gordon is CIO/Head of US-CRED. Large-balance institutional lender; no broker program found. AB CarVal is a separate AB unit, not researched."
+ },
+ {
+  "id": "84df28e3-83f1-542a-82ae-90a4801350d4",
+  "name": "AmPac Business Capital",
+  "status": "active",
+  "website_url": "https://ampac.com",
+  "main_phone": "(909) 915-1706",
+  "main_phone_ext": null,
+  "main_phone_label": "loan applications (SBA 504)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3110 B Inland Empire Blvd.",
+   "city": "Ontario",
+   "state": "CA",
+   "zip": "91764"
+  },
+  "contacts": [
+   {
+    "full_name": "Ed Ryan",
+    "title": "EVP, Director of 504 Sales",
+    "email": null,
+    "phone": "(909) 258-4585",
+    "source_url": "https://ampac.com/about/"
+   },
+   {
+    "full_name": "Mark Morales",
+    "title": "SVP, Community Lending & 504",
+    "email": null,
+    "phone": "(909) 358-4279",
+    "source_url": "https://ampac.com/about/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://ampac.com/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://ampac.com/contact/",
+   "website_url": "https://ampac.com/contact/"
+  },
+  "confidence": "high",
+  "notes": "Contact page also lists 909-752-3140. Emails on the site are obfuscated; the earlier-pass info@ampac.com was not confirmed. Staff lists differ between page versions, so confirm direct lines. The site has a post titled 'A Landmark Merger' (not reviewed); ask about any merger. No broker program found. SBA 504 CDC covering CA, AZ, NV."
+ },
+ {
+  "id": "a4fd588c-30ac-5a67-9b07-7a03172dcc8b",
+  "name": "AVANA Capital",
+  "status": "active",
+  "website_url": "https://avanacapital.com",
+  "main_phone": "(877) 850-5130",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "avanateam@avanacapital.com",
+  "submission_email": null,
+  "broker_page_url": "https://avanacapital.com/who-we-work-with/brokers/",
+  "hq": {
+   "line1": "16150 N Arrowhead Fountains Center Dr., Suite 243",
+   "city": "Peoria",
+   "state": "AZ",
+   "zip": "85382"
+  },
+  "contacts": [
+   {
+    "full_name": "Sanat Patel",
+    "title": "Chief Lending Officer",
+    "email": "sanat@avanacapital.com",
+    "phone": null,
+    "source_url": "https://avanacapital.com/about-us/our-team/"
+   },
+   {
+    "full_name": "Ward Hickey",
+    "title": "SVP, Business Development Officer",
+    "email": "ward.hickey@avanacompanies.com",
+    "phone": null,
+    "source_url": "https://avanacapital.com/about-us/our-team/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://avanacapital.com/connect/",
+   "general_email": "https://avanacapital.com/privacy-policy/",
+   "submission_email": null,
+   "broker_page_url": "https://avanacapital.com/who-we-work-with/brokers/",
+   "hq": "https://avanacapital.com/connect/",
+   "website_url": "https://avanacapital.com/connect/"
+  },
+  "confidence": "high",
+  "notes": "Site also lists sales@avanacompanies.com / 800-894-8328 for questions and 602.903.7414 / inquiries@avanacapital.com for investors. Uses both avanacapital.com and avanacompanies.com email domains. Earlier pass mis-attached avanateam@ to Sanat Patel; it is a general inbox. Arizona-based (not California)."
+ },
+ {
+  "id": "e464942b-33a1-5468-bea6-74ee3472c984",
+  "name": "Bank of Stockton",
+  "status": "active",
+  "website_url": "https://bankofstockton.com",
+  "main_phone": "(209) 929-1600",
+  "main_phone_ext": null,
+  "main_phone_label": "commercial loans",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "301 E. Miner Ave.",
+   "city": "Stockton",
+   "state": "CA",
+   "zip": "95202"
+  },
+  "contacts": [
+   {
+    "full_name": "Claire Brumley Giahos",
+    "title": "VP, Business Banking Officer (Manteca)",
+    "email": null,
+    "phone": "(209) 249-2201",
+    "source_url": "https://bankofstockton.com/commercial-business-bankers"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://bankofstockton.com/contactus",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://dfpi.ca.gov/regulated_entity/bank-of-stockton/",
+   "website_url": "https://bankofstockton.com/"
+  },
+  "confidence": "high",
+  "notes": "Contact page lists Commercial Loans 209-929-1600 (toll-free 800-399-2265) and a separate Real Estate Loans line 209-929-1446. Street address from CA DFPI listing. No broker program found; CRE (acquisition, construction, permanent) handled by business banking officers listed by branch on bankofstockton.com/commercial-business-bankers; directory may be dated."
+ },
+ {
+  "id": "d8f43d3c-f437-5685-8703-5f88ce0c9ace",
+  "name": "Bank of the Sierra",
+  "status": "active",
+  "website_url": "https://www.bankofthesierra.com",
+  "main_phone": "(888) 454-2265",
+  "main_phone_ext": null,
+  "main_phone_label": "main / customer service (listed on commercial lending page)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "86 N. Main St.",
+   "city": "Porterville",
+   "state": "CA",
+   "zip": "93257"
+  },
+  "contacts": [
+   {
+    "full_name": "Tom Lynn",
+    "title": "VP, Senior Commercial Loan Officer, Real Estate Industries Group (Roseville office)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.bankofthesierra.com/bank-of-the-sierra-announces-tom-lynn-as-vp-senior-commercial-loan-officer/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.bankofthesierra.com/business/loans-credit-cards/commercial-lending/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.bankofthesierra.com/locations/porterville-corporate/",
+   "website_url": "https://www.bankofthesierra.com/"
+  },
+  "confidence": "high",
+  "notes": "Phone is 1-888-454-BANK. Mailing address PO Box 1930, Porterville CA 93258. CRE lending runs through the Real Estate Industries group (bankofthesierra.com/business/loans-credit-cards/real-estate-industries/). Tom Lynn announcement dates to ~March 2022; confirm he is still there. No broker program page found."
+ },
+ {
+  "id": "e869c260-f5d7-54d3-8020-96dd2035337b",
+  "name": "Barings Real Estate Debt",
+  "status": "active",
+  "website_url": "https://www.barings.com",
+  "main_phone": "(704) 805-7200",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Charlotte HQ)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "300 South Tryon Street, Suite 2500",
+   "city": "Charlotte",
+   "state": "NC",
+   "zip": "28202"
+  },
+  "contacts": [
+   {
+    "full_name": "Philip Adkins",
+    "title": "Head of U.S. Real Estate Debt Origination",
+    "email": "philip.adkins@barings.com",
+    "phone": "(980) 417-5822",
+    "source_url": "https://www.barings.com/en-us/guest/about/team/philip-adkins"
+   },
+   {
+    "full_name": "Justin Preftakes",
+    "title": "Head of Construction Lending, U.S. Real Estate Debt (New York)",
+    "email": null,
+    "phone": "(212) 973-5124",
+    "source_url": "https://www.barings.com/en-us/institutional/about/team/justin-preftakes"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.barings.com/guest/contact/locations",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.barings.com/guest/contact/locations",
+   "website_url": "https://www.barings.com"
+  },
+  "confidence": "high",
+  "notes": "Barings is an investment manager (MassMutual affiliate) that originates permanent, bridge, structured and construction CRE loans; origination overview at barings.com/en-us/guest/financing-solutions/origination/real-estate/real-estate-debt. No broker sign-up page. Team pages appear several years old; confirm Adkins' direct line/email before use."
+ },
+ {
+  "id": "f0ac44a3-eb02-59dd-aff5-ff8ad3eacf9e",
+  "name": "Basis Investment Group",
+  "status": "active",
+  "website_url": "https://www.basisinvgroup.com",
+  "main_phone": "(212) 842-5712",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@basisinvgroup.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "75 Broad St., Suite 2110",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10004"
+  },
+  "contacts": [
+   {
+    "full_name": "Tammy K. Jones",
+    "title": "Founder & CEO",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.basisinvgroup.com/bio/tammy-k-jones"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.basisinvgroup.com/contact-us",
+   "general_email": "https://www.basisinvgroup.com/contact-us",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.basisinvgroup.com/contact-us",
+   "website_url": "https://www.basisinvgroup.com/"
+  },
+  "confidence": "high",
+  "notes": "Bridge, mezzanine, structured equity and CMBS lending; site routes all lending inquiries to info@. An older contact page shows 180 Maiden Lane Suite 3202 (10038) - 75 Broad St appears current. 2025: origination partnership 'BIG Lion' with Lion Creek Real Estate Capital. In 2026 Basis sold its Fannie/Freddie agency lending platform (Basis Multifamily Finance) to Zions Bancorporation; balance-sheet lending continues."
+ },
+ {
+  "id": "089cda90-bb1a-5267-a9bf-8cebd715592c",
+  "name": "Basis Multifamily Finance",
+  "status": "acquired_or_merged",
+  "website_url": "https://www.basisinvgroup.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "New York",
+   "state": "NY",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://fanniemae.com/newsroom/fannie-mae-news/basis-multifamily-finance-network-dus-lenders",
+   "website_url": "https://zionsbancorporation.com/news-events/press-releases/news-details/2026/Zions-Bancorporation-to-Acquire-Fannie-Mae-and-Freddie-Mac-Business-Line-from-Basis-Investment-Group/default.aspx"
+  },
+  "confidence": "medium",
+  "notes": "Basis Multifamily Finance I, LLC (subsidiary of Basis Investment Group) became a Fannie Mae DUS lender in Nov 2022. In March 2026 Zions Bancorporation agreed to acquire its agency lending platform (team, Fannie DUS and Freddie Optigo Conventional/SBL access, servicing); completion reported ~Aug 2026 (secondary-source mirror of PR Newswire). Agency multifamily deals should now go to Zions' agency group - broker should confirm the new contact."
+ },
+ {
+  "id": "371abca0-8023-53c0-aee3-40aa7721b505",
+  "name": "Bay Area Capital Funding",
+  "status": "not_found",
+  "website_url": null,
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "San Carlos",
+   "state": "CA",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": null
+  },
+  "confidence": "low",
+  "notes": "No official website, press release or regulator record found. Only a third-party hard money directory (hardmoneyhome.com) lists an address of 790 Laurel Street Suite 11, San Carlos CA 94070 and describes an asset-based lender serving SF/Oakland/San Jose. Not to be confused with Bay Area Funding Group or Bay Funding Loans Inc. Verify existence and CA DRE/DFPI license before engaging."
+ },
+ {
+  "id": "91b8eca0-0869-5a30-96a1-76f45cb76ae0",
+  "name": "Bay Area Development Company",
+  "status": "active",
+  "website_url": "https://www.baydevco.com",
+  "main_phone": "(925) 926-1020",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1855 Gateway Blvd., Suite 720",
+   "city": "Concord",
+   "state": "CA",
+   "zip": "94520"
+  },
+  "contacts": [
+   {
+    "full_name": "Rich Hildebrand",
+    "title": "Senior Vice President, loan inquiries - San Francisco / East Bay",
+    "email": null,
+    "phone": "(925) 984-9198",
+    "source_url": "https://www.baydevco.com/contact-us/"
+   },
+   {
+    "full_name": "Rich Grant",
+    "title": "President & CEO (also listed for South Bay loan inquiries)",
+    "email": null,
+    "phone": "(707) 484-5169",
+    "source_url": "https://www.baydevco.com/contact-us/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.baydevco.com/contact-us/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.baydevco.com/contact-us/",
+   "website_url": "https://www.baydevco.com/"
+  },
+  "confidence": "high",
+  "notes": "SBA 504 CDC. Toll-free (888) 504-0504. Other regional contacts on contact page: Mark Schwan (Sacramento) (916) 804-1972; Bob Thompson (North Bay) (925) 472-5603. An older calculator page shows a former Walnut Creek address (1801 Oakland Blvd) - outdated. No published email or broker/referral page found."
+ },
+ {
+  "id": "896d4281-f4fa-54ef-898a-f669741e1a41",
+  "name": "Bay Federal Credit Union",
+  "status": "active",
+  "website_url": "https://www.bayfed.com",
+  "main_phone": "(831) 479-6000",
+  "main_phone_ext": null,
+  "main_phone_label": "member service center (main)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3333 Clares Street",
+   "city": "Capitola",
+   "state": "CA",
+   "zip": "95010"
+  },
+  "contacts": [
+   {
+    "full_name": "Jeff Heitmann",
+    "title": "Business Relationship Manager",
+    "email": "jheitmann@bayfed.com",
+    "phone": null,
+    "source_url": "https://www.bayfed.com/about-us/news/media-and-press-releases/bay-federal-credit-union-now-offering-commercial-real-estate-loans"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.bayfed.com/about-us/contact/member-service-center",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.bayfed.com/contact",
+   "website_url": "https://www.bayfed.com/"
+  },
+  "confidence": "high",
+  "notes": "CRE loans for California properties (retail, office, industrial, ag, 5+ unit multifamily) up to $5M, no prepay penalty; membership likely required. Heitmann named in a ~2024 press release - confirm still current. No broker program found."
+ },
+ {
+  "id": "55a7dc79-a61a-5a29-a296-14709d01b298",
+  "name": "Bayview PACE",
+  "status": "active",
+  "website_url": "https://bayviewpace.com",
+  "main_phone": "(844) 518-2343",
+  "main_phone_ext": null,
+  "main_phone_label": "main / C-PACE originations",
+  "general_email": "info@bayviewpace.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "4425 Ponce de Leon Boulevard",
+   "city": "Coral Gables",
+   "state": "FL",
+   "zip": "33146"
+  },
+  "contacts": [
+   {
+    "full_name": "Shelah Wallace",
+    "title": "Senior Vice President, Originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://bayviewpace.com/bayview-team/"
+   },
+   {
+    "full_name": "Jeff Klar",
+    "title": "Vice President, Originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://bayviewpace.com/bayview-team/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://bayviewpace.com/contact-us/",
+   "general_email": "https://bayviewpace.com/contact-us/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://bayviewpace.com/contact-us/",
+   "website_url": "https://bayviewpace.com/"
+  },
+  "confidence": "high",
+  "notes": "Bayview PACE is a division of Silver Hill Funding, LLC (NMLS 1564077), affiliate of Bayview Asset Management. Coral Gables address is listed as mailing address. Individual emails on the team page were obfuscated in search results, so none recorded. Danny Roberts (Director; team page bayviewpace.com/team/danny-roberts/) is the contact on several C-PACE program lender rosters (King County, NYC Accelerator, Hawaii GEMS), which disagree on title and minimum loan size ($2M vs $10M). Older 2021 press release number 1-800-981-2435 likely outdated. Has California case studies (LA, Huntington Beach, Lake Forest)."
+ },
+ {
+  "id": "2fd8febd-ef27-5a43-82c9-21f7a793f7aa",
+  "name": "Beach Point Capital Management",
+  "status": "active",
+  "website_url": "https://beachpoint.capital",
+  "main_phone": "(310) 996-9700",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Santa Monica HQ)",
+  "general_email": "info@beachpointcapital.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1620 26th Street, Suite 6000N",
+   "city": "Santa Monica",
+   "state": "CA",
+   "zip": "90404"
+  },
+  "contacts": [
+   {
+    "full_name": "Andrew Chen",
+    "title": "Managing Director, Head of Real Estate Credit",
+    "email": null,
+    "phone": null,
+    "source_url": "https://beachpoint.capital/team/"
+   },
+   {
+    "full_name": "Conor D'Alton",
+    "title": "Managing Director (structured products; sources CRE loan opportunities)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://beachpoint.capital/team/conor-dalton/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://beachpoint.capital/contact/",
+   "general_email": "https://beachpoint.capital/contact/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://beachpoint.capital/contact/",
+   "website_url": "https://beachpoint.capital/"
+  },
+  "confidence": "high",
+  "notes": "Opportunistic private credit manager; real estate credit is one strategy, not a dedicated CRE lender with a broker program. Note emails use beachpointcapital.com while site is beachpoint.capital. NY office: 1114 Avenue of the Americas, 21st Fl, (646) 822-0090. Team page index may be several years old - confirm roles."
+ },
+ {
+  "id": "d9183a10-d54a-5ae6-a4ba-8c57e58850b4",
+  "name": "Bellwether Enterprise Real Estate Capital",
+  "status": "active",
+  "website_url": "https://www.bwe.com",
+  "main_phone": "(216) 820-4500",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Cleveland HQ)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1375 E. 9th Street, Suite 2400",
+   "city": "Cleveland",
+   "state": "OH",
+   "zip": "44114"
+  },
+  "contacts": [
+   {
+    "full_name": "Ryan Stoll",
+    "title": "National Director of Seniors Housing and Care",
+    "email": null,
+    "phone": null,
+    "source_url": "https://bwe.com/people/ryan-stoll/"
+   },
+   {
+    "full_name": "Kim Huffstutler",
+    "title": "SVP, Seniors Housing and Care (agency/HUD execution)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://bwe.com/people/kim-huffstutler/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://bwe.com/press/bwe-expands-presence-in-washington-d-c-with-experienced-commercial-real-estate-finance-firm/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://bwe.com/privacy-policy/",
+   "website_url": "https://bwe.com/"
+  },
+  "confidence": "high",
+  "notes": "Brands itself BWE; national commercial/multifamily mortgage banker with agency/HUD execution. Main phone taken from structured data on a press page; HQ from privacy-policy mailing address - both pages ~2 years old. Stoll's profile lists California seniors deals (Morgan Hill, Laguna Niguel, Santee); Taylor Mokris (SVP) works with him. West Coast leader: Tom Kenny, EVP (bwe.com/people/tom-kenny/). Press contact Linda Hayes. As a mortgage banker BWE may treat outside brokers as competitors - confirm co-broke policy."
+ },
+ {
+  "id": "2fe80c38-47e7-5331-907c-d1f920b892fb",
+  "name": "Benefit Street Partners",
+  "status": "active",
+  "website_url": "https://www.bspcredit.com",
+  "main_phone": "(212) 588-6770",
+  "main_phone_ext": null,
+  "main_phone_label": "main (New York)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "One Madison Avenue, Suite 1600",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10010"
+  },
+  "contacts": [
+   {
+    "full_name": "Brian Nowakowski",
+    "title": "Managing Director, Real Estate Origination (New York)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.bspcredit.com/us/about-us/our-team/brian-nowakowski/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.bspcredit.com/us/terms-and-conditions/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.bspcredit.com/us/contact-us/",
+   "website_url": "https://www.bspcredit.com/us/our-business/real-estate/"
+  },
+  "confidence": "high",
+  "notes": "Benefit Street Partners (Franklin Templeton) real estate platform targets $25-100M middle-market loans, multifamily emphasis; site says it sources via sponsors and brokers. Michael Comparato is cited in releases as Head of Commercial Real Estate (no contact details published). Lending REIT: Franklin BSP Realty Trust. Investor-relations contacts on press releases are not lending contacts. Same firm as 'Benefit Street Partners - Real Estate Debt'. West Coast originator not checked (search budget exhausted)."
+ },
+ {
+  "id": "7417ac07-00cd-525f-8d72-ed2a0a8d8ab8",
+  "name": "Benefit Street Partners - Real Estate Debt",
+  "status": "active",
+  "website_url": "https://www.bspcredit.com",
+  "main_phone": "(212) 588-6770",
+  "main_phone_ext": null,
+  "main_phone_label": "main (New York)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "One Madison Avenue, Suite 1600",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10010"
+  },
+  "contacts": [
+   {
+    "full_name": "Brian Nowakowski",
+    "title": "Managing Director, Real Estate Origination (New York)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.bspcredit.com/us/about-us/our-team/brian-nowakowski/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.bspcredit.com/us/terms-and-conditions/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.bspcredit.com/us/contact-us/",
+   "website_url": "https://www.bspcredit.com/us/our-business/real-estate/"
+  },
+  "confidence": "high",
+  "notes": "Duplicate of 'Benefit Street Partners' (id 2fe80c38-47e7-5331-907c-d1f920b892fb) - same firm and contacts; benefitstreetpartners.com is an older domain, current site is bspcredit.com. Real estate debt platform: $25-100M loans, middle-market, multifamily emphasis."
+ },
+ {
+  "id": "567584a2-eac0-5349-b8c0-19461f87859b",
+  "name": "Cathay Bank",
+  "status": "active",
+  "website_url": "https://www.cathaybank.com",
+  "main_phone": "(800) 922-8429",
+  "main_phone_ext": null,
+  "main_phone_label": "general / customer line",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "777 North Broadway",
+   "city": "Los Angeles",
+   "state": "CA",
+   "zip": "90012"
+  },
+  "contacts": [
+   {
+    "full_name": "Kirk Malmrose",
+    "title": "National Director of Commercial Real Estate (also cited as EVP, Director of CRE & Construction Lending)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.cathaybank.com/business/lending/commercial-real-estate-and-construction"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.cathaybank.com/about-us/your-next-step",
+   "hq": "https://www.cathaybank.com/sites/default/files/2021-03/2020_Form-10K.pdf",
+   "website_url": "https://www.cathaybank.com/contact-us"
+  },
+  "confidence": "high",
+  "notes": "Bank site routes CRE requests of $1MM+ to CRE specialists (regional SoCal/NorCal specialists listed on CRE page; emails obfuscated so not captured). HQ main line per 2020 10-K: (213) 625-4700 (dated). SBA dept: (866) 228-4296. No broker program page found; confirm broker-referral policy."
+ },
+ {
+  "id": "943048ab-45bb-5a1d-9c66-ab55719ddbc6",
+  "name": "Celtic Bank",
+  "status": "active",
+  "website_url": "https://www.celticbank.com",
+  "main_phone": "(801) 363-6500",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "help@celticbank.com",
+  "submission_email": null,
+  "broker_page_url": "https://www.celticbank.com/referral-partners",
+  "hq": {
+   "line1": "268 South State Street, Suite 300",
+   "city": "Salt Lake City",
+   "state": "UT",
+   "zip": "84111"
+  },
+  "contacts": [
+   {
+    "full_name": "Steven Lick",
+    "title": "EVP, Franchise Group Lead (franchise incl. hotel)",
+    "email": "slick@celticbank.com",
+    "phone": "(773) 318-1664",
+    "source_url": "https://www.celticbank.com/franchise-finance"
+   },
+   {
+    "full_name": "Tim Schutte",
+    "title": "Vice President, Business Development, SBA/USDA Lending (Encinitas, CA)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.celticbank.com/releases/tim-schutte-joins-celtic-bank-as-business-development-of-sba-lending-2"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.celticbank.com/contact",
+   "general_email": "https://www.celticbank.com/contact",
+   "broker_page_url": "https://www.celticbank.com/referral-partners",
+   "hq": "https://www.celticbank.com/contact",
+   "website_url": "https://www.celticbank.com/"
+  },
+  "confidence": "high",
+  "notes": "Referral program: brokers apply online (application form https://www.celticbank.com/referral-form), reviewed ~48 hrs, each broker assigned a dedicated BDO. Separate business-loan line (801) 903-4695 on start.celticbank.com. Hotel page lists no direct phone. Schutte hire release is several years old; other CA BDOs named in releases (Hang Chan SF, Jim Mueller Fresno, Patrick Bishop Menifee) - confirm current."
+ },
+ {
+  "id": "b7c29c19-8597-5457-8847-ece812fe8253",
+  "name": "Centennial Mortgage, Inc.",
+  "status": "active",
+  "website_url": "https://centennialmortgage.com",
+  "main_phone": "(574) 233-6773",
+  "main_phone_ext": null,
+  "main_phone_label": "main office",
+  "general_email": "info@centennialmortgage.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "218 W. Washington Street, Suite 900",
+   "city": "South Bend",
+   "state": "IN",
+   "zip": "46601"
+  },
+  "contacts": [
+   {
+    "full_name": "Terrance D. Watkins",
+    "title": "Vice President, Origination (HUD/USDA multifamily & healthcare)",
+    "email": "twatkins@centennialmortgage.com",
+    "phone": "(708) 769-9191",
+    "source_url": "https://centennialmortgage.com/team/terrance-d-watkins-2/"
+   },
+   {
+    "full_name": "Joseph Spina, Jr.",
+    "title": "Senior Vice President, Manager of Loan Production",
+    "email": null,
+    "phone": "(574) 401-8092",
+    "source_url": "https://centennialmortgage.com/team/joseph-spina-jr-2/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://centennialmortgage.com/contact-us/",
+   "general_email": "https://centennialmortgage.com/contact-us/",
+   "hq": "https://centennialmortgage.com/servicing/",
+   "website_url": "https://centennialmortgage.com/contact-us/"
+  },
+  "confidence": "high",
+  "notes": "FHA/HUD (223(f), 221(d)(4), 232, 242) and USDA lender/servicer. Site has an office-locations page (third-party directories mention Newport Beach / Yorba Linda offices - not confirmed on lender site). No broker program page found. Team-page phone numbers may be dated."
+ },
+ {
+  "id": "f103d052-e64b-5ceb-88b1-6329b02665d5",
+  "name": "Center Street Lending",
+  "status": "active",
+  "website_url": "https://www.centerstreetlending.com",
+  "main_phone": "(949) 244-1090",
+  "main_phone_ext": null,
+  "main_phone_label": "general inquiries",
+  "general_email": "team@centerstreetlending.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "18201 Von Karman Ave, Suite 400",
+   "city": "Irvine",
+   "state": "CA",
+   "zip": "92612"
+  },
+  "contacts": [
+   {
+    "full_name": "Max Woodyard",
+    "title": "Loan Origination Manager",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.centerstreetlending.com/about-us"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://centerstreetlending.com/contact-us/",
+   "general_email": "https://centerstreetlending.com/contact-us/",
+   "hq": "https://centerstreetlending.com/contact-us/",
+   "website_url": "https://www.centerstreetlending.com/"
+  },
+  "confidence": "high",
+  "notes": "Sales line (949) 259-2438; draws (949) 284-2722 / draws@; servicing (949) 787-2723 / loanservicing@. No dedicated broker program page found, but homepage carries a broker testimonial - ask sales about broker terms."
+ },
+ {
+  "id": "102d7162-cc1b-5ae0-91a1-25fa03e69d80",
+  "name": "CenterSquare Investment Management",
+  "status": "active",
+  "website_url": "https://www.centersquare.com",
+  "main_phone": "(610) 834-9500",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "contactus@centersquare.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "Eight Tower Bridge, 161 Washington Street, Seventh Floor",
+   "city": "Conshohocken",
+   "state": "PA",
+   "zip": "19428"
+  },
+  "contacts": [
+   {
+    "full_name": "Michael Boxer",
+    "title": "Managing Director, Private Real Estate Debt",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.centersquare.com/wp-content/uploads/2024/01/Navigating-a-Lenders-Market-2024-Real-Estate-Debt-Outlook-1.pdf"
+   },
+   {
+    "full_name": "Richard Gorsky",
+    "title": "Managing Director, Private Real Estate Debt",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.centersquare.com/wp-content/uploads/2024/01/Navigating-a-Lenders-Market-2024-Real-Estate-Debt-Outlook-1.pdf"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.centersquare.com/contact-us/",
+   "general_email": "https://www.centersquare.com/contact-us/",
+   "hq": "https://www.centersquare.com/contact-us/",
+   "website_url": "https://www.centersquare.com/contact-us/"
+  },
+  "confidence": "high",
+  "notes": "Institutional real asset manager; private RE debt strategy (subordinate/high-yield CRE debt, multifamily focus; $200MM co-invest vehicle with Temasek, Feb 2025). Not a typical broker-account lender. Also has a Newport Beach, CA office. Older materials list 630 W. Germantown Pike, Plymouth Meeting, PA."
+ },
+ {
+  "id": "93d03867-1124-5191-8fd1-5309e1682f3d",
+  "name": "Century Housing Corporation",
+  "status": "active",
+  "website_url": "https://century.org",
+  "main_phone": "(310) 642-2000",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1000 Corporate Pointe",
+   "city": "Culver City",
+   "state": "CA",
+   "zip": "90230"
+  },
+  "contacts": [
+   {
+    "full_name": "Josh Hamilton",
+    "title": "Senior Vice President, Lending",
+    "email": "jhamilton@centuryhousing.org",
+    "phone": "(310) 642-2030",
+    "source_url": "https://century.org/wp-content/uploads/Century-New-Generation-Fund-Terms.pdf"
+   },
+   {
+    "full_name": "Tracey Burns",
+    "title": null,
+    "email": "tburns@century.org",
+    "phone": "(310) 642-2004",
+    "source_url": "https://century.org/wp-content/uploads/Century-Housing-Construction-Loan-Terms.pdf"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://century.org/contact/",
+   "hq": "https://century.org/contact/",
+   "website_url": "https://century.org/financing/"
+  },
+  "confidence": "high",
+  "notes": "Nonprofit CDFI lending to affordable/workforce housing developers (construction, New Generation Fund, emerging developers). Loan requests via financing contact form. Term sheets use two email domains (century.org vs centuryhousing.org) and are 1+ yr old - confirm before emailing. Also has an Oakland office."
+ },
+ {
+  "id": "ce663165-6c08-5c73-8cef-c9407e85b0e5",
+  "name": "Champions Funding",
+  "status": "active",
+  "website_url": "https://www.champstpo.com",
+  "main_phone": "(888) 210-9881",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": "https://www.champstpo.com/partner-with-us-wholesale",
+  "hq": {
+   "line1": "365 E. Germann Rd., Suite 140",
+   "city": "Gilbert",
+   "state": "AZ",
+   "zip": "85297"
+  },
+  "contacts": [
+   {
+    "full_name": "Steve Cutter",
+    "title": "Executive Vice President of Sales, Western Division",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.champstpo.com/news/steve-cutter-and-joe-tomasello-join-champions-funding"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.champstpo.com/licenses",
+   "broker_page_url": "https://www.champstpo.com/partner-with-us-wholesale",
+   "hq": "https://www.champstpo.com/licenses",
+   "website_url": "https://www.champstpo.com/"
+  },
+  "confidence": "high",
+  "notes": "Non-QM residential wholesale lender (DSCR Accelerator etc.), NMLS #2254210. LockDesk@champstpo.com is published for pricing-exception forms (not a submission inbox). clientcare@champstpo.com and 1-855-436-0977 / 1-800-365-7107 are servicing. Cutter hire announced Feb 2025."
+ },
+ {
+  "id": "fe092f1d-16b6-5eb7-9d4a-7e507f12e80f",
+  "name": "Churchill Real Estate",
+  "status": "active",
+  "website_url": "https://www.churchillre.com",
+  "main_phone": "(646) 517-5353",
+  "main_phone_ext": null,
+  "main_phone_label": "New York office",
+  "general_email": "ny@churchillre.com",
+  "submission_email": null,
+  "broker_page_url": "https://rtl.churchillre.com/partner-services/",
+  "hq": {
+   "line1": "450 W 14th St, 9th Floor",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10014"
+  },
+  "contacts": [
+   {
+    "full_name": "Glenn Tatham",
+    "title": "Managing Director, Head of RTL Whole Loan Originations",
+    "email": null,
+    "phone": null,
+    "source_url": "https://rtl.churchillre.com/about-churchill-rtl/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://churchillre.com/contact/",
+   "general_email": "https://churchillre.com/contact/",
+   "broker_page_url": "https://rtl.churchillre.com/partner-services/",
+   "hq": "https://churchillre.com/contact/",
+   "website_url": "https://www.churchillre.com/"
+  },
+  "confidence": "high",
+  "notes": "Churchill RTL buys and table-funds business-purpose residential transitional loans from brokers/originators; apply via 'Become an Originator Partner' intake form https://rtl.churchillre.com/application-form/. ZIP 10014 not shown in the search snippet (standard for 450 W 14th St) - confirm. Charlotte office inbox clt@churchillre.com."
+ },
+ {
+  "id": "1ea5efaf-e63e-506d-a7ec-cb18293332b6",
+  "name": "Churchill Stateside Group",
+  "status": "active",
+  "website_url": "https://csgfirst.com",
+  "main_phone": "(727) 461-2200",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": "production@csgfirst.com",
+  "broker_page_url": null,
+  "hq": {
+   "line1": "915 Chestnut Street",
+   "city": "Clearwater",
+   "state": "FL",
+   "zip": "33756"
+  },
+  "contacts": [
+   {
+    "full_name": "Guy Spieler",
+    "title": "West Regional Officer; President, Churchill Stateside Securities",
+    "email": "gspieler@cssecurities.com",
+    "phone": null,
+    "source_url": "https://csgfirst.com/hubfs/Csgfirst_Sep2023/Pdfs/CSG-Brochure.pdf?hsLang=en"
+   },
+   {
+    "full_name": "Daniel Duda",
+    "title": "Executive Vice President, National Director of Originations and Acquisitions",
+    "email": null,
+    "phone": null,
+    "source_url": "https://csgfirst.com/origination-team"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://csgfirst.com/hubfs/Csgfirst_Sep2023/Pdfs/CSG-Brochure.pdf?hsLang=en",
+   "submission_email": "https://www.businesswire.com/news/home/20260319542111/en/Churchill-Stateside-Group-Highlights-HUD-Section-223f-Loan-Program-for-Acquisition-and-Refinancing-of-Multifamily-Properties",
+   "hq": "https://csgfirst.com/hubfs/Csgfirst_Sep2023/Pdfs/CSG-Brochure.pdf?hsLang=en",
+   "website_url": "https://csgfirst.com/origination-team"
+  },
+  "confidence": "high",
+  "notes": "HUD MAP/LEAN, USDA RD and Ginnie Mae lender via subsidiary Churchill Mortgage Investment LLC. production@ inbox is from a Mar 2026 press release (Production team). Brochure lists Spieler's number as a mobile, so it is omitted; Duda's published number omitted for the same reason (unclear if mobile). Duda joined ownership team in 2025 (title may have changed). CARH directory shows a different phone (727) 233-0564; Chicago office 150 S Wacker Dr, Suite 2400 on older term sheets. No broker program page found."
+ },
+ {
+  "id": "3a4a0721-eee6-5821-9e88-6cd20b0735f0",
+  "name": "Citi Community Capital",
+  "status": "active",
+  "website_url": "https://www.citigroup.com/icg/sa/citicommunitycapital/",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "New York",
+   "state": "NY",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Barry Krinsky",
+    "title": "National Production Manager (Director), Citi Community Capital",
+    "email": "barry.krinsky@citi.com",
+    "phone": "(561) 347-3254",
+    "source_url": "https://www.citigroup.com/icg/sa/citicommunitycapital/contact/"
+   },
+   {
+    "full_name": "Jeremy Johnson",
+    "title": "Head of Citi Community Capital",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.citigroup.com/global/news/press-release/2026/citi-ranked-number-one-us-affordable-housing-lender-sixteenth-consecutive-year"
+   }
+  ],
+  "sources": {
+   "website_url": "https://www.citigroup.com/icg/sa/citicommunitycapital/contact/"
+  },
+  "confidence": "high",
+  "notes": "Affordable multifamily lender (LIHTC construction/perm, agency affordable). No general phone or inbox found. Regional originator contacts sit behind a region map on the contact page (not captured) - check the West region there. HQ city/state carried from input, not verified. No broker program; Krinsky contact details from Citi's own contact page (date not confirmed)."
+ },
+ {
+  "id": "30ea61f7-d2b9-523b-b93a-0d1da10dd43f",
+  "name": "Citi Real Estate Funding Inc.",
+  "status": "active",
+  "website_url": null,
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "388 Greenwich Street (Attn: Mortgage Finance Group)",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10013"
+  },
+  "contacts": [
+   {
+    "full_name": "David Bouton",
+    "title": null,
+    "email": null,
+    "phone": null,
+    "source_url": "https://commercialobserver.com/power-series/2026-power-finance/player/david-bouton-and-joseph-dyckman-2/"
+   },
+   {
+    "full_name": "Joseph Dyckman",
+    "title": null,
+    "email": null,
+    "phone": null,
+    "source_url": "https://commercialobserver.com/power-series/2026-power-finance/player/david-bouton-and-joseph-dyckman-2/"
+   }
+  ],
+  "sources": {
+   "hq": "https://www.sec.gov/Archives/edgar/data/2016841/000153949724001104/n4255_x13-424b2.htm"
+  },
+  "confidence": "medium",
+  "notes": "CREFI is Citigroup's CMBS mortgage loan seller/sponsor (NY corp, 2014); no standalone website, public phone, inbox or broker program found. Bouton and Dyckman are named as Citi's CMBS leaders in Commercial Observer Power Finance lists; titles not confirmed (search budget ran out). Citi remains active in conduit (2026 multifamily CMBS deal)."
+ },
+ {
+  "id": "cf2775b5-2d8f-53d1-8881-e2530033879d",
+  "name": "Fidelity Mortgage Lenders",
+  "status": "active",
+  "website_url": "https://fidelityca.com",
+  "main_phone": "(800) 752-9533",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@fidelitylenders.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "11952 Wilshire Boulevard",
+   "city": "Los Angeles",
+   "state": "CA",
+   "zip": "90025"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://fidelityca.com/commercial-loans/",
+   "general_email": "https://fidelityca.com/mortgage-lending/loan-officers/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://fidelityca.com/contact-us/",
+   "website_url": "https://fidelityca.com/"
+  },
+  "confidence": "high",
+  "notes": "Official site is fidelityca.com (Fidelity Mortgage Lenders, Inc., formerly Fidelity Home Loan Co., lending since 1971). Site uses info@fidelitylenders.com on loan/commercial pages but the Contact Us page shows info@fidelityca.com; confirm which inbox is current. No formal broker program page found; an advisor-oriented page (fidelityca.com/real-estate-financing-options-to-offer-your-clients/) invites referrals by phone or web form. Lends CA, CO, ID, MT, OR, TX, UT, WA. Do not confuse with Fidelity Funding / Fidelity Bancorp Funding."
+ },
+ {
+  "id": "d5279a03-e5dd-555c-b6cf-1d341575d199",
+  "name": "Fifth Third Bank - Fannie Mae DUS Multifamily",
+  "status": "active",
+  "website_url": "https://www.53.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Cincinnati",
+   "state": "OH",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "John Hein",
+    "title": "Head of Commercial Real Estate, Fifth Third Corporate & Investment Banking",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.53.com/content/fifth-third/en/media-center/press-releases/2026/press-release-2026-05-07.html"
+   }
+  ],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.53.com/content/fifth-third/en/media-center/press-releases/2026/press-release-2026-05-07.html",
+   "website_url": "https://www.53.com"
+  },
+  "confidence": "medium",
+  "notes": "Fifth Third closed its acquisition of Mechanics Bank's Fannie Mae DUS business line (team plus ~$1.8B servicing portfolio) in May 2026 (announced Dec 2025); now one of 24 DUS lenders. Mechanics' DUS platform likely traces to the former HomeStreet Capital (West Coast) - confirm. No published DUS desk phone, email or broker page found; none of the releases name individual DUS originators. Input website was a BusinessWire release, replaced with official 53.com. Since 2020 Fifth Third also referred agency deals to Bellwether Enterprise."
+ },
+ {
+  "id": "a19bebdf-dfa4-5758-a68a-20cbafb82ace",
+  "name": "First Bank of the Lake",
+  "status": "active",
+  "website_url": "https://www.fblake.bank",
+  "main_phone": "(888) 828-5689",
+  "main_phone_ext": null,
+  "main_phone_label": "SBA lending",
+  "general_email": "info@fblake.bank",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "4558 Osage Beach Parkway, Suite 100",
+   "city": "Osage Beach",
+   "state": "MO",
+   "zip": "65065"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.fblake.bank/about-us/contact-us/",
+   "general_email": "https://www.fblake.bank/terms-of-use/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.fblake.bank/resources/debit-cards/",
+   "website_url": "https://www.fblake.bank"
+  },
+  "confidence": "high",
+  "notes": "Contact page lists SBA (888) 828-5689 and general bank (888) 828-0167; some older pages route SBA questions to 828-0167. Main office line (573) 348-2265. info@fblake.bank appears on the site's legal/terms pages, not as a lending inbox. SBA Preferred Lender with a senior care / skilled nursing vertical; online consultation form at loans.fblake.bank/sba-loan-consultation. No broker/referral-partner program page found."
+ },
+ {
+  "id": "d01156ee-8987-5082-9989-2d3da38fb638",
+  "name": "First Bridge Lending",
+  "status": "active",
+  "website_url": "https://firstbridgelending.com",
+  "main_phone": "(415) 248-1167",
+  "main_phone_ext": null,
+  "main_phone_label": "new loans - Northern California (Petaluma) office",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "5341 Old Redwood Highway, Suite 200",
+   "city": "Petaluma",
+   "state": "CA",
+   "zip": "94954"
+  },
+  "contacts": [
+   {
+    "full_name": "Matt Moran",
+    "title": "Principal",
+    "email": null,
+    "phone": "(925) 280-5394",
+    "source_url": "https://firstbridgelending.com/about"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://firstbridgelending.com/contact",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://firstbridgelending.com/contact",
+   "website_url": "https://firstbridgelending.com/"
+  },
+  "confidence": "high",
+  "notes": "Bridge loans $100K-$10M, CA commercial and residential. Southern California office: 322 8th Street, Suite 105, Del Mar, CA, (858) 401-2862 (same number also shown as a principal's cell, so not recorded as a direct line). Contact page directs broker introductions to its web form; no broker program page or broker inbox. servicing@firstbridgelending.com / 1-800-890-9827 is for payoffs and servicing only."
+ },
+ {
+  "id": "232f5de2-4fd9-51b6-800c-a6ac8eb47005",
+  "name": "First Citizens Healthcare Finance",
+  "status": "active",
+  "website_url": "https://www.firstcitizens.com",
+  "main_phone": "(888) 323-4732",
+  "main_phone_ext": null,
+  "main_phone_label": "general bank line",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Raleigh",
+   "state": "NC",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "William Douglass",
+    "title": "Group Head and Managing Director, Healthcare Finance",
+    "email": null,
+    "phone": null,
+    "source_url": "https://newsroom.firstcitizens.com/2025-01-22-First-Citizens-Bank-to-Refinance-New-Jersey-Senior-Living-Facility"
+   },
+   {
+    "full_name": "Michael Coiley",
+    "title": "Managing Director, Healthcare Finance",
+    "email": null,
+    "phone": null,
+    "source_url": "https://newsroom.firstcitizens.com/2025-01-22-First-Citizens-Bank-to-Refinance-New-Jersey-Senior-Living-Facility"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.firstcitizens.com/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://newsroom.firstcitizens.com/2025-01-22-First-Citizens-Bank-to-Refinance-New-Jersey-Senior-Living-Facility",
+   "website_url": "https://www.firstcitizens.com/commercial/expertise/healthcare/healthcare-middle-market-finance"
+  },
+  "confidence": "medium",
+  "notes": "Healthcare Finance sits in First Citizens' CIT division; middle-market healthcare deals require a minimum of $15M debt per transaction with committed equity (SNF, senior housing, hospitals). No dedicated Healthcare Finance phone/email published; only the general bank line and media-relations contacts (not recorded). Names come from First Citizens newsroom releases; confirm current roles. HQ shown is corporate (Raleigh, NC); the healthcare team may sit elsewhere (e.g., New York)."
+ },
+ {
+  "id": "8d2970e4-b4ca-58fb-be3f-07138f1d49f3",
+  "name": "First General Bank",
+  "status": "active",
+  "website_url": "https://www.fgbusa.com",
+  "main_phone": "(626) 820-1099",
+  "main_phone_ext": null,
+  "main_phone_label": "corporate lending",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "19036 Colima Road",
+   "city": "Rowland Heights",
+   "state": "CA",
+   "zip": "91748"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.fgbusa.com/contact-us",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.fgbusa.com/about/rowland-heights",
+   "website_url": "https://www.fgbusa.com/"
+  },
+  "confidence": "high",
+  "notes": "Head office line (626) 820-1234; contact page also lists 626-363-8878 ext. 114/118. Head office houses Commercial Lending, SBA and International Banking (moved from 1744 S. Nogales St.). SBA 7(a)/504 products listed but no hotel-specific team, named SBA officer, or broker program found."
+ },
+ {
+  "id": "f746fb3d-3bad-5dfc-903f-bdb2225227d7",
+  "name": "First Internet Bank - SBA Lending",
+  "status": "active",
+  "website_url": "https://www.firstib.com",
+  "main_phone": "(888) 873-3424",
+  "main_phone_ext": null,
+  "main_phone_label": "main (ask for an SBA Business Development Officer)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "8701 E. 116th St.",
+   "city": "Fishers",
+   "state": "IN",
+   "zip": "46038"
+  },
+  "contacts": [
+   {
+    "full_name": "David Bybee",
+    "title": "Senior Vice President, Government Guaranteed Lending (leads SBA lending)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.firstib.com/about-us/news-resources/press-news/first-internet-bank-promotes-david-bybee-to-lead-sba-lending-team/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.firstib.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.firstib.com/contact/",
+   "website_url": "https://www.firstib.com/business/sba-loans/"
+  },
+  "confidence": "high",
+  "notes": "Local line 317-532-7900. sbaloanservicing@firstib.com / 1-855-271-6384 is for existing SBA loans only (a payoff FAQ lists 1-855-271-6306 instead). SBA Preferred Lender with a national team of Business Development Officers; hotel lending focus not confirmed on site. No broker/referral page found."
+ },
+ {
+  "id": "33f7466e-ac82-5d80-8456-db26a5506204",
+  "name": "First Tech Federal Credit Union - Commercial Lending",
+  "status": "active",
+  "website_url": "https://www.firsttechfed.com",
+  "main_phone": "(503) 526-3286",
+  "main_phone_ext": null,
+  "main_phone_label": "commercial lending operations",
+  "general_email": null,
+  "submission_email": "commercial.lending@firsttechfed.com",
+  "broker_page_url": "https://www.firsttechfed.com/borrow/commercial-lending",
+  "hq": {
+   "line1": "5100 NE Dawson Creek Dr.",
+   "city": "Hillsboro",
+   "state": "OR",
+   "zip": "97124"
+  },
+  "contacts": [
+   {
+    "full_name": "Deedra Howes",
+    "title": "Manager of Commercial Lending Operations",
+    "email": "commercial.lending@firsttechfed.com",
+    "phone": "(503) 526-3286",
+    "source_url": "https://www.firsttechfed.com/borrow/commercial-lending"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.firsttechfed.com/borrow/commercial-lending",
+   "general_email": null,
+   "submission_email": "https://www.firsttechfed.com/borrow/commercial-lending",
+   "broker_page_url": "https://www.firsttechfed.com/borrow/commercial-lending",
+   "hq": "https://www.firsttechfed.com/help/contact",
+   "website_url": "https://www.firsttechfed.com"
+  },
+  "confidence": "high",
+  "notes": "Confirms earlier phone/email. Page is titled 'Commercial Real Estate Lending for Brokers and Members': portfolio CRE lender, $500K-$10M+, all states except Louisiana, no prepayment penalties; recent $9.2M San Francisco multifamily loan. 503.526.3286 is the listed direct line for the Commercial Lending Ops manager. Credit union general line 855.855.8805. HQ shown is the registered address in Hillsboro, OR."
+ },
+ {
+  "id": "fc3cb33c-f017-553a-a43f-29f3ef218499",
+  "name": "First Utah Bank - Hospitality Lending",
+  "status": "active",
+  "website_url": "https://firstutahbank.com",
+  "main_phone": "(801) 308-2265",
+  "main_phone_ext": null,
+  "main_phone_label": "hospitality loan specialist / main (801.308.BANK)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3826 South 2300 East",
+   "city": "Salt Lake City",
+   "state": "UT",
+   "zip": "84109"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://firstutahbank.com/sbaloans/hospitality-lending/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://firstutahbank.com/locations/main-office/",
+   "website_url": "https://firstutahbank.com/sbaloans/hospitality-lending/"
+  },
+  "confidence": "high",
+  "notes": "Hospitality page: 'Reach a Hospitality Loan Specialist Now' at 801-308-2265 (same as general 801.308.BANK); $100M+ in hotel projects funded since 2014; acquisition, ground-up construction, renovation, refi; SBA Preferred Lender. HQ is the Millcreek main office, (801) 272-9454. An older article lists a Business Lending Team line 801-478-2300 and a 2015 document lists Commercial Lending at 115 East 1300 South, 2nd Floor, SLC 84115 - both possibly stale. No named hospitality officer, email or broker page found."
+ },
+ {
+  "id": "be44e7b3-b3e7-58cc-a94a-77915b39e554",
+  "name": "Five Star Bank",
+  "status": "active",
+  "website_url": "https://www.fivestarbank.com",
+  "main_phone": "(800) 416-6117",
+  "main_phone_ext": null,
+  "main_phone_label": "main (toll-free)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Rancho Cordova",
+   "state": "CA",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Kellie Stroud",
+    "title": "SVP / Managing Director, Construction Industry Banking Group",
+    "email": "kstroud@fivestarbank.com",
+    "phone": "(916) 306-1123",
+    "source_url": "https://fivestarbank.com/yoon-saechao"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://fivestarbank.com/yoon-saechao",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.fivestarbank.com/rancho-cordova-business-office",
+   "website_url": "https://www.fivestarbank.com"
+  },
+  "confidence": "medium",
+  "notes": "Contact and main number come from the bank's 'Meet Our Business Development Team' page, whose layout is jumbled; confirm the Stroud phone pairing and the 800 number before use. Same page lists Jason Hartmann (Specialty Finance Banking Group, jhartmann@fivestarbank.com) and Bay Area bankers with 415 numbers whose roles were not shown. Street address of the Rancho Cordova HQ not confirmed in this pass (web search budget ran out). No CRE-specific team page or broker program found."
+ },
+ {
+  "id": "aec5a81b-378b-5c8c-8945-e79667e2f2a6",
+  "name": "Foley Mortgage",
+  "status": "not_found",
+  "website_url": null,
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "San Jose",
+   "state": "CA",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": null
+  },
+  "confidence": "low",
+  "notes": "No official website found (only one search run before the shared web search budget ran out). Third-party hard-money directories (not acceptable sources) list Foley Mortgage / E.F. Foley Co., Inc. at 1660 Hamilton Ave, San Jose, CA 95125, CA DRE license 00824971 and NMLS 240664, lending in SF/Oakland/San Jose. Verify via CA DRE license lookup and NMLS Consumer Access before contacting."
+ },
+ {
+  "id": "b199ea39-71df-59fc-9814-0e6322624936",
+  "name": "Forbright Bank",
+  "status": "active",
+  "website_url": "https://www.forbrightbank.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": null,
+  "contacts": [
+   {
+    "full_name": "Jon Camps",
+    "title": "Managing Director, HUD Lending",
+    "email": "jcamps@forbrightbank.com",
+    "phone": null,
+    "source_url": "https://www.forbrightbank.com/stories/blog/forbright-bank-healthcare-hud-recent-deals/"
+   }
+  ],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": "https://www.forbrightbank.com/stories/newsroom/forbright-to-launch-hud-lending-platform-for-nursing-homes-assisted-living-facilities-and-multifamily-housing/"
+  },
+  "confidence": "high",
+  "notes": "Confirms prior contact (Jonathan 'Jon' Camps), listed with email on the bank's Q2 2025 Healthcare & HUD highlights page (about 16 months old - confirm). HUD platform sits in the Healthcare Lending Division: Section 232 healthcare/seniors housing and multifamily, direct-to-HUD plus bridge-to-HUD. Same page lists Jared Richards (Managing Director); later releases name Amy Heller as President, Healthcare Lending Division. Contact page phone numbers are for retail banking customers, so not recorded; media contact not recorded. HQ believed to be Chevy Chase, MD but not verified in this pass (search budget ran out)."
+ },
+ {
+  "id": "4f8aa348-d3bc-56e6-84d4-16c08e6eb9c4",
+  "name": "John Hancock / Manulife Investment Management",
+  "status": "active",
+  "website_url": "https://www.manulifeim.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "197 Clarendon Street",
+   "city": "Boston",
+   "state": "MA",
+   "zip": "02116"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "http://m.manulife.com/Contact",
+   "website_url": "https://www.manulifeim.com"
+  },
+  "confidence": "low",
+  "notes": "No current US commercial mortgage origination contact found on manulifeim.com. An old Manulife contact page lists a US Real Estate Finance Group (commercial mortgages on office, multifamily, industrial, retail) at 197 Clarendon St, Boston with regional directors using jhancock.com emails; likely stale, so not listed. Manulife's 2025 MD&A says commercial mortgages are originated for its general account (56% US). Broker should call Manulife/John Hancock Boston and ask for Real Estate Finance."
+ },
+ {
+  "id": "bf09e2ce-663a-5ede-9d75-ee7881bbe599",
+  "name": "JPMorgan Chase - Commercial Term Lending",
+  "status": "active",
+  "website_url": "https://www.jpmorgan.com/commercial-real-estate/commercial-term-lending",
+  "main_phone": "(877) 344-3080",
+  "main_phone_ext": null,
+  "main_phone_label": "loan inquiries (Commercial Term Lending)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "New York",
+   "state": "NY",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Victor Tashkoff",
+    "title": "Executive Director, Client Manager - CTL (Los Angeles)",
+    "email": null,
+    "phone": "(310) 442-2965",
+    "source_url": "https://www.jpmorgan.com/commercial-real-estate/commercial-term-lending/commercial-term-lending-los-angeles"
+   },
+   {
+    "full_name": "Jake Bade",
+    "title": "Managing Director, Commercial Mortgage Lending",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.jpmorgan.com/commercial-real-estate/multifamily-property-loans"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.jpmorgan.com/commercial-real-estate/commercial-term-lending/commercial-term-lending-los-angeles",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": "https://www.jpmorgan.com/commercial-real-estate/commercial-term-lending"
+  },
+  "confidence": "high",
+  "notes": "(877) 344-3080 is the CTL new-loan line listed on jpmorgan.com regional pages. No broker program page or broker-specific line found; input broker_page chase.com/mfl not verified as a broker sign-up page. Jake Bade's title came from a Chase CTL page per search; confirm. Several regional CTL pages are years old; confirm current client manager for LA/OC/SF/SD."
+ },
+ {
+  "id": "f257296b-d154-5e31-8c50-90544c1a62c8",
+  "name": "Kansas City Life Insurance Company",
+  "status": "active",
+  "website_url": "https://www.kclife.com",
+  "main_phone": "(816) 753-7000",
+  "main_phone_ext": null,
+  "main_phone_label": "main (home office)",
+  "general_email": "communications@kclife.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3520 Broadway",
+   "city": "Kansas City",
+   "state": "MO",
+   "zip": "64111"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.kclife.com/company/Files.aspx?type=2&fid=137",
+   "general_email": "https://www.kclife.com/company/Files.aspx?type=2&fid=137",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.kclife.com/company/Files.aspx?type=2&fid=137",
+   "website_url": "https://www.kclife.com"
+  },
+  "confidence": "medium",
+  "notes": "Holds roughly $565M of commercial mortgage loans per company filings, but no mortgage loan department page, broker/correspondent program or lending contact was found. Toll-free customer line is 800-821-6164. Ask the home office for the mortgage loan / investment department. Small portfolio lender; correspondent relationships are likely required."
+ },
+ {
+  "id": "62354380-3482-57f8-a281-d04792b2753b",
+  "name": "Kayne Anderson Real Estate Debt",
+  "status": "active",
+  "website_url": "https://kayneanderson.com/real-estate-lending/",
+  "main_phone": "(561) 300-6200",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Boca Raton real estate office)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": "https://kayneanderson.com/real-estate-lending/",
+  "hq": {
+   "line1": "One Town Center Road, Suite 300",
+   "city": "Boca Raton",
+   "state": "FL",
+   "zip": "33486"
+  },
+  "contacts": [
+   {
+    "full_name": "Lee Levy",
+    "title": "Senior Managing Director, Head of Real Estate Debt",
+    "email": null,
+    "phone": "(561) 300-6166",
+    "source_url": "https://kayneanderson.com/real-estate-lending/"
+   },
+   {
+    "full_name": "Jake Kramer",
+    "title": "Senior Managing Director, Debt",
+    "email": null,
+    "phone": "(908) 377-4429",
+    "source_url": "https://kayneanderson.com/real-estate-lending/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://kayneanderson.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": "https://kayneanderson.com/real-estate-lending/",
+   "hq": "https://kayneanderson.com/contact/",
+   "website_url": "https://kayneanderson.com/real-estate-lending/"
+  },
+  "confidence": "high",
+  "notes": "Real Estate Lending page lists a financing-inquiry email but it was obfuscated in search text; get it from the page. Loans: senior $50M-$500M+, mezz/pref $20M-$200M+, on seniors housing, MOB, student housing, multifamily, self storage, industrial. Boca Raton is the real estate group office; parent Kayne Anderson is LA-based. Page terms may be dated."
+ },
+ {
+  "id": "80f78cc3-44e4-59f4-b438-dc3520b06930",
+  "name": "KEB Hana LA Financial / Hana Bank USA",
+  "status": "active",
+  "website_url": "https://www.kebhana.com/global/us/us06/us0601/index.jsp",
+  "main_phone": "(213) 683-0830",
+  "main_phone_ext": null,
+  "main_phone_label": "main (KEB Hana LA Financial)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "777 S. Figueroa St., Suite 3000",
+   "city": "Los Angeles",
+   "state": "CA",
+   "zip": "90017"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.kebhana.com/global/us/us06/us0601/index.jsp",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.kebhana.com/global/us/us06/us0601/index.jsp",
+   "website_url": "https://www.kebhana.com/global/us/us06/us0601/index.jsp"
+  },
+  "confidence": "medium",
+  "notes": "Phone and address from Korean-language KEB Hana LA FinCo pages (may be dated). LA FinCo offers corporate loans, trade finance and commercial mortgages; SBA lending is not confirmed for this entity. Hana Bank USA (Fort Lee, NJ) opened an LA branch Aug 2025 with loans handled by KEB Hana LA Financial. Note: Hana Small Business Lending (separate LA SBA lender) sold its SBA portfolio to OP Bancorp in 2021. Confirm SBA 7(a)/504 hotel appetite directly."
+ },
+ {
+  "id": "663a2dab-27db-5c86-a063-cd0c065cf8ec",
+  "name": "Kennedy Funding",
+  "status": "active",
+  "website_url": "https://www.kennedyfunding.com",
+  "main_phone": "(201) 342-8500",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@kennedyfunding.com",
+  "submission_email": null,
+  "broker_page_url": "https://www.kennedyfunding.com/loan-application/",
+  "hq": {
+   "line1": "267 South Dean Street",
+   "city": "Englewood",
+   "state": "NJ",
+   "zip": "07631"
+  },
+  "contacts": [
+   {
+    "full_name": "Edwin Urrego",
+    "title": "Executive Loan Officer",
+    "email": "edwin@kennedyfunding.com",
+    "phone": "(201) 315-4440",
+    "source_url": "https://www.kennedyfunding.com/our-team/edwin-urrego/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.kennedyfunding.com/contact-us/",
+   "general_email": "https://www.kennedyfunding.com/contact-us/",
+   "submission_email": null,
+   "broker_page_url": "https://www.kennedyfunding.com/loan-application/",
+   "hq": "https://www.kennedyfunding.com/contact-us/",
+   "website_url": "https://www.kennedyfunding.com"
+  },
+  "confidence": "high",
+  "notes": "Loan inquiry form is for brokers and borrowers ($1M-$50M commercial; site says brokers are protected). Edwin Urrego's direct line appears on a loan form page; email on team page. Older pages list 800-342-8500 and other numbers; use 201-342-8500."
+ },
+ {
+  "id": "4639406a-62bd-5da4-a870-e7834e6e39f5",
+  "name": "Kennedy Wilson",
+  "status": "active",
+  "website_url": "https://www.kennedywilson.com",
+  "main_phone": "(310) 887-6400",
+  "main_phone_ext": null,
+  "main_phone_label": "main (global HQ)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "151 S. El Camino Dr.",
+   "city": "Beverly Hills",
+   "state": "CA",
+   "zip": "90212"
+  },
+  "contacts": [
+   {
+    "full_name": "Thomas Whitesell",
+    "title": "Head of Debt Investment",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.kennedywilson.com/whitesell"
+   },
+   {
+    "full_name": "Jason Baker",
+    "title": "Senior Managing Director, Debt Investment",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.kennedywilson.com/debt-investments"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.kennedywilson.com/locations",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.kennedywilson.com/locations",
+   "website_url": "https://www.kennedywilson.com"
+  },
+  "confidence": "high",
+  "notes": "Debt investment page (kennedywilson.com/debt-investments) lists the debt team and an inquiry form but no broker program, direct phones or emails. Debt platform focuses on construction/transitional loans for multifamily and student housing in the US (also Ireland/UK); reported $7B+ originations (Mar 2024 release). Other debt SMDs listed: Patrick Crandall, Elias Bouzakis."
+ },
+ {
+  "id": "6f0dfeb8-6edf-5e56-842c-a99ddd4d56e6",
+  "name": "KeyBank Healthcare",
+  "status": "active",
+  "website_url": "https://www.key.com/businesses-institutions/industry-expertise/healthcare/real-estate.html",
+  "main_phone": "(888) 979-1200",
+  "main_phone_ext": null,
+  "main_phone_label": "Key2CRE account manager line (existing CRE loans)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": null,
+   "state": null,
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Brian Heagler",
+    "title": "Regional Executive, Healthcare Real Estate Group (leads West Coast team)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.key.com/businesses-institutions/find-an-expert/heagler.html"
+   },
+   {
+    "full_name": "James McLaughlin",
+    "title": "Head of Institutional and Healthcare Real Estate Lending",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.key.com/businesses-institutions/find-an-expert/mclaughlin.html"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://key2cre.key.com/k2c/home",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": "https://www.key.com/businesses-institutions/industry-expertise/healthcare/real-estate.html"
+  },
+  "confidence": "medium",
+  "notes": "Same organization as 'KeyBank Real Estate Capital' (duplicate entry; healthcare real estate group within KBREC). No origination phone or email found; the 888 number is for existing borrowers and may route new inquiries. Brian Heagler (West Coast) is the best California contact; reach via key.com expert page. HQ not verified this pass (parent KeyCorp is Cleveland, OH)."
+ },
+ {
+  "id": "6c62b182-8337-5aa8-8e94-a1cc446e380f",
+  "name": "KeyBank Real Estate Capital",
+  "status": "active",
+  "website_url": "https://www.key.com/businesses-institutions/industry-expertise/commercial-real-estate/capital.html",
+  "main_phone": "(888) 979-1200",
+  "main_phone_ext": null,
+  "main_phone_label": "Key2CRE account manager line (existing CRE loans)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": null,
+   "state": null,
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Brian Heagler",
+    "title": "Regional Executive, Healthcare Real Estate Group (leads West Coast team)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.key.com/businesses-institutions/find-an-expert/heagler.html"
+   },
+   {
+    "full_name": "James McLaughlin",
+    "title": "Head of Institutional and Healthcare Real Estate Lending",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.key.com/businesses-institutions/find-an-expert/mclaughlin.html"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://key2cre.key.com/k2c/home",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": "https://www.key.com/businesses-institutions/industry-expertise/commercial-real-estate/capital.html"
+  },
+  "confidence": "medium",
+  "notes": "KBREC does HUD/FHA, Fannie/Freddie and balance-sheet healthcare lending (e.g., bridge-to-FHA skilled nursing). No broker program or origination inbox found. 888-979-1200 is the Key2CRE borrower line; cre_web@keybank.com is Key2CRE portal support only (not for submissions). Duplicate of 'KeyBank Healthcare'. HQ not verified this pass (parent KeyCorp is Cleveland, OH)."
+ },
+ {
+  "id": "d7d43213-d9fc-5979-ada4-c9326e204288",
+  "name": "Kiavi",
+  "status": "active",
+  "website_url": "https://www.kiavi.com",
+  "main_phone": "(844) 415-4663",
+  "main_phone_ext": null,
+  "main_phone_label": "main (toll-free)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": "https://www.kiavi.com/becoming-a-broker-partner",
+  "hq": {
+   "line1": "271 N. Shore Drive, Suite 201",
+   "city": "Pittsburgh",
+   "state": "PA",
+   "zip": "15212"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.kiavi.com/contact",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": "https://www.kiavi.com/becoming-a-broker-partner",
+   "hq": "https://www.kiavi.com/contact",
+   "website_url": "https://www.kiavi.com"
+  },
+  "confidence": "high",
+  "notes": "Partners page lists (888) 819-6388 for starting a partnership; servicing is (415) 964-4975. partner-support@kiavi.com appears on a partner-program page (not confirmed as a broker submission inbox). Broker sign-up is online (agreement, docs, state licenses). Pittsburgh address came from kiavi.com search text; Kiavi was historically San Francisco-based, so confirm the HQ."
+ },
+ {
+  "id": "de9e6249-6350-563d-b844-8fff7c4aa858",
+  "name": "KKR Real Estate Finance Trust",
+  "status": "active",
+  "website_url": "https://www.kkrreit.com",
+  "main_phone": "(212) 750-8300",
+  "main_phone_ext": null,
+  "main_phone_label": "main (KKR)",
+  "general_email": "kref-ir@kkr.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "30 Hudson Yards, Suite 7500",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10001"
+  },
+  "contacts": [
+   {
+    "full_name": "Joel Traut",
+    "title": "Head of Originations",
+    "email": null,
+    "phone": "(212) 271-9960",
+    "source_url": "https://www.kkrreit.com/contact-us"
+   },
+   {
+    "full_name": "Paul Fine",
+    "title": "Managing Director, Head of U.S. Originations, Real Estate Credit",
+    "email": null,
+    "phone": "(212) 271-9929",
+    "source_url": "https://www.kkrreit.com/contact-us"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.kkr.com/locations",
+   "general_email": "https://www.businesswire.com/news/home/20251007425459/en",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.kkrreit.com/~/media/Files/K/KKR-V2/reports-and-presentations/kref-q1-25-10-q.pdf",
+   "website_url": "https://www.kkrreit.com"
+  },
+  "confidence": "high",
+  "notes": "kref-ir@kkr.com is the investor-relations inbox, not a loan submission address. KREF contact page lists origination contacts (Traut, Fine, Rachel Hunter-Goldman (212) 301-1336) with emails that were obfuscated in search text; get them from kkrreit.com/contact-us. Large-balance lender (typically $100M+ transitional loans)."
+ },
+ {
+  "id": "9ee01e30-7c25-5fb1-a1f8-1d1f5f202fa5",
+  "name": "KSL Capital Partners",
+  "status": "active",
+  "website_url": "https://www.kslcapital.com",
+  "main_phone": "(720) 284-6400",
+  "main_phone_ext": null,
+  "main_phone_label": "main (Denver)",
+  "general_email": null,
+  "submission_email": "prospects@kslcapital.com",
+  "broker_page_url": null,
+  "hq": {
+   "line1": "100 St. Paul St., Suite 800",
+   "city": "Denver",
+   "state": "CO",
+   "zip": "80206"
+  },
+  "contacts": [
+   {
+    "full_name": "Craig Henrich",
+    "title": "Partner, Head of Capital Solutions (formerly Head of Credit)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.kslcapital.com/our-team/craig-henrich"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.kslcapital.com/contact",
+   "general_email": null,
+   "submission_email": "https://www.kslcapital.com/contact",
+   "broker_page_url": null,
+   "hq": "https://www.kslcapital.com/contact",
+   "website_url": "https://www.kslcapital.com"
+  },
+  "confidence": "high",
+  "notes": "prospects@kslcapital.com is listed for 'Investment Opportunities'. KSL Credit lends first mortgage and mezzanine on travel and leisure assets (hotels, resorts, clubs) in North America; not a general CRE lender. Contact page's general-inquiries email appeared as a placeholder in search text, so it is omitted."
+ },
+ {
+  "id": "b0111916-73d9-5563-a729-2619bdf892e0",
+  "name": "Mission Bank",
+  "status": "active",
+  "website_url": "https://www.missionbank.bank",
+  "main_phone": "(888) 965-7783",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "11200 River Run Blvd., Ste. 100",
+   "city": "Bakersfield",
+   "state": "CA",
+   "zip": "93311"
+  },
+  "contacts": [
+   {
+    "full_name": "Craig Howells",
+    "title": "SBA Division Manager",
+    "email": "howellsc@missionbank.bank",
+    "phone": "(559) 314-4095",
+    "source_url": "https://www.missionbank.bank/who-we-are/meet-the-team"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.missionbank.bank/legal/california-consumer-privacy",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.missionbank.bank/assets/files/Spmg7k10/r/Community+Reinvestment+Act+Public+File+as+of+10-2026.pdf",
+   "website_url": "https://www.missionbank.bank"
+  },
+  "confidence": "high",
+  "notes": "Address is the administration office per the bank's CRA public file (mail: PO Box 317, Bakersfield 93302). Downtown Business Banking Center (661) 859-2500 is a good alternate for CRE lending. No broker program page found; no named CRE lender found, Howells covers SBA (7(a)/504 incl. real estate)."
+ },
+ {
+  "id": "6991d77e-f99f-5ff6-b75f-3969eb2f05a3",
+  "name": "Mission Valley Bank",
+  "status": "active",
+  "website_url": "https://www.missionvalleybank.com",
+  "main_phone": "(877) 394-2306",
+  "main_phone_ext": null,
+  "main_phone_label": "loan inquiries",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "9116 Sunland Blvd.",
+   "city": "Sun Valley",
+   "state": "CA",
+   "zip": "91352"
+  },
+  "contacts": [
+   {
+    "full_name": "Brian Carlson",
+    "title": "EVP, Managing Director of SBA",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.missionvalleybank.com/wp-content/uploads/2026/07/MVB_AnnualReport_2025_fnl_web_72326.pdf"
+   },
+   {
+    "full_name": "Michael Carlson",
+    "title": "SVP, SBA National Sales Manager",
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.missionvalleybank.com/wp-content/uploads/2026/07/MVB_AnnualReport_2025_fnl_web_72326.pdf"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.missionvalleybank.com/business-loans-financing/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://missionvalleybank.com/wp-content/uploads/2024/12/CRA_Strategic_Plan_2024_Final.pdf",
+   "website_url": "https://www.missionvalleybank.com"
+  },
+  "confidence": "high",
+  "notes": "Main line (818) 394-2300. HQ conflict on lender's own site: CRA plan/news give 9116 Sunland Blvd; contact page lists 8823 Sunland Blvd (possibly a branch) - confirm. Preferred SBA Lender. Contact titles read from a garbled annual-report PDF; confirm. No hotel-specific contact found."
+ },
+ {
+  "id": "25fe26e5-bf09-5158-a269-6c510f5fb8a9",
+  "name": "Money360",
+  "status": "active",
+  "website_url": "https://www.money360.com",
+  "main_phone": "(949) 579-2200",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@money360.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "999 Corporate Drive, Suite 210",
+   "city": "Ladera Ranch",
+   "state": "CA",
+   "zip": "92694"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.money360.com/",
+   "general_email": "https://www.money360.com/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.money360.com/",
+   "website_url": "https://www.money360.com/"
+  },
+  "confidence": "medium",
+  "notes": "Contact details come from an older indexed version of money360.com (several years old); confirm phone/email still work. Site says deal team works with mortgage bankers and brokers; bridge loans $5M-$30M. Origination team page exists but names were not retrievable."
+ },
+ {
+  "id": "bb574029-c703-5072-b6a5-2888edaeeb50",
+  "name": "Mortgage Vintage",
+  "status": "active",
+  "website_url": "https://mortgagevintage.com",
+  "main_phone": "(949) 763-3982",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": "https://mortgagevintage.com/brokers/",
+  "hq": {
+   "line1": "260 Newport Center Dr., Suite 404",
+   "city": "Newport Beach",
+   "state": "CA",
+   "zip": "92660"
+  },
+  "contacts": [
+   {
+    "full_name": "Sandy MacDougall",
+    "title": null,
+    "email": "sandy@mortgagevintage.com",
+    "phone": "(213) 497-2165",
+    "source_url": "https://mortgagevintage.com/contact-us/"
+   },
+   {
+    "full_name": "Nicole Smith",
+    "title": "DSCR loan contact",
+    "email": "nicole@mortgagevintage.com",
+    "phone": "(949) 637-2977",
+    "source_url": "https://mortgagevintage.com/dscr-loan-program/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://mortgagevintage.com/contact-us/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": "https://mortgagevintage.com/brokers/",
+   "hq": "https://mortgagevintage.com/contact-us/",
+   "website_url": "https://mortgagevintage.com/"
+  },
+  "confidence": "high",
+  "notes": "California direct hard money lender (business purpose) since 2008. Suite number differs: contact page shows #404, older directories show #403. Sandy MacDougall is named on the site as the contact for broker/loan inquiries (title not stated); also reachable at main line. Long Beach office (562) 581-7002."
+ },
+ {
+  "id": "0e3f2547-8344-504d-b8db-c1e1fa0eb665",
+  "name": "Mosaic Real Estate Investors",
+  "status": "active",
+  "website_url": "https://mosaicrei.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "4500 Park Granada, Suite 204",
+   "city": "Calabasas",
+   "state": "CA",
+   "zip": "91302"
+  },
+  "contacts": [
+   {
+    "full_name": "Alex Ovalle",
+    "title": "Executive Managing Director",
+    "email": null,
+    "phone": null,
+    "source_url": "https://sfvbj.com/real-estate/apartments/calabasas-firm-finances-69-million-student-housing"
+   }
+  ],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://mosaicrei.com/contact/",
+   "website_url": "https://mosaicrei.com/"
+  },
+  "confidence": "medium",
+  "notes": "Lending arm is Mosaic Real Estate Credit (MREC Management, SEC RIA). Office is Calabasas (West Coast office), not Los Angeles. Contact page lists a brokers/borrowers email that was not visible in search text - check mosaicrei.com/contact. Only phone found (833-305-6208) is a privacy-request line, not used. Ovalle's title is from 2019 deal coverage; confirm he is still there. Do not confuse with Mosaic Investment Partners."
+ },
+ {
+  "id": "47206d8b-32e6-5173-a283-245c21a3b730",
+  "name": "Mountain Pacific Financial",
+  "status": "not_found",
+  "website_url": null,
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": null,
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": null
+  },
+  "confidence": "low",
+  "notes": "No official website found. Only a third-party directory (hardmoneyhome.com) lists a Fresno private commercial lender at 3451 W. Shaw Ave., Suite 105, Fresno, CA 93711 ($500K-$10M loans). Unverified; check CA DRE/DFPI license lookup before outreach. Do not confuse with Mid Valley Financial (Fresno)."
+ },
+ {
+  "id": "7309ff73-dcfd-56d7-81be-d2fa1148d722",
+  "name": "National Health Investors - mortgage, mezzanine and construction loans",
+  "status": "active",
+  "website_url": "https://www.nhireit.com",
+  "main_phone": "(615) 890-9100",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "investorrelations@nhireit.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "222 Robert Rose Drive",
+   "city": "Murfreesboro",
+   "state": "TN",
+   "zip": "37129"
+  },
+  "contacts": [
+   {
+    "full_name": "Dana Hambly",
+    "title": "Senior Vice President, Finance",
+    "email": null,
+    "phone": "(615) 890-9100",
+    "source_url": "https://investors.nhireit.com/resources/investor-contacts/default.aspx"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://investors.nhireit.com/resources/investor-contacts/default.aspx",
+   "general_email": "https://investors.nhireit.com/resources/investor-contacts/default.aspx",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://investors.nhireit.com/resources/investor-contacts/default.aspx",
+   "website_url": "https://www.nhireit.com"
+  },
+  "confidence": "high",
+  "notes": "Healthcare REIT (NYSE: NHI); lends mortgage/construction/mezz loans to senior housing operators, often with purchase options, rather than via a broker program. Email shown is the investor-relations inbox; Hambly is the press-release contact (finance/IR), not originations - ask to be routed to investments/business development."
+ },
+ {
+  "id": "74d017b5-ac08-5532-b8f6-1600e4e6324d",
+  "name": "National Life Group",
+  "status": "active",
+  "website_url": "https://www.nationallife.com",
+  "main_phone": "(800) 732-8939",
+  "main_phone_ext": null,
+  "main_phone_label": "main (customer service)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "One National Life Drive",
+   "city": "Montpelier",
+   "state": "VT",
+   "zip": "05604"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.nationallife.com/Contact",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.nationallife.com/Contact",
+   "website_url": "https://www.nationallife.com"
+  },
+  "confidence": "medium",
+  "notes": "Commercial mortgage investing runs through NLG Capital (in-house origination, typical loans ~$15M-$60M per job postings; CRE staff in Montpelier VT and Addison TX). No public CRE lending contact or broker page found; main number is policyholder customer service - ask for the commercial real estate/mortgage investments group. HQ street address from general knowledge of the company's Montpelier campus; confirm."
+ },
+ {
+  "id": "18c6dc7d-7e85-5122-ab5c-9e4a75cb061f",
+  "name": "Nationwide Life Insurance Company",
+  "status": "active",
+  "website_url": "https://www.nationwide.com",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Columbus",
+   "state": "OH",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": null,
+   "website_url": "https://careers.nationwide.com/investment-professional-real-estate-investments-cml-asset-management/job/61234B7C9256C8C7AAB980C2FE84ECBC"
+  },
+  "confidence": "low",
+  "notes": "Commercial mortgage lending is done by Nationwide Real Estate Investments (REI) for Nationwide Life/Nationwide Mutual. Its job postings say it originates through loan correspondents, so a broker would usually come in through a correspondent mortgage banker. No public REI phone, email or broker page found; the nationwide.com contact numbers are for insurance and retirement only and are not used here."
+ },
+ {
+  "id": "5c569fdd-797f-5a18-9755-632614514e92",
+  "name": "New Silver",
+  "status": "active",
+  "website_url": "https://newsilver.com",
+  "main_phone": "(855) 844-5626",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "sales@newsilver.com",
+  "submission_email": null,
+  "broker_page_url": "https://newsilver.com/partner-program/",
+  "hq": {
+   "line1": "28 N Main St, Suite 202",
+   "city": "West Hartford",
+   "state": "CT",
+   "zip": "06107"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://newsilver.com/partner-program/",
+   "general_email": "https://newsilver.com/contact-us/",
+   "submission_email": null,
+   "broker_page_url": "https://newsilver.com/partner-program/",
+   "hq": "https://newsilver.com/sms-terms/",
+   "website_url": "https://newsilver.com/"
+  },
+  "confidence": "high",
+  "notes": "Published as (855) 844-LOAN. NMLS Company ID 2154545 (per site footer; verify on NMLS Consumer Access). The partner/referral program is for mortgage professionals; the site mentions a 2% broker fee on fix-and-flip and ground-up loans. The partner-page email was hidden in search text. sales@ is from a contact page about 2 years old, so confirm it still works. The input broker URL (?p=27113) was replaced with the partner-program page."
+ },
+ {
+  "id": "a4c0f713-2b2c-54e5-9ce5-af6ac1a805c8",
+  "name": "Provident Savings Bank",
+  "status": "active",
+  "website_url": "https://www.myprovident.com",
+  "main_phone": "(951) 686-6060",
+  "main_phone_ext": null,
+  "main_phone_label": "main (corporate office)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3756 Central Avenue",
+   "city": "Riverside",
+   "state": "CA",
+   "zip": "92506"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.myprovident.com/contactus/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.myprovident.com/contactus/",
+   "website_url": "https://www.myprovident.com/contactus/"
+  },
+  "confidence": "high",
+  "notes": "Provident Bank (Provident Financial Holdings). Commercial/multifamily page https://www.myprovident.com/commercial/ (SoCal and Bay Area, loans from $350K, 75% max LTV apartments). No broker program page found. Site's HomeOffice page lists 6570 Magnolia Ave, Riverside 92506, (951) 782-6177 as 'headquarters' branch; corporate office per contact page is 3756 Central Ave. Direct Loan Center (800) 250-1713. Confirm who handles broker-submitted multifamily loans."
+ },
+ {
+  "id": "607006ed-d04a-5e4e-a594-a414f213edd0",
+  "name": "QuadReal Property Group",
+  "status": "active",
+  "website_url": "https://quadreal.com",
+  "main_phone": "(646) 978-5963",
+  "main_phone_ext": null,
+  "main_phone_label": "New York office (U.S. debt team base)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Vancouver",
+   "state": "BC",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Paul J. Stern",
+    "title": "Managing Director, U.S. Debt Investments",
+    "email": null,
+    "phone": null,
+    "source_url": "https://quadreal.com/about-us/our-leadership/"
+   },
+   {
+    "full_name": "Prashant Raj",
+    "title": "President, Global Debt",
+    "email": null,
+    "phone": null,
+    "source_url": "https://quadreal.com/about-us/our-leadership/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://quadreal.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://quadreal.com/contact/",
+   "website_url": "https://quadreal.com/contact/"
+  },
+  "confidence": "high",
+  "notes": "Canadian (Vancouver-headquartered) real estate investor; general line +1 604 975 9501. NY office: 1345 Avenue of the Americas, Suite 2302, New York, NY 10105. LA-area office: 100 Wilshire Blvd, Suite 940, Santa Monica, CA 90401, +1 213 328 6401 (listed for residential team). U.S. debt team did 13 deals/$1.43B in 2025; large-balance construction/transitional/mezz, not a broker-program lender. Emails on contact page are obfuscated."
+ },
+ {
+  "id": "ab692ef2-88a6-5795-97bf-a3f7be81ec05",
+  "name": "R4 Capital Funding",
+  "status": "active",
+  "website_url": "https://r4cap.com",
+  "main_phone": "(646) 576-7660",
+  "main_phone_ext": null,
+  "main_phone_label": "New York office (main)",
+  "general_email": "info@r4cap.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "780 Third Avenue, 16th Floor",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10017"
+  },
+  "contacts": [
+   {
+    "full_name": "James D. Spound",
+    "title": "President, R4 Capital Funding",
+    "email": "JSpound@R4cap.com",
+    "phone": "(646) 844-0935",
+    "source_url": "https://r4cap.com/wp-content/uploads/2024/07/R4CF-Fact-Sheets-July-2024.pdf"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://r4cap.com/contact/",
+   "general_email": "https://r4cap.com/about/r4-capital-careers/",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://r4cap.com/contact/",
+   "website_url": "https://r4cap.com/services/affordable-housing-debt/"
+  },
+  "confidence": "high",
+  "notes": "R4 Capital Funding is the tax-exempt affordable-housing debt arm of R4 Capital (no separate site; page https://r4cap.com/services/affordable-housing-debt/). Spound contact from July 2024 fact sheet - confirm. Newport Beach office: 895 Dove St, Suite 450, (949) 438-1055. Fannie/Freddie agency status not confirmed. An Aug 2026 SEC order found R4 Capital Funding LLC acted as an unregistered broker and is registering as a broker-dealer."
+ },
+ {
+  "id": "f6f60c1c-997a-545e-82a9-fb7003be16e3",
+  "name": "RCN Capital",
+  "status": "active",
+  "website_url": "https://rcncapital.com",
+  "main_phone": "(860) 432-5858",
+  "main_phone_ext": null,
+  "main_phone_label": "main / brokers and new clients",
+  "general_email": "info@rcncapital.com",
+  "submission_email": null,
+  "broker_page_url": "https://rcncapital.com/broker-referral-program",
+  "hq": {
+   "line1": "75 Gerber Rd East, Suite 102",
+   "city": "South Windsor",
+   "state": "CT",
+   "zip": "06074"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://rcncapital.com/contact",
+   "general_email": "https://rcncapital.com/contact",
+   "submission_email": null,
+   "broker_page_url": "https://rcncapital.com/broker-referral-program",
+   "hq": "https://rcncapital.com/contact",
+   "website_url": "https://rcncapital.com/"
+  },
+  "confidence": "high",
+  "notes": "Site says general program questions from brokers/new clients go to Info@RCNCapital.com / 860-432-5858. Has a Los Angeles office (see rcncapital.com/blog/rcn-capital-celebrates-grand-opening-of-los-angeles-office). California fix-and-flip/bridge loans serviced in-house (888-842-2582). Also offers a Correspondent Lending Program. Broker page URL from prior pass; search did not retrieve its text."
+ },
+ {
+  "id": "91911dc4-b841-545f-a4be-f1bd785369a8",
+  "name": "Red Oak Capital Holdings",
+  "status": "acquired_or_merged",
+  "website_url": "https://www.redoakcapitalholdings.com",
+  "main_phone": "(616) 342-3197",
+  "main_phone_ext": null,
+  "main_phone_label": "loan requests",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "5925 Carnegie Boulevard, Suite 110",
+   "city": "Charlotte",
+   "state": "NC",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.redoakcapitalholdings.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.redoakcapitalholdings.com/contact/",
+   "website_url": "https://redoakcapitalholdings.com/"
+  },
+  "confidence": "medium",
+  "notes": "Lender's site says effective Sept 10, 2026 Red Oak Capital Holdings merged with and into The Oak Companies, Inc. (lending platform continues under Oak). Contact page (pre-merger) lists Loan Requests 616.342.3197, Originations 214.384.8146, Underwriting 404.387.8814, HQ main 980.288.6627; department emails are obfuscated. Prior-pass info@redoakcapitalholdings.com not confirmed. Confirm contact details with The Oak Companies post-merger."
+ },
+ {
+  "id": "9eeae97d-3c4d-5974-a744-37e6a2a04583",
+  "name": "Red Tower Capital",
+  "status": "active",
+  "website_url": "https://redtowercapital.com",
+  "main_phone": "(415) 475-8800",
+  "main_phone_ext": "2",
+  "main_phone_label": "new loans",
+  "general_email": null,
+  "submission_email": "borrow@redtowercapital.com",
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "San Francisco",
+   "state": "CA",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "John Lowman",
+    "title": "Business Development Director",
+    "email": "john.lowman@redtowercapital.com",
+    "phone": null,
+    "source_url": "https://redtowercapital.com/borrow/bridge-loans"
+   },
+   {
+    "full_name": "Solomon Gorlick",
+    "title": "Founder and President",
+    "email": "solomon@redtowercapital.com",
+    "phone": null,
+    "source_url": "https://redtowercapital.com/solomon"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://redtowercapital.com/contact-us",
+   "general_email": null,
+   "submission_email": "https://redtowercapital.com/contact-us",
+   "broker_page_url": null,
+   "hq": "https://redtowercapital.com/",
+   "website_url": "https://redtowercapital.com/"
+  },
+  "confidence": "high",
+  "notes": "Contact page: new loans x2 borrow@; funding/closing x3 closing@; servicing x4 servicing@; investor relations x1 invest@. John Lowman phone differs by page: (310) 648-9114 (bridge loan page) vs (415) 475-9127 (cannabis page) - confirm. Solomon Gorlick shown at (415) 377-1284 on one page. Street address not confirmed on own site (directories show 111 Pine St Ste 1715 or One Sansome St Ste 1500, SF). No dedicated broker page found."
+ },
+ {
+  "id": "af17ed97-4602-57c9-b33b-30f39f876d27",
+  "name": "Redwood Credit Union",
+  "status": "active",
+  "website_url": "https://www.redwoodcu.org",
+  "main_phone": "(707) 576-5070",
+  "main_phone_ext": null,
+  "main_phone_label": "business services",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3033 Cleveland Avenue",
+   "city": "Santa Rosa",
+   "state": "CA",
+   "zip": "95403"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.redwoodcu.org/business/homepage/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.redwoodcu.org/accounts/direct-deposit/",
+   "website_url": "https://www.redwoodcu.org/business/loans/sba-business-loans-and-504-business-loans/"
+  },
+  "confidence": "high",
+  "notes": "Preferred SBA lender (7(a) and 504); SBA page https://www.redwoodcu.org/business/loans/sba-business-loans-and-504-business-loans/ and CRE page /business/loans/commercial-real-estate/. CRE loans only on CA properties; business must operate primarily in Sonoma, Marin, SF, Lake, Napa, Contra Costa or Solano County. Member service 707-545-4000 / 800-479-7928. Business lending VP shown only as 'Brian K.' (no full name). No broker program found; loan officer calls booked via site."
+ },
+ {
+  "id": "af0ddd65-dd3f-56f7-ad38-b359443bb27a",
+  "name": "Redwood Mortgage",
+  "status": "active",
+  "website_url": "https://redwoodmortgage.com",
+  "main_phone": "(650) 365-5341",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "rmc@redwoodmortgage.com",
+  "submission_email": null,
+  "broker_page_url": "https://redwoodmortgage.com/brokers/",
+  "hq": {
+   "line1": "155 Bovet Road, Suite 302",
+   "city": "San Mateo",
+   "state": "CA",
+   "zip": "94402"
+  },
+  "contacts": [
+   {
+    "full_name": "Curtis Gaspard",
+    "title": "Account Executive (San Francisco, Oakland, Marin, San Jose)",
+    "email": "curtis@redwoodmortgage.com",
+    "phone": "(415) 988-1566",
+    "source_url": "https://redwoodmortgage.com/contact/"
+   },
+   {
+    "full_name": "Jim O'Dea",
+    "title": "Account Executive, Special Accounts",
+    "email": "jimodea@redwoodmortgage.com",
+    "phone": "(650) 575-0778",
+    "source_url": "https://redwoodmortgage.com/contact/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://redwoodmortgage.com/contact/",
+   "general_email": "https://redwoodmortgage.com/contact/",
+   "submission_email": null,
+   "broker_page_url": "https://redwoodmortgage.com/brokers/",
+   "hq": "https://redwoodmortgage.com/contact/",
+   "website_url": "https://redwoodmortgage.com/"
+  },
+  "confidence": "high",
+  "notes": "Toll-free (800) 659-6593. Brokers page offers a form to request a quote and a Broker Agreement. Mike Micci listed as account executive for Orange County/San Diego (no contact details captured). Contact page is ~2.7 years old - confirm AEs are current. Lends CA commercial, multifamily, mixed-use, residential investment."
+ },
+ {
+  "id": "8b86825d-505c-582a-af0f-313b6a23ba08",
+  "name": "Regions Bank Healthcare Real Estate",
+  "status": "active",
+  "website_url": "https://www.regions.com/commercial-banking/industry-expertise/healthcare",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1900 Fifth Avenue North",
+   "city": "Birmingham",
+   "state": "AL",
+   "zip": "35203"
+  },
+  "contacts": [
+   {
+    "full_name": "Mark Hardison",
+    "title": "Healthcare Group Head",
+    "email": "mark.hardison@regions.com",
+    "phone": null,
+    "source_url": "https://www.regions.com/commercial-banking/industry-expertise/healthcare"
+   },
+   {
+    "full_name": "John McGough",
+    "title": "Managing Director, Real Estate Loan Syndications - Middle Market & Healthcare Real Estate",
+    "email": "john.mcgough@regions.com",
+    "phone": "(704) 362-3589",
+    "source_url": "https://www.regions.com/commercial-banking/real-estate-banking/real-estate-capital-markets/contact"
+   }
+  ],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.sec.gov/Archives/edgar/data/1281761/000128176126000019/rf-20251231.htm",
+   "website_url": "https://www.regions.com/commercial-banking/industry-expertise/healthcare"
+  },
+  "confidence": "high",
+  "notes": "Division of Regions Bank (Regions Financial). Healthcare page lists senior housing (assisted living, skilled nursing) as a focus area. No dedicated senior-housing construction lead or group phone published; Real Estate Corporate Banking head is Rob MacGregor (rob.macgregor@regions.com). Hardison appointment dates to 2017 - confirm still current. Bank balance-sheet lender; no broker program found."
+ },
+ {
+  "id": "20ded351-de51-5463-b97a-5bf76cecbefb",
+  "name": "Regions Real Estate Capital Markets",
+  "status": "active",
+  "website_url": "https://www.regions.com/commercial-banking/real-estate-banking/real-estate-capital-markets/fha-hud-loans",
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "1900 Fifth Avenue North",
+   "city": "Birmingham",
+   "state": "AL",
+   "zip": "35203"
+  },
+  "contacts": [
+   {
+    "full_name": "Stephen Chasteen",
+    "title": "Managing Director, FHA/HUD Platform Manager - National",
+    "email": "stephen.chasteen@regions.com",
+    "phone": "(404) 279-7465",
+    "source_url": "https://www.regions.com/commercial-banking/real-estate-banking/real-estate-capital-markets/contact"
+   },
+   {
+    "full_name": "Ann Atkinson",
+    "title": "Managing Director, Head of Small Loan and Market Real Estate Production",
+    "email": "ann.atkinson@regions.com",
+    "phone": "(949) 381-2766",
+    "source_url": "https://www.regions.com/commercial-banking/real-estate-banking/real-estate-capital-markets/contact"
+   }
+  ],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.sec.gov/Archives/edgar/data/1281761/000128176126000019/rf-20251231.htm",
+   "website_url": "https://www.regions.com/commercial-banking/real-estate-banking/real-estate-capital-markets/fha-hud-loans"
+  },
+  "confidence": "high",
+  "notes": "Regions Bank RECM: Fannie Mae DUS, Freddie Mac Optigo and FHA/HUD lender (incl. ALF/SNF). Contacts page: https://www.regions.com/commercial-banking/real-estate-banking/real-estate-capital-markets/contact. Only group number published is the Agency & CMBS loan servicing line 1-877-900-6272 (servicing, not originations). Troy Marek is MD/group head, Project Finance (205-264-5294). Atkinson's 949 (Orange County) work number used; contact page is undated - confirm."
+ },
+ {
+  "id": "b4655be8-c62e-5c37-841c-0483186ad006",
+  "name": "Rehab Financial Group",
+  "status": "active",
+  "website_url": "https://rehabfinancial.com",
+  "main_phone": "(610) 890-8512",
+  "main_phone_ext": null,
+  "main_phone_label": "broker desk (RFG Account Manager)",
+  "general_email": "info@rehabfinancial.com",
+  "submission_email": null,
+  "broker_page_url": "https://rehabfinancial.com/brokers",
+  "hq": {
+   "line1": "1062 Lancaster Ave, Suite 15C",
+   "city": "Rosemont",
+   "state": "PA",
+   "zip": "19010"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://rehabfinancial.com/brokers",
+   "general_email": "https://rehabfinancial.com/about",
+   "submission_email": null,
+   "broker_page_url": "https://rehabfinancial.com/brokers",
+   "hq": "https://rehabfinancial.com/about",
+   "website_url": "https://rehabfinancial.com/about"
+  },
+  "confidence": "high",
+  "notes": "Rehab Financial Group, LP. Phone numbers differ across pages: broker page 610-890-8512; wholesale landing page (https://landing.rehabfinancial.com/wholesale) 610-645-9939 and 877-723-4405; referral page 877-978-2043. Broker agreements said to be processed same day. Broker referral program page: https://rehabfinancial.com/about/broker-referral-partner-program."
+ },
+ {
+  "id": "1a38b543-43cd-5366-a8ae-b239a94b46e2",
+  "name": "ReProp Financial",
+  "status": "active",
+  "website_url": "https://www.repropfinancial.com",
+  "main_phone": "(707) 444-7711",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": "https://www.repropfinancial.com/2008/banker-portal/",
+  "hq": {
+   "line1": "735 4th St",
+   "city": "Eureka",
+   "state": "CA",
+   "zip": "95501"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.repropfinancial.com/contact/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": "https://www.repropfinancial.com/2008/banker-portal/",
+   "hq": "https://www.repropfinancial.com/contact/",
+   "website_url": "https://www.repropfinancial.com/about-reprop-financial/"
+  },
+  "confidence": "high",
+  "notes": "Division of ReProp Investments, Inc. (est. 1978, founder Glenn Goldan); direct private lender, commercial/industrial/agricultural, ~$100K-$2.5M in western states; CFL license. Toll-free 800.444.2948. Address conflict: contact page/footer say 735 4th St, Eureka 95501; banker portal and application pages say send files to 555 H St, Suite G, Eureka 95501. 'Banker Portal' page is the referral/submission page (also a file transfer system)."
+ },
+ {
+  "id": "27b2d6b2-5461-5b73-9de4-d63f62a0627f",
+  "name": "Temple View Capital",
+  "status": "active",
+  "website_url": "https://www.templeviewcap.com",
+  "main_phone": "(844) 232-7878",
+  "main_phone_ext": null,
+  "main_phone_label": "new deals / broker partner line",
+  "general_email": "info@templeviewcap.com",
+  "submission_email": "tvc-bpa@templeviewcap.com",
+  "broker_page_url": "https://www.templeviewcap.com/partners/broker",
+  "hq": {
+   "line1": "7550 Wisconsin Ave., 10th Floor",
+   "city": "Bethesda",
+   "state": "MD",
+   "zip": "20814"
+  },
+  "contacts": [
+   {
+    "full_name": "Melissa Appleton",
+    "title": "Account Executive",
+    "email": "mappleton@templeviewcap.com",
+    "phone": "(503) 453-6477",
+    "source_url": "https://www.templeviewcap.com/ae/melissa-appleton"
+   },
+   {
+    "full_name": "Max Cohen",
+    "title": "Account Executive",
+    "email": "mcohen@templeviewcap.com",
+    "phone": "(480) 259-7241",
+    "source_url": "https://www.templeviewcap.com/ae/max-cohen"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.templeviewcap.com/contact-us",
+   "general_email": "https://www.templeviewcap.com/contact-us",
+   "submission_email": "https://www.tvcfunding.com/table-funding",
+   "broker_page_url": "https://www.templeviewcap.com/partners/broker",
+   "hq": "https://www.templeviewcap.com/contact-us",
+   "website_url": "https://www.templeviewcap.com/contact-us"
+  },
+  "confidence": "high",
+  "notes": "Also operates as TVC Funding (tvcfunding.com/wholesale-broker; loans submitted via TPO Connect). Broker applications + photo ID go to brokerapplications@templeviewcap.com (broker application page https://www.templeviewcap.com/broker-application). tvc-bpa@ is the broker/table-funding inquiry inbox. AE regions not stated on pages; Appleton (OR area code) and Cohen (AZ area code) chosen as likely West coverage - confirm territory."
+ },
+ {
+  "id": "c84b9218-0ad0-5879-9299-57f403102192",
+  "name": "Terra Capital Partners",
+  "status": "acquired_or_merged",
+  "website_url": null,
+  "main_phone": null,
+  "main_phone_ext": null,
+  "main_phone_label": null,
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "New York",
+   "state": "NY",
+   "zip": null
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": null,
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://capedge.com/filing/1674356/0001104659-23-050340/TPTA-DEF14A",
+   "website_url": null
+  },
+  "confidence": "low",
+  "notes": "Per Terra Property Trust SEC proxy filing, all interests in Terra Capital Partners were acquired by Mavik Capital Management, LP (controlled by Vikram S. Uppal); the platform now operates as Mavik Capital. No official Terra/Mavik site page with contact data was returned. Third-party directories list 205 West 28th St, 12th Fl, New York, NY 10001 and +1 212 753 5100 - unverified, not recorded. Older Terra addresses (805 Third Ave; 550 Fifth Ave) are outdated. Broker should locate Mavik's own website to confirm contacts."
+ },
+ {
+  "id": "6b77d8a3-47d0-5d66-a491-ade7951da259",
+  "name": "Texas Capital - Healthcare Banking",
+  "status": "active",
+  "website_url": "https://www.texascapitalbank.com",
+  "main_phone": "(214) 932-6600",
+  "main_phone_ext": null,
+  "main_phone_label": "corporate headquarters main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "2000 McKinney Avenue, Suite 700",
+   "city": "Dallas",
+   "state": "TX",
+   "zip": "75201"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://texascapitalbank.com/who-we-are/locations/dallas",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://texascapitalbank.com/who-we-are/locations/dallas",
+   "website_url": "https://texascapitalbank.com/helpful-information/contact-us"
+  },
+  "confidence": "high",
+  "notes": "Bank's site is texascapitalbank.com (texascapital.com hosts the funds-management subsidiary). No healthcare banking group page or named healthcare banker was found on the bank's site; prior-pass contact Rhonda Noell could not be confirmed and is omitted. Commercial 'Meet Our Experts' page exists (texascapitalbank.com/commercial-banking/meet-our-experts) - ask main line for Healthcare Banking. Bank lender, no broker program found."
+ },
+ {
+  "id": "bd2e1563-815c-5f12-a670-8bdd8679f79d",
+  "name": "The Bancorp Bank - Real Estate Bridge Lending",
+  "status": "active",
+  "website_url": "https://thebancorp.com",
+  "main_phone": "(302) 385-5000",
+  "main_phone_ext": null,
+  "main_phone_label": "main (corporate)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "409 Silverside Road, Suite 105",
+   "city": "Wilmington",
+   "state": "DE",
+   "zip": "19809"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://investors.thebancorp.com/",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://investors.thebancorp.com/",
+   "website_url": "https://thebancorp.com/solution/real-estate-bridge-lending"
+  },
+  "confidence": "high",
+  "notes": "REBL (Real Estate Bridge Lending) product page: https://thebancorp.com/solution/real-estate-bridge-lending - nonrecourse multifamily rehab/value-add bridge loans nationwide (~$2.2B book, 3-yr + two 1-yr extensions per 2025 SEC filings). No REBL-specific phone, email or named originator published; call main line and ask for REBL. Small business lending line (866-792-5408) is for SBA, not bridge."
+ },
+ {
+  "id": "b44c027a-8ca0-5661-90f0-ef3d964eed9d",
+  "name": "The Norris Group",
+  "status": "active",
+  "website_url": "https://www.thenorrisgroup.com",
+  "main_phone": "(951) 780-5856",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@thenorrisgroup.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "4160 Temescal Canyon Rd, Ste 401",
+   "city": "Corona",
+   "state": "CA",
+   "zip": "92883"
+  },
+  "contacts": [
+   {
+    "full_name": "Craig Hill",
+    "title": "Loan officer (hard money deal reviews)",
+    "email": null,
+    "phone": "(951) 780-5856 x102",
+    "source_url": "https://www.thenorrisgroup.com/hard-money-loan-california"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.thenorrisgroup.com/contact",
+   "general_email": "https://www.thenorrisgroup.com/contact",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.thenorrisgroup.com/",
+   "website_url": "https://www.thenorrisgroup.com/contact"
+  },
+  "confidence": "high",
+  "notes": "IMPORTANT: Norris Group FAQ answers 'Do you do broker referrals? NO' (https://www.thenorrisgroup.com/hard_money_loans/hard-money-loans-faq/); affiliate program is invite-only (/partner/). Itself a licensed CA broker funding via trust-deed investors. Older pages list 1845 Chicago Ave Ste C, Riverside, CA 92507 and other numbers ((951) 780-1000; Craig Hill direct (951) 823-8262 on homepage) - Corona address and 780-5856 are most current."
+ },
+ {
+  "id": "bd59ad34-83f9-56a6-b3b0-1414c63ad8b3",
+  "name": "Thomas Financial Group",
+  "status": "active",
+  "website_url": "https://www.thomasfinancialgroup.com",
+  "main_phone": "(770) 655-1569",
+  "main_phone_ext": null,
+  "main_phone_label": "TFG contact line in press releases (Zach Chandler)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": null,
+   "city": "Atlanta",
+   "state": "GA",
+   "zip": null
+  },
+  "contacts": [
+   {
+    "full_name": "Zach Chandler",
+    "title": "SVP, Government Guaranteed Lending",
+    "email": "Zach@thomasfinancialgroup.com",
+    "phone": "(770) 655-1569",
+    "source_url": "https://www.globenewswire.com/news-release/2025/05/20/3084949/0/en/Thomas-Financial-Group-Closes-Over-34-Million-in-Bridge-Loans-for-USDA-Takeout-in-Under-40-Days.html"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.globenewswire.com/news-release/2025/05/20/3084949/0/en/Thomas-Financial-Group-Closes-Over-34-Million-in-Bridge-Loans-for-USDA-Takeout-in-Under-40-Days.html",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.globenewswire.com/news-release/2025/01/28/3016457/0/en/Community-Bankshares-Inc-Acquires-Thomas-USAF-Thomas-Financial-Group-to-Completely-Revolutionize-Government-Guaranteed-Lending-Nationwide.html",
+   "website_url": "https://www.globenewswire.com/news-release/2025/05/20/3084949/0/en/Thomas-Financial-Group-Closes-Over-34-Million-in-Bridge-Loans-for-USDA-Takeout-in-Under-40-Days.html"
+  },
+  "confidence": "medium",
+  "notes": "Acquired Jan 2025 by Community Bankshares Inc. (GA); still originates under TFG name with sister units Phoenix Lender Services and Community Bank & Trust. Hotel bridge loans are typically taken out by USDA B&I loans (several CA hotel deals 2025). Releases cite both thomasfinancialgroup.com and thomasusaf.com - confirm current site. Former CEO Thomas Kimsey left Feb 2025 for SBA. HQ city per press releases; no street address found."
+ },
+ {
+  "id": "9266f409-9e92-519d-b89b-bf8a50eb0267",
+  "name": "Thorofare Capital",
+  "status": "active",
+  "website_url": "https://www.thorofarecapital.com",
+  "main_phone": "(213) 873-4000",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": null,
+  "submission_email": "deals@thorofarecapital.com",
+  "broker_page_url": null,
+  "hq": {
+   "line1": "3421 N Via Oporto, Suite 201",
+   "city": "Newport Beach",
+   "state": "CA",
+   "zip": "92663"
+  },
+  "contacts": [
+   {
+    "full_name": "Paul Hachigian",
+    "title": "Director, Originations (Southwest & Midwest)",
+    "email": null,
+    "phone": "(424) 486-3507",
+    "source_url": "https://www.thorofarecapital.com/contact/"
+   },
+   {
+    "full_name": "Andrew Kim",
+    "title": "Director, Originations (Southwest & Midwest)",
+    "email": null,
+    "phone": "(424) 344-6835",
+    "source_url": "https://www.thorofarecapital.com/contact/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.thorofarecapital.com/contact/",
+   "general_email": null,
+   "submission_email": "https://www.thorofarecapital.com/contact/",
+   "broker_page_url": null,
+   "hq": "https://www.thorofarecapital.com/contact/",
+   "website_url": "https://www.thorofarecapital.com/contact/"
+  },
+  "confidence": "high",
+  "notes": "Contact page lists corporate office in Newport Beach (input said El Segundo) plus LA, Miami, Dallas, New York offices. deals@ is the originations inbox; prior pass wrongly attached it to Paul Hachigian as a personal email. Other originators: Jason Campbell (Northeast, 424.486.3536), Scott Sumida (Pacific NW & Mountain, 424.486.3215). info@thorofarecapital.com appears only in 2014-2016 press releases - not recorded. No formal broker sign-up page found."
+ },
+ {
+  "id": "aeae0607-fc83-5a68-aee6-2cb9da1c74ca",
+  "name": "Thrivent Financial",
+  "status": "active",
+  "website_url": "https://www.thrivent.com",
+  "main_phone": "(800) 847-4836",
+  "main_phone_ext": null,
+  "main_phone_label": "main (member services)",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "600 Portland Avenue S., Suite 100",
+   "city": "Minneapolis",
+   "state": "MN",
+   "zip": "55415"
+  },
+  "contacts": [],
+  "sources": {
+   "main_phone": "https://www.thrivent.com/contact-us",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.thrivent.com/about-us/our-leadership",
+   "website_url": "https://www.thrivent.com/contact-us"
+  },
+  "confidence": "low",
+  "notes": "Main line is a member-services number, not CRE lending. Thrivent holds ~$10.6B commercial mortgages (2Q25 statutory statement) but publishes no CRE lending or correspondent contact; historically funds through mortgage-banker correspondents (e.g., G.S. Wilcox per GlobeSt 2010). Church Loans desk (800-984-9425, churchloan@thrivent.com) is for church/institution financing only. Broker likely needs a correspondent relationship rather than direct submission."
+ },
+ {
+  "id": "518260c8-2fb9-5c0f-b476-f7c8bec38e39",
+  "name": "Tishman Speyer",
+  "status": "active",
+  "website_url": "https://www.tishmanspeyer.com",
+  "main_phone": "(212) 715-0300",
+  "main_phone_ext": null,
+  "main_phone_label": "global headquarters main",
+  "general_email": null,
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "45 Rockefeller Plaza",
+   "city": "New York",
+   "state": "NY",
+   "zip": "10111"
+  },
+  "contacts": [
+   {
+    "full_name": "Randall Rothschild",
+    "title": "Global Head of Debt (oversees credit platform)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://commercialobserver.com/2026/06/tishman-speyer-one-dag/"
+   },
+   {
+    "full_name": "Amit Rustgi",
+    "title": "Managing Director, Credit Strategies (originations)",
+    "email": null,
+    "phone": null,
+    "source_url": "https://commercialobserver.com/2024/07/tishman-speyer-latest-cre-owner-to-launch-debt-platform/"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.tishmanspeyer.com/contact-us",
+   "general_email": null,
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.tishmanspeyer.com/contact-us",
+   "website_url": "https://www.tishmanspeyer.com/contact-us"
+  },
+  "confidence": "medium",
+  "notes": "Primarily an owner/developer; launched a CRE credit platform in July 2024 (large loans/mezz in major US cities, e.g. $40M mezz on One Dag, June 2026). No broker program; contact page has an 'Investment Inquiries' route. Global offices page also lists 212-332-6662 for NY HQ - conflict with 212-715-0300 on contact page. Names/titles from Commercial Observer; confirm current titles."
+ },
+ {
+  "id": "a2a7e9e9-44e5-5fc3-a6bf-378c617bb1da",
+  "name": "Top California Lender, LLC",
+  "status": "active",
+  "website_url": "https://www.topcalifornialender.com",
+  "main_phone": "(424) 209-7104",
+  "main_phone_ext": null,
+  "main_phone_label": "main",
+  "general_email": "info@topcalifornialender.com",
+  "submission_email": null,
+  "broker_page_url": null,
+  "hq": {
+   "line1": "401 Wilshire Blvd",
+   "city": "Santa Monica",
+   "state": "CA",
+   "zip": "90401"
+  },
+  "contacts": [
+   {
+    "full_name": "Jerry Dean",
+    "title": null,
+    "email": null,
+    "phone": null,
+    "source_url": "https://www.topcalifornialender.com/post/top-california-lender-welcomes-new-leadership-with-jerry-dean-taking-over"
+   }
+  ],
+  "sources": {
+   "main_phone": "https://www.topcalifornialender.com/contact-us",
+   "general_email": "https://www.topcalifornialender.com/contact-us",
+   "submission_email": null,
+   "broker_page_url": null,
+   "hq": "https://www.topcalifornialender.com/contact-us",
+   "website_url": "https://www.topcalifornialender.com/contact-us"
+  },
+  "confidence": "high",
+  "notes": "Private CRE bridge/construction lender lending nationwide; site invites brokers to submit transactions but no dedicated broker page or submission inbox found. A 2025 release and one page snippet show (424) 209-7164 - conflicts with 7104 used in Oct 2026 materials. Jerry Dean took over leadership Apr 2025 (exact title not confirmed)."
+ }
+]

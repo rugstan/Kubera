@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { lenderCategories } from "@/lib/compliance/schemas";
+import { maskedNumber } from "@/lib/deals/lender-accounts";
+import { formatPhone, telHref } from "@/lib/deals/lender-contacts";
 import { appliedFilters, caStatus, emptyStateSuggestions, lenderListHref, lenderListView, parseLenderListQuery, serializeLenderListQuery, unreadAmount, type FilterLink as FilterLinkSpec, type LenderListQuery, type LenderListView } from "@/lib/deals/lender-list";
 import { LENDER_STALE_AFTER_DAYS, lenderStaleness } from "@/lib/deals/lenders";
 import { currentStaff, dealDeskRuntime } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
-import { DEAL_PROGRAM_LABELS, dealPrograms } from "@/lib/deals/types";
+import { DEAL_PROGRAM_LABELS, dealPrograms, type LenderAccount, type LenderAccountKind } from "@/lib/deals/types";
 import { lenderAction, saveLenderAction } from "../actions";
 import { Badge, Check, Field, Flash, Loading, LoanTypeBadges, LoanTypeFieldset, NotConfigured, Section, Select, SignInRequired, Submit, Table, money, when } from "../ui";
 import { FilterLink, ResultsSummary } from "./_components/FilterNav";
@@ -32,6 +34,34 @@ export default function LendersPage({ searchParams }: { searchParams: Search }) 
 }
 
 const split = (kind: string, value: number) => (kind === "none" ? "None" : kind === "flat" ? money(value) : `${value}% of ${kind === "percent_of_loan" ? "loan" : "lender fee"}`);
+
+/** Short kind names for the list column; the lender page uses the long LENDER_ACCOUNT_KIND_LABELS. */
+const ACCOUNT_KIND_SHORT: Record<LenderAccountKind, string> = { broker_id: "Broker ID", client_account: "Account", portal_username: "Portal user", other: "Other" };
+
+/** "Our account #" cell: masked numbers already on file, else a way to add one. Never the number itself. */
+function AccountCell({ lenderId, lenderName, accounts, write }: { lenderId: string; lenderName: string; accounts: LenderAccount[]; write: boolean }) {
+  if (accounts.length) {
+    return (
+      <span className="flex flex-col gap-1">
+        {accounts.map((a) => (
+          <span className="whitespace-nowrap" key={a.id}>
+            <span className="text-titanium">{ACCOUNT_KIND_SHORT[a.kind]}:</span> <span className="tabular-nums">{maskedNumber(a.numberLast4)}</span>
+          </span>
+        ))}
+        <Link className="text-sm text-accent underline" href={`/deals/lenders/${lenderId}#accounts`}>
+          Manage<span className="sr-only"> account numbers for {lenderName}</span>
+        </Link>
+      </span>
+    );
+  }
+  return write ? (
+    <Link className="whitespace-nowrap text-sm text-accent underline" href={`/deals/lenders/${lenderId}#accounts`}>
+      Add account #<span className="sr-only"> for {lenderName}</span>
+    </Link>
+  ) : (
+    <span className="whitespace-nowrap text-titanium">Not set</span>
+  );
+}
 
 function AppliedFilters({ query }: { query: LenderListQuery }) {
   const links = appliedFilters(query);
@@ -102,8 +132,10 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
   if (!rt) return <NotConfigured />;
   const query = parseLenderListQuery(sp);
   const amountText = unreadAmount(sp);
-  const lenders = await rt.store.listLenders();
+  const [lenders, accounts] = await Promise.all([rt.store.listLenders(), rt.store.listAllLenderAccounts()]);
   const view = lenderListView(lenders, query);
+  const accountsByLender = new Map<string, LenderAccount[]>();
+  for (const a of accounts) accountsByLender.set(a.lenderId, [...(accountsByLender.get(a.lenderId) ?? []), a]);
   // The row actions post this back so a click returns to the same filtered page.
   const listQuery = serializeLenderListQuery({ ...query, page: view.page }).replace(/^\?/, "");
   const one = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
@@ -134,11 +166,13 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
           ) : (
             <Table
               empty="No lenders on the panel yet."
-              head={["Lender", "Contact", "Deal programs", "Size", "Fee split", "Verified", ""]}
+              head={["Lender", "Contact", "Our account #", "Deal programs", "Size", "Fee split", "Verified", ""]}
               label="Lenders matching the filters"
               rows={view.rows.map((l) => {
                 const s = lenderStaleness(l, now);
                 const ca = caStatus(l);
+                // The submission recipient first (named contact or deals inbox), else the lender's general inbox.
+                const email = l.contactEmail ?? l.generalEmail;
                 return [
                   <span className="flex flex-col gap-1" key="n">
                     <Link className="font-medium hover:underline" href={`/deals/lenders/${l.id}`}>
@@ -154,14 +188,27 @@ async function LendersData({ searchParams }: { searchParams: Search }) {
                   </span>,
                   <span className="flex flex-col gap-1" key="c">
                     <span>{l.primaryContactName ?? <span className="text-titanium">No primary contact</span>}</span>
-                    {l.contactEmail ? (
-                      <span className="[overflow-wrap:anywhere]">{l.contactEmail}</span>
+                    {email ? (
+                      <a className="text-accent underline [overflow-wrap:anywhere]" href={`mailto:${email}`}>
+                        {email}
+                      </a>
                     ) : (
                       <span className="whitespace-nowrap">
                         <Badge tone="warn">No email on file</Badge>
                       </span>
                     )}
+                    {l.mainPhone ? (
+                      <a className="whitespace-nowrap text-accent underline tabular-nums" href={telHref(l.mainPhone, l.mainPhoneExt)}>
+                        {formatPhone(l.mainPhone)}
+                        {l.mainPhoneExt ? ` ext. ${l.mainPhoneExt}` : ""}
+                      </a>
+                    ) : (
+                      <span className="whitespace-nowrap">
+                        <Badge tone="warn">No phone on file</Badge>
+                      </span>
+                    )}
                   </span>,
+                  <AccountCell accounts={accountsByLender.get(l.id) ?? []} key="acct" lenderId={l.id} lenderName={l.name} write={write} />,
                   l.programs.map((p) => DEAL_PROGRAM_LABELS[p]).join(", ") || "—",
                   `${money(l.minLoanCents)} – ${money(l.maxLoanCents)}`,
                   split(l.feeSplitKind, l.feeSplitValue),

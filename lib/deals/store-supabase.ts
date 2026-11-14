@@ -321,6 +321,11 @@ export class SupabaseDealDeskStore implements DealDeskStore {
     return sortLenderAccounts(((data ?? []) as unknown as Row[]).map((r) => fromRow<LenderAccount>(r, ACCOUNT_NUM)));
   }
 
+  async listAllLenderAccounts(): Promise<LenderAccount[]> {
+    const rows = await this.selectAll((from, to) => this.db.from("lender_accounts").select(LENDER_ACCOUNT_COLUMNS).order("id").range(from, to), "list lender accounts");
+    return sortLenderAccounts(rows.map((r) => fromRow<LenderAccount>(r, ACCOUNT_NUM)));
+  }
+
   async getLenderAccountSecret(lenderId: string, id: string): Promise<LenderAccountSecret | null> {
     const { data, error } = await this.db.from("lender_accounts").select("id, lender_id, kind, label, number_enc").eq("lender_id", lenderId).eq("id", id).maybeSingle();
     failDirectory(error, "Read lender account");
