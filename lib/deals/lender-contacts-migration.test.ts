@@ -11,6 +11,9 @@ import { EMAIL_DB_RE, HTTPS_DB_RE, PORTAL_DB_RE, deriveLenderContacts } from "./
 import { sealLenderAccountNumber } from "./lender-accounts";
 
 const MIGRATION = "20261105120000_int_lender_contacts.sql";
+// Later data fills (the contact research) change what these tests pin; they run on the state before it,
+// and lib/deals/lender-contacts-research-migration.test.ts covers the fill itself.
+const BEFORE_RESEARCH = (f: { name: string }) => f.name < "20261105150000_int_lender_contacts_research.sql";
 const MARKER = "migration:20261105120000_int_lender_contacts";
 const SEED = /_int_lender_directory_seed(?:_round\d+)?\.sql$/;
 const SEEDED = "updated_by like 'seed:lender-directory%'";
@@ -19,7 +22,7 @@ let db: PGlite;
 
 beforeAll(async () => {
   db = await createStubbedDb();
-  await applyMigrations(db, listMigrations());
+  await applyMigrations(db, listMigrations().filter(BEFORE_RESEARCH));
 }, 180_000);
 
 afterAll(async () => {
@@ -308,7 +311,7 @@ describe("lender contacts migration keeps every seeded lender's package recipien
     staged = await createStubbedDb();
     await applyMigrations(staged, listMigrations().filter((f) => f.name < MIGRATION));
     legacy = (await staged.query<{ id: string; contact_name: string | null; contact_email: string | null }>(`select id, contact_name, contact_email from public.lender_panel order by id`)).rows;
-    await applyMigrations(staged, listMigrations().filter((f) => f.name >= MIGRATION));
+    await applyMigrations(staged, listMigrations().filter((f) => f.name >= MIGRATION && BEFORE_RESEARCH(f)));
   }, 240_000);
 
   afterAll(async () => {

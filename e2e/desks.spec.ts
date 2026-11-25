@@ -389,6 +389,16 @@ test("a broker completes a lender's contact info, contacts and account numbers, 
   await page.goto(`${base}/deals/lenders`);
   const row = section(page, "Panel").getByRole("row").filter({ has: page.getByRole("link", { name: "Example Community Bank (demo)", exact: true }) });
   await expect(row).toContainText("Riley Chen (demo)");
+  // The list shows the email and the phone as links, and our account numbers masked, with a way to manage them.
+  await expect(row.getByRole("link", { name: "riley@bank.example" })).toHaveAttribute("href", "mailto:riley@bank.example");
+  await expect(row.getByRole("link", { name: "(310) 555-0142" })).toHaveAttribute("href", "tel:+13105550142");
+  await expect(row).toContainText("Account: •••• 7766");
+  await expect(row.getByRole("link", { name: "Manage account numbers for Example Community Bank (demo)" })).toHaveAttribute("href", `/deals/lenders/${BANK_LENDER}#accounts`);
+  const listHtml = await (await page.request.get(page.url())).text();
+  expect(listHtml).not.toContain("0099887766");
+  expect(listHtml).not.toContain("DEMO-BRK-48210937");
+  const other = section(page, "Panel").getByRole("row").filter({ has: page.getByRole("link", { name: "Sample DSCR Lender (demo)", exact: true }) });
+  await expect(other.getByRole("link", { name: "Add account # for Sample DSCR Lender (demo)" })).toBeVisible();
 });
 
 test("an administrator reveals an account number, and it is masked again", async ({ page }) => {
