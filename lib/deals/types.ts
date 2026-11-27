@@ -11,6 +11,7 @@ import type { BrokerOfRecordElements, LenderCategory, LenderChargesInput, Modifi
 import type { EsignProviderName } from "@/lib/esign/types";
 import type { Form159Data } from "./form159";
 import type { LenderLoanType } from "./loan-types";
+import type { LenderFit, TargetStage } from "./submission/types";
 
 /** Deal-desk programs. Each has a stage template (lib/deals/stages.ts). */
 export const dealPrograms = [
@@ -295,6 +296,23 @@ export type LenderOutreach = {
   responseNote: string | null;
   termSheetRef: string | null;
   staleLenderOverride: boolean;
+  // Submission record (20261105160000_int_deal_submission.sql). Optional so
+  // rows and callers from before the submission flow keep their shape; the
+  // database defaults them to null (readinessMissing to []).
+  /** What the lender was asked for. */
+  targetStage?: TargetStage | null;
+  /** The locked deal_summaries row the lender was shown. */
+  summaryId?: string | null;
+  /** Requirement ids required at targetStage and unmet when the send was requested. */
+  readinessMissing?: string[];
+  /** Required (20–1000 characters) whenever readinessMissing is not empty. */
+  readinessOverrideReason?: string | null;
+  lenderFit?: LenderFit | null;
+  /** The approved email, with {{SHARE_LINK}} and {{LINK_EXPIRES}} placeholders. Subject, text and hash are set together. */
+  emailSubject?: string | null;
+  emailText?: string | null;
+  /** SHA-256 (hex) of emailText; in the approval payload. */
+  emailSha256?: string | null;
   createdAt: string;
   updatedAt: string;
 };

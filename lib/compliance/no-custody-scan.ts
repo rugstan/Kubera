@@ -21,12 +21,14 @@ function walk(dir: string, accept: (file: string) => boolean): string[] {
 }
 
 /**
- * Scan every migration, API route and the shared validation schemas under
- * `root` for custody/draw identifiers.
+ * Scan every migration, API route, the shared validation schemas and the
+ * lender submission module (lib/deals/submission: deal facts, reserves asked
+ * of the lender, email text) under `root` for custody/draw identifiers.
  */
 export function scanRepository(root: string): { files: string[]; violations: CustodyViolation[] } {
   const migrations = walk(path.join(root, "supabase", "migrations"), (f) => f.endsWith(".sql"));
   const api = walk(path.join(root, "app", "api"), (f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f));
+  const submission = walk(path.join(root, "lib", "deals", "submission"), (f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f));
   const validation = [path.join(root, "lib", "validation.ts")].filter((f) => {
     try {
       return statSync(f).isFile();
@@ -36,7 +38,7 @@ export function scanRepository(root: string): { files: string[]; violations: Cus
   });
   const violations = [
     ...migrations.flatMap((f) => scanSql(path.relative(root, f), readFileSync(f, "utf8"))),
-    ...[...api, ...validation].flatMap((f) => scanTs(path.relative(root, f), readFileSync(f, "utf8"))),
+    ...[...api, ...validation, ...submission].flatMap((f) => scanTs(path.relative(root, f), readFileSync(f, "utf8"))),
   ];
-  return { files: [...migrations, ...api, ...validation].map((f) => path.relative(root, f)), violations };
+  return { files: [...migrations, ...api, ...validation, ...submission].map((f) => path.relative(root, f)), violations };
 }
