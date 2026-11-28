@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CHECKLIST_REQUIREMENT_PREFIX, defaultTargetStage, evaluateAllStages, evaluateReadiness, lenderSafeMissingLabels, notReadyMessage, readinessHeadline } from "./readiness";
+import { computeSubmissionMetrics } from "./metrics";
 import { stubSubmissionMetrics } from "./test-metrics";
 import { submissionFixture } from "./test-fixtures";
 
@@ -157,5 +158,24 @@ describe("evaluateReadiness", () => {
       "3 required items are missing for a term-sheet request: Loan purpose; T-12 operating statement; Rent roll, census or STR report. Add them or give a reason to send anyway.",
     );
     expect(notReadyMessage("screen", ["Loan amount"])).toBe("1 required item is missing for a soft-quote request: Loan amount. Add it or give a reason to send anyway.");
+  });
+});
+
+describe("construction's stabilized NOI (no operating financials section)", () => {
+  it("is required, links to the Construction section where it is entered, and is met once entered", () => {
+    const ctx = submissionFixture("construction");
+    const stabilized = ctx.profile!.noiStabilizedCents;
+    expect(stabilized).not.toBeNull();
+    ctx.profile!.noiStabilizedCents = null;
+    const r = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "screen");
+    const item = r.required.find((i) => i.id === "financials.noi_stabilized")!;
+    expect(item.met).toBe(false);
+    expect(item.fix.href).toBe(`/deals/${ctx.deal.id}/submission?section=construction#field-noiStabilizedCents`);
+    ctx.profile!.noiStabilizedCents = stabilized;
+    expect(evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "screen").required.find((i) => i.id === "financials.noi_stabilized")!.met).toBe(true);
+    // An income playbook still points at its Operating financials section.
+    const bridge = submissionFixture("bridge");
+    bridge.profile!.noiStabilizedCents = null;
+    expect(evaluateReadiness(bridge, computeSubmissionMetrics(bridge), "screen").required.find((i) => i.id === "financials.noi_stabilized")!.fix.href).toBe(`/deals/${bridge.deal.id}/submission?section=financials#field-noiStabilizedCents`);
   });
 });

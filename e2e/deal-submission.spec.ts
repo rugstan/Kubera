@@ -205,7 +205,7 @@ test("ratios are computed read-only with their formulas, and a refused save keep
   await expect(page.locator("#field-asIsValueCents")).toBeInViewport();
 });
 
-test("only the playbook's sections show: hotel on a hotel deal, construction on a construction deal", async ({ page }) => {
+test("only the playbook's sections show: hotel on a hotel deal, construction (with its stabilized NOI) on a construction deal", async ({ page }) => {
   await signIn(page, editor(DEALS.pipHotel));
   const nav = page.getByRole("navigation", { name: "Submission sections" });
   await expect(section(page, "Hotel")).toBeVisible();
@@ -219,9 +219,19 @@ test("only the playbook's sections show: hotel on a hotel deal, construction on 
   await expect(page.locator("#field-programDetails\\.rehab\\.budgetCents")).toHaveValue("1260000");
 
   await page.goto(`${base}${editor(DEALS.townhomes)}`);
-  await expect(section(page, "Construction")).toBeVisible();
+  const construction = section(page, "Construction");
+  await expect(construction).toBeVisible();
   await expect(page.getByRole("heading", { name: "Hotel", level: 2 })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Operating financials", level: 2 })).toHaveCount(0);
+  // No operating financials yet, so the projected stabilized NOI lives in the Construction section, where its fix link points.
+  const screen = panel(page).locator('[data-stage="screen"]');
+  await expect(screen.getByRole("link", { name: "Stabilized NOI and the months to reach it" })).toHaveAttribute("href", "#field-noiStabilizedCents");
+  await construction.getByLabel("Projected stabilized NOI, annual (USD)").fill("1,940,000");
+  await construction.getByLabel("Months from completion to stabilize").fill("14");
+  await construction.getByRole("button", { name: "Save construction" }).click();
+  await expect(construction.getByRole("status")).toHaveText("Construction saved.");
+  await expect(page.locator("#field-noiStabilizedCents-source")).toHaveText(/Entered$/);
+  await expect(screen.getByRole("link", { name: "Stabilized NOI and the months to reach it" })).toHaveCount(0);
 });
 
 test("the deal page carries the submission card, the Details anchor and no bare send form", async ({ page }) => {

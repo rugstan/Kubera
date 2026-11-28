@@ -9,7 +9,7 @@
 // from lender and broker publications, not program law.
 
 import { SATISFIED_STATUSES } from "@/lib/checklists/types";
-import { INCOME_PLAYBOOKS, SHORT_TERM_PLAYBOOKS, defaultPlaybook, isIncomeProperty, playbookTrancheSource } from "./playbooks";
+import { INCOME_PLAYBOOKS, SHORT_TERM_PLAYBOOKS, defaultPlaybook, isIncomeProperty, playbookTrancheSource, sectionView } from "./playbooks";
 import {
   PFS_MAX_AGE_DAYS,
   REFINANCE_PURPOSES,
@@ -271,6 +271,8 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     met: (ctx) => has(prof(ctx)?.noiStabilizedCents) && has(prof(ctx)?.stabilizationMonths),
     fields: ["noiStabilizedCents", "stabilizationMonths"],
     fix: { target: { kind: "editor", section: "financials", field: "noiStabilizedCents" }, hint: "Enter the pro forma NOI and how many months it takes to get there." },
+    // Ground-up construction has no operating financials section; its Construction section carries the projected NOI.
+    resolveFix: (ctx) => (sectionView("financials", playbookOf(ctx), ctx.profile) ? { kind: "editor", section: "financials", field: "noiStabilizedCents" } : { kind: "editor", section: "construction", field: "noiStabilizedCents" }),
   },
   {
     id: "financials.dscr_assumption",

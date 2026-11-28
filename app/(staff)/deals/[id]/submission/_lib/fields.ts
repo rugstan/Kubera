@@ -249,6 +249,10 @@ export const SECTION_FIELDS: Readonly<Partial<Record<SectionId, readonly Entry[]
     money(pd("construction", "equityInToDateCents"), "Sponsor equity in to date, land included (USD)"),
     yesNo(pd("construction", "completionGuaranty"), "Completion guaranty offered"),
     int(pd("construction", "groundUpProjectsCompleted"), "Ground-up projects the sponsor completed", 0, 10_000),
+    // A ground-up deal has no operating financials yet (that section is hidden), but lenders size it on the
+    // projected stabilized NOI: it is the profile's own column, entered here. C-PACE shows the financials section instead.
+    signedMoney("noiStabilizedCents", "Projected stabilized NOI, annual (USD)", { playbooks: ["construction"], hint: "Corin pro forma from the sponsor's plan, once built and leased up; it drives yield on cost." }),
+    int("stabilizationMonths", "Months from completion to stabilize", 0, 120, { playbooks: ["construction"] }),
   ],
   rehab: [
     money(pd("rehab", "budgetCents"), "Rehab or capex budget (USD)"),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emptyProfileContext, submissionFixture } from "@/lib/deals/submission/test-fixtures";
+import { visibleSections } from "@/lib/deals/submission/playbooks";
 import { metricKeys, type SubmissionProfilePatch } from "@/lib/deals/submission/types";
 import { SECTION_FIELDS, fieldsOf, inputDefault, parseSectionForm, readValue, sourceKeyFor, visibleEntries, type ParseContext } from "./fields";
 
@@ -98,6 +99,17 @@ describe("parseSectionForm", () => {
     expect(pip.errors.map((e) => [e.label, e.message])).toEqual([["The brand requires a PIP", "answer yes or no before adding the other details"]]);
     const ok = profilePatch(parseSectionForm("hotel", form({ "programDetails.hotel.pip.required": "no" }), ctxFor("hotel_pip_bridge")));
     expect(ok.programDetails?.hotel?.pip).toEqual({ required: false });
+  });
+
+  it("gives ground-up construction its projected stabilized NOI in the Construction section (its financials section is hidden)", () => {
+    expect(visibleSections("construction", null).map((x) => x.id)).not.toContain("financials");
+    expect(fieldsOf(visibleEntries("construction", "construction")).map((d) => d.name)).toEqual(expect.arrayContaining(["noiStabilizedCents", "stabilizationMonths"]));
+    // C-PACE shows Operating financials, which already has the field: no second input with the same id.
+    expect(visibleSections("c_pace", null).map((x) => x.id)).toContain("financials");
+    expect(fieldsOf(visibleEntries("construction", "c_pace")).map((d) => d.name)).not.toContain("noiStabilizedCents");
+    const p = profilePatch(parseSectionForm("construction", form({ noiStabilizedCents: "1,940,000", stabilizationMonths: "14" }), ctxFor("construction")));
+    expect(p).toMatchObject({ noiStabilizedCents: 194_000_000, stabilizationMonths: 14 });
+    expect(p.fieldSources?.noiStabilizedCents).toEqual({ source: "entered", by: "staff:ana@corin.test", at: AT });
   });
 
   it("parses sources and uses lines, and names an unnamed Other line", () => {
