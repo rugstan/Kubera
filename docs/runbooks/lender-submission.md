@@ -14,45 +14,49 @@ Every lender submission goes through **Deal → Lender submission → Preview �
    - **No ratio can be typed.** LTV, LTC, DSCR, debt yield, cap rate and yield on cost are computed in the side panel, each with its formula and inputs. A missing input reads "Needs: …", never a zero.
    - DSCR needs an **assumed rate and amortization** on Loan request. Lenders see it labelled "an assumption, not a quote".
    - Ground-up **construction** has no Operating financials section; enter the **projected stabilized NOI** and the months to stabilize in the Construction section.
+   - A **ground-up** deal (construction purpose, HUD 221(d)(4) or 232 new construction, mezz or C-PACE on a construction deal) is not asked for occupancy, in-place NOI, a T-12 or a rent roll; it needs the stabilized NOI, the as-complete value and the budget instead.
+   - On **hard money and fix & flip**, the profile's as-is value and purchase price must agree with the hard money file; the ratios use the deal's loan over the file's values and cost.
    - Never type an SSN, ITIN, EIN, date of birth, account or routing number, or a guarantor's name in free text. The editor refuses those shapes; they belong in the document vault.
 4. Fix every missing item the meter lists. Each one links to its field (or to the checklist desk, the principals file, the hard money file or the construction desk).
 
-## Preview
+## Preview (the current draft)
 
-Press **Preview the email and summary** (or open `/deals/[id]/submission/preview`). Pick a lender and what to ask for. The page shows:
+Press **Preview the email and summary** (or open `/deals/[id]/submission/preview`). Pick a lender, what to ask for and the documents the email lists (by default every clean document, except personal financial statements and tax returns for a soft quote). The page is the **current draft**: rebuilt from what is saved now and signed by you. It shows:
 
 - the **fit** against the lender's recorded box (what fits, what is outside it, what the lender has not recorded);
 - the **exact email**, subject and body, with `{{SHARE_LINK}}` and `{{LINK_EXPIRES}}` where the link goes after approval, and its SHA-256;
 - the **summary** the lender will see behind the link (also as a PDF: **Open the summary PDF**).
 
-The preview writes nothing, locks nothing and asks no approval. The email the broker approves is byte for byte what the preview shows for the same facts, lender and documents.
+The preview writes nothing, locks nothing and asks no approval. A request stores the email it builds; the broker approves that stored copy (by the SHA-256 of its subject and text), never the live preview. For the same facts, lender, documents and signer the two are byte for byte the same.
 
 ## Request broker approval
 
-On the preview, tick the lenders and the vault documents (the deal summary is always included) and press **Request broker approval**. For the whole batch the summary is built, rendered and stored, and the package version is locked; then each lender gets its own approval request with its own email. Nothing is sent and no link exists until a broker approves.
+On the preview, tick the lenders and the vault documents (the deal summary is always included) and press **Request broker approval**. Only staff with a DRE licence on their profile can request (the email is signed with it, and with the phone on the profile when there is one). For the whole batch the summary is built, rendered and stored, and the package version is locked; then each lender gets its own approval request with its own email. Nothing is sent and no link exists until a broker approves.
+
+If the **fair-lending check** flags staff-typed words that touch a protected characteristic (anywhere in the summary's or the email's text, the reasons or the note), the request is refused until you edit them or tick the confirmation; the flags and your confirmation go to the approving broker.
 
 ### What the override means
 
 If required items are missing for the stage you ask for, the request is **refused** and lists them, unless you give a **reason of at least 20 characters** ("Reason to send with items missing"). With a reason:
 
-- the missing items and the reason are stored on the submission (`lender_outreach.readiness_missing`, `readiness_override_reason`) and shown to the approving broker on `/approvals`, with a link to the preview;
+- the missing items and the reason are stored on the submission (`lender_outreach.readiness_missing`, `readiness_override_reason`) and shown to the approving broker on `/approvals`;
 - the email tells the lender plainly what is not yet in hand;
-- the **broker's approval is the control**: the reason asks a broker to accept the gap; it does not approve anything by itself.
+- the **broker's approval is the control**: the reason asks a broker to accept the gap; it does not approve anything by itself. **You cannot approve your own override**: another licensed broker must, or the designated officer, whose own approval is recorded as self-approved.
 
-The same reason also lets through a lender the matcher did not rank, or whose recorded box the request falls outside ("LTV 78% vs 75% maximum"); the broker sees that too.
+A lender the matcher did not rank, or whose recorded box the request falls outside ("LTV 78% vs 75% maximum"), needs **its own reason** in the second field ("Reason to submit to a lender outside its recorded box or not ranked by the matcher"); the readiness reason does not cover it. It is stored on that lender's submission (`lender_override_reason`) and the broker sees it with the exceptions.
 
 **No reason lifts a hard stop.** An open sanctions hold, a deal on hold, held for counsel, closed, withdrawn or lost, an inactive lender, or a lender with no recorded appetite for the program stop the request whatever is written.
 
 ## After approval
 
-1. The broker approves on `/approvals` (authenticator code required).
+1. The broker approves on `/approvals` (authenticator code required). The card shows what is approved, from storage: the stored email subject and body and the locked summary, each marked as matching the SHA-256 in the request. "Open the current draft" is only the live preview, not the approved content.
 2. On the deal page, press **Check approval** on the submission's row.
-3. **Email to lenders is off** (the default), so nothing is emailed. The page shows, **once**, the share link and the approved email with the link and its expiry filled in, with **Copy subject** and **Copy email**. Send it from your own mailbox, to the lender's submission contact, unchanged.
+3. **Email to lenders is off** (the default), so nothing is emailed. The page shows, **once**, the share link and the approved email with the link and its expiry filled in, with **Copy subject** and **Copy email**; a refresh does not show it again. Send it from your own mailbox, to the lender's submission contact, unchanged.
 4. Press **Mark sent**. The one-time view closes.
 
 The lender's link opens a page with the locked summary above the documents. It expires (30 days at most), counts opens, and stops working if the submission is withdrawn or a hold is placed. Withdraw a submission from its row to revoke the link.
 
-If the profile, the lender's contact or the email changes after approval was requested, re-checking reports a conflict: withdraw the submission and request approval again, so a broker approves what will actually be sent.
+If the profile, the lender's contact, the email or a reason changes after approval was requested, request approval again: the new request replaces the waiting one (which is withdrawn, so its approval sends nothing). After a withdraw, a rejection or an expiry, requesting again asks for a new approval.
 
 ## Lender email stays off
 
