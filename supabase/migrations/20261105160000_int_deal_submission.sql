@@ -322,6 +322,9 @@ $$;
 revoke execute on function public.deal_summaries_immutable() from public, anon, authenticated;
 create trigger deal_summaries_immutable before update or delete on public.deal_summaries
   for each row execute function public.deal_summaries_immutable();
+-- TRUNCATE skips row triggers; a statement trigger refuses it too.
+create trigger deal_summaries_no_truncate before truncate on public.deal_summaries
+  for each statement execute function public.deal_summaries_immutable();
 
 -- 4. Submission record ---------------------------------------------------------
 alter table public.lender_outreach
@@ -340,13 +343,15 @@ alter table public.lender_outreach
     check (lender_override_reason is null or length(btrim(lender_override_reason)) between 20 and 1000),
   -- The fair-lending check on the staff-typed text at request time ({flags: [{topic, term}], confirmed}):
   -- flagged copy goes out only with staff's confirmation, and the approving broker sees both.
+  -- Both keys are required: a missing "confirmed" reads as NULL, which a plain
+  -- comparison would let through. The CASE tests in order and never yields NULL.
   add column neutral_copy jsonb
-    check (neutral_copy is null or (
-      jsonb_typeof(neutral_copy) = 'object'
-      and jsonb_typeof(neutral_copy -> 'flags') = 'array'
-      and jsonb_typeof(neutral_copy -> 'confirmed') = 'boolean'
-      and (jsonb_array_length(neutral_copy -> 'flags') = 0 or (neutral_copy ->> 'confirmed')::boolean)
-    )),
+    check (neutral_copy is null or case
+      when jsonb_typeof(neutral_copy) is distinct from 'object' then false
+      when jsonb_typeof(neutral_copy -> 'flags') is distinct from 'array' then false
+      when jsonb_typeof(neutral_copy -> 'confirmed') is distinct from 'boolean' then false
+      else jsonb_array_length(neutral_copy -> 'flags') = 0 or (neutral_copy ->> 'confirmed')::boolean
+    end),
   -- The text the broker approved, with {{SHARE_LINK}} and {{LINK_EXPIRES}} placeholders
   -- (the link exists only after approval). email_sha256 is in the approval payload:
   -- the SHA-256 of the subject and text together (lib/deals/submission/email.ts emailSha256).

@@ -205,6 +205,8 @@ describe("deal_summaries", () => {
     const id = await summary(d);
     await expect(db.query(`update public.deal_summaries set template_version = 'x' where id = $1`, [id])).rejects.toThrow(/immutable/);
     await expect(db.query(`delete from public.deal_summaries where id = $1`, [id])).rejects.toThrow(/immutable/);
+    // TRUNCATE skips row triggers: a statement trigger refuses it (N5).
+    await expect(db.query(`truncate public.deal_summaries cascade`)).rejects.toThrow(/immutable/);
     expect((await rows(`select id from public.deal_summaries where id = $1`, [id])).length).toBe(1);
     await expect(summary(d)).rejects.toThrow(/deal_summaries_deal_id_pdf_sha256_key/);
     await summary(await deal());
@@ -264,6 +266,15 @@ describe("lender_outreach submission columns", () => {
     await expect(outreach({ ...email("Hello,\n{{SHARE_LINK}}"), email_subject: "Another subject" })).rejects.toThrow(/lender_outreach_email_hash/);
     const id = await outreach(email("Hello,\n{{SHARE_LINK}}"));
     await expect(db.query(`update public.lender_outreach set email_text = 'Edited after approval {{SHARE_LINK}}' where id = $1`, [id])).rejects.toThrow(/lender_outreach_email_hash/);
+  });
+
+  it("needs both keys of the fair-lending record, and a confirmation when anything was flagged (N5)", async () => {
+    const nc = (v: unknown) => outreach({ neutral_copy: JSON.stringify(v) });
+    await expect(nc({ flags: [], confirmed: false })).resolves.toBeTruthy();
+    await expect(nc({ flags: [{ topic: "age", term: "young" }], confirmed: true })).resolves.toBeTruthy();
+    for (const bad of [{ flags: [] }, { flags: [{ topic: "age", term: "young" }] }, { confirmed: true }, { flags: [{ topic: "age", term: "young" }], confirmed: false }, { flags: {}, confirmed: true }, { flags: [], confirmed: "yes" }, { flags: [], confirmed: null }, [], "x"]) {
+      await expect(nc(bad), JSON.stringify(bad)).rejects.toThrow(/lender_outreach_neutral_copy_check/);
+    }
   });
 });
 

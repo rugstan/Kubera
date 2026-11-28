@@ -126,6 +126,55 @@ describe("re-requesting (F5)", () => {
     expect((await w.store.getOutreach(o1.result.outreach.id))!).toMatchObject({ status: "withdrawn", responseNote: expect.stringMatching(/^Superseded/) });
   });
 
+  // N5: the superseded or withdrawn request's approval is closed in the queue, so nobody approves a dead request.
+  it("closes the superseded request's approval in the queue (cancelled, by the system), leaving the new one pending", async () => {
+    const w = await sendWorld("bridge", "pending", (ctx) => {
+      ctx.vaultDocuments = ctx.vaultDocuments.filter((d) => d.kind !== "T12");
+      for (const i of ctx.checklistItems) if (i.templateKey === "t12") i.status = "requested";
+    });
+    const approvals = new MemoryApprovalStore();
+    w.deps.gate = queueApprovalGate(new ApprovalService(approvals, w.now, {}, new MemoryReauthStore()));
+    const r1 = await submitDealToLenders(w.deps, { ...input(w), overrideReason: "The T-12 arrives Friday from the bookkeeper" });
+    const o1 = r1.outcomes[0]!;
+    if (!o1.ok) throw new Error(o1.error);
+    const r2 = await submitDealToLenders(w.deps, { ...input(w), overrideReason: "The T-12 arrives Monday; the lender asked to start now" });
+    const o2 = r2.outcomes[0]!;
+    if (!o2.ok) throw new Error(o2.error);
+    const old = (await approvals.getByKey(o1.result.outreach.approvalKey))!;
+    expect(old).toMatchObject({ status: "cancelled", decidedBy: null, decidedByLabel: "broker:ana", decisionReason: expect.stringMatching(/^Superseded/) });
+    expect((await approvals.getByKey(o2.result.outreach.approvalKey))!.status).toBe("pending");
+    expect((await approvals.list({ status: "pending" })).map((a) => a.idempotencyKey)).toEqual([o2.result.outreach.approvalKey]);
+  });
+
+  it("closes a withdrawn submission's waiting approval, and never touches one a broker already decided", async () => {
+    const w = await sendWorld("bridge", "pending");
+    const approvals = new MemoryApprovalStore();
+    const service = new ApprovalService(approvals, w.now, {}, new MemoryReauthStore());
+    w.deps.gate = queueApprovalGate(service);
+    const r1 = await submitDealToLenders(w.deps, input(w));
+    const o1 = r1.outcomes[0]!;
+    if (!o1.ok) throw new Error(o1.error);
+    await withdrawOutreach(w.store, o1.result.outreach.id, "Borrower paused the deal", "broker:ana", w.now(), w.deps.gate);
+    expect((await approvals.getByKey(o1.result.outreach.approvalKey))!).toMatchObject({ status: "cancelled", decisionReason: "Withdrawn: Borrower paused the deal" });
+    // A decided approval stays as the broker left it.
+    const r2 = await submitDealToLenders(w.deps, input(w));
+    const o2 = r2.outcomes[0]!;
+    if (!o2.ok) throw new Error(o2.error);
+    const pending = (await approvals.getByKey(o2.result.outreach.approvalKey))!;
+    await service.reject(pending.id, { userId: STAFF_ID, label: "broker:lee", dreLicense: "01234568" }, "Fix the T-12 date");
+    expect(await service.withdraw(o2.result.outreach.approvalKey, "late", "broker:ana")).toMatchObject({ ok: false, reason: "already_decided" });
+    expect((await approvals.getByKey(o2.result.outreach.approvalKey))!).toMatchObject({ status: "rejected", decisionReason: "Fix the T-12 date" });
+  });
+
+  it("the test gate records the closed request and answers rejected for it", async () => {
+    const w = await sendWorld("bridge", "pending");
+    const r1 = await submitDealToLenders(w.deps, input(w));
+    const o1 = r1.outcomes[0]!;
+    if (!o1.ok) throw new Error(o1.error);
+    await withdrawOutreach(w.store, o1.result.outreach.id, "Fix the reason", "broker:ana", w.now(), w.gate);
+    expect(w.gate.withdrawals).toEqual([{ idempotencyKey: o1.result.outreach.approvalKey, reason: "Withdrawn: Fix the reason", by: "broker:ana" }]);
+  });
+
   it("never counts a rejected or expired answer as requested", async () => {
     for (const status of ["rejected", "expired"] as const) {
       const w = await sendWorld("bridge", status);

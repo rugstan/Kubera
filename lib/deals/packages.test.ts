@@ -718,10 +718,12 @@ describe("submission gate (v2)", () => {
     const second = await sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id, { email: { subject: "Loan request", text: changed, sha256: emailSha256("Loan request", changed) } }) });
     expect(second.outreach).toMatchObject({ status: "pending_approval", approvalKey: outreachApprovalKey(w.deal.id, w.lender.id, 1, 2), emailText: changed });
     expect(await w.store.getOutreach(first.outreach.id)).toMatchObject({ status: "withdrawn", responseNote: expect.stringMatching(/^Superseded/) });
-    // A broker approving the superseded request sends nothing: its row is withdrawn.
+    // The superseded request's approval is closed in the queue (N5): no broker can approve it, and its row stays withdrawn.
     const stale = (await service.getByKey(first.outreach.approvalKey))!;
-    await reauth.record({ approval: stale, user: { userId: broker.userId, dreLicense: broker.dreLicense }, factor: { method: "totp", verifiedAt: w.now() } });
-    expect(await service.approve(stale.id, broker)).toMatchObject({ ok: true });
+    expect(stale).toMatchObject({ status: "cancelled", decidedBy: null, decisionReason: expect.stringMatching(/^Superseded/) });
+    await expect(reauth.record({ approval: stale, user: { userId: broker.userId, dreLicense: broker.dreLicense }, factor: { method: "totp", verifiedAt: w.now() } })).rejects.toThrow(/cancelled/);
+    expect(await service.approve(stale.id, broker)).toMatchObject({ ok: false });
+    expect((await service.getByKey(first.outreach.approvalKey))!.status).toBe("cancelled");
     expect((await checkOutreachApproval(deps, first.outreach.id, "broker:ana")).outreach.status).toBe("withdrawn");
     expect(await w.store.listShareLinks(w.deal.id)).toEqual([]);
     // The broker approves the new one (with step-up); the re-check mints the link and hands over the approved text.

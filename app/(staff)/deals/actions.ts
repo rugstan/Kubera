@@ -351,9 +351,9 @@ export async function outreachAction(f: FormData): Promise<never> {
         await recordLenderResponse(rt.store, outreachId, { status: "term_sheet", termSheetRef: str(f, "termSheetRef"), note: opt(f, "note") ?? undefined }, staff.actor, rt.now());
         return "Term sheet recorded.";
       case "withdraw":
-        await withdrawOutreach(rt.store, outreachId, str(f, "note") || "Withdrawn by staff", staff.actor, rt.now());
+        await withdrawOutreach(rt.store, outreachId, str(f, "note") || "Withdrawn by staff", staff.actor, rt.now(), rt.gate);
         await forgetShareLink(id);
-        return "Submission withdrawn and its link revoked.";
+        return "Submission withdrawn, its link revoked and any waiting approval closed.";
       default:
         throw new DealError("Unknown outreach action");
     }

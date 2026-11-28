@@ -46,6 +46,14 @@ export interface ApprovalGate {
    * answer here authorizes nothing; call request() immediately before sending.
    */
   peek?(action: OutboundAction): Promise<ApprovalDecision>;
+  /**
+   * Closes the pending request for `idempotencyKey` (its action will never be
+   * carried out: the submission was superseded or withdrawn), so nobody
+   * approves it later. True when a pending request was closed; false when
+   * there was none or it was already decided. A gate without it leaves the
+   * request in the queue, where approving it sends nothing.
+   */
+  withdraw?(idempotencyKey: string, reason: string, by: string): Promise<boolean>;
 }
 
 /** The gate's non-claiming answer; a gate that cannot peek reports pending (never consumes an approval). */
@@ -78,6 +86,8 @@ export class FakeApprovalGate implements ApprovalGate {
   readonly requests: OutboundAction[] = [];
   /** Non-claiming lookups (peek). */
   readonly peeks: OutboundAction[] = [];
+  /** Requests closed through withdraw(). */
+  readonly withdrawals: { idempotencyKey: string; reason: string; by: string }[] = [];
   private readonly decisions = new Map<string, ApprovalDecision>();
 
   constructor(private readonly defaultStatus: ApprovalDecision["status"] = "approved") {}
@@ -95,6 +105,15 @@ export class FakeApprovalGate implements ApprovalGate {
   async peek(action: OutboundAction): Promise<ApprovalDecision> {
     this.peeks.push(action);
     return this.decisionFor(action, `appr_peek_${this.peeks.length}`);
+  }
+
+  /** Closes a pending (or not yet asked) key: later requests and peeks for it answer rejected. */
+  async withdraw(idempotencyKey: string, reason: string, by: string): Promise<boolean> {
+    const current = this.decisions.get(idempotencyKey);
+    if (current && current.status !== "pending") return false;
+    this.withdrawals.push({ idempotencyKey, reason, by });
+    this.decisions.set(idempotencyKey, { status: "rejected", approvalId: current?.approvalId ?? `appr_withdrawn_${this.withdrawals.length}`, decidedBy: by, reason });
+    return true;
   }
 
   private decisionFor(action: OutboundAction, approvalId: string): ApprovalDecision {

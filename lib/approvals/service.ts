@@ -198,6 +198,24 @@ export class ApprovalService {
     });
   }
 
+  /**
+   * Closes a pending request whose action will never be carried out (the
+   * submission it asks about was superseded or withdrawn), as `cancelled` with
+   * the reason and who closed it, so no broker approves it later. Only a
+   * pending request changes; null when the key has no request.
+   */
+  async withdraw(idempotencyKey: string, reason: string, by: string): Promise<DecisionResult | null> {
+    const record = await this.store.getByKey(idempotencyKey);
+    if (!record) return null;
+    return this.decide(record, {
+      status: "cancelled",
+      decidedBy: null,
+      decidedByLabel: by.trim().slice(0, 200) || "system",
+      decidedByDre: null,
+      decisionReason: reason.trim().slice(0, 1000) || null,
+    });
+  }
+
   /** Moves every pending approval past its expiry to `expired`. Safe to run any time. */
   async expireDue(): Promise<ApprovalRecord[]> {
     const expired = await this.store.expireDue(this.now());

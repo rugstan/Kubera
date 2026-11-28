@@ -55,9 +55,9 @@ A lender the matcher did not rank, or whose recorded box the request falls outsi
 3. **Email to lenders is off** (the default), so nothing is emailed. The page shows, **once**, the share link and the approved email with the link and its expiry filled in, with **Copy subject** and **Copy email**; a refresh does not show it again. Send it from your own mailbox, to the lender's submission contact, unchanged.
 4. Press **Mark sent**. The one-time view closes.
 
-The lender's link opens a page with the locked summary above the documents. It expires (30 days at most), counts opens, and stops working if the submission is withdrawn or a hold is placed. Withdraw a submission from its row to revoke the link.
+The lender's link opens a page with the locked summary above the documents. It expires (30 days at most), counts opens, and stops working if the submission is withdrawn or a hold is placed. Withdraw a submission from its row to revoke the link; a withdrawn submission's waiting approval is closed too.
 
-If the profile, the lender's contact, the email or a reason changes after approval was requested, request approval again: the new request replaces the waiting one (which is withdrawn, so its approval sends nothing). After a withdraw, a rejection or an expiry, requesting again asks for a new approval.
+If the profile, the lender's contact, the email or a reason changes after approval was requested, request approval again: the new request replaces the waiting one (which is withdrawn, and its approval is closed in the queue as cancelled, so nobody can approve it). After a withdraw, a rejection or an expiry, requesting again asks for a new approval.
 
 ## Lender email stays off
 

@@ -328,7 +328,10 @@ export async function sendPackageToLender(deps: OutreachDeps, input: SendPackage
     if (!(err instanceof SubmissionChangedError)) throw err;
     // The submission changed while the earlier request waited (a new reason, email or recipient): that
     // request is withdrawn, so its approval, if a broker still gives it, sends nothing; a new one is asked.
-    await store.updateOutreach(outreach.id, { status: "withdrawn", responseNote: "Superseded: the submission changed before a broker decided; a new request replaced it." }, input.actor, now);
+    const note = "Superseded: the submission changed before a broker decided; a new request replaced it.";
+    await store.updateOutreach(outreach.id, { status: "withdrawn", responseNote: note }, input.actor, now);
+    // Its waiting approval is closed too, so the queue no longer offers it.
+    await closePendingApproval(deps.gate, outreach.approvalKey, note, input.actor);
     return decide(null, attempt + 1);
   }
   // The waiting request was rejected or expired meanwhile: asking again is a new request.
@@ -677,13 +680,31 @@ export async function recordLenderResponse(
   return store.updateOutreach(o.id, { status: response.status, responseNote: response.note ?? null, termSheetRef: response.termSheetRef ?? o.termSheetRef }, actor, now);
 }
 
-/** Withdraw a submission: revoke its share link so the lender loses access. */
-export async function withdrawOutreach(store: DealDeskStore, outreachId: string, reason: string, actor: string, now: Date): Promise<LenderOutreach> {
+/**
+ * Closes the pending approval of a submission that will never go out
+ * (superseded or withdrawn), so no broker approves it later. A gate that
+ * cannot withdraw, or a failure here, leaves the request in the queue: the
+ * submission is already withdrawn, so approving it sends nothing.
+ */
+async function closePendingApproval(gate: ApprovalGate | undefined, approvalKey: string | null | undefined, reason: string, actor: string): Promise<boolean> {
+  if (!gate?.withdraw || !approvalKey) return false;
+  try {
+    return await gate.withdraw(approvalKey, reason, actor);
+  } catch (err) {
+    console.warn("[deals] closing the waiting approval failed", err instanceof Error ? err.name : "Error");
+    return false;
+  }
+}
+
+/** Withdraw a submission: revoke its share link so the lender loses access, and close its waiting approval. */
+export async function withdrawOutreach(store: DealDeskStore, outreachId: string, reason: string, actor: string, now: Date, gate?: ApprovalGate): Promise<LenderOutreach> {
   const o = await findOutreach(store, outreachId);
   if (o.shareLinkId) {
     const links = await store.listShareLinks(o.dealId);
     const link = links.find((l) => l.id === o.shareLinkId);
     if (link && !link.revokedAt) await store.revokeShareLink(link.id, actor, reason, now);
   }
-  return store.updateOutreach(o.id, { status: "withdrawn", responseNote: reason }, actor, now);
+  const withdrawn = await store.updateOutreach(o.id, { status: "withdrawn", responseNote: reason }, actor, now);
+  await closePendingApproval(gate, o.approvalKey, `Withdrawn: ${reason}`, actor);
+  return withdrawn;
 }

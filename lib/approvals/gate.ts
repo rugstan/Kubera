@@ -48,6 +48,10 @@ export function queueApprovalGate(service: ApprovalService, opts: { ttlMinutes?:
       if (!(await service.reauthCheck(record)).ok) return { status: "pending", approvalId: record.id, reason: "reauth_required" };
       return { ...approved(record), ...(record.executedAt ? { executedAt: new Date(record.executedAt) } : {}) };
     },
+    async withdraw(idempotencyKey: string, reason: string, by: string): Promise<boolean> {
+      const r = await service.withdraw(idempotencyKey, reason, by);
+      return Boolean(r?.ok);
+    },
   };
 }
 
