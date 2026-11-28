@@ -282,12 +282,22 @@ test("a request with missing items and no reason is refused with the list; with 
   const reason = "Lender asked for an early look before the appraisal";
   await form.getByLabel("Reason to send with items missing").fill(reason);
   await form.getByRole("button", { name: "Request broker approval" }).click();
+  // The demo has no approved credit box, so the matcher ranks nobody: the lender needs its own reason,
+  // which the readiness reason does not supply.
+  await expect(alert).toContainText("1 of 1 lender could not be requested.");
+  await expect(alert).toContainText("Give a lender override reason to submit to it anyway.");
+
+  const lenderReason = "No credit box is recorded yet; the fund lends on CA bridge deals";
+  await form.getByLabel("Reason to submit to a lender outside its recorded box or not ranked by the matcher").fill(lenderReason);
+  await form.getByRole("button", { name: "Request broker approval" }).click();
   await expect(form.getByRole("status")).toContainText("Requested broker approval for 1 lender. Nothing is sent until a broker approves.");
 
   await page.goto(`${base}/approvals`);
   const card = page.getByRole("list", { name: "Requests waiting for a decision" }).getByRole("article", { name: /Larkspur Example Terrace \(demo\).*Sample Private Fund/ });
   // The v2 approval carries the stage, the missing items and the reason (and the email and summary hashes).
   await expect(card).toContainText(`Reason to send anyway: ${reason}`);
+  await expect(card).toContainText(`Reason to submit to this lender anyway: ${lenderReason}`);
+  await expect(card).toContainText("Fair-lending check: no staff-typed word touches a protected characteristic.");
   await expect(card).toContainText("Asks the lender for screen (soft quote)");
   await expect(card).toContainText(/Required items missing \(\d+\)/);
   await expect(card).toContainText("Stabilized NOI and the months to reach it");
