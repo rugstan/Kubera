@@ -5,8 +5,8 @@
 // needed plus the full file. Readiness never says "approved" or "qualified":
 // it measures what Corin has in hand, not what a lender will decide.
 //
-// Hard stops (open sanctions holds, a deal that is not open and active) are
-// listed separately: they block a send on their own and no override reason
+// Hard stops (open sanctions holds, a deal that is not open and active, and a
+// failed read of the principals or the checklist) are listed separately: they block a send on their own and no override reason
 // lifts them. Pure (no server imports), so the meter can render anywhere.
 
 import { isTerminalStage } from "../stage-catalog";
@@ -40,6 +40,8 @@ function hardStops(ctx: SubmissionContext): string[] {
   if (status === "on_hold" || status === "held_for_counsel") out.push(`The deal is ${status.replace(/_/g, " ")}; nothing goes to lenders until the hold is released.`);
   else if (status !== "active" || isTerminalStage(ctx.deal.stage)) out.push(`The deal is ${status === "active" ? ctx.deal.stage.replace(/_/g, " ") : status}; it cannot go to lenders.`);
   for (const h of ctx.openHolds) out.push(`On hold: ${h}`);
+  // A failed read the send depends on (principals, checklist) is a hard stop, never "nothing to check".
+  for (const u of ctx.unreadable ?? []) out.push(u);
   return out;
 }
 

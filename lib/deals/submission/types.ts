@@ -1003,6 +1003,13 @@ export type SubmissionContext = {
   vaultDocuments: VaultDocumentRef[];
   /** Details of open sanctions holds (DealHold.detail). Any entry is a hard stop. */
   openHolds: string[];
+  /**
+   * Reads the send depends on that failed (the principals, whose names the
+   * email check needs; the deal checklist, the Underwrite requirements). Each
+   * entry is a hard stop, as an unreadable hold list is: an empty list read as
+   * "nothing to check" would fail open. Absent or empty when every read worked.
+   */
+  unreadable?: string[];
   now: Date;
 };
 

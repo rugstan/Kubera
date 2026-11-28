@@ -4,10 +4,13 @@
 //
 // It degrades the way the rest of the desk does (Global rule 3): a desk that
 // is not configured, or a read that fails, leaves its part empty and logs one
-// line, and the page still renders. Two things fail closed instead: an
+// line, and the page still renders. Some things fail closed instead: an
 // unreadable sanctions-hold list becomes a hard stop in `openHolds` (as
-// packages.ts assertDealCanGoToLenders does), and the deal, profile and
-// sponsor reads throw (the editor cannot work without them).
+// packages.ts assertDealCanGoToLenders does); unreadable principals (the
+// email's name check needs them) or an unreadable deal checklist (the
+// Underwrite requirements) become hard stops in `unreadable`, so a failed
+// read never looks like "nothing to check"; and the deal, profile and sponsor
+// reads throw (the editor cannot work without them).
 //
 // Privacy: principals are narrowed to SubmissionPrincipal (no contact
 // details, home address, citizenship, tax id or exhibit contents). Personal
@@ -344,6 +347,20 @@ async function safe<T>(part: string, fallback: T, fn: () => Promise<T>, personal
   }
 }
 
+/** A read whose failure must stop the send: the fallback keeps the page rendering, and `stop` is recorded as a hard stop. */
+async function required<T>(part: string, fallback: T, fn: () => Promise<T>, unreadable: string[], stop: string, personal = false): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    warn(part, err, personal);
+    unreadable.push(stop);
+    return fallback;
+  }
+}
+
+export const PRINCIPALS_UNREADABLE = "The deal's principals could not be read, so the email's guarantor-name check cannot run; nothing can go to lenders until they can. Try again.";
+export const CHECKLIST_UNREADABLE = "The deal checklist could not be read, so the required documents cannot be checked; nothing can go to lenders until it can. Try again.";
+
 const HOLDS_NOT_CONFIGURED = "Sanctions holds cannot be checked because the checklist and screening desk is not configured; nothing can go to lenders.";
 const HOLDS_UNREADABLE = "Sanctions holds could not be checked; nothing can go to lenders until they can. Try again.";
 
@@ -356,13 +373,14 @@ export async function loadSubmissionContext(rt: SubmissionContextDeps, dealId: s
   const [profile, sponsor] = await Promise.all([src.store.getProfile(dealId), src.store.getSponsor(dealId)]);
   const playbook = profile?.playbook ?? defaultPlaybook(deal.program);
   const desk = rt.checklist;
+  const unreadable: string[] = [];
 
   const [intakeRow, spreads, principalRows, checklists, items, hardMoney, holds, construction, vaultDocuments] = await Promise.all([
     deal.leadId && src.leads ? safe("lead intake", null, () => src.leads!.intake(deal.leadId!)) : Promise.resolve(null),
     src.spreads ? safe("saved spreads", { spreads: null, figures: { ...NO_FIGURES }, kinds: [] as SpreadKind[] }, () => loadSpreads(src.spreads!, deal, playbook)) : Promise.resolve({ spreads: null, figures: { ...NO_FIGURES }, kinds: [] as SpreadKind[] }),
-    desk ? safe("principals", [] as PrincipalRow[], () => desk.principals.forDeal(dealId), true) : Promise.resolve([] as PrincipalRow[]),
-    desk ? safe("checklists", [], () => desk.checklists.checklistsForDeal(dealId)) : Promise.resolve([]),
-    desk ? safe("checklist items", [] as DealChecklistItem[], () => desk.checklists.itemsForDeal(dealId)) : Promise.resolve([] as DealChecklistItem[]),
+    desk ? required("principals", [] as PrincipalRow[], () => desk.principals.forDeal(dealId), unreadable, PRINCIPALS_UNREADABLE, true) : Promise.resolve([] as PrincipalRow[]),
+    desk ? required("checklists", [], () => desk.checklists.checklistsForDeal(dealId), unreadable, CHECKLIST_UNREADABLE) : Promise.resolve([]),
+    desk ? required("checklist items", [] as DealChecklistItem[], () => desk.checklists.itemsForDeal(dealId), unreadable, CHECKLIST_UNREADABLE) : Promise.resolve([] as DealChecklistItem[]),
     desk ? safe("hard money file", null, () => desk.checklists.getHmUnderwriting(dealId)) : Promise.resolve(null),
     desk
       ? desk.holds.active(dealId).then(
@@ -430,6 +448,7 @@ export async function loadSubmissionContext(rt: SubmissionContextDeps, dealId: s
     checklistItems: items.map(toChecklistItem),
     vaultDocuments,
     openHolds: holds,
+    unreadable: [...new Set(unreadable)],
     now,
   };
 }

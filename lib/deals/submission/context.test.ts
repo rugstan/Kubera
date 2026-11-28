@@ -11,6 +11,8 @@ import { MemorySpreadStore, type NewSpread } from "@/lib/spreads/store";
 import { MemoryDealDeskStore } from "../store";
 import type { DealProgram } from "../types";
 import {
+  CHECKLIST_UNREADABLE,
+  PRINCIPALS_UNREADABLE,
   constructionSourceFromStore,
   loadSubmissionContext,
   loanBackers,
@@ -19,6 +21,8 @@ import {
   sumGuarantorTotals,
   type SubmissionContextDeps,
 } from "./context";
+import { computeSubmissionMetrics } from "./metrics";
+import { evaluateReadiness } from "./readiness";
 import { MemorySubmissionStore } from "./store";
 import { submissionFixture } from "./test-fixtures";
 
@@ -193,6 +197,26 @@ describe("loadSubmissionContext", () => {
     const ctx = (await loadSubmissionContext(d.deps, d.deal.id))!;
     expect(ctx.openHolds).toHaveLength(1);
     expect(ctx.openHolds[0]).toMatch(/could not be checked/);
+  });
+
+  // S4: a failed read the send depends on is a hard stop, never an empty list that turns a check off.
+  it.each([
+    ["principals", (d: Desk) => vi.spyOn(d.checklist.principals, "forDeal"), PRINCIPALS_UNREADABLE],
+    ["checklist items", (d: Desk) => vi.spyOn(d.checklist.checklists, "itemsForDeal"), CHECKLIST_UNREADABLE],
+    ["checklists", (d: Desk) => vi.spyOn(d.checklist.checklists, "checklistsForDeal"), CHECKLIST_UNREADABLE],
+  ] as const)("turns unreadable %s into a hard stop at every stage", async (_part, spy, stop) => {
+    const d = await desk();
+    const clean = (await loadSubmissionContext(d.deps, d.deal.id))!;
+    expect(clean.unreadable).toEqual([]);
+    spy(d).mockRejectedValue(new Error("db down"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ctx = (await loadSubmissionContext(d.deps, d.deal.id))!;
+    expect(ctx.unreadable).toEqual([stop]);
+    const metrics = computeSubmissionMetrics(ctx);
+    for (const stage of ["screen", "term_sheet", "underwrite"] as const) {
+      const r = evaluateReadiness(ctx, metrics, stage);
+      expect(r.hardStops, stage).toContain(stop);
+    }
   });
 
   it("degrades one failing reader without losing the others", async () => {
