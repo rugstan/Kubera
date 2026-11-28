@@ -55,13 +55,6 @@ export function mergeSponsorPatch(cur: SponsorProfileFields, patch: SponsorProfi
   return next;
 }
 
-/** The keys a profile patch changes on the row (programDetails and fieldSources count once each). */
-export function patchedProfileKeys(patch: SubmissionProfilePatch): (keyof SubmissionProfileFields)[] {
-  return Object.entries(patch)
-    .filter(([, v]) => v !== undefined)
-    .map(([k]) => k as keyof SubmissionProfileFields);
-}
-
 function firstIssue(error: { issues: { path: PropertyKey[]; message: string }[] }): string {
   const i = error.issues[0];
   return i ? `${i.path.map(String).join(".") || "row"}: ${i.message}` : "invalid";

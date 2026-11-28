@@ -46,8 +46,6 @@ export const SUMMARY_KEYS: readonly (keyof DealSummaryRecord)[] = [
 export const PROFILE_COLUMNS = PROFILE_KEYS.map(snakeColumn).join(", ");
 export const SPONSOR_COLUMNS = SPONSOR_KEYS.map(snakeColumn).join(", ");
 export const SUMMARY_COLUMNS = SUMMARY_KEYS.map(snakeColumn).join(", ");
-/** Everything but the spec (which holds sponsor totals), for lookups that only need the hashes. */
-export const SUMMARY_HEADER_COLUMNS = SUMMARY_KEYS.filter((k) => k !== "spec").map(snakeColumn).join(", ");
 
 // bigint and numeric columns can arrive as strings; integers as numbers.
 const PROFILE_NUMBERS = [...Object.keys(PROFILE_NUMBER_LIMITS), "recordVersion"];
