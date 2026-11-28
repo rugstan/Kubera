@@ -213,3 +213,29 @@ describe("mezz and C-PACE coverage lines", () => {
     expect(summary.headline.map((t) => t.label)).toEqual(expect.arrayContaining(["Combined DSCR"]));
   });
 });
+
+// F10: a debt yield or DSCR is never shown without the NOI it was computed from.
+describe("the NOI behind debt yield and DSCR", () => {
+  const numbers = (text: string) => text.split("THE NUMBERS\n")[1]?.split("\n\n")[0] ?? "";
+
+  it("prints the spread's reported NOI when the profile has none, next to the debt yield it gives", () => {
+    const ctx = submissionFixture("bank");
+    const reported = ctx.spreads!.noiCents!;
+    ctx.profile = { ...ctx.profile!, noiInPlaceCents: null, noiBasis: null, noiPeriodEnd: null };
+    const block = numbers(buildLenderEmail(input(ctx)).text);
+    expect(block).toMatch(/Debt yield: +[\d.]+% in place/);
+    expect(block).toContain(`NOI in place:      ${"$" + (reported / 100).toLocaleString("en-US")} (T-12 as reported; Corin spread`);
+  });
+
+  it.each(submissionPlaybooks.map((p) => [p] as const))("%s: every shown debt yield or DSCR has an NOI line, with or without a typed NOI", (pb) => {
+    for (const typed of [true, false]) {
+      const ctx = submissionFixture(pb);
+      if (!typed) ctx.profile = { ...ctx.profile!, noiInPlaceCents: null, noiBasis: null, noiPeriodEnd: null };
+      const block = numbers(buildLenderEmail(input(ctx)).text);
+      const inPlace = /^ {2}(Combined )?(Debt yield|DSCR):.*in place/m.test(block);
+      const stabilized = /^ {2}(Combined )?(Debt yield|DSCR):.*stabilized/m.test(block);
+      if (inPlace) expect(block, `${pb} typed=${typed}`).toMatch(/^ {2}NOI in place:/m);
+      if (stabilized) expect(block, `${pb} typed=${typed}`).toMatch(/^ {2}NOI stabilized:|on stabilized NOI of/m);
+    }
+  });
+});

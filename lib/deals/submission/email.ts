@@ -411,12 +411,26 @@ function perUnitLine(f: EmailRenderFacts): string | null {
   return sf ? kv("Loan per SF", val(sf)!, W2) : null;
 }
 
+/** The in-place NOI a shown debt yield or DSCR was computed from (the metric's own input), else null. */
+function inPlaceNoiInput(f: EmailRenderFacts): Metric["inputs"][number] | null {
+  for (const key of ["debt_yield_in_place", "dscr_in_place"] as const) {
+    const input = m(f, key)?.inputs.find((i) => i.field === "noiInPlaceCents" || i.field === "spread.operating_statement");
+    if (input && input.value !== null) return input;
+  }
+  return null;
+}
+
 function noiLines(f: EmailRenderFacts): string[] {
   const p = f.profile;
   const out: string[] = [];
-  if (p.noiInPlaceCents !== null) {
+  const used = inPlaceNoiInput(f);
+  if (p.noiInPlaceCents !== null && (!used || used.field === "noiInPlaceCents")) {
     const basis = p.noiBasis ? `${lower(NOI_BASIS_LABELS[p.noiBasis])}${p.noiPeriodEnd ? ` through ${fmt.date(p.noiPeriodEnd)}` : ""}` : null;
     out.push(kv("NOI in place", `${fmt.usd(p.noiInPlaceCents)} (${[basis, tag(src(f, "noiInPlaceCents"), f, p.noiPeriodEnd)].filter(has).join("; ")})`, W2));
+  } else if (used && used.value !== null) {
+    // Every debt yield and DSCR shown has its NOI on the page: here the saved T-12 spread's reported NOI.
+    const asOf = used.source?.source === "spread" ? used.source.asOf : undefined;
+    out.push(kv("NOI in place", `${fmt.usd(used.value)} (T-12 as reported; Corin spread${asOf ? ` dated ${fmt.date(asOf)}` : ""})`, W2));
   }
   const uw = m(f, "noi_underwritten");
   if (uw && uw.value !== p.noiInPlaceCents) out.push(kv("Underwritten NOI", `${val(uw)} (Corin normalization of the operating statement)`, W2));
@@ -436,6 +450,8 @@ function numbersBlock(f: EmailRenderFacts): string[] {
     lines.push(ltvLine(f, true));
     const ds = m(f, "dscr_stabilized");
     const at = assumption(f);
+    // A stabilized DSCR shows the NOI it rests on (yield on cost already names it).
+    if (ds && !yoc && p.noiStabilizedCents !== null) lines.push(kv("NOI stabilized", `${fmt.usd(p.noiStabilizedCents)} (Corin pro forma from the sponsor's plan)`, W2));
     if (ds) lines.push(kv("DSCR", `${val(ds)} stabilized${at ? ` ${at}` : ""}`, W2));
     lines.push(perUnitLine(f));
   } else if (pb === "hard_money" || pb === "fix_flip") {
