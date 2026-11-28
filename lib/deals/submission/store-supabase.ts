@@ -1,5 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fromRow as constructionFromRow, normalizeTimestamps } from "@/lib/construction/rows";
+import { SupabaseConstructionStore } from "@/lib/construction/store-supabase";
+import type { ConstructionProject } from "@/lib/construction/types";
+import { normalizeAddress } from "@/lib/data/address";
+import type { PropertyAddress } from "@/lib/data/types";
+import type { ConstructionSource, LeadIntakeSource, PropertyFactsSource } from "./context";
 import {
   PROFILE_COLUMNS,
   SPONSOR_COLUMNS,
@@ -17,6 +23,7 @@ import {
   blankSponsorProfileFields,
   blankSubmissionProfileFields,
   type DealSummaryRecord,
+  type PropertyFactsRef,
   type SponsorProfile,
   type SponsorProfilePatch,
   type SubmissionProfile,
@@ -144,4 +151,95 @@ export class SupabaseSubmissionStore implements SubmissionStore {
     fail(error, "Read deal summary");
     return data ? summaryFromRow(data as unknown as Row) : null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Readers loadSubmissionContext uses (context.ts SubmissionSources)
+
+/** The intake keys the submission reads. `notes` (free text the borrower typed) is never selected. */
+const INTAKE_KEYS = [
+  "assetType",
+  "transaction",
+  "loanAmount",
+  "noi",
+  "value",
+  "unitCount",
+  "occupancyPct",
+  "adr",
+  "pipBudget",
+  "franchiseTier",
+  "timelineDays",
+  "nonRecourseOnly",
+  "green",
+  "ownerOperator",
+  "creditBand",
+  "hardMoney",
+  "construction",
+  "rental",
+  "source",
+  "origin",
+] as const;
+
+/** leads.intake (without notes) and created_at. The lead's contact is never selected. */
+export function supabaseLeadIntakeSource(db: SupabaseClient): LeadIntakeSource {
+  const select = ["created_at", ...INTAKE_KEYS.map((k) => `${k}:intake->${k}`)].join(", ");
+  return {
+    async intake(leadId) {
+      const { data, error } = await db.from("leads").select(select).eq("id", leadId).maybeSingle();
+      if (error) throw new Error(`lead intake: ${error.code ?? "database"} error`);
+      if (!data) return null;
+      const row = data as unknown as Record<string, unknown>;
+      const intake = Object.fromEntries(INTAKE_KEYS.filter((k) => row[k] !== null && row[k] !== undefined).map((k) => [k, row[k]]));
+      return { intake, createdAt: String(row.created_at) };
+    },
+  };
+}
+
+/** The construction project on the deal (most recently updated), its reports and license checks. */
+export function supabaseConstructionSource(db: SupabaseClient): ConstructionSource {
+  const store = new SupabaseConstructionStore(db);
+  return {
+    async projectForDeal(dealId) {
+      const { data, error } = await db.from("construction_projects").select().eq("deal_id", dealId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw new Error(`construction project: ${error.code ?? "database"} error`);
+      return data ? normalizeTimestamps(constructionFromRow<ConstructionProject>(data as Record<string, unknown>)) : null;
+    },
+    listReports: (projectId) => store.listReports(projectId),
+    listLicenseChecks: (projectId) => store.listLicenseChecks(projectId),
+  };
+}
+
+/**
+ * The public-record facts cached for the deal's address (public.property_facts),
+ * else for its APN. Only the four facts prefill may suggest are selected; the
+ * owner of record and the rest of the cached document are not.
+ */
+export function supabasePropertyFactsSource(db: SupabaseClient): PropertyFactsSource {
+  const select = "id, apn, county, fetched_at, year_built:facts->yearBuilt->value, flood_zone:facts->flood->value->>zone";
+  const toRef = (r: Record<string, unknown>): PropertyFactsRef => {
+    const year = Number(r.year_built);
+    return {
+      id: String(r.id),
+      apn: typeof r.apn === "string" && r.apn ? r.apn : null,
+      county: typeof r.county === "string" && r.county ? r.county : null,
+      floodZone: typeof r.flood_zone === "string" && r.flood_zone ? r.flood_zone : null,
+      yearBuilt: r.year_built !== null && r.year_built !== undefined && Number.isInteger(year) ? year : null,
+      fetchedAt: new Date(String(r.fetched_at)).toISOString(),
+    };
+  };
+  return {
+    async lookup(address: PropertyAddress | null, apn: string | null) {
+      if (address) {
+        const { data, error } = await db.from("property_facts").select(select).eq("address_key", normalizeAddress(address)).maybeSingle();
+        if (error) throw new Error(`property facts: ${error.code ?? "database"} error`);
+        if (data) return toRef(data as unknown as Record<string, unknown>);
+      }
+      if (apn) {
+        const { data, error } = await db.from("property_facts").select(select).eq("apn", apn).order("fetched_at", { ascending: false }).limit(1).maybeSingle();
+        if (error) throw new Error(`property facts: ${error.code ?? "database"} error`);
+        if (data) return toRef(data as unknown as Record<string, unknown>);
+      }
+      return null;
+    },
+  };
 }
