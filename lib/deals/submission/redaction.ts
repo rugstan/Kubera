@@ -99,7 +99,7 @@ const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "esq", "md", "phd"
 const HONORIFICS = ["mr", "mrs", "ms", "mx", "miss", "dr", "sir", "madam"];
 /**
  * Surnames that are also everyday words the email or staff copy prints
- * (labels, months, figures, the parties' roles). They are matched only with a first name or an
+ * (labels, months, numbers, the parties' roles). They are matched only with a first name or an
  * honorific, so a guarantor named Price or May does not block every email
  * with a purchase price or a May date.
  */
@@ -113,6 +113,7 @@ const COMMON_WORD_SURNAMES = new Set([
   "ford", "west", "east", "north", "south", "street", "lake", "river", "rivers", "stone", "wall", "walls", "wells", "house", "cross", "bell", "cook", "mason",
   "baker", "hunt", "frost", "snow", "winter", "summer", "spring", "storm", "moon", "star", "fox", "wolf", "lamb", "bird", "fisher", "glass", "steel", "iron",
   "owner", "sponsor", "guarantor", "borrower", "member", "manager", "partner", "principal", "buyer", "seller", "tenant", "lender", "broker", "builder", "contractor",
+  "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "first", "second", "third", "fourth", "fifth", "half", "demo", "example", "sample", "test",
 ]);
 
 /** Lower-case tokens of `s` for the name check (see above). */

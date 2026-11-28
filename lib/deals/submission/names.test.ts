@@ -104,6 +104,7 @@ describe("the principal-name check", () => {
     expect(named("Purchase price: $12,000,000, closing May 1, 2027", ["Ellen Price", "Theresa May"])).toBe(false);
     expect(named("Ellen Price guarantees", ["Ellen Price"])).toBe(true);
     expect(named("Ms. Price guarantees", ["Ellen Price"])).toBe(true);
+    expect(named("Two years in, the sponsor sold one of the two buildings.", ["Demo Guarantor Two", "Demo Guarantor One"])).toBe(false);
     // Inside a longer word is never a match.
     expect(named("Holtsville Partners", ["Holt"])).toBe(false);
   });

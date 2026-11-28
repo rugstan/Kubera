@@ -12,6 +12,7 @@ import { deriveLenderLoanTypes } from "./loan-types";
 import { advanceDeal } from "./service";
 import { availableEvents, stageTemplate } from "./stages";
 import { constructionSourceFromStore, loadSubmissionContext, staticLeadIntakeSource, type SubmissionContextDeps } from "./submission/context";
+import { previewSubmission } from "./submission/send";
 import { computeSubmissionMetrics, metricOf } from "./submission/metrics";
 import { buildPrefill } from "./submission/prefill";
 
@@ -137,6 +138,12 @@ describe("lender-ready submission demo", () => {
     expect(metricOf(m, "sources_minus_uses")!.value).toBe(0);
     expect(m.sponsorStrength).toMatchObject({ basis: "pfs", covenants: { netWorthOk: true, liquidityOk: true } });
     expect(m.warnings).toEqual([]);
+    // The name check (surname alone included) passes its email and names no guarantor ("Demo Guarantor Two" is not "two years").
+    const lender = (await d.deals.listLenders()).find((l) => l.id === DEMO_LENDER_IDS.privateFund)!;
+    const preview = previewSubmission({ ctx, metrics: m, stage: "screen", lenders: [lender], boxes: [], documents: [], advisor: { name: "Demo Broker", title: null, dreLicense: "01234567", email: "broker@corin.test", phone: null } });
+    const one = preview.lenders[0]!;
+    if (!one.ok) throw new Error(one.error);
+    for (const p of ctx.principals.filter((x) => x.kind === "individual")) expect(one.email.text).not.toContain(p.legalName);
   });
 
   it("seeds an empty deal whose intake gives prefill per-borrower suggestions", async () => {
