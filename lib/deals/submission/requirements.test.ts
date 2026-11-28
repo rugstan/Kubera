@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { evaluateReadiness } from "./readiness";
-import { SUBMISSION_REQUIREMENTS, requirementById, requirementLabel, requirementLevel } from "./requirements";
+import { SUBMISSION_REQUIREMENTS, isGroundUp, requirementById, requirementLabel, requirementLevel } from "./requirements";
 import { computeSubmissionMetrics } from "./metrics";
 import { allSubmissionFixtures, emptyProfileContext, emptySubmissionContext } from "./test-fixtures";
-import { submissionPlaybooks, submissionSections, type SubmissionPlaybook } from "./types";
+import { submissionPlaybooks, submissionSections, type SubmissionContext, type SubmissionPlaybook } from "./types";
 
 const CORE_SCREEN = ["request.amount", "request.purpose", "request.recourse_lien", "property.identity", "property.size", "value.basis", "sponsor.experience", "sponsor.strength"];
 
@@ -101,5 +101,55 @@ describe("requirement table", () => {
     const r = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "screen");
     expect(r.playbook).toBe("hotel_cmbs");
     expect(r.missing).toEqual(expect.arrayContaining(["hotel.identity", "hotel.pip", "request.amount"]));
+  });
+});
+
+// F9: a project not yet built has no occupancy, in-place NOI, T-12 or rent roll; it needs the construction items.
+describe("ground-up deals", () => {
+  const IN_PLACE = ["property.occupancy", "financials.noi_in_place", "docs.t12", "docs.rent_roll"];
+  const ids = (ctx: SubmissionContext, stage: "screen" | "term_sheet") => {
+    const r = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), stage);
+    return [...r.required, ...r.recommended].map((i) => i.id);
+  };
+  const cases: [string, () => SubmissionContext, string[]][] = [
+    ["C-PACE on a construction purpose", () => {
+      const ctx = emptyProfileContext("c_pace");
+      ctx.profile!.purpose = "construction";
+      return ctx;
+    }, ["financials.noi_stabilized", "value.stabilized", "construction.budget", "construction.timeline", "construction.entitlements"]],
+    ["HUD 221(d)(4)", () => {
+      const ctx = emptyProfileContext("hud_multifamily");
+      ctx.profile!.programDetails = { hud: { section: "221d4" } } as never;
+      return ctx;
+    }, ["financials.noi_stabilized", "value.stabilized", "capital.sources_uses"]],
+    ["HUD 232 new construction", () => {
+      const ctx = emptyProfileContext("hud_232");
+      ctx.profile!.programDetails = { hud: { section: "232_new" } } as never;
+      return ctx;
+    }, ["financials.noi_stabilized", "value.stabilized", "capital.sources_uses"]],
+    ["mezz on a CONSTRUCTION deal", () => {
+      const ctx = emptyProfileContext("mezz_pref");
+      ctx.deal = { ...ctx.deal, program: "CONSTRUCTION" };
+      return ctx;
+    }, ["financials.noi_stabilized", "value.stabilized", "capital.sources_uses"]],
+  ];
+  it.each(cases)("%s: no in-place items, the construction items instead", (_label, make, construction) => {
+    const ctx = make();
+    expect(isGroundUp(ctx)).toBe(true);
+    for (const stage of ["screen", "term_sheet"] as const) {
+      const listed = ids(ctx, stage);
+      for (const id of IN_PLACE) expect(listed, `${stage} ${id}`).not.toContain(id);
+      const required = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), stage).required.map((i) => i.id);
+      for (const id of construction) expect(required, `${stage} ${id}`).toContain(id);
+    }
+  });
+
+  it("leaves existing income property alone: a HUD 223(f) refinance still needs occupancy and in-place NOI", () => {
+    const ctx = emptyProfileContext("hud_multifamily");
+    ctx.profile!.programDetails = { hud: { section: "223f" } } as never;
+    expect(isGroundUp(ctx)).toBe(false);
+    const required = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "screen").required.map((i) => i.id);
+    expect(required).toEqual(expect.arrayContaining(["property.occupancy", "financials.noi_in_place"]));
+    expect(required).not.toContain("financials.noi_stabilized");
   });
 });

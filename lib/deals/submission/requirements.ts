@@ -118,6 +118,25 @@ function hasRenovation(ctx: SubmissionContext): boolean {
 const isIndependent = (brand: string | undefined) => !brand || /^\s*independent\s*$/i.test(brand);
 
 const incomeWhen = (ctx: SubmissionContext) => isIncomeProperty(playbookOf(ctx), ctx.profile);
+
+/**
+ * A project not yet built, with no in-place occupancy, NOI, T-12 or rent
+ * roll: a construction purpose, HUD 221(d)(4) or 232 new construction, or a
+ * mezz or C-PACE piece on a CONSTRUCTION deal. Its lender needs the
+ * construction items instead: the projected stabilized NOI, the as-complete
+ * value, the budget (sources and uses; the Construction section where the
+ * playbook has one), the timeline and the entitlements.
+ */
+export function isGroundUp(ctx: SubmissionContext): boolean {
+  const p = ctx.profile;
+  const pb = playbookOf(ctx);
+  if (pb === "construction" || p?.purpose === "construction") return true;
+  const hud = p?.programDetails.hud?.section;
+  if ((pb === "hud_multifamily" || pb === "hud_232") && (hud === "221d4" || hud === "232_new")) return true;
+  return (pb === "mezz_pref" || pb === "c_pace") && ctx.deal.program === "CONSTRUCTION";
+}
+
+const inPlaceWhen = (ctx: SubmissionContext) => incomeWhen(ctx) && !isGroundUp(ctx);
 const INCOME_OR_RENTAL: readonly SubmissionPlaybook[] = [...INCOME_PLAYBOOKS, "dscr_rental"];
 
 /** Requirement definitions, in display order within each section. */
@@ -219,6 +238,8 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     section: "property",
     label: "Occupancy and its as-of date",
     levels: only(INCOME_OR_RENTAL, RR),
+    // Ground-up: nothing is occupied yet.
+    when: (ctx) => !isGroundUp(ctx),
     met: (ctx) => has(prof(ctx)?.occupancyPct) && has(prof(ctx)?.occupancyAsOf),
     fields: ["occupancyPct", "occupancyAsOf"],
     fix: { target: { kind: "editor", section: "property", field: "occupancyPct" }, hint: "Enter physical occupancy and the date it was measured." },
@@ -243,7 +264,8 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     id: "value.stabilized",
     section: "value",
     label: "Stabilized, as-complete or after-repair value with its source",
-    levels: only([...SHORT_TERM_PLAYBOOKS, "c_pace"], RR),
+    levels: all(RR),
+    when: (ctx) => [...SHORT_TERM_PLAYBOOKS, "c_pace"].includes(playbookOf(ctx)) || isGroundUp(ctx),
     met: (ctx) => (prof(ctx)?.stabilizedValueCents ?? 0) > 0 && has(prof(ctx)?.stabilizedValueSource),
     fields: ["stabilizedValueCents", "stabilizedValueSource"],
     fix: { target: { kind: "editor", section: "value", field: "stabilizedValueCents" }, hint: "Enter the stabilized (or after-repair) value and its source." },
@@ -255,7 +277,7 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     section: "financials",
     label: "In-place NOI with its period end and basis",
     levels: only(INCOME_OR_RENTAL, RR),
-    when: incomeWhen,
+    when: inPlaceWhen,
     met: (ctx) => {
       const p = prof(ctx);
       return Boolean(p && has(p.noiInPlaceCents) && has(p.noiPeriodEnd) && has(p.noiBasis)) || (ctx.spreadBundleKinds.includes("operating_statement") && ctx.spreads?.noiCents != null);
@@ -267,7 +289,8 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     id: "financials.noi_stabilized",
     section: "financials",
     label: "Stabilized NOI and the months to reach it",
-    levels: only(["bridge", "hotel_pip_bridge", "construction", "mezz_pref"], RR),
+    levels: only([...INCOME_PLAYBOOKS, "construction"], RR),
+    when: (ctx) => ["bridge", "hotel_pip_bridge", "construction", "mezz_pref"].includes(playbookOf(ctx)) || isGroundUp(ctx),
     met: (ctx) => has(prof(ctx)?.noiStabilizedCents) && has(prof(ctx)?.stabilizationMonths),
     fields: ["noiStabilizedCents", "stabilizationMonths"],
     fix: { target: { kind: "editor", section: "financials", field: "noiStabilizedCents" }, hint: "Enter the pro forma NOI and how many months it takes to get there." },
@@ -289,7 +312,7 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     section: "documents",
     label: "T-12 operating statement",
     levels: only(INCOME_OR_RENTAL, rR),
-    when: incomeWhen,
+    when: inPlaceWhen,
     met: (ctx) => docOnHand(ctx, ["T12"], ["t12"]),
     resolveFix: checklistFix("t12"),
     fix: { target: { kind: "checklist" }, hint: "Upload the trailing-12-month operating statement through the latest full month." },
@@ -299,7 +322,7 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     section: "documents",
     label: "Rent roll, census or STR report",
     levels: only(INCOME_OR_RENTAL, rR),
-    when: incomeWhen,
+    when: inPlaceWhen,
     met: (ctx) => {
       const asset = prof(ctx)?.assetType ?? null;
       if (asset && HOTEL_ASSETS.has(asset)) return docOnHand(ctx, ["STR_REPORT"], ["str_report"]);
@@ -413,7 +436,8 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     section: "sources_uses",
     label: "Sources and uses that balance, with the loan line equal to the loan amount",
     levels: all(rR),
-    screenRequiredWhen: (ctx) => ["acquisition", "construction", "renovation"].includes(prof(ctx)?.purpose ?? ""),
+    // A ground-up project without a Construction section (HUD 221(d)(4) or 232, mezz) carries its budget in its sources and uses.
+    screenRequiredWhen: (ctx) => ["acquisition", "construction", "renovation"].includes(prof(ctx)?.purpose ?? "") || (isGroundUp(ctx) && !["construction", "c_pace"].includes(playbookOf(ctx))),
     met: (ctx) => {
       const p = prof(ctx);
       if (!p || !p.sources.length || !p.uses.length) return false;
@@ -439,7 +463,9 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     id: "construction.timeline",
     section: "construction",
     label: "Construction and lease-up months",
-    levels: only(["construction"], RR),
+    levels: only(["construction", "c_pace"], RR),
+    // C-PACE has the Construction section; it applies when the improvements are new construction.
+    when: (ctx) => playbookOf(ctx) === "construction" || isGroundUp(ctx),
     met: (ctx) => has(details(ctx).construction?.constructionMonths) && has(details(ctx).construction?.leaseUpMonths),
     fields: ["programDetails.construction.constructionMonths", "programDetails.construction.leaseUpMonths"],
     fix: { target: { kind: "editor", section: "construction", field: "programDetails.construction.constructionMonths" }, hint: "Enter the build months and the lease-up (or sell-out) months." },
@@ -448,7 +474,8 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     id: "construction.entitlements",
     section: "construction",
     label: "Entitlement and permit status",
-    levels: only(["construction"], RR),
+    levels: only(["construction", "c_pace"], RR),
+    when: (ctx) => playbookOf(ctx) === "construction" || isGroundUp(ctx),
     met: (ctx) => has(details(ctx).construction?.entitlementStatus) && has(details(ctx).construction?.permitStatus),
     fields: ["programDetails.construction.entitlementStatus", "programDetails.construction.permitStatus"],
     fix: { target: { kind: "editor", section: "construction", field: "programDetails.construction.entitlementStatus" }, hint: "Say where entitlements and building permits stand." },
