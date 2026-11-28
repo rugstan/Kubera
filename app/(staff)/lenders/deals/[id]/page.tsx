@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, money } from "@/app/(staff)/deals/ui";
+import { loadSubmissionView, matchingDefaults } from "@/app/(staff)/deals/[id]/submission/_lib/data";
+import { RequestApprovalForm } from "@/app/(staff)/deals/[id]/submission/_components/RequestApprovalForm";
+import { RequestFields } from "@/app/(staff)/deals/[id]/submission/_components/RequestFields";
 import { agentSafety } from "@/lib/agents/core/server";
 import { DEFAULT_MAX_HOLD_MONTHS, type ComparisonRow } from "@/lib/agents/lenders/all-in";
 import { logLenderMatch } from "@/lib/agents/lenders/decision-log";
@@ -13,8 +15,8 @@ import { ASSET_CLASS_LABELS, assetClasses, type Quote } from "@/lib/agents/lende
 import { currentStaff } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
 import { DEAL_PROGRAM_LABELS, type LenderPanelEntry } from "@/lib/deals/types";
-import { addQuoteAction, ingestTermSheetsAction, quoteStatusAction, reviewQuoteAction, submitOutreachAction } from "../../actions";
-import { FormInputError, METRIC_FIELDS, mergeSavedSpreads, metricsFromSource, withSavedSpreadDefaults } from "../../_lib/forms";
+import { addQuoteAction, ingestTermSheetsAction, quoteStatusAction, reviewQuoteAction } from "../../actions";
+import { FormInputError, METRIC_FIELDS, mergeSavedSpreads, metricsFromSource, withProfileDefaults, withSavedSpreadDefaults } from "../../_lib/forms";
 import { QuoteFields } from "../../_components/QuoteFields";
 
 export const metadata: Metadata = { title: "Match lenders" };
@@ -43,6 +45,18 @@ function toParams(sp: Record<string, string | string[] | undefined>): URLSearchP
   return q;
 }
 
+/** One computed ratio for the matcher, with how it was derived (never typed). */
+function Ratio({ label, value, how, needs }: { label: string; value: string | null; how: string; needs: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-titanium">{label}</dt>
+      <dd className="text-sm">
+        <span className="font-semibold tabular-nums text-ink">{value ?? "—"}</span> <span className="text-xs text-titanium">{value ? how : `Needs: ${needs}`}</span>
+      </dd>
+    </div>
+  );
+}
+
 async function MatchData({ params, searchParams }: { params: Params; searchParams: Search }) {
   const [{ id }, sp, staff] = await Promise.all([params, searchParams, currentStaff()]);
   if (!staff) return <SignInRequired level={1} />;
@@ -52,16 +66,18 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
   const deal = await rt.desk.store.getDeal(id);
   if (!deal) notFound();
 
-  // The latest saved spreads (from the borrower's documents) are the defaults; anything typed overrides them.
-  const saved = await savedSpreadsFor(rt, deal);
-  const query = withSavedSpreadDefaults(toParams(sp), saved);
+  // The submission profile is the source of the deal's figures; saved spreads fill what it leaves blank; anything typed overrides both.
+  const [saved, view] = await Promise.all([savedSpreadsFor(rt, deal), loadSubmissionView(deal.id)]);
+  const defaults = view ? matchingDefaults(view) : null;
+  const query = withSavedSpreadDefaults(withProfileDefaults(toParams(sp), defaults), saved);
+  const computed = { dscr: defaults?.dscr ?? null };
   let metrics: ReturnType<typeof metricsFromSource>;
   let metricsError: string | null = null;
   try {
-    metrics = metricsFromSource(query, deal.loanAmountCents);
+    metrics = metricsFromSource(query, deal.loanAmountCents, computed);
   } catch (err) {
     metricsError = err instanceof FormInputError ? err.message : "Check the deal metrics";
-    metrics = metricsFromSource(withSavedSpreadDefaults(new URLSearchParams(), saved), deal.loanAmountCents);
+    metrics = metricsFromSource(withSavedSpreadDefaults(withProfileDefaults(new URLSearchParams(), defaults), saved), deal.loanAmountCents, computed);
   }
   metrics = { ...metrics, spreads: mergeSavedSpreads(metrics.spreads, saved) };
   const deps = { boxes: rt.store, desk: rt.desk.store, now: rt.desk.now };
@@ -75,17 +91,12 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
   await logLenderMatch(agentSafety().events, { dealId: deal.id, match, now: rt.desk.now(), context: "view" });
   const write = can(staff, "write");
   const returnQuery = query.toString();
-  const shareRaw = (await cookies()).get("lender_share_urls")?.value;
-  let shareUrls: { lender: string; url: string }[] = [];
-  try {
-    shareUrls = shareRaw ? (JSON.parse(shareRaw) as { lender: string; url: string }[]) : [];
-  } catch {
-    shareUrls = [];
-  }
   const review = quotesView.quotes.filter((q) => q.status === "needs_review");
   const v = (k: (typeof METRIC_FIELDS)[number]) => query.get(k) ?? undefined;
   const p = metrics.overrides;
   const nonce = crypto.randomUUID();
+  const stage = view?.readiness.term_sheet.ready ? "term_sheet" : "screen";
+  const missing = view ? view.readiness[stage].required.filter((r) => !r.met).length : 0;
 
   return (
     <>
@@ -104,24 +115,13 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
         </div>
       </div>
       <Flash error={typeof sp.error === "string" ? sp.error : (metricsError ?? undefined)} notice={typeof sp.notice === "string" ? sp.notice : undefined} />
-      {shareUrls.length ? (
-        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="status">
-          <p className="font-medium">Approved. Send each link to its lender from your mailbox now; they are shown only once. Then mark them sent on the deal desk.</p>
-          <ul className="mt-1 space-y-1">
-            {shareUrls.map((s) => (
-              <li className="break-all font-mono text-xs" key={s.url}>
-                {s.lender}: {s.url}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       <Section
-        description={`${saved ? `NOI and occupancy default to the saved spreads from the borrower's documents (as of ${saved.asOf}); type a figure to override it.` : "No spreads are saved for this deal yet; enter the borrower's numbers."} Ratios are derived from NOI, value and cost when left blank; untested limits are listed below.`}
+        description={`The figures start from the deal's lender submission${saved ? ` and the saved spreads from the borrower's documents (as of ${saved.asOf})` : ""}; type one to see how the ranking moves. Ratios are computed and cannot be typed; untested limits are listed below.`}
         title="Deal metrics"
       >
         <form className="grid gap-4 sm:grid-cols-4" method="get">
+          <input name="submitted" type="hidden" value="1" />
           <Field defaultValue={v("loan") ?? (deal.loanAmountCents !== null ? String(deal.loanAmountCents / 100) : undefined)} label="Loan amount (USD)" name="loan" />
           <Field defaultValue={v("state") ?? deal.propertyState} label="State" name="state" placeholder="CA" />
           <Select defaultValue={p.assetClass ?? ""} label="Asset class" name="assetClass" options={[{ value: "", label: "Program default" }, ...assetClasses.map((a) => ({ value: a, label: ASSET_CLASS_LABELS[a] }))]} />
@@ -130,10 +130,6 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
           <Field defaultValue={v("value")} label="Value (USD)" name="value" />
           <Field defaultValue={v("cost")} label="Total cost (USD)" name="cost" />
           <Field defaultValue={v("occupancy")} label="Occupancy (%)" name="occupancy" />
-          <Field defaultValue={v("ltv")} hint={p.ltvPct !== undefined && !v("ltv") ? `Derived: ${p.ltvPct}%` : undefined} label="LTV (%)" name="ltv" />
-          <Field defaultValue={v("ltc")} label="LTC (%)" name="ltc" />
-          <Field defaultValue={v("dscr")} label="DSCR (x)" name="dscr" />
-          <Field defaultValue={v("debtYield")} hint={p.debtYieldPct !== undefined && !v("debtYield") ? `Derived: ${p.debtYieldPct}%` : undefined} label="Debt yield (%)" name="debtYield" />
           <Field defaultValue={v("closeDays")} label="Days to close needed" name="closeDays" />
           <Field defaultValue={v("franchise")} label="Franchise flag" name="franchise" />
           <Field defaultValue={v("hold")} hint={`Quote comparison; default the term up to ${DEFAULT_MAX_HOLD_MONTHS}.`} label="Expected hold (months)" name="hold" />
@@ -143,10 +139,26 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
             <Submit>Rank lenders</Submit>
           </div>
         </form>
+        <div className="mt-5 rounded-2xl bg-black/[0.03] p-4">
+          <p className="text-sm font-medium text-ink">Ratios the matcher uses (Corin calculation)</p>
+          <dl className="mt-2 grid gap-3 sm:grid-cols-4">
+            <Ratio how="loan ÷ value" label="LTV" needs="value" value={typeof p.ltvPct === "number" ? pct(p.ltvPct) : null} />
+            <Ratio how="loan ÷ total cost" label="LTC" needs="total cost" value={typeof p.ltcPct === "number" ? pct(p.ltcPct) : null} />
+            <Ratio how="NOI ÷ loan" label="Debt yield" needs="NOI" value={typeof p.debtYieldPct === "number" ? pct(p.debtYieldPct) : null} />
+            <Ratio how="submission NOI at its assumed rate and amortization; not a quote" label="DSCR" needs="NOI, assumed rate and amortization on the lender submission" value={typeof p.dscr === "number" ? `${p.dscr.toFixed(2)}x` : null} />
+          </dl>
+          <p className="mt-2 text-xs text-titanium">
+            The deal&apos;s facts live on its{" "}
+            <Link className="font-medium text-ink underline underline-offset-2" href={`/deals/${deal.id}/submission`}>
+              lender submission
+            </Link>
+            ; change them there to change what lenders see.
+          </p>
+        </div>
       </Section>
 
       <Section description="Only approved credit boxes are used. Scores weigh leverage cushion, relationship, verification, speed, size and recourse." title="Ranked lenders">
-        {match.untested.length ? <p className="mb-3 text-sm text-warning">Not tested (add them above): {match.untested.join(", ")}.</p> : null}
+        {match.untested.length ? <p className="mb-3 text-sm text-warning">Not tested (add them to the lender submission): {match.untested.join(", ")}.</p> : null}
         {match.usedFallback ? (
           <div className="mb-4 rounded-xl bg-black/5 p-3 text-sm">
             <p className="font-medium">No approved credit box covers {DEAL_PROGRAM_LABELS[deal.program]}. Static routing suggests:</p>
@@ -156,61 +168,42 @@ async function MatchData({ params, searchParams }: { params: Params; searchParam
           </div>
         ) : null}
         {write ? (
-          <form action={submitOutreachAction} className="space-y-5">
-            <input name="dealId" type="hidden" value={deal.id} />
-            <input name="returnQuery" type="hidden" value={returnQuery} />
-            {[...query.entries()].map(([k, val]) => (
-              <input key={k} name={k} type="hidden" value={val} />
-            ))}
-            <LenderTable candidates={match.ranked.map((c) => ({ lender: c.lender, score: c.score, reasons: c.reasons, warnings: c.warnings, matched: true }))} />
-            {match.excluded.length || match.fallback.some((f) => f.lender) ? (
-              <details className="rounded-xl border border-black/10 p-3">
-                <summary className="min-h-11 cursor-pointer text-sm font-medium">Excluded and fallback lenders (submit only with an override reason)</summary>
-                <div className="mt-3">
-                  <LenderTable
-                    candidates={[
-                      ...match.excluded.flatMap((e) => (e.lender ? [{ lender: e.lender, score: null, reasons: [], warnings: e.failures, matched: false }] : [])),
-                      ...match.fallback.flatMap((f) => (f.lender ? [{ lender: f.lender, score: null, reasons: [f.reason], warnings: [], matched: false }] : [])),
-                    ]}
-                  />
+          <RequestApprovalForm className="space-y-5" label="Request approval to submit">
+            <RequestFields
+              dealId={deal.id}
+              documents={docs}
+              leadLinked={Boolean(deal.leadId)}
+              lenderPicker={
+                <div className="space-y-5">
+                  <LenderTable candidates={match.ranked.map((c) => ({ lender: c.lender, score: c.score, reasons: c.reasons, warnings: c.warnings, matched: true }))} />
+                  {match.excluded.length || match.fallback.some((f) => f.lender) ? (
+                    <details className="rounded-xl border border-black/10 p-3">
+                      <summary className="min-h-11 cursor-pointer text-sm font-medium">Excluded and fallback lenders (submit only with a reason)</summary>
+                      <div className="mt-3">
+                        <LenderTable
+                          candidates={[
+                            ...match.excluded.flatMap((e) => (e.lender ? [{ lender: e.lender, score: null, reasons: [], warnings: e.failures, matched: false }] : [])),
+                            ...match.fallback.flatMap((f) => (f.lender ? [{ lender: f.lender, score: null, reasons: [f.reason], warnings: [], matched: false }] : [])),
+                          ]}
+                        />
+                      </div>
+                    </details>
+                  ) : null}
+                  <p className="text-sm">
+                    <Link className="font-medium text-accent underline-offset-2 hover:underline" href={`/deals/${deal.id}/submission/preview`}>
+                      Preview the email
+                    </Link>
+                    {" · "}
+                    <Link className="font-medium text-accent underline-offset-2 hover:underline" href={`/deals/${deal.id}/submission/summary.pdf`} prefetch={false}>
+                      Preview the summary PDF
+                    </Link>
+                  </p>
                 </div>
-              </details>
-            ) : null}
-            <fieldset>
-              <legend className="field-label">Vault documents (malware-scanned)</legend>
-              {docs.length ? (
-                <div className="grid gap-1 sm:grid-cols-2">
-                  {docs.map((d) => (
-                    <label className="flex min-h-11 items-center gap-2 text-sm" key={d.id}>
-                      <input className="size-4 accent-[var(--color-accent)]" name="documentId" type="checkbox" value={d.id} /> {d.fileName} <span className="text-titanium">({d.kind})</span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-titanium">{deal.leadId ? "No clean documents in the vault yet." : "Link the deal to its lead on the deal desk to include vault documents."}</p>
-              )}
-            </fieldset>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Check defaultChecked label="Include the executive summary PDF (deal + metrics above)" name="includeSummary" />
-              <Link className="text-sm text-accent underline-offset-2 hover:underline" href={`/lenders/deals/${deal.id}/package${returnQuery ? `?${returnQuery}` : ""}`} prefetch={false}>
-                Preview the summary PDF
-              </Link>
-              <label className="block">
-                <span className="field-label">Highlights (one per line)</span>
-                <textarea className="field min-h-24" name="highlights" />
-              </label>
-              <label className="block">
-                <span className="field-label">Risks and mitigants (one per line)</span>
-                <textarea className="field min-h-24" name="risks" />
-              </label>
-              <Field label="Use of proceeds" name="purpose" placeholder="Refinance bridge debt into HUD 232/223(f)" />
-              <Field label="Note to the approving broker" name="note" />
-              <Field hint="Required for a lender the matcher did not rank." label="Override reason" name="overrideReason" />
-              <Check label="Acknowledge stale lender verification" name="allowStale" />
-            </div>
-            <Submit>Request approval to submit</Submit>
-            <p className="text-xs text-titanium">Each submission waits for broker approval. Nothing is sent, and no share link exists, until a broker approves it.</p>
-          </form>
+              }
+              missingCount={missing}
+              stage={stage}
+            />
+          </RequestApprovalForm>
         ) : (
           <LenderTable candidates={match.ranked.map((c) => ({ lender: c.lender, score: c.score, reasons: c.reasons, warnings: c.warnings, matched: true }))} readOnly />
         )}

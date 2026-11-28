@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCreditBoxTerms } from "@/lib/agents/lenders/credit-box";
 import { computeAllIn } from "@/lib/agents/lenders/all-in";
-import { FormInputError, boxTermsFromForm, metricsFromSource, parseSchedule, quoteTermsFromForm } from "./forms";
+import { FormInputError, METRIC_FIELDS, boxTermsFromForm, metricsFromSource, parseSchedule, quoteTermsFromForm, withProfileDefaults } from "./forms";
 
 const form = (entries: [string, string][]) => {
   const f = new FormData();
@@ -66,19 +66,44 @@ describe("boxTermsFromForm", () => {
 });
 
 describe("metricsFromSource", () => {
-  it("derives LTV, LTC and debt yield from the deal's numbers", () => {
-    const m = metricsFromSource(new URLSearchParams("noi=1,500,000&value=18,000,000&cost=20,000,000&dscr=1.5&state=ca&assetClass=SENIOR_LIVING&nonRecourse=on&closeDays=60&hold=84"), 1_250_000_000);
-    expect(m.overrides).toMatchObject({ ltvPct: 69.44, ltcPct: 62.5, debtYieldPct: 12, dscr: 1.5, propertyState: "CA", assetClass: "SENIOR_LIVING", requiresNonRecourse: true, targetCloseDays: 60 });
-    expect(m.spreads.noiCents).toBe(150_000_000);
+  it("derives LTV, LTC and debt yield from the deal's numbers and takes DSCR from the submission profile", () => {
+    const m = metricsFromSource(new URLSearchParams("noi=1,500,000&value=18,000,000&cost=20,000,000&state=ca&assetClass=SENIOR_LIVING&nonRecourse=on&closeDays=60&hold=84"), 1_250_000_000, { dscr: 1.41 });
+    expect(m.overrides).toMatchObject({ ltvPct: 69.44, ltcPct: 62.5, debtYieldPct: 12, dscr: 1.41, propertyState: "CA", assetClass: "SENIOR_LIVING", requiresNonRecourse: true, targetCloseDays: 60 });
+    expect(m.spreads).toMatchObject({ noiCents: 150_000_000, dscr: 1.41 });
     expect(m.holdMonths).toBe(84);
   });
 
-  it("prefers typed ratios and ignores unknown values", () => {
-    const m = metricsFromSource(new URLSearchParams("ltv=75&value=1000&assetClass=CASINO&lien=third&state=California"), 100_000);
-    expect(m.overrides.ltvPct).toBe(75);
+  it("never reads a typed ratio", () => {
+    const m = metricsFromSource(new URLSearchParams("ltv=75&ltc=60&dscr=2.5&debtYield=20&value=1000&assetClass=CASINO&lien=third&state=California"), 100_000);
+    expect(m.overrides.ltvPct).toBe(100);
+    expect(m.overrides.ltcPct).toBeUndefined();
+    expect(m.overrides.dscr).toBeUndefined();
+    expect(m.overrides.debtYieldPct).toBeUndefined();
+    expect(m.spreads).toMatchObject({ ltcPct: null, dscr: null, debtYieldPct: null });
     expect(m.overrides.assetClass).toBeUndefined();
     expect(m.overrides.lienPosition).toBeUndefined();
     expect(m.overrides.propertyState).toBeUndefined();
-    expect(() => metricsFromSource(new URLSearchParams("dscr=abc"))).toThrow(/DSCR must be a number/);
+    expect(METRIC_FIELDS).not.toContain("ltv");
+    expect(METRIC_FIELDS).not.toContain("dscr");
+    expect(() => metricsFromSource(new URLSearchParams("noi=abc"))).toThrow(/NOI must be a dollar amount/);
+  });
+});
+
+describe("withProfileDefaults", () => {
+  const defaults = { noiCents: 76_500_000, valueCents: 1_235_000_000, costCents: null, occupancyPct: 88, lien: "first" as const, nonRecourse: true, closeDays: 56, assetClass: "MULTIFAMILY" as const };
+
+  it("starts the form from the submission profile", () => {
+    const q = withProfileDefaults(new URLSearchParams(), defaults);
+    expect(Object.fromEntries(q)).toEqual({ noi: "765000", value: "12350000", occupancy: "88", assetClass: "MULTIFAMILY", lien: "first", closeDays: "56", nonRecourse: "on" });
+  });
+
+  it("keeps what staff typed, and their unticked boxes once the form was sent", () => {
+    const q = withProfileDefaults(new URLSearchParams("noi=700000&submitted=1&lien=second"), defaults);
+    expect(q.get("noi")).toBe("700000");
+    expect(q.get("value")).toBe("12350000");
+    expect(q.get("lien")).toBe("second");
+    expect(q.get("nonRecourse")).toBeNull();
+    expect(q.get("closeDays")).toBeNull();
+    expect(withProfileDefaults(new URLSearchParams("noi=1"), null).toString()).toBe("noi=1");
   });
 });
