@@ -224,6 +224,7 @@ export async function currentStaff(): Promise<StaffSession | null> {
     name: principal.displayName,
     role: primaryStaffRole(principal),
     dreLicense: staffDreLicense(principal),
+    phone: principal.profile.phone ?? null,
     designatedOfficer: principal.profile.dreLicenseType === "broker_officer",
     actor: `staff:${principal.email.toLowerCase()}`,
   };

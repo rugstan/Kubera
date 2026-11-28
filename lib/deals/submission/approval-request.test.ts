@@ -134,3 +134,21 @@ describe("re-requesting (F5)", () => {
     }
   });
 });
+
+describe("the signing advisor (F14)", () => {
+  it("must hold a DRE licence: an unlicensed signer's request is refused before anything is stored", async () => {
+    const w = await sendWorld("bridge", "pending");
+    for (const dreLicense of [null, "", "1234"]) {
+      await expect(submitDealToLenders(w.deps, { dealId: w.deal.id, targetStage: "screen", lenderIds: [w.lenders.a.id], items: w.items, advisor: { ...TEST_ADVISOR, dreLicense }, actor: "admin:ops" })).rejects.toThrow(/A licensed broker must request a lender submission/);
+    }
+    expect(w.gate.requests).toHaveLength(0);
+    expect(w.summaries.rows.size).toBe(0);
+  });
+
+  it("signs with the phone on the staff record when there is one", async () => {
+    const w = await sendWorld("bridge", "pending");
+    const r = await submitDealToLenders(w.deps, { dealId: w.deal.id, targetStage: "screen", lenderIds: [w.lenders.a.id], items: w.items, advisor: { ...TEST_ADVISOR, phone: "(415) 555-0123" }, actor: "broker:ana" });
+    expect(r.prepared.lenders[0]!.email.text).toContain("ana@corincommercial.com · 415-555-0123");
+    expect(r.prepared.lenders[0]!.email.text).toContain("Ana Ruiz, Senior Advisor · DRE 01234567");
+  });
+});

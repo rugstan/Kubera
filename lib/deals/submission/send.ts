@@ -21,6 +21,7 @@ import { dealSummaryPackageItem, sha256Hex, summaryStoragePath } from "@/lib/age
 import type { CreditBox } from "@/lib/agents/lenders/types";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage } from "@/lib/disclosures/store";
+import { DRE_LICENSE_PATTERN } from "@/lib/site";
 import { CLOSED_OUTREACH_STATUSES, PackageError, assertDealCanGoToLenders, fairLendingMessage, lockPackageVersion, outreachMessage, sendPackageToLender, type DealHoldReader, type LenderMailer, type SendPackageResult } from "../packages";
 import type { DealDeskStore } from "../store";
 import type { DealPackage, LenderPanelEntry, PackageItem } from "../types";
@@ -220,6 +221,8 @@ export function previewSubmission(input: {
  */
 export async function prepareSubmission(deps: SubmissionSendDeps, input: PrepareInput): Promise<PreparedSubmission> {
   const lenderIds = uniqueLenderIds(input.lenderIds);
+  // The email's signature carries the advisor's DRE licence: an unlicensed signer cannot request a submission.
+  if (!input.advisor.dreLicense || !DRE_LICENSE_PATTERN.test(input.advisor.dreLicense)) throw new PackageError("invalid", "A licensed broker must request a lender submission: the signing advisor has no DRE licence number on file.");
   const deal = await deps.desk.getDeal(input.dealId);
   if (!deal) throw new PackageError("deal_not_found", `Deal ${input.dealId} not found`);
   // Holds and deal status first: they win over any override reason.

@@ -27,6 +27,7 @@ import { PackageCopyError } from "@/lib/agents/lenders/package";
 import { lenderRuntime } from "@/lib/agents/lenders/runtime";
 import type { AssetClass } from "@/lib/agents/lenders/types";
 import { lenderStaleness } from "@/lib/deals/lenders";
+import { DRE_LICENSE_PATTERN } from "@/lib/site";
 import { PackageError } from "@/lib/deals/packages";
 import { dealDeskRuntime, renderDealSummary, type DealDeskRuntime } from "@/lib/deals/runtime";
 import type { StaffSession } from "@/lib/deals/session";
@@ -192,10 +193,13 @@ export class SubmissionDataError extends Error {
 /** Who prefill names on the sources of a preview (replaced by the staff member when they start from it). */
 const PREVIEW_ACTOR = "staff:prefill-preview";
 
-/** The advisor who signs the lender email: the signed-in staff member. The preview and the request use the same one, so the hashes match. */
-export function advisorFor(staff: Pick<StaffSession, "name" | "email" | "dreLicense">): EmailAdvisor {
-  return { name: staff.name, title: null, dreLicense: staff.dreLicense, email: staff.email, phone: null };
+/** The advisor who signs the lender email: the signed-in staff member, with the phone on their profile when there is one. The preview and the request use the same one, so the hashes match. */
+export function advisorFor(staff: Pick<StaffSession, "name" | "email" | "dreLicense" | "phone">): EmailAdvisor {
+  return { name: staff.name, title: null, dreLicense: staff.dreLicense, email: staff.email, phone: staff.phone ?? null };
 }
+
+/** The refusal when the signed-in staff member cannot sign a lender email (no DRE licence on their profile). */
+export const UNLICENSED_SIGNER = "Lender submissions are signed by a licensed broker, and your staff profile has no DRE licence number. Ask a licensed broker to request this submission (or an administrator to add your licence to your profile).";
 
 async function viewFor(rt: DealDeskRuntime, dealId: string): Promise<SubmissionView | null> {
   const ctx = await loadSubmissionContext(rt, dealId);
@@ -339,6 +343,8 @@ const STAGE_NOUN: Record<TargetStage, string> = { screen: "soft-quote", term_she
 export async function requestSubmission(input: SubmissionRequestInput, staff: StaffSession): Promise<SubmissionRequestResult> {
   const rt = lenderRuntime();
   if (!rt) return { ok: false, reason: "refused", message: "Lender matching storage is not configured" };
+  // The email is signed by the requester (DRE licence on the signature): an unlicensed signer cannot request it.
+  if (!staff.dreLicense || !DRE_LICENSE_PATTERN.test(staff.dreLicense)) return { ok: false, reason: "refused", message: UNLICENSED_SIGNER };
   const view = await viewFor(rt.desk, input.dealId);
   if (!view) return { ok: false, reason: "refused", message: "Deal not found" };
   const readiness = view.readiness[input.stage];

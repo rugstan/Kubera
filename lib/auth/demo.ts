@@ -74,6 +74,7 @@ export function demoProfile(a: DemoAccount): Profile {
     dreLicenseType: a.profile.dreLicenseType ?? null,
     dreLicenseExpiresOn: a.profile.dreLicenseExpiresOn ?? null,
     dreLicenseVerifiedAt: a.profile.dreLicenseVerifiedAt ?? null,
+    phone: a.profile.phone ?? null,
   };
 }
 

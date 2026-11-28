@@ -21,9 +21,10 @@ type ProfileRow = {
   dre_license_type: string | null;
   dre_license_expires_on: string | null;
   dre_license_verified_at: string | null;
+  phone?: string | null;
 };
 
-const PROFILE_COLUMNS = "id, email, full_name, title, active, dre_license_number, dre_license_type, dre_license_expires_on, dre_license_verified_at";
+const PROFILE_COLUMNS = "id, email, full_name, title, active, dre_license_number, dre_license_type, dre_license_expires_on, dre_license_verified_at, phone";
 
 export function profileFromRow(r: ProfileRow): Profile {
   const type = r.dre_license_type;
@@ -37,6 +38,7 @@ export function profileFromRow(r: ProfileRow): Profile {
     dreLicenseType: type === "broker" || type === "salesperson" || type === "broker_officer" ? (type as DreLicenseType) : null,
     dreLicenseExpiresOn: r.dre_license_expires_on,
     dreLicenseVerifiedAt: r.dre_license_verified_at,
+    phone: r.phone ?? null,
   };
 }
 
