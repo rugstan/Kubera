@@ -37,7 +37,7 @@ import {
   submitModificationAction,
 } from "../actions";
 import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, money, when } from "../ui";
-import { hasPendingShareLink } from "../share-once";
+import { pendingShareHandoff } from "../share-once";
 import { OneTimeApprovedEmail } from "./OneTimeApprovedEmail";
 import { SubmissionCard } from "./submission/_components/SubmissionCard";
 
@@ -66,7 +66,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
   if (!deal) notFound();
   // Approved with email to lenders off: the link and the approved email, shown once (spec 5.1 step 6).
   // The page only learns that one is waiting; OneTimeApprovedEmail claims it (and deletes it) on first render.
-  const [sharePending, outreachRows] = await Promise.all([hasPendingShareLink(deal.id), rt.store.listOutreach(deal.id)]);
+  const [shareHandoff, outreachRows] = await Promise.all([pendingShareHandoff(deal.id), rt.store.listOutreach(deal.id)]);
   const approvedOutreachIds = outreachRows.filter((o) => o.status === "approved").map((o) => o.id);
   const write = can(staff, "write");
   const officer = can(staff, "officer");
@@ -89,7 +89,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
         </div>
       </div>
       <Flash error={sp.error} notice={sp.notice} />
-      <OneTimeApprovedEmail approvedOutreachIds={approvedOutreachIds} dealId={deal.id} pending={sharePending} />
+      <OneTimeApprovedEmail approvedOutreachIds={approvedOutreachIds} dealId={deal.id} handoff={shareHandoff} />
 
       <StagePanel deal={deal} rt={rt} write={write} />
 

@@ -8,16 +8,19 @@ import { CopyText } from "./submission/_components/CopyText";
 // to lenders off). The deal page only says that one is waiting; this
 // component claims it on its first render through a server action, which
 // deletes the one-time cookies in the same step, so a refresh or a second
-// tab shows nothing. It hides itself once the submission is no longer
-// approved (marked sent, or withdrawn).
+// tab shows nothing. Each hand-off has its own id: after approving a second
+// lender on the same page (the server action redirects back here and the
+// component keeps its state), the new id triggers a new claim, which replaces
+// the email shown. It hides itself once the submission is no longer approved
+// (marked sent, or withdrawn).
 
-export function OneTimeApprovedEmail({ dealId, pending, approvedOutreachIds }: { dealId: string; pending: boolean; approvedOutreachIds: readonly string[] }) {
+export function OneTimeApprovedEmail({ dealId, handoff, approvedOutreachIds }: { dealId: string; handoff: string | null; approvedOutreachIds: readonly string[] }) {
   const [claimed, setClaimed] = useState<ClaimedShare | null>(null);
-  const asked = useRef(false);
+  const lastClaimed = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!pending || asked.current) return;
-    asked.current = true;
+    if (!handoff || lastClaimed.current === handoff) return;
+    lastClaimed.current = handoff;
     let live = true;
     claimApprovedEmailAction(dealId).then(
       (r) => {
@@ -28,7 +31,7 @@ export function OneTimeApprovedEmail({ dealId, pending, approvedOutreachIds }: {
     return () => {
       live = false;
     };
-  }, [dealId, pending]);
+  }, [dealId, handoff]);
 
   if (!claimed) return null;
   if (claimed.outreachId && !approvedOutreachIds.includes(claimed.outreachId)) return null;

@@ -26,7 +26,7 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-const { claimShareLink, forgetShareLink, hasPendingShareLink, rememberShareLink } = await import("./share-once");
+const { claimShareLink, forgetShareLink, hasPendingShareLink, pendingShareHandoff, rememberShareLink } = await import("./share-once");
 
 const DEAL = "10000000-0000-4000-8000-000000000010";
 const OTHER = "10000000-0000-4000-8000-000000000011";
@@ -88,5 +88,25 @@ describe("the one-time share link", () => {
     expect(await hasPendingShareLink(DEAL)).toBe(false);
     expect(await claimShareLink(DEAL)).toBeNull();
     expect(jar.size).toBe(0);
+  });
+  it("gives each hand-off its own id, so a second approval on the same page is claimed too", async () => {
+    await rememberShareLink(DEAL, URL, "outreach-1");
+    const first = await pendingShareHandoff(DEAL);
+    expect(first).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await claimShareLink(DEAL)).toEqual({ shareUrl: URL, outreachId: "outreach-1" });
+    expect(await pendingShareHandoff(DEAL)).toBeNull();
+    // Approving the next lender from the same page stores a new hand-off.
+    await rememberShareLink(DEAL, `${URL}2`, "outreach-2");
+    const second = await pendingShareHandoff(DEAL);
+    expect(second).not.toBeNull();
+    expect(second).not.toBe(first);
+    expect(await claimShareLink(DEAL)).toEqual({ shareUrl: `${URL}2`, outreachId: "outreach-2" });
+    expect(await claimShareLink(DEAL)).toBeNull();
+  });
+
+  it("never puts the URL in the hand-off id", async () => {
+    await rememberShareLink(DEAL, URL, "outreach-1");
+    expect(await pendingShareHandoff(DEAL)).not.toContain("share");
+    expect(await pendingShareHandoff(OTHER)).toBeNull();
   });
 });
