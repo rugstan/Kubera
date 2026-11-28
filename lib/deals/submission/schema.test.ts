@@ -337,13 +337,16 @@ describe("twins of the migration's check constraints", () => {
   const PROFILE_TEXT = ["close_driver", "prepay_preference", "existing_lender", "cash_out_use", "property_name", "city", "county", "zoning", "flood_zone", "business_plan", "exit_detail"];
   const SPONSOR_TEXT = ["experience_summary", "portfolio_size_note", "management_company", "notes"];
   it("every free-text column is in the database's restricted-text check", () => {
-    const check = (name: string) => SQL.slice(SQL.indexOf(`constraint ${name} check`), SQL.indexOf(")\n", SQL.indexOf(`constraint ${name} check`) + 200));
+    // The whole constraint, up to its closing parenthesis on its own line.
+    const check = (name: string) => SQL.slice(SQL.indexOf(`constraint ${name} check`), SQL.indexOf("\n  )", SQL.indexOf(`constraint ${name} check`)));
     const profile = check("deal_submission_profiles_no_restricted");
     for (const col of PROFILE_TEXT) expect(profile, col).toMatch(new RegExp(`\\b${col}\\b`));
     for (const col of ["highlights", "risks", "sources", "uses", "program_details"]) expect(profile, col).toContain(col);
     const sponsor = check("deal_sponsor_profiles_no_restricted");
     for (const col of [...SPONSOR_TEXT, "credit_events"]) expect(sponsor, col).toContain(col);
-    expect(SQL).toContain("check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason, lender_override_reason)))");
+    expect(SQL).toContain("check (not public.submission_texts_restricted(email_subject, email_text, readiness_override_reason, lender_override_reason))");
+    // Every value is checked on its own: no check joins values into one text (R3).
+    expect(SQL).not.toMatch(/submission_text_restricted\(concat_ws|submission_json_text/);
   });
 
   it("every free-text field refuses the restricted shapes in zod, however they are written", () => {

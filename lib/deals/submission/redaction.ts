@@ -10,7 +10,7 @@
 //   3. The database checks (public.submission_text_restricted, the same
 //      shapes after the same normalization and money masking) on
 //      lender_outreach and on every free-text column of the submission and
-//      sponsor profiles.
+//      sponsor profiles, each value on its own.
 //
 // Text is normalized before any pattern runs (normalizeForScan): NFKC, every
 // Unicode decimal digit as its ASCII digit, and format characters

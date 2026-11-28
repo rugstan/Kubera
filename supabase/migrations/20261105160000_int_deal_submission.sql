@@ -47,6 +47,10 @@
 -- digits, a mask such as x4821, or six or more digits in a row; seven after
 -- checking, savings and A/C), never by money, a year or a count.
 --
+-- Every value is checked on its own (submission_texts_restricted,
+-- submission_json_restricted), as the app checks each field, so digit groups
+-- in two neighbouring values never join into one shape.
+--
 -- The app refuses the same text first, with a message; these checks hold the
 -- database to the rule. What only a direct database write (service role,
 -- psql) could still get past, because Postgres regular expressions are not
@@ -124,19 +128,36 @@ as $$
 $$;
 revoke execute on function public.submission_text_restricted(text) from public, anon, authenticated;
 
--- Every string value inside a jsonb document (risks, sources and uses notes,
--- program sections, credit-event explanations), joined by a unit separator so
--- no digit group can straddle two values.
-create or replace function public.submission_json_text(j jsonb)
-returns text
+-- True when any one of the values is restricted. Each value is checked on its
+-- own, as the app checks each field, so no digit group in one value joins a
+-- group in the next (a tenant "Dental Suite 100-24" beside a lease end
+-- "2031-06-30").
+create or replace function public.submission_texts_restricted(variadic t text[])
+returns boolean
 language sql
 immutable
 set search_path = ''
 as $$
-  select coalesce(string_agg(v #>> '{}', chr(31)), '')
-  from jsonb_path_query(coalesce(j, '{}'::jsonb), 'strict $.** ? (@.type() == "string")') as v
+  select exists (select 1 from unnest(t) as v where public.submission_text_restricted(v))
 $$;
-revoke execute on function public.submission_json_text(jsonb) from public, anon, authenticated;
+revoke execute on function public.submission_texts_restricted(text[]) from public, anon, authenticated;
+
+-- True when any string value inside a jsonb document (risks, sources and uses
+-- notes, program sections, credit-event explanations) is restricted, each
+-- value on its own.
+create or replace function public.submission_json_restricted(j jsonb)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from jsonb_path_query(coalesce(j, '{}'::jsonb), 'strict $.** ? (@.type() == "string")') as v
+    where public.submission_text_restricted(v #>> '{}')
+  )
+$$;
+revoke execute on function public.submission_json_restricted(jsonb) from public, anon, authenticated;
 
 -- 1. Deal, property and financial facts ---------------------------------------
 create table public.deal_submission_profiles (
@@ -248,12 +269,12 @@ create table public.deal_submission_profiles (
   -- Restricted identifiers never belong in free text (lib/deals/submission/redaction.ts, the same rules):
   -- every free-text column and every string inside the jsonb sections. The APN is an identifier, not free text.
   constraint deal_submission_profiles_no_restricted check (
-    not public.submission_text_restricted(concat_ws(chr(31),
+    not public.submission_texts_restricted(
       close_driver, prepay_preference, existing_lender, cash_out_use, property_name, city, county, zoning, flood_zone,
-      business_plan, exit_detail, array_to_string(highlights, chr(31)),
-      public.submission_json_text(risks), public.submission_json_text(sources), public.submission_json_text(uses),
-      public.submission_json_text(program_details)
-    ))
+      business_plan, exit_detail)
+    and not public.submission_texts_restricted(variadic highlights)
+    and not public.submission_json_restricted(risks) and not public.submission_json_restricted(sources)
+    and not public.submission_json_restricted(uses) and not public.submission_json_restricted(program_details)
   )
 );
 create index deal_submission_profiles_playbook_idx on public.deal_submission_profiles (playbook);
@@ -295,9 +316,8 @@ create table public.deal_sponsor_profiles (
   constraint deal_sponsor_profiles_stated_dated
     check ((stated_net_worth_cents is null and stated_liquidity_cents is null) or stated_as_of is not null),
   constraint deal_sponsor_profiles_no_restricted check (
-    not public.submission_text_restricted(concat_ws(chr(31),
-      experience_summary, portfolio_size_note, management_company, notes, public.submission_json_text(credit_events)
-    ))
+    not public.submission_texts_restricted(experience_summary, portfolio_size_note, management_company, notes)
+    and not public.submission_json_restricted(credit_events)
   )
 );
 
@@ -390,7 +410,7 @@ alter table public.lender_outreach
     check (email_sha256 is null or email_sha256 = encode(sha256(convert_to(email_subject || chr(10) || email_text, 'UTF8')), 'hex')),
   -- No restricted identifier in the subject, the body or the staff reason (the app's anchored patterns, normalized).
   add constraint lender_outreach_email_no_restricted
-    check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason, lender_override_reason)));
+    check (not public.submission_texts_restricted(email_subject, email_text, readiness_override_reason, lender_override_reason));
 
 -- 5. Audit -----------------------------------------------------------------------
 -- audit_row_change_redacted() wrote deal_id = null because its first tables

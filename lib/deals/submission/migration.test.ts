@@ -402,6 +402,23 @@ describe("zod and the database agree (schema.ts twins)", () => {
     for (const v of CRE_TEXT_REFUSED) expect(await pg(v), v).toBe(true);
   });
 
+  // R3: the database checks each value on its own, as the app checks each field, so digit groups in two
+  // neighbouring values (a tenant name beside its lease end, the zoning beside the flood zone) never join.
+  it("checks each value on its own: two neighbouring values never join into one shape", async () => {
+    expect(findRestrictedText("Dental Suite 100-24")).toEqual([]);
+    expect(findRestrictedText("2031-06-30")).toEqual([]);
+    await expect(profileRow({ program_details: { tenancy: { topTenants: [{ name: "Dental Suite 100-24", sharePct: 20, leaseEnd: "2031-06-30" }] } } })).resolves.toBeTruthy();
+    await expect(profileRow({ zoning: "C-2, lot 120-45", flood_zone: "0500 panel" })).resolves.toBeTruthy();
+    await expect(profileRow({ highlights: ["Suite 120", "45 6789 sf"] })).resolves.toBeTruthy();
+    await expect(profileRow({ risks: [{ risk: "Lease 123", mitigant: "45-6789 reserve" }] })).resolves.toBeTruthy();
+    await expect(sponsorRow({ experience_summary: "Built 123 units", notes: "45-6789 sf" })).resolves.toBeTruthy();
+    // One value holding the shape is still refused, wherever it sits.
+    await expect(profileRow({ zoning: "C-2", flood_zone: "id 123-45-6789" })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(profileRow({ highlights: ["Suite 120", "SSN 123-45-6789"] })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(profileRow({ program_details: { tenancy: { topTenants: [{ name: "Tax id 12-3456789", sharePct: 20, leaseEnd: "2031-06-30" }] } } })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(sponsorRow({ credit_events: { judgment: { occurred: true, explanation: "Paid from account 12345678" } } })).rejects.toThrow(/deal_sponsor_profiles_no_restricted/);
+  });
+
   it("text past a column's length, which zod refuses, the database refuses too", async () => {
     for (const [key, max] of [["closeDriver", 300], ["floodZone", 20], ["businessPlan", 4000], ["apn", 60]] as const) {
       expect(PROFILE_FIELD_SCHEMAS[key].safeParse("x".repeat(max + 1)).success, key).toBe(false);
