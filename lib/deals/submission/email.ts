@@ -18,7 +18,7 @@ import { licenseLine, site } from "@/lib/site";
 import { LENDER_LOAN_TYPE_LABELS } from "../loan-types";
 import type { LenderPanelEntry, PackageItem } from "../types";
 import { PLAYBOOK_SHORT_LABELS, defaultPlaybook, playbookLoanTypes } from "./playbooks";
-import { assertEmailSafe, guarantorCovenantLine, nameTokens, safeAllowPhrases, type EmailSafetyOptions } from "./redaction";
+import { assertEmailSafe, entityAllowPhrases, guarantorCovenantLine, looksLikePerson, safeAllowPhrases, type EmailSafetyOptions } from "./redaction";
 import { RECEIVED_STATUSES } from "./requirements";
 import { fmt, formatMetricValue, headlineLabel, headlineMetricKeys, metricOf, sizePhrase } from "./summary";
 import {
@@ -128,22 +128,22 @@ function hardMoneyFacts(ctx: SubmissionContext): EmailHardMoneyFacts | null {
 }
 
 const individualNames = (ctx: Pick<SubmissionContext, "principals">) => ctx.principals.filter((p) => p.kind === "individual").map((p) => p.legalName);
-const sameName = (a: string, b: string) => nameTokens(a).join(" ") === nameTokens(b).join(" ");
-
 /**
- * The borrower as the email may name it (spec 5.4): the deal's borrower name,
- * else the borrowing entity on the org chart, but only when it names no
- * individual principal (a guarantor borrowing in their own name is "the
- * borrower"). The formation state comes only from the entity principal with
- * that same name.
+ * The borrower as the email may name it (spec 5.4), decided by the borrower's
+ * type: only the entity principal the org chart marks as the borrowing entity,
+ * by that record's legal name and formation state, and only when the name does
+ * not read as an individual principal (looksLikePerson: a guarantor's name with
+ * an initial, a nickname or a co-owner added, or their surname without an
+ * entity word). Otherwise the email says "the borrower" (name null). The
+ * deal's free-text borrower name is never printed. Null when there is no
+ * borrower to speak of.
  */
 export function emailBorrower(ctx: Pick<SubmissionContext, "deal" | "principals">): { name: string | null; formationState: string | null } | null {
-  const entity = ctx.principals.find((p) => p.kind === "entity" && p.roles.includes("borrower_entity")) ?? null;
-  const name = ctx.deal.borrowerName?.trim() || entity?.legalName || null;
-  if (!name) return null;
-  if (!safeAllowPhrases([name], individualNames(ctx)).length) return { name: null, formationState: null };
-  const match = ctx.principals.find((p) => p.kind === "entity" && sameName(p.legalName, name)) ?? null;
-  return { name, formationState: match?.formationState ?? null };
+  const marked = ctx.principals.filter((p) => p.roles.includes("borrower_entity"));
+  const entity = marked.length === 1 && marked[0]!.kind === "entity" ? marked[0]! : null;
+  const name = entity?.legalName.trim() || null;
+  if (entity && name && !looksLikePerson(name, individualNames(ctx))) return { name, formationState: entity.formationState ?? null };
+  return marked.length || ctx.deal.borrowerName?.trim() ? { name: null, formationState: null } : null;
 }
 
 function sponsorFacts(ctx: SubmissionContext, metrics: SubmissionMetrics): EmailSponsorFacts | null {
@@ -882,13 +882,13 @@ export function renderLenderEmail(f: EmailRenderFacts, safety: EmailSafetyOption
 
 /**
  * The principals' names the email must never print, and the phrases the name
- * check may skip: the borrower and entity names that name no individual
- * principal (safeAllowPhrases). The deal's borrower name is never allowed
- * when it is an individual's.
+ * check may skip, each only inside its own exact phrase: the entity
+ * principals' names that do not read as an individual (entityAllowPhrases).
+ * The deal's free-text borrower name is never allowed.
  */
 export function emailSafetyFor(ctx: Pick<SubmissionContext, "deal" | "principals">): EmailSafetyOptions {
   const names = individualNames(ctx);
-  return { names, allow: safeAllowPhrases([ctx.deal.borrowerName, ...ctx.principals.filter((p) => p.kind === "entity").map((p) => p.legalName)], names) };
+  return { names, allow: entityAllowPhrases(ctx.principals.filter((p) => p.kind === "entity").map((p) => p.legalName), names) };
 }
 
 /**

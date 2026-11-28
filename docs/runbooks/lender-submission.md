@@ -16,7 +16,8 @@ Every lender submission goes through **Deal → Lender submission → Preview �
    - Ground-up **construction** has no Operating financials section; enter the **projected stabilized NOI** and the months to stabilize in the Construction section.
    - A **ground-up** deal (construction purpose, HUD 221(d)(4) or 232 new construction, mezz or C-PACE on a construction deal) is not asked for occupancy, in-place NOI, a T-12 or a rent roll; it needs the stabilized NOI, the as-complete value and the budget instead.
    - On **hard money and fix & flip**, the profile's as-is value and purchase price must agree with the hard money file; the ratios use the deal's loan over the file's values and cost.
-   - Never type an SSN, ITIN, EIN, date of birth, account or routing number, or a guarantor's name in free text. The editor refuses those shapes; they belong in the document vault.
+   - Never type an SSN, ITIN, EIN, date of birth, account or routing number, or a guarantor's name in free text. The editor refuses those shapes; they belong in the document vault. APNs, unit numbers, year lists, rents and phone numbers save: a 3-3-3 or 4-4-4 number group is refused only after a word such as SSN, tax id, account or card, birth wording only with a date, and account wording only with digits.
+   - The email names the borrower only from the principals file: the record marked **Borrower** when it is an entity whose name does not read as a guarantor's (an entity word such as LLC, LP, Inc, Trust, Fund, Partners or Holdings, and no guarantor's first name or initial with their surname). Otherwise it says "the borrower"; the summary behind the link names it. The deal's borrower name field is never printed in the email.
 4. Fix every missing item the meter lists. Each one links to its field (or to the checklist desk, the principals file, the hard money file or the construction desk).
 
 ## Preview (the current draft)

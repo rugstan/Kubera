@@ -1244,7 +1244,7 @@ export type GuarantorCovenantLine = {
 };
 
 export type EmailSponsorFacts = Pick<SponsorProfileFields, "experienceSummary" | "yearsExperience" | "similarProjectsCount" | "portfolioCount" | "portfolioSizeNote" | "managementCompany" | "creditBand" | "emailFinancialsMode"> & {
-  /** The borrowing entity (deals.borrowerName and its formation state); never an individual. */
+  /** The org chart's borrowing entity (its legal name and formation state); name null ("the borrower") when it reads as an individual principal. Never deals.borrowerName. */
   borrowerEntity: { name: string | null; formationState: string | null } | null;
   /** true when any credit event was answered yes (details stay behind the link); null when unanswered. */
   creditEventsReported: boolean | null;

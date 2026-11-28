@@ -178,8 +178,9 @@ function nameForms(name: string): NameForms {
   const surname = nameTokens(words.at(-1)!);
   const first = words.length > 1 ? nameTokens(words[0]!) : [tokens[0]!];
   const middles = words.slice(1, -1).flatMap(nameTokens);
-  const combos = [tokens, [...first, ...surname], [...surname, ...first], [...surname, ...first, ...middles], ...HONORIFICS.map((h) => [h, ...surname])];
-  const surnames = surname.filter((t) => t.length >= 3 && !COMMON_WORD_SURNAMES.has(t));
+  // Also first and last name glued into one word ("RowanEllingsworth"), and the plural surname ("the Ellingsworths").
+  const combos = [tokens, [...first, ...surname], [...surname, ...first], [...surname, ...first, ...middles], [[...first, ...surname].join("")], ...HONORIFICS.map((h) => [h, ...surname])];
+  const surnames = surname.filter((t) => t.length >= 3 && !COMMON_WORD_SURNAMES.has(t)).flatMap((t) => [t, `${t}s`]);
   return { combos, surnames };
 }
 
@@ -205,17 +206,84 @@ function nameFound(text: string, opts: EmailSafetyOptions): boolean {
   });
 }
 
+/** A principal's first-name and surname tokens (honorifics and suffixes dropped). */
+function personParts(name: string): { first: string[]; surname: string[] } | null {
+  const words = name
+    .normalize("NFKD")
+    .replace(FORMAT_CHARS, "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w && nameTokens(w).length && !NAME_SUFFIXES.has(nameTokens(w).join("")));
+  while (words.length > 1 && HONORIFICS.includes(nameTokens(words[0]!).join(""))) words.shift();
+  if (!words.length) return null;
+  const surname = nameTokens(words.at(-1)!);
+  return { first: words.length > 1 ? nameTokens(words[0]!) : [], surname };
+}
+
 /**
- * The phrases the name check may skip: an entity's (or the deal's borrower)
- * name is allowed only when it names no individual principal in a full-name
- * form and is not made only of their name tokens ("Ellingsworth" alone would
- * otherwise switch the surname check off).
+ * Words that make a name an entity's: LLC, L.L.C., LP, L.P., LLP, Inc,
+ * Incorporated, Corp, Corporation, Ltd, Trust, Fund, Partners, Partnership,
+ * Holdings, Company, Co. As tokens ("L.L.C." reads as l l c).
+ */
+const ENTITY_WORDS = new Set(["llc", "lp", "llp", "inc", "incorporated", "corp", "corporation", "ltd", "trust", "fund", "partners", "partnership", "holdings", "company", "co"]);
+const ENTITY_WORD_SEQUENCES = [["l", "l", "c"], ["l", "p"], ["l", "l", "p"]];
+
+/** True when the name carries an entity word (see ENTITY_WORDS). */
+export function hasEntityWord(name: string): boolean {
+  const t = nameTokens(name);
+  const hay = stream(t);
+  return t.some((x) => ENTITY_WORDS.has(x)) || ENTITY_WORD_SEQUENCES.some((seq) => hasSeq(hay, seq));
+}
+
+/**
+ * True when `name` reads as one of the individual principals rather than an
+ * entity, so the email must not print it: it holds a full-name form; or an
+ * individual's first name (or first initial) and surname anywhere in it
+ * ("Rowan J. Ellingsworth", "R. Ellingsworth", "Rowan (Ro) Ellingsworth",
+ * "Rowan and Dana Ellingsworth"); or an individual's surname and no entity
+ * word ("Noor & Sam Halvorsen", "Ellingsworth Ventures"); or only their name
+ * tokens. With `surnameWithoutEntityWord: false` a surname alone does not
+ * count (for the fixed phrases, see safeAllowPhrases).
+ */
+export function looksLikePerson(name: string, individuals: readonly string[], opts: { surnameWithoutEntityWord?: boolean } = {}): boolean {
+  const tokens = nameTokens(name);
+  if (!tokens.length) return false;
+  if (fullNameIn(name, individuals)) return true;
+  // "The Halvorsens" names them too.
+  const have = new Set(tokens.flatMap((x) => (x.length > 3 && x.endsWith("s") ? [x, x.slice(0, -1)] : [x])));
+  const personal = new Set(individuals.flatMap(nameTokens));
+  if (tokens.every((x) => personal.has(x))) return true;
+  const entityWord = opts.surnameWithoutEntityWord === false || hasEntityWord(name);
+  return individuals.some((ind) => {
+    const parts = personParts(ind);
+    if (!parts || !parts.surname.length || !parts.surname.every((x) => have.has(x))) return false;
+    if (!entityWord) return true;
+    const initial = parts.first[0]?.[0];
+    return (parts.first.length > 0 && parts.first.every((x) => have.has(x))) || (initial !== undefined && have.has(initial));
+  });
+}
+
+/**
+ * The entity names the name check may skip, each only inside its own exact
+ * phrase: entity principals whose name does not read as an individual
+ * principal (looksLikePerson). Free text such as the deal's borrower name is
+ * never a candidate.
+ */
+export function entityAllowPhrases(entityNames: readonly (string | null | undefined)[], individuals: readonly string[]): string[] {
+  return [...new Set(entityNames.filter((c): c is string => typeof c === "string" && c.trim().length > 0).map((c) => c.trim()))].filter((c) => !looksLikePerson(c, individuals));
+}
+
+/**
+ * The fixed phrases every email prints that are not the deal's (Corin, its
+ * designated officer, the signing advisor, the lender) may be skipped, each
+ * only inside its own exact phrase, so a principal who shares a surname with
+ * one of them does not block every email. Never one that names an individual
+ * principal: a full-name form, their first name (or initial) with their
+ * surname anywhere, or only their name tokens.
  */
 export function safeAllowPhrases(candidates: readonly (string | null | undefined)[], individuals: readonly string[]): string[] {
-  const personal = new Set(individuals.flatMap(nameTokens));
   return [...new Set(candidates.filter((c): c is string => typeof c === "string" && c.trim().length > 0))].filter((c) => {
-    const t = nameTokens(c);
-    return t.length > 0 && !fullNameIn(c, individuals) && !t.every((x) => personal.has(x));
+    return nameTokens(c).length > 0 && !looksLikePerson(c, individuals, { surnameWithoutEntityWord: false });
   });
 }
 
