@@ -15,7 +15,7 @@
 
 import { z } from "zod";
 import { detectSensitiveValues } from "@/lib/privacy/classification";
-import { findRestrictedText } from "./redaction";
+import { RESTRICTED_TEXT_PATTERNS, findRestrictedText, normalizeForScan } from "./redaction";
 import {
   asIsValueSources,
   consentStatuses,
@@ -61,16 +61,14 @@ import {
 // ---------------------------------------------------------------------------
 // Restricted text
 //
-// Saved free text is refused on the same shapes the lender email is
-// (redaction.ts RESTRICTED_TEXT_PATTERNS: SSN / ITIN, EIN, nine-digit runs,
-// date-of-birth and account wording), on the database's own check patterns
-// (so nothing the migration would refuse is accepted here), and on the
-// restricted detectors of lib/privacy/classification.ts (card numbers).
+// Saved free text is normalized (redaction.ts normalizeForScan: NFKC, Unicode
+// digits as ASCII, format characters removed) and refused on the same shapes
+// the lender email is (redaction.ts RESTRICTED_TEXT_PATTERNS: SSN / ITIN in
+// any grouping or wording, EIN, nine-digit runs, account groupings,
+// date-of-birth and account wording), which the database checks too
+// (public.submission_text_restricted), and on the restricted detectors of
+// lib/privacy/classification.ts (card numbers).
 
-/** Twin of the migration's *_no_ssn checks: `!~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'` (unanchored). */
-export const SSN_DB_RE = /[0-9]{3}-[0-9]{2}-[0-9]{4}/;
-/** Twin of lender_outreach_email_no_restricted's second pattern: nine or more digits in a row (account, routing or tax id). */
-export const DIGIT_RUN_DB_RE = /[0-9]{9,}/;
 /** Twin of deal_submission_profiles.postal_code. */
 export const POSTAL_CODE_DB_RE = /^[0-9]{5}(-[0-9]{4})?$/;
 /** Twin of deal_submission_profiles.asset_type (the enum is stricter). */
@@ -80,11 +78,9 @@ export const RESTRICTED_TEXT_MESSAGE = "Remove the SSN, account or routing numbe
 
 /** What `text` holds that may not be saved (the kind of data, never the value), or null when it may be saved. */
 export function restrictedTextReason(text: string): string | null {
-  if (SSN_DB_RE.test(text)) return "a Social Security number or ITIN";
-  if (DIGIT_RUN_DB_RE.test(text)) return "a run of nine or more digits (an account, routing or tax id)";
   const finding = findRestrictedText(text)[0];
   if (finding) return finding.label;
-  const hit = detectSensitiveValues(text).find((f) => f.level === "restricted");
+  const hit = detectSensitiveValues(normalizeForScan(text)).find((f) => f.level === "restricted");
   return hit ? hit.detector.replace(/_/g, " ") : null;
 }
 
@@ -117,7 +113,20 @@ const boolish = (v: unknown): unknown => {
 export const MAX_CENTS = Number.MAX_SAFE_INTEGER;
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
-const text = (max: number) => z.string().trim().min(1, "Required").max(max).refine(isSafeText, RESTRICTED_TEXT_MESSAGE);
+/** Free text: stored normalized (so the database checks read what the app checked), trimmed, and refused when it holds a restricted identifier. */
+const text = (max: number) => z.preprocess((v) => (typeof v === "string" ? normalizeForScan(v) : v), z.string().trim().min(1, "Required").max(max).refine(isSafeText, RESTRICTED_TEXT_MESSAGE));
+/** The APN is an identifier, not free text: letters, digits, dashes, dots and spaces, and never an SSN shape. */
+const nApn = (max: number) =>
+  z.preprocess(
+    blank,
+    z
+      .string()
+      .trim()
+      .max(max)
+      .regex(/^[0-9A-Za-z][0-9A-Za-z .-]*$/, "Enter the APN as printed (letters, digits, dashes and spaces)")
+      .refine((v) => !RESTRICTED_TEXT_PATTERNS[0]!.re.test(v), RESTRICTED_TEXT_MESSAGE)
+      .nullable(),
+  );
 const nText = (max: number) => z.preprocess(blank, text(max).nullable());
 const intIn = (min: number, max: number) => z.number().int().min(min).max(max);
 const nInt = (min: number, max: number) => z.preprocess(numeric, intIn(min, max).nullable());
@@ -242,7 +251,7 @@ export const PROFILE_FIELD_SCHEMAS = {
   city: nText(T.city),
   county: nText(T.county),
   postalCode: z.preprocess(blank, z.string().trim().regex(POSTAL_CODE_DB_RE, "Enter a 5-digit ZIP or ZIP+4").nullable()),
-  apn: nText(T.apn),
+  apn: nApn(T.apn),
   yearBuilt: fromLimit(P.yearBuilt),
   yearRenovated: fromLimit(P.yearRenovated),
   sizeCount: fromLimit(P.sizeCount),
@@ -388,7 +397,7 @@ const agencyShape = {
 const hudShape = {
   section: oEnum(hudSections),
   repairsCents: oCents(),
-  existingFhaNumber: z.string().trim().regex(/^[0-9A-Za-z-]{3,20}$/, "Enter the FHA number as printed (letters, digits and dashes)").optional(),
+  existingFhaNumber: z.string().trim().regex(/^[0-9A-Za-z-]{3,20}$/, "Enter the FHA number as printed (letters, digits and dashes)").refine(isSafeText, RESTRICTED_TEXT_MESSAGE).optional(),
   priorHudParticipation: oBool,
   licensedBeds: oInt(0, 100_000),
   operatorName: oText(200),

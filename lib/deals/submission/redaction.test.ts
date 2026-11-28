@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { dealSummaryPackageItem } from "@/lib/agents/lenders/package";
 import { lenderInput, toPanelEntry } from "../test-fixtures";
 import { buildLenderEmail, emailLenderFrom } from "./email";
-import { EmailSafetyError, assertEmailSafe, checkNeutralCopy, findRestrictedText, guarantorCovenantLine, isFreeTextSafe, restrictedTextMessage } from "./redaction";
+import { EmailSafetyError, assertEmailSafe, checkNeutralCopy, findRestrictedText, guarantorCovenantLine, isFreeTextSafe, normalizeForScan, restrictedTextMessage } from "./redaction";
 import { fmt } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
 import { computeSubmissionMetrics } from "./metrics";
@@ -202,5 +202,38 @@ describe("checkNeutralCopy", () => {
       const texts = [p.businessPlan, p.exitDetail, ...p.highlights, ...p.risks.flatMap((r) => [r.risk, r.mitigant]), ctx.sponsor!.experienceSummary].filter((t): t is string => Boolean(t));
       expect(checkNeutralCopy(texts), ctx.deal.title).toEqual([]);
     }
+  });
+});
+
+describe("restricted identifiers however they are written (S3)", () => {
+  it.each([
+    ["full-width digits", "Tax id １２３-４５-６７８９ on file", "ssn"],
+    ["Arabic-Indic digits", "id ١٢٣-٤٥-٦٧٨٩", "ssn"],
+    ["Devanagari digits", "id १२३-४५-६७८९", "ssn"],
+    ["en dash separators", "id 123–45–6789", "ssn"],
+    ["minus sign separators", "id 123−45−6789", "ssn"],
+    ["slash separators", "id 123/45/6789", "ssn"],
+    ["a zero-width space inside a nine-digit run", "acct 1234\u200b56789", "digit_run"],
+    ["a soft hyphen inside a nine-digit run", "ref 1234\u00ad56789", "digit_run"],
+    ["a spaced account number", "Wire to account: 0123 4567 8901", "account"],
+    ["a 3-3-3 grouping", "tax id 123 456 789", "ssn"],
+    ["hyphenated date-of-birth", "date-of-birth 01/02/1970", "dob"],
+    ["birthday", "birthday 1/2/1970", "dob"],
+    ["S.S.N.", "S.S.N. on file", "ssn"],
+    ["DOB with a zero-width character", "D\u200bOB 1/2/1970", "dob"],
+    ["account ending", "acct ending 0123 4567", "account"],
+    ["checking ending", "Wire from Chase checking ending 4821", "account"],
+  ])("catches %s", (_label, text, kind) => {
+    expect(findRestrictedText(text).map((f) => f.kind)).toContain(kind);
+  });
+
+  it("does not catch phone numbers, money, dates, APNs or ordinary words that look close", () => {
+    for (const t of ["Call 415-555-0100", "(415) 555-0100", "$1,234,567.89", "2026-10-31", "APN 331-030-19-00-5", "bought it in 2021", "to do b-roll", "Assn. dues", "Doberman", "Suites 101-103"]) expect(findRestrictedText(t), t).toEqual([]);
+  });
+
+  it("normalizes NFKC, maps every Unicode decimal digit to ASCII and drops format characters", () => {
+    expect(normalizeForScan("１２３ ١٢٣ ۴۵۶ ๗๘๙ \u{1D7D9}")).toBe("123 123 456 789 1");
+    expect(normalizeForScan("a\u200bb\u200dc\u2066d\u00ade")).toBe("abcde");
+    expect(normalizeForScan("ﬁnance Ｌoan")).toBe("finance Loan");
   });
 });

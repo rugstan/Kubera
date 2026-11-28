@@ -7,11 +7,18 @@
 //      guarantorCovenantLine() (booleans, or rounded combined figures).
 //   2. assertEmailSafe() below, run on the rendered text and again in the send
 //      gate (lib/deals/packages.ts).
-//   3. The lender_outreach check constraints (no SSN shape, no nine-digit run).
+//   3. The database checks (public.submission_text_restricted, the same
+//      shapes after the same normalization) on lender_outreach and on every
+//      free-text column of the submission and sponsor profiles.
 //
-// The patterns are shared with lib/deals/submission/schema.ts, which refuses
-// the same shapes in free text when staff save it. Nothing here echoes the
-// matched value: findings name the kind of data, never the data.
+// Text is normalized before any pattern runs (normalizeForScan): NFKC, every
+// Unicode decimal digit as its ASCII digit, and format characters
+// (zero-width, bidi marks) removed, so full-width or Arabic-Indic digits, a
+// zero-width space inside a number and a dash other than "-" all read as the
+// plain shape. The patterns are shared with lib/deals/submission/schema.ts,
+// which refuses the same shapes in free text when staff save it (and stores
+// the normalized text). Nothing here echoes the matched value: findings name
+// the kind of data, never the data.
 
 import { GUARANTOR_COVENANT_DEFAULTS, ROUNDED_FINANCIALS_STEP_CENTS, type EmailFinancialsMode, type GuarantorCovenantLine, type SponsorStrength } from "./types";
 
@@ -19,19 +26,54 @@ export type RestrictedKind = "ssn" | "ein" | "digit_run" | "dob" | "account" | "
 
 export type RestrictedPattern = { kind: Exclude<RestrictedKind, "name">; label: string; re: RegExp };
 
+const digitCache = new Map<string, string>();
+/** The ASCII digit for a Unicode decimal digit (each script's digits run 0–9 in code-point order). */
+function asciiDigit(ch: string): string {
+  const hit = digitCache.get(ch);
+  if (hit) return hit;
+  const cp = ch.codePointAt(0)!;
+  let zero = cp;
+  while (zero > 0 && /\p{Nd}/u.test(String.fromCodePoint(zero - 1))) zero--;
+  const out = String((cp - zero) % 10);
+  digitCache.set(ch, out);
+  return out;
+}
+
 /**
- * Shapes that never belong in an email body or in saved free text. Formatted
- * money ("$8,400,000"), dates, APNs and phone numbers written 415-555-0100 do
- * not match.
+ * Text as the restricted-identifier patterns read it, and as staff free text
+ * is stored: NFKC, Unicode decimal digits as ASCII, format characters (\p{Cf}:
+ * zero-width spaces and joiners, bidi marks, soft hyphens) removed.
+ */
+export function normalizeForScan(text: string): string {
+  return text
+    .normalize("NFKC")
+    .replace(/\p{Cf}/gu, "")
+    .replace(/[^\x00-\x7f]/gu, (c) => (/\p{Nd}/u.test(c) ? asciiDigit(c) : c));
+}
+
+// Between digit groups: any dash, a slash, a dot, an underscore, or spaces.
+const SEP = String.raw`(?:\s*[\p{Pd}\u2212/._]\s*|\s+)`;
+const group = (...sizes: number[]) => new RegExp(String.raw`(?<!\d)${sizes.map((n) => `\\d{${n}}`).join(SEP)}(?!\d)`, "u");
+
+/**
+ * Shapes that never belong in an email body or in saved free text, matched on
+ * normalizeForScan(text). Formatted money ("$8,400,000"), dates, APNs and
+ * phone numbers written 415-555-0100 do not match.
  */
 export const RESTRICTED_TEXT_PATTERNS: readonly RestrictedPattern[] = [
-  // SSN and ITIN share the 3-2-4 shape (an ITIN starts with 9).
-  { kind: "ssn", label: "a Social Security number or ITIN", re: /(?<!\d)\d{3}[-\s.]\d{2}[-\s.]\d{4}(?!\d)/ },
-  { kind: "ssn", label: "a Social Security number or ITIN", re: /\b(?:ssns?|itins?)\b|\bsocial\s+security\s+(?:numbers?|no)\b/i },
-  { kind: "ein", label: "an employer identification number", re: /(?<!\d)\d{2}-\d{7}(?!\d)/ },
+  // SSN and ITIN share the 3-2-4 shape (an ITIN starts with 9); 3-3-3 is the same nine digits grouped another way.
+  { kind: "ssn", label: "a Social Security number or ITIN", re: group(3, 2, 4) },
+  { kind: "ssn", label: "a Social Security number or ITIN", re: group(3, 3, 3) },
+  { kind: "ssn", label: "a Social Security number or ITIN", re: /\b(?:ssns?|s\.\s?s\.\s?n|itins?|i\.\s?t\.\s?i\.\s?n)\b|\bsocial[\s_.-]*security[\s_.-]*(?:numbers?\b|nos?\b|#)|\bsoc\.?\s?sec\b/i },
+  { kind: "ein", label: "an employer identification number", re: group(2, 7) },
   { kind: "digit_run", label: "a run of nine or more digits (an account, routing or tax id)", re: /\d{9,}/ },
-  { kind: "dob", label: "a date of birth", re: /\b(?:d\.?o\.?b|date\s+of\s+birth|birth\s?date|born)\b/i },
-  { kind: "account", label: "a bank account or routing number", re: /\brouting\b|\b(?:account|acct)\.?\s*(?:#|no\b|numbers?\b|num\b)|\biban\b|\baba\s*(?:#|no\b|number\b)/i },
+  { kind: "account", label: "a bank account or routing number", re: new RegExp(String.raw`(?<!\d)\d{4}(?:${SEP}\d{4}){2,}(?!\d)`, "u") },
+  { kind: "dob", label: "a date of birth", re: /\b(?:dob|d\.\s?o\.\s?b|date[\s_.-]*of[\s_.-]*birth|birth[\s_.-]?(?:dates?|days?)|born)\b/i },
+  {
+    kind: "account",
+    label: "a bank account or routing number",
+    re: /\brouting\b|\b(?:account|acct)s?\.?\s*(?:#|no\b|numbers?\b|num\b|ending\b|ends?\s+(?:in|with)\b)|\b(?:checking|savings)\s+(?:#|no\b|number\b|ending\b|ends?\s+in\b)|\biban\b|\baba\s*(?:#|no\b|number\b)/i,
+  },
 ];
 
 export type RestrictedFinding = { kind: RestrictedKind; label: string };
@@ -150,8 +192,9 @@ export function findRestrictedText(text: string, opts: EmailSafetyOptions = {}):
     seen.add(f.label);
     out.push(f);
   };
-  for (const p of RESTRICTED_TEXT_PATTERNS) if (p.re.test(text)) add({ kind: p.kind, label: p.label });
-  if (nameFound(text, opts)) add({ kind: "name", label: "a guarantor's or principal's name (write \"the guarantors\")" });
+  const scan = normalizeForScan(text);
+  for (const p of RESTRICTED_TEXT_PATTERNS) if (p.re.test(scan)) add({ kind: p.kind, label: p.label });
+  if (nameFound(scan, opts)) add({ kind: "name", label: "a guarantor's or principal's name (write \"the guarantors\")" });
   return out;
 }
 

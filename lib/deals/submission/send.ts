@@ -26,7 +26,7 @@ import type { DealDeskStore } from "../store";
 import type { DealPackage, LenderPanelEntry, PackageItem } from "../types";
 import { buildLenderEmail, emailLenderFrom, emailNameCheck, type LenderEmail } from "./email";
 import { evaluateReadiness, lenderSafeMissingLabels, notReadyMessage } from "./readiness";
-import { EmailSafetyError, checkNeutralCopy, type NeutralCopyFlag } from "./redaction";
+import { EmailSafetyError, checkNeutralCopy, findRestrictedText, restrictedTextMessage, type NeutralCopyFlag } from "./redaction";
 import { buildDealSummary, staffTypedText, summarySpecSha256 } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
 import { OVERRIDE_REASON_LENGTH, type DealSummaryRecord, type DealSummarySpec, type EmailAdvisor, type LenderFit, type Readiness, type SubmissionContext, type SubmissionMetrics, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./types";
@@ -124,6 +124,9 @@ function gateReadiness(readiness: Readiness, overrideReason: string | null | und
   if (reason.length < OVERRIDE_REASON_LENGTH.min || reason.length > OVERRIDE_REASON_LENGTH.max) {
     throw new PackageError("not_ready", `The reason to send with items missing must be ${OVERRIDE_REASON_LENGTH.min} to ${OVERRIDE_REASON_LENGTH.max} characters.`);
   }
+  // Stored on the submission and shown to the approving broker: the same restricted-text rules as every other free text.
+  const findings = findRestrictedText(reason);
+  if (findings.length) throw new PackageError("not_ready", `The reason to send anyway: ${restrictedTextMessage(findings)}`);
   return reason;
 }
 

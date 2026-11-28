@@ -9,15 +9,14 @@ import { applyMigrations, createStubbedDb, custodyViolations, listMigrations } f
 import { createKeyring } from "@/lib/privacy/crypto";
 import { sealLenderAccountNumber } from "../lender-accounts";
 import { emailSha256 } from "./email";
+import { findRestrictedText } from "./redaction";
 import { profileToRow, sponsorToRow, summaryToRow } from "./rows";
 import {
-  DIGIT_RUN_DB_RE,
   POSTAL_CODE_DB_RE,
   PROFILE_FIELD_SCHEMAS,
   PROFILE_NUMBER_LIMITS,
   SPONSOR_FIELD_SCHEMAS,
   SPONSOR_NUMBER_LIMITS,
-  SSN_DB_RE,
   sponsorProfileFieldsSchema,
   submissionProfileFieldsSchema,
   MAX_CENTS,
@@ -98,7 +97,15 @@ describe("deal_submission_profiles", () => {
     await expect(profileRow({ playbook: "fixer_upper" })).rejects.toThrow(/check constraint/);
     await expect(profileRow({ occupancy_pct: 100.5 })).rejects.toThrow(/check constraint/);
     await expect(profileRow({ requested_term_months: 24, requested_io_months: 36 })).rejects.toThrow(/deal_submission_profiles_io_within_term/);
-    for (const col of ["business_plan", "exit_detail", "cash_out_use"]) await expect(profileRow({ [col]: "Guarantor 123-45-6789" }), col).rejects.toThrow(/deal_submission_profiles_no_ssn/);
+    for (const col of ["business_plan", "exit_detail", "cash_out_use", "close_driver", "property_name", "zoning"]) await expect(profileRow({ [col]: "Guarantor 123-45-6789" }), col).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(profileRow({ highlights: ["Strong sponsor", "DOB 03/04/1971"] })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(profileRow({ risks: [{ risk: "Tenant default", mitigant: "Guarantor S.S.N. on file" }] })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(profileRow({ sources: [{ kind: "senior_loan", amountCents: 123456789012, note: "acct ending 0123 4567" }] })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    await expect(profileRow({ program_details: { rehab: { budgetCents: 126000000, scopeSummary: "Paid from account 0123 4567 8901" } } })).rejects.toThrow(/deal_submission_profiles_no_restricted/);
+    // Numbers inside the jsonb sections are amounts, not identifiers: only their strings are checked.
+    await expect(profileRow({ sources: [{ kind: "senior_loan", amountCents: 123456789012 }], program_details: { rehab: { budgetCents: 126000000 } } })).resolves.toBeTruthy();
+    // The APN is an identifier, not free text.
+    await expect(profileRow({ apn: "123-456-789" })).resolves.toBeTruthy();
   });
 
   it("audits an update with the actor, the deal, the changed columns and the old and new values", async () => {
@@ -128,7 +135,9 @@ describe("deal_sponsor_profiles", () => {
     await expect(sponsorRow({ stated_net_worth_cents: 100 })).rejects.toThrow(/deal_sponsor_profiles_stated_dated/);
     await expect(sponsorRow({ stated_liquidity_cents: 100 })).rejects.toThrow(/deal_sponsor_profiles_stated_dated/);
     await sponsorRow({ stated_net_worth_cents: 100, stated_as_of: "2026-09-30" });
-    await expect(sponsorRow({ notes: "SSN 123-45-6789" })).rejects.toThrow(/deal_sponsor_profiles_no_ssn/);
+    await expect(sponsorRow({ notes: "SSN 123-45-6789" })).rejects.toThrow(/deal_sponsor_profiles_no_restricted/);
+    await expect(sponsorRow({ management_company: "Tax id 123 456 789" })).rejects.toThrow(/deal_sponsor_profiles_no_restricted/);
+    await expect(sponsorRow({ credit_events: { judgment: { occurred: true, explanation: "Settled; birthday 1/2/1970" } } })).rejects.toThrow(/deal_sponsor_profiles_no_restricted/);
     await expect(sponsorRow({ email_financials_mode: "exact" })).rejects.toThrow(/check constraint/);
   });
 
@@ -312,12 +321,27 @@ describe("zod and the database agree (schema.ts twins)", () => {
 
   it("the regex twins match exactly what Postgres matches", async () => {
     const pg = async (pattern: string, v: string) => (await one<{ ok: boolean }>(`select $1 ~ $2 as ok`, [v, pattern])).ok;
-    const samples = ["94611", "94611-1234", "9461", "946111", "94611-12", "94611 1234", "ab123", "123-45-6789", "x123-45-6789y", "1234-56-78901", "123 45 6789", "12-345-6789", "123456789", "12345678", "a1234567890b", "415-555-0100", "2026-10-31", "$1,020,000", "٠١٢٣٤٥٦٧٨٩"];
-    for (const v of samples) {
-      expect(await pg(POSTAL_CODE_DB_RE.source, v), `postal ${v}`).toBe(POSTAL_CODE_DB_RE.test(v));
-      expect(await pg(SSN_DB_RE.source, v), `ssn ${v}`).toBe(SSN_DB_RE.test(v));
-      expect(await pg(DIGIT_RUN_DB_RE.source, v), `digits ${v}`).toBe(DIGIT_RUN_DB_RE.test(v));
-    }
+    const samples = ["94611", "94611-1234", "9461", "946111", "94611-12", "94611 1234", "ab123"];
+    for (const v of samples) expect(await pg(POSTAL_CODE_DB_RE.source, v), `postal ${v}`).toBe(POSTAL_CODE_DB_RE.test(v));
+  });
+
+  it("public.submission_text_restricted refuses what redaction.ts refuses, and accepts what it accepts", async () => {
+    const pg = async (v: string) => (await one<{ bad: boolean }>(`select public.submission_text_restricted($1) as bad`, [v])).bad;
+    const samples = [
+      // Restricted, however written.
+      "123-45-6789", "x123-45-6789y", "Tax id １２３-４５-６７８９ on file", "id ١٢٣-٤٥-٦٧٨٩", "id ۱۲۳-۴۵-۶۷۸۹", "id १२३-४५-६७८९", "id 123–45–6789", "id 123—45—6789", "id 123/45/6789", "id 123_45_6789", "id 123 45 6789", "id 123 - 45 - 6789",
+      "tax id 123 456 789", "acct 1234\u200b56789", "Wire to account: 0123 4567 8901", "card 4111-1111-1111-1111", "12-3456789", "123456789", "a1234567890b",
+      "SSN on request", "S.S.N. on file", "ssns", "ITIN", "the social security number is on file", "soc. sec. card",
+      "DOB 01/02/1970", "D.O.B.: on file", "D\u200bOB 1/2/1970", "date of birth", "date-of-birth 01/02/1970", "birthdate", "birth date", "birthday 1/2/1970", "born in 1961",
+      "routing number to follow", "Account # ending 4411", "account number 4411", "acct. # 12", "account no. 7", "acct ending 0123 4567", "accounts ending in 12", "Chase checking ending 4821", "IBAN on file", "ABA number",
+      // Fine.
+      "1234-56-78901", "12-345-6789", "12345678", "415-555-0100", "(415) 555-0100", "2026-10-31", "$1,020,000", "$1,234,567.89", "Loan request: $8,400,000 bridge | 42-unit multifamily, Oakland CA | 68% LTV, 1.10x DSCR",
+      "APN 048A-7012-015-00, 006-0123-004-0000, 331-030-19-00-5", "CA DRE Corp. License #01522444", "Sponsor offers an operating account and deposits; dental, therapy and accounting tenants",
+      "Reborn? No: newborn, adobe and itinerary are fine words.", "Suites 101-103", "Units 1 2 3", "18 months, 360-month amortization", "٠١٢٣٤٥٦٧", "Assn. dues", "Doberman", "soccer",
+    ];
+    for (const v of samples) expect(await pg(v), JSON.stringify(v)).toBe(findRestrictedText(v).length > 0);
+    expect(await pg("SSN 123-45-6789")).toBe(true);
+    expect(await pg("Call 415-555-0100")).toBe(false);
   });
 
   it("text past a column's length, which zod refuses, the database refuses too", async () => {

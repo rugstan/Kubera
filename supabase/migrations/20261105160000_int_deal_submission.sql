@@ -21,6 +21,57 @@
 -- lib/deals/submission/metrics.ts and are never stored as typed values.
 -- RLS is enabled with no policies: only the service role reads or writes.
 
+-- 0. Restricted identifiers in free text ------------------------------------------
+-- The database twin of lib/deals/submission/redaction.ts RESTRICTED_TEXT_PATTERNS,
+-- after the same normalization (normalizeForScan): NFKC, the common scripts'
+-- decimal digits as ASCII, format characters (zero-width, bidi marks, soft
+-- hyphen) removed, lower case. True when the text holds an SSN / ITIN shape
+-- (3-2-4 or 3-3-3 with any dash, slash, dot, underscore or space between the
+-- groups), SSN wording, an EIN shape, nine or more digits in a row, a 4-4-4
+-- account or card grouping, date-of-birth wording, or account / routing
+-- wording. The app refuses the same text first, with a message; these checks
+-- hold the database to the rule.
+create or replace function public.submission_text_restricted(t text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select
+    n.s ~ ('(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{2}' || p.sep || '[0-9]{4}(?![0-9])')
+    or n.s ~ ('(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{3}' || p.sep || '[0-9]{3}(?![0-9])')
+    or n.s ~ '\m(ssns?|s\.[[:space:]]?s\.[[:space:]]?n|itins?|i\.[[:space:]]?t\.[[:space:]]?i\.[[:space:]]?n)\M'
+    or n.s ~ '\msocial[[:space:]_.-]*security[[:space:]_.-]*(numbers?\M|nos?\M|#)'
+    or n.s ~ '\msoc\.?[[:space:]]?sec\M'
+    or n.s ~ ('(?<![0-9])[0-9]{2}' || p.sep || '[0-9]{7}(?![0-9])')
+    or n.s ~ '[0-9]{9,}'
+    or n.s ~ ('(?<![0-9])[0-9]{4}(' || p.sep || '[0-9]{4}){2,}(?![0-9])')
+    or n.s ~ '\m(dob|d\.[[:space:]]?o\.[[:space:]]?b|date[[:space:]_.-]*of[[:space:]_.-]*birth|birth[[:space:]_.-]?(dates?|days?)|born)\M'
+    or n.s ~ '\mrouting\M|\m(account|acct)s?\.?[[:space:]]*(#|no\M|numbers?\M|num\M|ending\M|ends?[[:space:]]+(in|with)\M)|\m(checking|savings)[[:space:]]+(#|no\M|number\M|ending\M|ends?[[:space:]]+in\M)|\miban\M|\maba[[:space:]]*(#|no\M|number\M)'
+  from
+    (select lower(translate(
+      regexp_replace(normalize(coalesce(t, ''), NFKC), '[\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]', '', 'g'),
+      '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹०१२३४५६७८९০১২৩৪৫৬৭৮৯੦੧੨੩੪੫੬੭੮੯૦૧૨૩૪૫૬૭૮૯௦௧௨௩௪௫௬௭௮௯౦౧౨౩౪౫౬౭౮౯೦೧೨೩೪೫೬೭೮೯൦൧൨൩൪൫൬൭൮൯๐๑๒๓๔๕๖๗๘๙',
+      '01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'
+    )) as s) n,
+    (select '([[:space:]]*[-‐‑‒–—―−⸺⸻﹘﹣－/._][[:space:]]*|[[:space:]]+)'::text as sep) p
+$$;
+revoke execute on function public.submission_text_restricted(text) from public, anon, authenticated;
+
+-- Every string value inside a jsonb document (risks, sources and uses notes,
+-- program sections, credit-event explanations), joined by a unit separator so
+-- no digit group can straddle two values.
+create or replace function public.submission_json_text(j jsonb)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(string_agg(v #>> '{}', chr(31)), '')
+  from jsonb_path_query(coalesce(j, '{}'::jsonb), 'strict $.** ? (@.type() == "string")') as v
+$$;
+revoke execute on function public.submission_json_text(jsonb) from public, anon, authenticated;
+
 -- 1. Deal, property and financial facts ---------------------------------------
 create table public.deal_submission_profiles (
   id uuid primary key default gen_random_uuid(),
@@ -128,11 +179,15 @@ create table public.deal_submission_profiles (
 
   constraint deal_submission_profiles_io_within_term
     check (requested_io_months is null or requested_term_months is null or requested_io_months <= requested_term_months),
-  -- Restricted identifiers never belong in free text (lib/deals/submission/redaction.ts mirrors this).
-  constraint deal_submission_profiles_no_ssn check (
-    coalesce(business_plan, '') !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'
-    and coalesce(exit_detail, '') !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'
-    and coalesce(cash_out_use, '') !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'
+  -- Restricted identifiers never belong in free text (lib/deals/submission/redaction.ts, the same rules):
+  -- every free-text column and every string inside the jsonb sections. The APN is an identifier, not free text.
+  constraint deal_submission_profiles_no_restricted check (
+    not public.submission_text_restricted(concat_ws(chr(31),
+      close_driver, prepay_preference, existing_lender, cash_out_use, property_name, city, county, zoning, flood_zone,
+      business_plan, exit_detail, array_to_string(highlights, chr(31)),
+      public.submission_json_text(risks), public.submission_json_text(sources), public.submission_json_text(uses),
+      public.submission_json_text(program_details)
+    ))
   )
 );
 create index deal_submission_profiles_playbook_idx on public.deal_submission_profiles (playbook);
@@ -173,9 +228,10 @@ create table public.deal_sponsor_profiles (
 
   constraint deal_sponsor_profiles_stated_dated
     check ((stated_net_worth_cents is null and stated_liquidity_cents is null) or stated_as_of is not null),
-  constraint deal_sponsor_profiles_no_ssn check (
-    coalesce(experience_summary, '') !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'
-    and coalesce(notes, '') !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'
+  constraint deal_sponsor_profiles_no_restricted check (
+    not public.submission_text_restricted(concat_ws(chr(31),
+      experience_summary, portfolio_size_note, management_company, notes, public.submission_json_text(credit_events)
+    ))
   )
 );
 
@@ -248,9 +304,9 @@ alter table public.lender_outreach
   -- so the row cannot hold text other than what the hash in the approval names.
   add constraint lender_outreach_email_hash
     check (email_sha256 is null or email_sha256 = encode(sha256(convert_to(email_subject || chr(10) || email_text, 'UTF8')), 'hex')),
-  -- No SSN-shaped value and no run of nine or more digits (account, routing, tax id) in an email body.
+  -- No restricted identifier in the subject, the body or the staff reason (the app's anchored patterns, normalized).
   add constraint lender_outreach_email_no_restricted
-    check (email_text is null or (email_text !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}' and email_text !~ '[0-9]{9,}'));
+    check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason)));
 
 -- 5. Audit -----------------------------------------------------------------------
 -- audit_row_change_redacted() wrote deal_id = null because its first tables

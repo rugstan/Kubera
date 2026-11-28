@@ -3,7 +3,6 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   ASSET_TYPE_DB_RE,
-  DIGIT_RUN_DB_RE,
   fieldSourcesPatchSchema,
   fieldSourcesSchema,
   isFieldSourceKey,
@@ -21,7 +20,6 @@ import {
   SPONSOR_NUMBER_LIMITS,
   sponsorProfileFieldsSchema,
   sponsorSchema,
-  SSN_DB_RE,
   submissionProfileFieldsSchema,
   submissionProfilePatchSchema,
   type NumberLimit,
@@ -198,7 +196,10 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
   it.each([
     ssn,
     "Spaced 123 45 6789",
-    "Embedded 1234-56-78901",
+    "Grouped 3-3-3: 123 456 789",
+    "Full-width １２３-４５-６７８９",
+    "En dash 123–45–6789 and slashes 123/45/6789",
+    "Zero-width 1234\u200b56789",
     "Wire to 021000021 at First Bank",
     "Operating account # 4412 0098 7712",
     "acct no. 55-1234-889",
@@ -221,6 +222,8 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
     "DSCR 1.25x at a 6.5% rate; 42 units built 1972; APN 048A-7012-015-00.",
     "Tenants have occupied the building an average of nine years.",
     "Account executive at the senior lender approved subordinate debt in principle.",
+    // The database check is anchored like the app's (F15): digits inside a longer group are not an SSN.
+    "Embedded 1234-56-78901",
   ])("accepts %j", (text) => {
     expect(restrictedTextReason(text)).toBeNull();
     expect(SECTION_SCHEMAS.plan_exit.safeParse({ businessPlan: text }).success).toBe(true);
@@ -320,17 +323,42 @@ describe("twins of the migration's check constraints", () => {
   it("the regex twins are the migration's patterns", () => {
     expect(SQL).toContain(`postal_code ~ '${POSTAL_CODE_DB_RE.source}'`);
     expect(SQL).toContain(`asset_type ~ '${ASSET_TYPE_DB_RE.source}'`);
-    expect(SQL.split(`!~ '${SSN_DB_RE.source}'`).length - 1).toBe(6);
-    expect(SQL).toContain(`email_text !~ '${DIGIT_RUN_DB_RE.source}'`);
   });
 
-  it("the SSN-checked columns refuse SSN-shaped text in zod too", () => {
-    for (const col of ["business_plan", "exit_detail", "cash_out_use", "experience_summary", "notes"]) expect(SQL).toContain(`coalesce(${col}, '') !~`);
-    const ssn = "Ref 123-45-6789";
-    expect(PROFILE_FIELD_SCHEMAS.businessPlan.safeParse(ssn).success).toBe(false);
-    expect(PROFILE_FIELD_SCHEMAS.exitDetail.safeParse(ssn).success).toBe(false);
-    expect(PROFILE_FIELD_SCHEMAS.cashOutUse.safeParse(ssn).success).toBe(false);
-    expect(sponsorSchema.safeParse({ experienceSummary: ssn }).success).toBe(false);
-    expect(sponsorSchema.safeParse({ notes: ssn }).success).toBe(false);
+  // Every free-text column (and every string inside the jsonb sections) is under the database's restricted-text check.
+  const PROFILE_TEXT = ["close_driver", "prepay_preference", "existing_lender", "cash_out_use", "property_name", "city", "county", "zoning", "flood_zone", "business_plan", "exit_detail"];
+  const SPONSOR_TEXT = ["experience_summary", "portfolio_size_note", "management_company", "notes"];
+  it("every free-text column is in the database's restricted-text check", () => {
+    const check = (name: string) => SQL.slice(SQL.indexOf(`constraint ${name} check`), SQL.indexOf(")\n", SQL.indexOf(`constraint ${name} check`) + 200));
+    const profile = check("deal_submission_profiles_no_restricted");
+    for (const col of PROFILE_TEXT) expect(profile, col).toMatch(new RegExp(`\\b${col}\\b`));
+    for (const col of ["highlights", "risks", "sources", "uses", "program_details"]) expect(profile, col).toContain(col);
+    const sponsor = check("deal_sponsor_profiles_no_restricted");
+    for (const col of [...SPONSOR_TEXT, "credit_events"]) expect(sponsor, col).toContain(col);
+    expect(SQL).toContain("check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason)))");
+  });
+
+  it("every free-text field refuses the restricted shapes in zod, however they are written", () => {
+    const camel = (c: string) => c.replace(/_([a-z])/g, (_m, x: string) => x.toUpperCase());
+    const bad = ["Ref 123-45-6789", "Tax id １２３-４５-６７８９", "id ١٢٣-٤٥-٦٧٨٩", "id 123–45–6789", "id 123/45/6789", "id 123 456 789", "acct 1234\u200b56789", "date-of-birth 01/02/1970", "birthday 1/2/1970", "S.S.N. on file", "D\u200bOB on file", "acct ending 0123 4567", "Wire to account: 0123 4567 8901"];
+    for (const col of PROFILE_TEXT) {
+      const schema = PROFILE_FIELD_SCHEMAS[camel(col) as keyof typeof PROFILE_FIELD_SCHEMAS];
+      for (const t of bad) {
+        const short = t.slice(0, col === "flood_zone" ? 20 : 300);
+        if (short !== t) continue;
+        expect(schema.safeParse(t).success, `${col}: ${t}`).toBe(false);
+      }
+    }
+    for (const col of SPONSOR_TEXT) for (const t of bad) expect(sponsorSchema.safeParse({ [camel(col)]: t }).success, `${col}: ${t}`).toBe(false);
+  });
+
+  it("stores free text normalized (NFKC, ASCII digits, no zero-width characters) and keeps ordinary text", () => {
+    expect(PROFILE_FIELD_SCHEMAS.businessPlan.parse("Ｒenovate ２ units\u200b now")).toBe("Renovate 2 units now");
+    expect(PROFILE_FIELD_SCHEMAS.closeDriver.parse("Contract close of escrow")).toBe("Contract close of escrow");
+  });
+
+  it("accepts an APN in any county format but never an SSN shape", () => {
+    for (const apn of ["123-456-789", "048A-7012-015-00", "006-0123-004-0000", "331-030-19-00-5", "5432 012 034"]) expect(PROFILE_FIELD_SCHEMAS.apn.safeParse(apn).success, apn).toBe(true);
+    for (const apn of ["123-45-6789", "APN; DROP", "١٢٣"]) expect(PROFILE_FIELD_SCHEMAS.apn.safeParse(apn).success, apn).toBe(false);
   });
 });
