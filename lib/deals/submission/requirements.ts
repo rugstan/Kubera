@@ -119,10 +119,17 @@ const isIndependent = (brand: string | undefined) => !brand || /^\s*independent\
 
 const incomeWhen = (ctx: SubmissionContext) => isIncomeProperty(playbookOf(ctx), ctx.profile);
 
+/** Playbooks under which a construction purpose is a real ground-up project (everywhere else it does not drop the in-place items). */
+export const GROUND_UP_PLAYBOOKS: readonly SubmissionPlaybook[] = ["construction", "c_pace", "mezz_pref", "hud_multifamily", "hud_232"];
+
 /**
  * A project not yet built, with no in-place occupancy, NOI, T-12 or rent
- * roll: a construction purpose, HUD 221(d)(4) or 232 new construction, or a
- * mezz or C-PACE piece on a CONSTRUCTION deal. Its lender needs the
+ * roll: the construction playbook; HUD 221(d)(4) (unless it is a substantial
+ * rehabilitation) or 232 new construction, or a HUD deal with a construction
+ * purpose and no section yet; a mezz or C-PACE piece on a CONSTRUCTION deal
+ * or with a construction purpose. A construction purpose on any other
+ * playbook (an income property's bank, bridge or agency loan) is not ground-up:
+ * its lender still gets the T-12 and rent roll. A ground-up lender needs the
  * construction items instead: the projected stabilized NOI, the as-complete
  * value, the budget (sources and uses; the Construction section where the
  * playbook has one), the timeline and the entitlements.
@@ -130,10 +137,15 @@ const incomeWhen = (ctx: SubmissionContext) => isIncomeProperty(playbookOf(ctx),
 export function isGroundUp(ctx: SubmissionContext): boolean {
   const p = ctx.profile;
   const pb = playbookOf(ctx);
-  if (pb === "construction" || p?.purpose === "construction") return true;
-  const hud = p?.programDetails.hud?.section;
-  if ((pb === "hud_multifamily" || pb === "hud_232") && (hud === "221d4" || hud === "232_new")) return true;
-  return (pb === "mezz_pref" || pb === "c_pace") && ctx.deal.program === "CONSTRUCTION";
+  if (pb === "construction") return true;
+  if (!GROUND_UP_PLAYBOOKS.includes(pb)) return false;
+  if (pb === "hud_multifamily" || pb === "hud_232") {
+    const hud = p?.programDetails.hud?.section;
+    if (hud === "221d4") return p?.purpose !== "renovation";
+    if (hud === "232_new") return true;
+    return !hud && p?.purpose === "construction";
+  }
+  return ctx.deal.program === "CONSTRUCTION" || p?.purpose === "construction";
 }
 
 const inPlaceWhen = (ctx: SubmissionContext) => incomeWhen(ctx) && !isGroundUp(ctx);

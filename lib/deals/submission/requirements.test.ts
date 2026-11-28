@@ -152,4 +152,27 @@ describe("ground-up deals", () => {
     expect(required).toEqual(expect.arrayContaining(["property.occupancy", "financials.noi_in_place"]));
     expect(required).not.toContain("financials.noi_stabilized");
   });
+
+  // A construction purpose drops the in-place items only where construction is a valid purpose.
+  it.each(["bridge", "bank", "agency", "life_company", "cmbs", "hotel_pip_bridge"] as SubmissionPlaybook[])("a construction purpose on %s is not ground-up: the T-12 and rent roll stay", (pb) => {
+    const ctx = emptyProfileContext(pb);
+    ctx.profile!.purpose = "construction";
+    expect(isGroundUp(ctx)).toBe(false);
+    const required = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "term_sheet").required.map((i) => i.id);
+    expect(required).toEqual(expect.arrayContaining(["property.occupancy", "financials.noi_in_place", "docs.t12", "docs.rent_roll"]));
+  });
+
+  it("on HUD the section decides; a construction purpose counts only before a section is chosen", () => {
+    const hud = (section: string | null, purpose: string | null) => {
+      const ctx = emptyProfileContext("hud_multifamily");
+      ctx.profile!.programDetails = (section ? { hud: { section } } : {}) as never;
+      ctx.profile!.purpose = purpose as never;
+      return isGroundUp(ctx);
+    };
+    expect(hud("223f", "construction")).toBe(false);
+    expect(hud("221d4", "renovation")).toBe(false);
+    expect(hud("221d4", null)).toBe(true);
+    expect(hud(null, "construction")).toBe(true);
+    expect(hud(null, "acquisition")).toBe(false);
+  });
 });
