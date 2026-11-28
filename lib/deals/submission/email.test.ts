@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { licenseLine } from "@/lib/site";
 import { PackageCopyError, dealSummaryPackageItem } from "@/lib/agents/lenders/package";
 import { lenderInput, toPanelEntry } from "../test-fixtures";
 import { EMAIL_TEMPLATE_VERSION, buildLenderEmail, emailLenderFrom, emailSha256, fillEmailPlaceholders, formatPhone, lenderEmailFacts, renderLenderEmail, type LenderEmailInput } from "./email";
@@ -13,6 +14,7 @@ import { emptyProfileContext, submissionFixture } from "./test-fixtures";
 import { EMAIL_PLACEHOLDERS, submissionPlaybooks, type SubmissionContext, type SubmissionPlaybook, type TargetStage } from "./types";
 
 const GOLDEN_DIR = path.join(__dirname, "__golden__");
+const LICENSE_LINE_TOKEN = "{licenseLine()}";
 const ADVISOR = { name: "Ana Ruiz", title: "Senior Advisor", dreLicense: "01234567", email: "ana@corincommercial.com", phone: "(415) 555-0100" };
 
 export function goldenLender(playbook: SubmissionPlaybook) {
@@ -43,7 +45,10 @@ function input(ctx: SubmissionContext, stage: TargetStage = "term_sheet", over: 
 describe("lender email golden files", () => {
   it.each(submissionPlaybooks.map((p) => [p] as const))("%s", (playbook) => {
     const email = buildLenderEmail(input(submissionFixture(playbook)));
-    const rendered = `Subject: ${email.subject}\n\n${email.text}`;
+    // The licence line depends on NEXT_PUBLIC_DRE_* (CI sets a placeholder), so the
+    // golden files hold a token; the test below checks the real line is present.
+    expect(email.text).toContain(licenseLine());
+    const rendered = `Subject: ${email.subject}\n\n${email.text}`.replace(licenseLine(), LICENSE_LINE_TOKEN);
     const file = path.join(GOLDEN_DIR, `${playbook}.txt`);
     if (process.env.UPDATE_GOLDEN === "1" || !existsSync(file)) {
       mkdirSync(GOLDEN_DIR, { recursive: true });

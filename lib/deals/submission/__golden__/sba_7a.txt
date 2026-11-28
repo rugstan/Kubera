@@ -54,4 +54,4 @@ Ana Ruiz, Senior Advisor · DRE 01234567
 ana@corincommercial.com · 415-555-0100
 
 Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
-Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna
+{licenseLine()}
