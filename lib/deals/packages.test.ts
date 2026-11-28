@@ -682,4 +682,12 @@ describe("submission gate (v2)", () => {
     expect(gate.requests[1]!.payload).toEqual(gate.requests[0]!.payload);
     expect((await store.getOutreach(r.outreach.id))!.emailText).toBeUndefined();
   });
+
+  it("shows the approving broker any fair-lending copy flag in the email", async () => {
+    const { gate, deal, lender, items, deps } = await gated("pending");
+    const text = EMAIL_TEXT.replace("not the lender.", "not the lender. The owner and his wife run the business.");
+    await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { email: { subject: "Loan request", text, sha256: emailSha256(text) } }) });
+    expect(gate.requests[0]!.summary).toContain('Fair-lending copy flags: "wife" (sex or gender).');
+    expect(gate.requests[0]!.summary.length).toBeLessThanOrEqual(500);
+  });
 });

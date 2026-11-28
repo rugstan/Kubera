@@ -122,6 +122,32 @@ export function readinessHeadline(r: Pick<Readiness, "stage" | "ready" | "requir
   return r.ready ? `Lender-ready for ${what}` : `${TARGET_STAGE_LABELS[r.stage]}: ${met} of ${r.required.length} required items in hand`;
 }
 
+/**
+ * Unmet required items as the lender email may print them. A per-principal
+ * checklist item's title carries the principal's name ("Personal financial
+ * statement — <name>"); here it is the item alone, counted ("Personal
+ * financial statement (2 principals)"), so no name reaches the email.
+ */
+export function lenderSafeMissingLabels(readiness: Pick<Readiness, "required">, ctx: Pick<SubmissionContext, "checklistItems">): string[] {
+  const out: string[] = [];
+  const perPrincipal = new Map<string, number>();
+  for (const item of readiness.required) {
+    if (item.met) continue;
+    const source = item.id.startsWith(CHECKLIST_REQUIREMENT_PREFIX) ? ctx.checklistItems.find((c) => `${CHECKLIST_REQUIREMENT_PREFIX}${c.itemKey}` === item.id) : undefined;
+    if (!source?.principalId) {
+      out.push(item.label);
+      continue;
+    }
+    const base = source.title.split(" — ")[0]!.trim();
+    if (!perPrincipal.has(base)) out.push(base);
+    perPrincipal.set(base, (perPrincipal.get(base) ?? 0) + 1);
+  }
+  return out.map((label) => {
+    const n = perPrincipal.get(label);
+    return n && n > 1 ? `${label} (${n} principals)` : label;
+  });
+}
+
 /** The refusal staff see when required items are missing and no reason was given (spec 5.2). */
 export function notReadyMessage(stage: TargetStage, labels: readonly string[]): string {
   const what = stage === "screen" ? "a soft-quote request" : stage === "term_sheet" ? "a term-sheet request" : "an underwriting request";

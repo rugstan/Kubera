@@ -25,9 +25,9 @@ import { PackageError, assertDealCanGoToLenders, lockPackageVersion, outreachMes
 import type { DealDeskStore } from "../store";
 import type { DealPackage, LenderPanelEntry, PackageItem } from "../types";
 import { buildLenderEmail, emailLenderFrom, type LenderEmail } from "./email";
-import { evaluateReadiness, notReadyMessage } from "./readiness";
-import { EmailSafetyError } from "./redaction";
-import { buildDealSummary, summarySpecSha256 } from "./summary";
+import { evaluateReadiness, lenderSafeMissingLabels, notReadyMessage } from "./readiness";
+import { EmailSafetyError, checkNeutralCopy, type NeutralCopyFlag } from "./redaction";
+import { buildDealSummary, staffTypedText, summarySpecSha256 } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
 import { OVERRIDE_REASON_LENGTH, type DealSummaryRecord, type DealSummarySpec, type EmailAdvisor, type LenderFit, type Readiness, type SubmissionContext, type SubmissionMetrics, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./types";
 
@@ -133,6 +133,8 @@ const PREVIEW_SUMMARY_ITEM: Pick<PackageItem, "documentId" | "label" | "kind"> =
 export type SubmissionPreview = {
   readiness: Readiness;
   summary: DealSummarySpec;
+  /** Fair-lending prompts on staff-typed text (spec 6.5): staff edit it, or confirm and the approving broker sees the flags. */
+  neutralCopy: NeutralCopyFlag[];
   lenders: ({ lender: LenderPanelEntry; fit: LenderFit } & ({ ok: true; email: LenderEmail } | { ok: false; error: string }))[];
 };
 
@@ -154,20 +156,21 @@ export function previewSubmission(input: {
   const { ctx, metrics, stage } = input;
   const readiness = evaluateReadiness(ctx, metrics, stage);
   const openItems = missingLabels(readiness);
+  const lenderOpenItems = lenderSafeMissingLabels(readiness, ctx);
   const summary = buildDealSummary(ctx, metrics, stage, { openItems, advisor: { name: input.advisor.name, email: input.advisor.email, dreLicense: input.advisor.dreLicense } });
   const deal = tailorDealFrom(ctx);
   const documents = [PREVIEW_SUMMARY_ITEM, ...input.documents.filter((d) => d.kind !== "DEAL_SUMMARY")];
   const lenders = input.lenders.map((lender) => {
     const fit = lenderFit(lender, input.boxes, deal, metrics.metrics);
     try {
-      const email = buildLenderEmail({ ctx, metrics, stage, lender: emailLenderFrom(lender), fit, documents, notYetInHand: openItems, advisor: input.advisor });
+      const email = buildLenderEmail({ ctx, metrics, stage, lender: emailLenderFrom(lender), fit, documents, notYetInHand: lenderOpenItems, advisor: input.advisor });
       return { lender, fit, ok: true as const, email };
     } catch (err) {
       if (err instanceof EmailSafetyError || (err instanceof Error && err.name === "PackageCopyError")) return { lender, fit, ok: false as const, error: err.message };
       throw err;
     }
   });
-  return { readiness, summary, lenders };
+  return { readiness, summary, neutralCopy: checkNeutralCopy(staffTypedText(ctx)), lenders };
 }
 
 /**
@@ -192,6 +195,7 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
   if (!ctx.profile) throw new PackageError("not_ready", "Start the deal's submission profile before sending it to lenders.");
 
   const openItems = missingLabels(readiness);
+  const lenderOpenItems = lenderSafeMissingLabels(readiness, ctx);
   // Pure, so overclaiming or unsafe staff text stops the batch before anything is stored.
   const spec = buildDealSummary(ctx, metrics, input.targetStage, { openItems, advisor: { name: input.advisor.name, email: input.advisor.email, dreLicense: input.advisor.dreLicense } });
 
@@ -214,7 +218,7 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
       continue;
     }
     try {
-      buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: provisionalDocs, notYetInHand: openItems, advisor: input.advisor });
+      buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: provisionalDocs, notYetInHand: lenderOpenItems, advisor: input.advisor });
     } catch (err) {
       if (err instanceof EmailSafetyError) {
         skipped.push({ lenderId, lenderName: lender.name, error: err.message, fit });
@@ -254,7 +258,7 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
 
   // The emails list the locked manifest (the same text the pre-check built: documents print by kind and label).
   const lenders: PreparedLender[] = admitted.map(({ lender, fit }) => {
-    const email: LenderEmail = buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: pkg.manifest, notYetInHand: openItems, advisor: input.advisor });
+    const email: LenderEmail = buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: pkg.manifest, notYetInHand: lenderOpenItems, advisor: input.advisor });
     return {
       lender,
       fit,

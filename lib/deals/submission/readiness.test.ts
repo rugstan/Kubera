@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHECKLIST_REQUIREMENT_PREFIX, defaultTargetStage, evaluateAllStages, evaluateReadiness, notReadyMessage, readinessHeadline } from "./readiness";
+import { CHECKLIST_REQUIREMENT_PREFIX, defaultTargetStage, evaluateAllStages, evaluateReadiness, lenderSafeMissingLabels, notReadyMessage, readinessHeadline } from "./readiness";
 import { stubSubmissionMetrics } from "./test-metrics";
 import { submissionFixture } from "./test-fixtures";
 
@@ -132,6 +132,24 @@ describe("evaluateReadiness", () => {
     ctx.profile!.purpose = null;
     expect(defaultTargetStage(evaluateAllStages(ctx, stubSubmissionMetrics(ctx)))).toBe("screen");
     for (const r of Object.values(all)) expect(readinessHeadline(r)).not.toMatch(/approv|qualif/i);
+  });
+
+  it("gives the email unmet items without the principals' names", () => {
+    const ctx = submissionFixture("bridge");
+    const pfs = ctx.checklistItems.filter((i) => i.templateKey === "pfs" && i.principalId);
+    expect(pfs.length).toBe(2);
+    for (const i of pfs) {
+      const who = ctx.principals.find((p) => p.id === i.principalId)!;
+      i.title = `${i.title} — ${who.legalName}`;
+      i.status = "requested";
+    }
+    const r = ready(ctx, "underwrite");
+    expect(r.required.filter((i) => !i.met).map((i) => i.label)).toEqual(expect.arrayContaining([pfs[0]!.title, pfs[1]!.title]));
+    const labels = lenderSafeMissingLabels(r, ctx);
+    const base = pfs[0]!.title.split(" — ")[0]!;
+    expect(labels).toContain(`${base} (2 principals)`);
+    for (const p of ctx.principals) expect(labels.join(" ")).not.toContain(p.legalName);
+    expect(labels.length).toBe(r.missing.length - 1);
   });
 
   it("words the refusal as the spec does", () => {

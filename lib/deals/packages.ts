@@ -15,7 +15,7 @@ import type { DealDeskStore } from "./store";
 import { emailSha256, fillEmailPlaceholders } from "./submission/email";
 import { PLAYBOOK_LABELS } from "./submission/playbooks";
 import { notReadyMessage } from "./submission/readiness";
-import { findRestrictedText, restrictedTextMessage } from "./submission/redaction";
+import { checkNeutralCopy, findRestrictedText, restrictedTextMessage } from "./submission/redaction";
 import { requirementLabel } from "./submission/requirements";
 import { fmt } from "./submission/summary";
 import { EMAIL_PLACEHOLDERS, OVERRIDE_REASON_LENGTH, SUBMISSION_TEXT_LIMITS, type DealSummaryRecord, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./submission/types";
@@ -305,10 +305,13 @@ function submissionApprovalSummary(deal: Deal, lender: LenderPanelEntry, pkg: De
   const dscr = tile(["DSCR", "Global DSCR"]);
   const figures = [deal.loanAmountCents ? fmt.usd(deal.loanAmountCents) : null, ltv ? `${ltv.label} ${ltv.value}` : null, dscr ? `${dscr.label} ${dscr.value}` : null].filter(Boolean).join(", ");
   const missing = s.send.readiness.missing;
+  const flags = [...new Set(checkNeutralCopy([s.send.email.text]).map((f) => `"${f.term}" (${f.label})`))];
   const parts = [
     `Send "${deal.title}" (${PLAYBOOK_LABELS[s.summary.playbook]}, ${STAGE_REQUEST[s.send.targetStage]} request) package v${pkg.version} to ${lender.name}${figures ? `: ${figures}` : ""}.`,
     `Missing: ${missing.length ? missingLabels(missing, s.summary).join("; ") : "none"}${s.overrideReason ? ` — reason: ${s.overrideReason}` : ""}.`,
     `Lender fit exceptions: ${s.send.fit.exceptions.length ? s.send.fit.exceptions.join("; ") : "none"}.`,
+    // Fair lending (spec 6.5): staff confirmed copy that touches a protected characteristic; the broker sees it.
+    flags.length ? `Fair-lending copy flags: ${flags.join("; ")}.` : null,
     note ? `Note: ${note.slice(0, 200)}` : null,
   ].filter(Boolean);
   const line = parts.join(" ");

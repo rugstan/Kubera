@@ -205,6 +205,22 @@ describe("submitDealToLenders", () => {
     expect(r.prepared.locked!.summary.spec.openItems.length).toBe(r.prepared.readiness.missing.length);
     expect(r.prepared.lenders[0]!.email.text).toContain("Not yet in hand: ");
   });
+
+  it("names missing per-principal items in the email without the principals' names", async () => {
+    const w = await world("bridge", "pending", (ctx) => {
+      for (const i of ctx.checklistItems.filter((x) => x.templateKey === "pfs" && x.principalId)) {
+        i.title = `${i.title} — ${ctx.principals.find((p) => p.id === i.principalId)!.legalName}`;
+        i.status = "requested";
+      }
+    });
+    const r = await submitDealToLenders(w.deps, { dealId: w.deal.id, targetStage: "underwrite", lenderIds: [w.lenders.a.id], items: w.items, advisor: ADVISOR, actor: "a", overrideReason: "The lender orders the appraisal and Phase I itself" });
+    expect(r.outcomes[0]).toMatchObject({ ok: true });
+    const text = r.prepared.lenders[0]!.email.text;
+    expect(text).toMatch(/Not yet in hand: .*\(2 principals\)/);
+    for (const p of w.ctx.principals.filter((x) => x.kind === "individual")) expect(text).not.toContain(p.legalName);
+    // Behind the link, the summary names them.
+    expect(r.prepared.locked!.summary.spec.openItems.join(" ")).toContain(w.ctx.principals[1]!.legalName);
+  });
 });
 
 describe("previewSubmission", () => {
@@ -217,6 +233,7 @@ describe("previewSubmission", () => {
     expect(await w.store.listPackages(w.deal.id)).toEqual([]);
     expect(w.gate.requests).toEqual([]);
     expect(preview.readiness.ready).toBe(true);
+    expect(preview.neutralCopy).toEqual([]);
     expect(preview.summary.title).toBe("Brindlewood Court Apartments acquisition — loan request summary");
     const prepared = await prepareSubmission(w.deps, { dealId: w.deal.id, targetStage: "term_sheet", lenderIds: lenders.map((l) => l.id), items: w.items, advisor: ADVISOR, actor: "broker:ana" });
     for (const [i, l] of preview.lenders.entries()) {
@@ -229,9 +246,10 @@ describe("previewSubmission", () => {
   it("reports a lender whose email fails a check, and refuses identifiers typed into free text outright", async () => {
     const w = await world();
     // A principal's name is fine behind the link but never in the email body.
-    w.ctx.profile!.exitDetail = `${w.ctx.principals[1]!.legalName} will sign the completion guaranty.`;
+    w.ctx.profile!.exitDetail = `${w.ctx.principals[1]!.legalName} will sign the completion guaranty. His wife co-owns the business.`;
     const preview = previewSubmission({ ctx: w.ctx, metrics: stubSubmissionMetrics(w.ctx), stage: "screen", lenders: [w.lenders.a], boxes: [], documents: w.items, advisor: ADVISOR });
     expect(preview.lenders[0]).toMatchObject({ ok: false, error: expect.stringMatching(/guarantor's or principal's name/) });
+    expect(preview.neutralCopy.map((f) => f.topic)).toEqual(["sex"]);
     const ctx = submissionFixture("bridge");
     ctx.profile!.exitDetail = "Guarantor SSN 123-45-6789 on file";
     expect(() => previewSubmission({ ctx, metrics: stubSubmissionMetrics(ctx), stage: "screen", lenders: [], boxes: [], documents: [], advisor: ADVISOR })).toThrow(/Social Security/);
