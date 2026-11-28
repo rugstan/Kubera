@@ -10,7 +10,7 @@ import { DEAL_SUMMARY_KIND } from "@/lib/agents/lenders/package";
 import { isApproved, type ApprovalDecision, type ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DealHold } from "@/lib/screening/store";
 import { lenderStaleness } from "./lenders";
-import { createShareLink, dealAcceptsLenderAccess, shareLinkUrl } from "./share-links";
+import { createShareLink, dealAcceptsLenderAccess, shareLinkUrl, tokenMatches } from "./share-links";
 import type { DealDeskStore } from "./store";
 import { emailSha256, fillEmailPlaceholders } from "./submission/email";
 import { PLAYBOOK_LABELS } from "./submission/playbooks";
@@ -457,6 +457,22 @@ async function decideOutreach(
   }
   // No lender mailer (LENDER_EMAIL_ENABLED unset): nothing is emailed; staff get the link and the approved text once.
   return { outreach, pkg, shareUrl: url, ...(approvedEmail ? { email: approvedEmail } : {}) };
+}
+
+/**
+ * The approved email for the one-time "send it yourself" view (email to
+ * lenders off): the stored text with the link and its expiry filled in. Only
+ * for the outreach row the share URL was minted for (its token matches the
+ * row's link) on this deal, and only for a lender-ready (v2) row; null otherwise.
+ */
+export async function approvedEmailForShare(store: Pick<DealDeskStore, "getOutreach" | "listShareLinks">, dealId: string, outreachId: string | null | undefined, shareUrl: string): Promise<{ lenderId: string; subject: string; text: string } | null> {
+  if (!outreachId) return null;
+  const o = await store.getOutreach(outreachId);
+  if (!o || o.dealId !== dealId || !o.emailText || !o.emailSubject || !o.shareLinkId) return null;
+  const link = (await store.listShareLinks(dealId)).find((l) => l.id === o.shareLinkId);
+  const token = shareUrl.split("/").pop() ?? "";
+  if (!link || link.revokedAt || !tokenMatches(token, link.tokenHash)) return null;
+  return { lenderId: o.lenderId, subject: o.emailSubject, text: fillEmailPlaceholders(o.emailText, { shareUrl, expiresAt: link.expiresAt }) };
 }
 
 /** One line for staff describing a submission after a send or an approval check. */

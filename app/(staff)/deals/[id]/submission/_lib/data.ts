@@ -144,7 +144,9 @@ export type SubmissionOutcome = {
   lenderName: string;
   ok: boolean;
   message: string;
-  /** Approved already with email to lenders off: the link, shown once. */
+  /** The lender_outreach row, once requested. */
+  outreachId?: string;
+  /** Approved already with email to lenders off: the link, shown once with the approved email. */
   shareUrl?: string;
 };
 
@@ -356,7 +358,9 @@ export async function requestSubmission(input: SubmissionRequestInput, staff: St
     });
     return {
       ok: true,
-      outcomes: r.outcomes.map((o) => (o.ok ? { lenderId: o.lenderId, lenderName: o.lenderName, ok: true, message: o.message, ...(o.result.shareUrl ? { shareUrl: o.result.shareUrl } : {}) } : { lenderId: o.lenderId, lenderName: o.lenderName, ok: false, message: o.error })),
+      outcomes: r.outcomes.map((o) =>
+        o.ok ? { lenderId: o.lenderId, lenderName: o.lenderName, ok: true, message: o.message, outreachId: o.result.outreach.id, ...(o.result.shareUrl ? { shareUrl: o.result.shareUrl } : {}) } : { lenderId: o.lenderId, lenderName: o.lenderName, ok: false, message: o.error },
+      ),
     };
   } catch (err) {
     if (err instanceof OutreachError || err instanceof PackageError || err instanceof PackageCopyError || err instanceof EmailSafetyError) return { ok: false, reason: "refused", message: err.message };

@@ -5,7 +5,6 @@
 // back with a short notice or error (no client JavaScript needed).
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ZodError, z } from "zod";
 import { ConcurrentUpdateError, GuardError } from "@/lib/deals/store";
@@ -47,6 +46,7 @@ import { authServices } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
 import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, corinAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
+import { forgetShareLink, rememberShareLink } from "./share-once";
 import { StaffAccessError, can, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from "@/lib/deals/types";
 import { lenderCategories, type LenderCategory, type LenderChargesInput, type ModificationFacts } from "@/lib/compliance/schemas";
@@ -287,10 +287,14 @@ export async function invoiceAction(f: FormData): Promise<never> {
 
 // Packages and outreach -----------------------------------------------------------------------
 
-/** The one-time share URL, shown on the next page view; never put in the URL or the logs. */
+/**
+ * The one-time share URL, shown on the next page view with the approved email
+ * it fills in (the outreach row is named so the page can find that email);
+ * never put in the URL or the logs.
+ */
 async function rememberShareUrl(dealId: string, r: SendPackageResult): Promise<void> {
   if (!r.shareUrl) return;
-  (await cookies()).set("deal_share_url", r.shareUrl, { httpOnly: true, secure: true, sameSite: "strict", path: dealPath(dealId), maxAge: 120 });
+  await rememberShareLink(dealId, r.shareUrl, r.outreach.id);
 }
 
 export async function outreachAction(f: FormData): Promise<never> {
@@ -305,6 +309,7 @@ export async function outreachAction(f: FormData): Promise<never> {
       }
       case "sent":
         await markOutreachSent(rt.store, outreachId, staff.actor, rt.now(), opt(f, "messageId") ?? undefined);
+        await forgetShareLink(id);
         return "Marked sent.";
       case "declined":
         await recordLenderResponse(rt.store, outreachId, { status: "declined", note: opt(f, "note") ?? undefined }, staff.actor, rt.now());
@@ -314,6 +319,7 @@ export async function outreachAction(f: FormData): Promise<never> {
         return "Term sheet recorded.";
       case "withdraw":
         await withdrawOutreach(rt.store, outreachId, str(f, "note") || "Withdrawn by staff", staff.actor, rt.now());
+        await forgetShareLink(id);
         return "Submission withdrawn and its link revoked.";
       default:
         throw new DealError("Unknown outreach action");

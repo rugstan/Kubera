@@ -10,6 +10,7 @@ import {
   LENDER_SUBMISSION_TEMPLATE_ID,
   LENDER_SUBMISSION_TEMPLATE_ID_V2,
   PackageError,
+  approvedEmailForShare,
   canonicalManifest,
   checkOutreachApproval,
   lockPackageVersion,
@@ -642,6 +643,20 @@ describe("submission gate (v2)", () => {
     expect(outreachMessage(r)).toMatch(/approved email are shown below once/);
     // The stored text keeps its placeholders: the approved bytes never change.
     expect((await store.getOutreach(r.outreach.id))!.emailText).toBe(EMAIL_TEXT);
+  });
+
+  it("hands the approved email back once for the outreach row its share URL belongs to, and to nobody else", async () => {
+    const { store, deal, lender, other, items, deps } = await gated();
+    const r = await sendPackageToLender(deps({ mailer: null }), { dealId: deal.id, lenderId: lender.id, items, actor: "broker:ana", submission: submission(lender.id) });
+    const link = store.links.get(r.outreach.shareLinkId!)!;
+    expect(await approvedEmailForShare(store, deal.id, r.outreach.id, r.shareUrl!)).toEqual({ lenderId: lender.id, subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: fillEmailPlaceholders(EMAIL_TEXT, { shareUrl: r.shareUrl!, expiresAt: link.expiresAt }) });
+    // A share URL for another row, another deal, a missing row or a revoked link gives nothing.
+    const second = await sendPackageToLender(deps({ mailer: null }), { dealId: deal.id, lenderId: other.id, items, actor: "broker:ana", submission: submission(other.id) });
+    expect(await approvedEmailForShare(store, deal.id, r.outreach.id, second.shareUrl!)).toBeNull();
+    expect(await approvedEmailForShare(store, "another-deal", r.outreach.id, r.shareUrl!)).toBeNull();
+    expect(await approvedEmailForShare(store, deal.id, null, r.shareUrl!)).toBeNull();
+    await store.revokeShareLink(link.id, "a", "test", new Date());
+    expect(await approvedEmailForShare(store, deal.id, r.outreach.id, r.shareUrl!)).toBeNull();
   });
 
   it("with a mailer, sends the approved subject and text with the link filled in", async () => {

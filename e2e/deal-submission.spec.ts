@@ -6,9 +6,9 @@ import { totp } from "../lib/auth/totp";
 import { seriousViolations } from "./forms-helpers";
 
 // The lender-ready deal submission (spec 7.3): the editor at
-// /deals/[id]/submission, the preview, the request for broker approval and the
-// approvals queue, against the fake identity provider and the in-memory demo
-// desks. Runs its
+// /deals/[id]/submission, the preview, the request for broker approval, the
+// approvals queue, the one-time approved email and the lender share page,
+// against the fake identity provider and the in-memory demo desks. Runs its
 // own `next start` on the suite's build (port E2E_PORT + 5) with
 // AUTH_PROVIDER=fake, so the desks start fresh and nothing is sent: no mail
 // credentials are set and LENDER_EMAIL_ENABLED is unset.
@@ -302,6 +302,47 @@ test("a request with missing items and no reason is refused with the list; with 
   expect(href).toMatch(new RegExp(`^/deals/${DEALS.empty}/submission\\?section=\\w+#(field|section)-`));
   await fix.click();
   await expect(page.locator(`#${href.split("#")[1]!.replace(/\./g, "\\.")}`)).toBeInViewport();
+});
+
+test("after a broker approves, the link and the approved email show once, Mark sent works, and the share page leads with the summary", async ({ page }) => {
+  await signIn(page, "/approvals");
+  const queue = page.getByRole("list", { name: "Requests waiting for a decision" });
+  const card = queue.getByRole("article", { name: /Larkspur Example Terrace \(demo\).*Sample Private Fund/ });
+  // A lender submission is sensitive: a fresh authenticator code before it is approved.
+  await card.getByLabel("Authenticator code").fill(totp(DEMO_TOTP_SECRET));
+  await card.getByRole("button", { name: /^Approve/ }).click();
+  await expect(page.getByRole("status").filter({ hasText: /Lender submission approved/ })).toBeVisible();
+
+  // Nothing went out: email to lenders is off. Checking the approval mints the link and hands over the approved text.
+  await page.goto(`${base}/deals/${DEALS.empty}`);
+  const row = section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ });
+  await row.getByRole("button", { name: "Check approval" }).click();
+  await expect(notice(page, /approved; the share link and the approved email are shown below once/)).toBeVisible();
+  const shown = page.locator("#approved-email");
+  await expect(shown).toContainText("send this exact email from your mailbox now");
+  await expect(page.getByTestId("approved-email-subject")).toHaveText(/^Loan request: \$5,200,000 bridge \| 30-unit multifamily, San Jose CA/);
+  const shareUrl = ((await page.getByTestId("share-url").textContent()) ?? "").trim();
+  expect(shareUrl).toMatch(/\/api\/deals\/share\/[A-Za-z0-9_-]{43}$/);
+  const emailBody = page.getByTestId("approved-email-body");
+  await expect(emailBody).toContainText(shareUrl);
+  await expect(emailBody).toContainText("Corin Commercial, Inc. is the broker on this request, not the lender.");
+  await expect(emailBody).not.toContainText("{{");
+  await expect(shown.getByRole("button", { name: "Copy email" })).toBeVisible();
+  await expectAccessibleAndReflows(page, "deal page with the approved email");
+
+  await section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ }).getByRole("button", { name: "Mark sent" }).click();
+  await expect(notice(page, "Marked sent.")).toBeVisible();
+  await expect(page.locator("#approved-email")).toHaveCount(0);
+  await expect(section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ })).toContainText("sent");
+
+  // The lender's page: the locked summary above the documents (the demo has no vault, so no download links).
+  await page.goto(`${base}${new URL(shareUrl).pathname}`);
+  await expect(page.getByRole("heading", { name: "Larkspur Example Terrace (demo) — loan request summary", level: 2 })).toBeVisible();
+  const html = await page.content();
+  expect(html.indexOf("loan request summary")).toBeLessThan(html.indexOf("<h2>Documents</h2>"));
+  await expect(page.getByRole("heading", { name: "Deal summary", level: 3 })).toBeVisible();
+  await expect(page.locator("body")).toContainText("Corin is the broker, not the lender.");
+  await expectAccessibleAndReflows(page, "share page");
 });
 
 test("an analyst reads the submission without forms", async ({ page }) => {

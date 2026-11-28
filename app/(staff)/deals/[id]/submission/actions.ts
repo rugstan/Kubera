@@ -7,12 +7,12 @@
 // result instead of redirecting, so a refused form keeps what was typed.
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { currentStaff } from "@/lib/deals/runtime";
 import { StaffAccessError, requirePermission } from "@/lib/deals/session";
 import { ConcurrentUpdateError } from "@/lib/deals/store";
 import { isTargetStage, submissionSections, type SectionId } from "@/lib/deals/submission/types";
+import { rememberShareLink } from "../../share-once";
 import { SubmissionDataError, applyPrefill, loadSubmissionView, requestSubmission, saveSection, sectionLabel, type MissingItem } from "./_lib/data";
 import { parseSectionForm, type FieldError } from "./_lib/fields";
 
@@ -118,8 +118,8 @@ export async function requestSubmissionAction(_prev: RequestFormState, f: FormDa
       staff,
     );
     if (!r.ok) return { error: r.message, ...(r.reason === "not_ready" ? { missing: r.missing } : {}), at: Date.now() };
-    const share = r.outcomes.find((o) => o.shareUrl)?.shareUrl;
-    if (share) (await cookies()).set("deal_share_url", share, { httpOnly: true, secure: true, sameSite: "strict", path: `/deals/${id}`, maxAge: 120 });
+    const shared = r.outcomes.find((o) => o.shareUrl && o.outreachId);
+    if (shared) await rememberShareLink(id, shared.shareUrl!, shared.outreachId!);
     revalidateDeal(id);
     revalidatePath("/approvals");
     const results = r.outcomes.map((o) => ({ lenderName: o.lenderName, ok: o.ok, message: o.message }));

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { FEE_ENTRY_LABELS, DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type FeeEntry, type LenderPanelEntry } from "@/lib/deals/types";
@@ -11,6 +10,7 @@ import { lenderCategories, type LenderCategory } from "@/lib/compliance/schemas"
 import { computeMldsTimer } from "@/lib/disclosures/timer";
 import type { DisclosureRecord } from "@/lib/disclosures/store";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
+import { approvedEmailForShare } from "@/lib/deals/packages";
 import { lenderNoticeText } from "@/lib/deals/modifications";
 import { currentStaff, dealDeskRuntime, deskDeps, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { stageContext } from "@/lib/deals/service";
@@ -38,6 +38,8 @@ import {
   submitModificationAction,
 } from "../actions";
 import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, money, when } from "../ui";
+import { pendingShareLink } from "../share-once";
+import { CopyText } from "./submission/_components/CopyText";
 import { SubmissionCard } from "./submission/_components/SubmissionCard";
 
 export const metadata: Metadata = { title: "Deal" };
@@ -63,7 +65,10 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
   if (!UUID.test(id)) notFound();
   const deal = await rt.store.getDeal(id);
   if (!deal) notFound();
-  const shareUrl = (await cookies()).get("deal_share_url")?.value;
+  // Approved with email to lenders off: the link and the approved email, shown once (spec 5.1 step 6).
+  const shared = await pendingShareLink();
+  const shareUrl = shared?.shareUrl;
+  const approvedEmail = shared ? await approvedEmailForShare(rt.store, deal.id, shared.outreachId, shared.shareUrl) : null;
   const write = can(staff, "write");
   const officer = can(staff, "officer");
   const template = stageTemplate(deal.program);
@@ -86,9 +91,31 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
       </div>
       <Flash error={sp.error} notice={sp.notice} />
       {shareUrl ? (
-        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="status">
-          <p className="font-medium">Approved. Send this link to the lender from your mailbox now; it is shown only once.</p>
-          <p className="mt-1 break-all font-mono text-xs">{shareUrl}</p>
+        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" id="approved-email" role="status">
+          <p className="font-medium">
+            {approvedEmail
+              ? "Approved. Email to lenders is off: send this exact email from your mailbox now, then press Mark sent. The link is shown only once."
+              : "Approved. Send this link to the lender from your mailbox now; it is shown only once."}
+          </p>
+          <p className="mt-1 break-all font-mono text-xs" data-testid="share-url">
+            {shareUrl}
+          </p>
+          {approvedEmail ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-titanium">Subject</p>
+              <p className="break-words font-medium text-ink" data-testid="approved-email-subject">
+                {approvedEmail.subject}
+              </p>
+              <p className="text-xs font-medium uppercase tracking-wide text-titanium">Body (the text the broker approved, with the link filled in)</p>
+              <pre className="max-h-96 max-w-full overflow-y-auto whitespace-pre-wrap break-words rounded-2xl bg-white/70 p-3 font-mono text-[12px] leading-relaxed text-ink" data-testid="approved-email-body" tabIndex={0}>
+                {approvedEmail.text}
+              </pre>
+              <div className="flex flex-wrap gap-3">
+                <CopyText label="Copy subject" text={approvedEmail.subject} />
+                <CopyText label="Copy email" text={approvedEmail.text} />
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
