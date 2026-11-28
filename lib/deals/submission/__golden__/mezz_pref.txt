@@ -1,0 +1,63 @@
+Subject: Loan request: $3,600,000 mezzanine / pref | 180-unit multifamily, Phoenix AZ | 80% combined LTV | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Mezzanine / pref equity, $500K–$50M, CA and AZ. This request: Mezzanine / pref equity, $3.6M, AZ.
+
+THE REQUEST
+  Loan:        $3,600,000, acquisition, mezzanine (equity pledge)
+  Structure:   36 months, interest-only, fixed, non-recourse (standard carve-outs)
+  Closing:     target February 5, 2027 (Purchase contract close; the senior bridge term sheet is signed)
+
+THE PROPERTY
+  Sorrel Ridge Apartments, 7700 North Sorrel Ridge Parkway, Phoenix, AZ 85020 — 180-unit multifamily, built 1984
+  Occupancy:   89% as of October 31, 2026 (from the rent roll)
+  Purchase price: $36,000,000, closing February 5, 2027
+
+THE NUMBERS
+  NOI in place:      $1,890,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $1,812,000 (Corin normalization of the operating statement)
+  NOI stabilized:    $2,520,000 in about 24 months (Corin pro forma from the sponsor's plan)
+  Debt yield:        6.6% in place / 8.8% stabilized
+  DSCR:              0.69x in place / 0.92x stabilized at an assumed 12.5% / 30-year schedule — an assumption, not a quote
+  Loan per unit:     $20,000
+
+THE CAPITAL STACK
+  Senior:      $25,200,000 from Northmere Bridge Lending at 8.25%, matures February 28, 2030; allows subordinate financing: yes
+  This loan:   $3,600,000 mezzanine loan
+  Equity:      $13,200,000
+  Combined:    80% LTV / 68.6% LTC (Corin calculation)
+  Intercreditor: requested
+
+THE SPONSOR
+  Sorrel Ridge Mezz Borrower LLC, a AZ LLC. The sponsor has bought and renovated garden apartment communities in Phoenix, Tucson and Las Vegas since 2011 and has completed ten value-add programs with senior and mezzanine financing.
+  15 years, 10 similar projects, 18 multifamily properties, 3,900 units in Arizona and Nevada
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Desert Sorrel Management
+
+THE PLAN AND THE EXIT
+  Buy a 180-unit 1984 garden community in north Phoenix with a senior bridge loan at 70% of cost and this mezzanine loan, then renovate interiors on turnover and add covered parking and a dog park. Renovated units lease about $210 a month higher, lifting NOI from $1,890,000 to about $2,520,000 in two years.
+  Exit: refinance in about 30 months. An agency refinance at stabilization repays the senior loan and this mezzanine loan; at 1.30x and a 6% rate the take-out is about $30,400,000 against $28,800,000 of combined debt.
+
+SOURCES AND USES
+  Sources: Senior loan (Senior bridge loan) $25,200,000; Subordinate debt (This mezzanine request) $3,600,000; Sponsor equity $6,200,000; Investor equity $7,000,000 = $42,000,000
+  Uses:    Purchase price $36,000,000; Renovation / capital work $3,600,000; Closing costs $540,000; Financing costs $650,000; Interest reserve (lender-held, requested) $1,210,000 = $42,000,000
+
+KNOWN ISSUES
+  - The take-out must repay both loans: The plan needs NOI of about $2,370,000 to refinance both at 1.30x; the sponsor's last six renovations beat their pro forma.
+
+IN THE PACKAGE (7 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; Sorrel Ridge purchase contract; Sorrel Ridge senior bridge term sheet (signed); 2 sponsor financial statements
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna

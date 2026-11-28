@@ -50,7 +50,7 @@ export function stubSubmissionMetrics(ctx: SubmissionContext): SubmissionMetrics
   if (combined) {
     const value = p?.asIsValueCents ?? p?.purchasePriceCents ?? null;
     add("combined_ltv", "Combined LTV", "in_place", "(senior + this loan) ÷ value", [debtIn, input(p?.asIsValueCents != null ? "asIsValueCents" : "purchasePriceCents", "value", value)], ([d, v]) => (d! / v!) * 100);
-    add("combined_ltc", "Combined LTC", "cost", "(senior + this loan) ÷ total cost", [debtIn, input("uses", "total cost", uses)], ([d, c]) => (d! / c!) * 100);
+    if (p?.playbook === "mezz_pref") add("combined_ltc", "Combined LTC", "cost", "(senior + this loan) ÷ total cost", [debtIn, input("uses", "total cost", uses)], ([d, c]) => (d! / c!) * 100);
   }
 
   // Income
@@ -59,7 +59,10 @@ export function stubSubmissionMetrics(ctx: SubmissionContext): SubmissionMetrics
   const rate = p?.assumedRatePct ?? null;
   const amort = p?.assumedAmortMonths ?? null;
   const note = rate !== null && amort !== null ? `at an assumed ${rate}% / ${Math.round(amort / 12)}-year amortization; not a quote` : undefined;
-  const ads = (d: number, r: number, a: number) => annualDebtService(d, r, a);
+  // Combined debt (mezz, C-PACE): the senior portion at its own rate, this loan at the assumed rate.
+  const senior = combined ? (stack?.seniorAmountCents ?? 0) : 0;
+  const seniorRate = stack?.seniorRatePct ?? null;
+  const ads = (d: number, r: number, a: number) => (senior && seniorRate !== null ? annualDebtService(senior, seniorRate, a) + annualDebtService(d - senior, r, a) : annualDebtService(d, r, a));
   add("dscr_in_place", "DSCR (in place)", "in_place", "NOI in place ÷ annual debt service at assumed terms", [input("noiInPlaceCents", "NOI in place", p?.noiInPlaceCents), debtIn, input("assumedRatePct", "assumed rate", rate), input("assumedAmortMonths", "assumed amortization", amort)], ([n, d, r, a]) => n! / ads(d!, r!, a!), note);
   if (p?.noiStabilizedCents != null) add("dscr_stabilized", "DSCR (stabilized)", "stabilized", "stabilized NOI ÷ annual debt service at assumed terms", [input("noiStabilizedCents", "stabilized NOI", p.noiStabilizedCents), debtIn, input("assumedRatePct", "assumed rate", rate), input("assumedAmortMonths", "assumed amortization", amort)], ([n, d, r, a]) => n! / ads(d!, r!, a!), note);
   const rental = p?.programDetails.rental;

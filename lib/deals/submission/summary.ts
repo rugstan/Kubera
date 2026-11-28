@@ -226,7 +226,7 @@ const section = (title: string, parts: { rows?: Row[]; paragraphs?: string[]; ta
   if (parts.table?.rows.length) s.table = parts.table;
   return s.rows || s.paragraphs || s.table ? [s] : [];
 };
-const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const lower = (s: string) => (/^[A-Z][A-Z0-9-]/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1));
 
 /** Staff-typed strings the summary prints (checkSummaryCopy runs on all of them). */
 export function staffTypedText(ctx: SubmissionContext): string[] {

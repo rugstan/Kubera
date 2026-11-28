@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { dealSummaryPackageItem } from "@/lib/agents/lenders/package";
+import { lenderInput, toPanelEntry } from "../test-fixtures";
+import { buildLenderEmail, emailLenderFrom } from "./email";
 import { EmailSafetyError, assertEmailSafe, checkNeutralCopy, findRestrictedText, guarantorCovenantLine, isFreeTextSafe, restrictedTextMessage } from "./redaction";
-import { allSubmissionFixtures } from "./test-fixtures";
-import type { SponsorStrength } from "./types";
+import { fmt } from "./summary";
+import { lenderFit, tailorDealFrom } from "./tailor";
+import { stubSubmissionMetrics } from "./test-metrics";
+import { allSubmissionFixtures, submissionFixture } from "./test-fixtures";
+import { emailFinancialsModes, submissionPlaybooks, type SponsorStrength, type SubmissionContext } from "./types";
 
 const kinds = (text: string, names?: string[]) => findRestrictedText(text, { names }).map((f) => f.kind);
 
@@ -73,6 +79,75 @@ describe("assertEmailSafe", () => {
       const p = ctx.profile!;
       const texts = [p.businessPlan, p.exitDetail, p.closeDriver, p.cashOutUse, ...p.highlights, ...p.risks.flatMap((r) => [r.risk, r.mitigant]), ctx.sponsor!.experienceSummary, ...ctx.vaultDocuments.map((d) => d.fileName)];
       for (const t of texts) if (t) expect(findRestrictedText(t, { names, allow: [ctx.deal.borrowerName!] }), t).toEqual([]);
+    }
+  });
+});
+
+describe("property: no restricted value reaches a lender email", () => {
+  /** Deterministic PRNG (mulberry32) so a failure reproduces. */
+  function prng(seed: number) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const FIRST = ["Avery", "Mireille", "Thaddeus", "Oona", "Bartholomew", "Saoirse", "Ignatius", "Perpetua", "Lucan", "Wilhelmina"];
+  const LAST = ["Quarrington", "Featherstonehaugh", "Ellsworth-Pike", "Vandermolen", "Okonkwo-Reyes", "Thistlethwaite", "Abernathy", "Castellanos", "Lindqvist", "Marchetti"];
+
+  function emailFor(ctx: SubmissionContext) {
+    const metrics = stubSubmissionMetrics(ctx);
+    const panel = toPanelEntry(lenderInput({ name: "Harborline Capital", programs: [ctx.deal.program] }), "lender-p", [{ id: "c1", fullName: "Dana Whitfield", email: "dana@harborline.example", isPrimary: true, status: "active" }]);
+    return buildLenderEmail({
+      ctx,
+      metrics,
+      stage: "term_sheet",
+      lender: emailLenderFrom(panel),
+      fit: lenderFit(panel, [], tailorDealFrom(ctx), metrics.metrics),
+      documents: [dealSummaryPackageItem(ctx.deal.id, "cd".repeat(32)), ...ctx.vaultDocuments.map((d) => ({ documentId: d.id, label: d.fileName, kind: d.kind }))],
+      notYetInHand: [],
+      advisor: { name: "Ana Ruiz", title: null, dreLicense: "01234567", email: "ana@corincommercial.com", phone: "415-555-0100" },
+    });
+  }
+
+  it("for random principals, PFS totals, stated figures and personal identifiers, across every playbook and mode", () => {
+    const rand = prng(20261127);
+    const int = (lo: number, hi: number) => lo + Math.floor(rand() * (hi - lo + 1));
+    const pick = <T,>(xs: readonly T[]) => xs[int(0, xs.length - 1)]!;
+    for (let run = 0; run < 120; run++) {
+      const playbook = submissionPlaybooks[run % submissionPlaybooks.length]!;
+      const ctx = submissionFixture(playbook);
+      const restricted: string[] = [];
+      for (const p of ctx.principals.filter((x) => x.kind === "individual")) {
+        p.legalName = `${pick(FIRST)} ${pick(LAST)}`;
+        restricted.push(p.legalName);
+        // Fields the submission types do not carry; smuggled in to prove nothing reads them.
+        const ssn = `${int(100, 899)}-${int(10, 99)}-${int(1000, 9999)}`;
+        const dob = `19${int(40, 99)}-0${int(1, 9)}-1${int(0, 9)}`;
+        const home = `${int(10, 9999)} Private Lane`;
+        Object.assign(p, { taxId: ssn, dateOfBirth: dob, homeAddress: home, citizenship: "other", pfs: { cash: int(1, 9) * 1_000_003 } });
+        restricted.push(ssn, dob, home);
+      }
+      // Sponsor dollar figures that are not multiples of $500,000, so a rounded figure never equals them.
+      const nw = int(2_000, 90_000) * 1_000_00 + 37_00;
+      const liq = int(300, 9_000) * 1_000_00 + 41_00;
+      ctx.guarantorTotals = { ...ctx.guarantorTotals!, netWorthCents: nw, liquidityCents: liq };
+      ctx.sponsor!.statedNetWorthCents = nw + 123_456_00;
+      ctx.sponsor!.statedLiquidityCents = liq + 7_891_00;
+      ctx.sponsor!.emailFinancialsMode = pick(emailFinancialsModes);
+      ctx.sponsor!.notes = `Guarantor SSN ${restricted[1] ?? "000-00-0000"}; routing 021000021`;
+      ctx.sponsor!.creditEvents = { ...ctx.sponsor!.creditEvents, litigation: { occurred: rand() < 0.5, explanation: `Settled; DOB on file ${restricted[2] ?? ""}` } };
+      for (const cents of [nw, liq, ctx.sponsor!.statedNetWorthCents, ctx.sponsor!.statedLiquidityCents]) restricted.push(fmt.usd(cents), String(cents), String(Math.round(cents / 100)));
+
+      const { subject, text } = emailFor(ctx);
+      const all = `${subject}\n${text}`;
+      for (const value of restricted.filter(Boolean)) expect(all, `run ${run} (${playbook}): ${value}`).not.toContain(value);
+      expect(all).not.toMatch(/Private Lane|routing|\d{9,}|(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)/);
+      expect(() => assertEmailSafe(all)).not.toThrow();
+      if (ctx.sponsor!.emailFinancialsMode !== "rounded") expect(all).not.toMatch(/net worth (about|of) \$|liquidity (about|of) \$/i);
     }
   });
 });

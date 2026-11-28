@@ -1,0 +1,65 @@
+Subject: Loan request: $14,900,000 hotel CMBS | 132-key hotel (flagged), Ontario CA | 59.6% LTV, 14.5% debt yield | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: CMBS / conduit and Hotel / PIP, $500K–$50M, CA and AZ. This request: CMBS / conduit, $14.9M, CA.
+
+THE REQUEST
+  Loan:        $14,900,000, refinance, first lien
+  Structure:   120 months, 25-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target April 16, 2027 (The bridge loan matures May 1, 2027)
+  Existing debt: $14,200,000 with Ridgeway Hospitality Bridge Fund, matures May 1, 2027
+
+THE PROPERTY
+  Larkstone Suites Ontario Airport, 2900 Vinewood Gateway Drive, Ontario, CA 91764 — 132-key hotel (flagged), built 2008, renovated 2022
+  Occupancy:   78.4% as of October 31, 2026 (from the STR report)
+  As-is value: $25,000,000 (Appraisal, August 30, 2026)
+
+THE HOTEL
+  Brand:       Larkstone Suites; franchise expires June 30, 2041
+  Performance: 78.4% occupancy, $152 ADR, $119.17 RevPAR, RevPAR index 108.4 (Corin spread)
+  FF&E reserve: 4% of revenue
+  PIP:         none required by the brand
+
+THE NUMBERS
+  NOI in place:      $2,160,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $2,050,000 (Corin normalization of the operating statement)
+  Debt yield:        14.5% in place
+  LTV:               59.6% as-is (Corin calculation)
+  LTC:               100% of $14,900,000 total cost
+  DSCR:              1.69x in place at an assumed 7.1% / 25-year schedule — an assumption, not a quote
+  Loan per key:      $112,879
+
+THE SPONSOR
+  Ontario Lodging Partners LLC, a CA LLC. The sponsor has owned select-service hotels in Southern California since 2008, renovating and repositioning eleven of them under national franchise agreements.
+  18 years, 11 similar projects, 11 select-service hotels, 1,310 keys
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Vinewood Hotel Management LLC
+
+THE PLAN AND THE EXIT
+  Refinance a 132-key select-service hotel near the Ontario airport out of the bridge loan that funded its 2022 renovation into a 10-year fixed-rate conduit loan. The renovation is complete, RevPAR runs about 8% ahead of the competitive set, and NOI after the FF&E reserve covers the requested loan at a debt yield above 14%.
+  Exit: hold to maturity. Long-term hold; the franchise agreement runs through 2041, past the loan term.
+
+SOURCES AND USES
+  Sources: Senior loan $14,900,000 = $14,900,000
+  Uses:    Payoff of existing debt $14,200,000; Closing costs $260,000; Financing costs $298,000; Operating reserve (lender-held, requested) (Seasonality reserve the lender may hold) $142,000 = $14,900,000
+
+KNOWN ISSUES
+  - Airport and convention demand is cyclical: The hotel's 2020-2021 trough NOI still covered debt service at the requested loan, and a seasonality reserve is offered.
+
+IN THE PACKAGE (8 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; STR report dated October 31, 2026; appraisal dated August 30, 2026; franchise agreement; Larkstone Ontario hotel management agreement; 2 sponsor financial statements
+  Reports on hand: Appraisal dated August 30, 2026
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna
