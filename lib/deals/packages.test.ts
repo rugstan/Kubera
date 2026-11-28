@@ -5,11 +5,30 @@ import { ApprovalService } from "@/lib/approvals/service";
 import { MemoryApprovalStore } from "@/lib/approvals/store";
 import type { ApprovalRecord } from "@/lib/approvals/types";
 import { MemoryReauthStore, ReauthService } from "@/lib/agents/core/reauth";
-import { canonicalManifest, checkOutreachApproval, lockPackageVersion, manifestDigest, markOutreachSent, outreachApprovalKey, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type LenderMailer } from "./packages";
+import { dealSummaryPackageItem } from "@/lib/agents/lenders/package";
+import {
+  LENDER_SUBMISSION_TEMPLATE_ID,
+  LENDER_SUBMISSION_TEMPLATE_ID_V2,
+  PackageError,
+  canonicalManifest,
+  checkOutreachApproval,
+  lockPackageVersion,
+  manifestDigest,
+  markOutreachSent,
+  outreachApprovalKey,
+  outreachMessage,
+  recordLenderResponse,
+  sendPackageToLender,
+  withdrawOutreach,
+  type LenderMailer,
+} from "./packages";
 import { hashShareToken, resolveShareLink, tokenMatches } from "./share-links";
 import { MemoryDealHoldStore } from "@/lib/screening/store";
 import { syncDealHoldStatus } from "./holds";
 import { advanceDeal } from "./service";
+import { emailSha256, fillEmailPlaceholders } from "./submission/email";
+import { fmt } from "./submission/summary";
+import type { DealSummaryRecord, SubmissionSendInput } from "./submission/types";
 import { addPrimaryContact, docs, lenderInput, newDeal, noHolds, setup } from "./test-fixtures";
 
 const base = "https://corincommercial.com";
@@ -450,5 +469,217 @@ describe("sanctions holds and settled deals", () => {
       expect((await resolveShareLink(w.store, token, w.now())).status).toBe("revoked");
       await expect(sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds }, { dealId: w.deal.id, lenderId: w.other.id, items: docs(1), actor: "broker:ana" })).rejects.toMatchObject({ reason: "deal_closed" });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The lender-ready submission gate (spec 5.2 and 7.1)
+
+describe("submission gate (v2)", () => {
+  const PDF_SHA = "b".repeat(64);
+  const broker = { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" };
+
+  /** A minimal deal_summaries store (the real one is lib/deals/submission/store.ts). */
+  function summaryStore(records: DealSummaryRecord[] = []) {
+    const rows = new Map(records.map((r) => [r.id, r]));
+    return { rows, getSummary: async (id: string) => rows.get(id) ?? null };
+  }
+
+  function summaryRecord(dealId: string, over: Partial<DealSummaryRecord> = {}): DealSummaryRecord {
+    return {
+      id: "summary-1",
+      dealId,
+      asOf: "2026-11-01",
+      playbook: "hud_232",
+      targetStage: "term_sheet",
+      templateVersion: "deal-summary-v1",
+      spec: {
+        templateVersion: "deal-summary-v1",
+        title: "Sunrise Assisted Living refi — loan request summary",
+        subtitle: "Prepared November 1, 2026 by Corin Commercial, Inc. for lender review",
+        asOf: "2026-11-01",
+        headline: [
+          { label: "Loan request", value: "$12,500,000" },
+          { label: "LTV", value: "75%" },
+          { label: "DSCR", value: "1.33x" },
+        ],
+        sections: [],
+        metricNotes: [],
+        openItems: ["T-12 operating statement", "Rent roll, census or STR report"],
+        footer: "license",
+      },
+      specSha256: "a".repeat(64),
+      pdfSha256: PDF_SHA,
+      pdfStoragePath: `packages/${dealId}/executive-summary-${PDF_SHA.slice(0, 16)}.pdf`,
+      profileVersion: 3,
+      sponsorVersion: 2,
+      createdBy: "broker:ana",
+      createdAt: "2026-11-01T17:00:00.000Z",
+      ...over,
+    };
+  }
+
+  const EMAIL_TEXT = "Hello,\n\nCorin Commercial, Inc. is the broker on this request, not the lender.\n\nSecure link (expires {{LINK_EXPIRES}}):\n{{SHARE_LINK}}\n";
+
+  function submission(lenderId: string, over: Partial<SubmissionSendInput> = {}): SubmissionSendInput {
+    return {
+      targetStage: "term_sheet",
+      summaryId: "summary-1",
+      readiness: { missing: [], hardStops: [], score: 100 },
+      fit: { lenderId, matches: ["HUD / FHA"], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 33, reason: null }, score: null },
+      email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256(EMAIL_TEXT) },
+      ...over,
+    };
+  }
+
+  async function gated(gateDefault: "approved" | "pending" = "approved") {
+    const w = await world(gateDefault);
+    const summaries = summaryStore([summaryRecord(w.deal.id)]);
+    const items = [...docs(2), dealSummaryPackageItem(w.deal.id, PDF_SHA)];
+    const deps = (over: Partial<Parameters<typeof sendPackageToLender>[0]> = {}) => ({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: noHolds, summaries, ...over });
+    return { ...w, summaries, items, deps };
+  }
+
+  const missing = ["docs.t12", "docs.rent_roll"];
+
+  it("refuses not_ready without a reason: nothing locked, no gate called", async () => {
+    const { store, gate, deal, lender, items, deps } = await gated();
+    const err = await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "broker:ana", submission: submission(lender.id, { readiness: { missing, hardStops: [], score: 80 } }) }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(PackageError);
+    expect(err).toMatchObject({ reason: "not_ready" });
+    expect((err as Error).message).toBe("2 required items are missing for a term-sheet request: T-12 operating statement; Rent roll, census or STR report. Add them or give a reason to send anyway.");
+    await expect(sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { readiness: { missing, hardStops: [], score: 80 }, overrideReason: "too short" }) })).rejects.toMatchObject({ reason: "not_ready" });
+    expect(await store.listPackages(deal.id)).toEqual([]);
+    expect(gate.requests).toHaveLength(0);
+    expect(store.outreach.size).toBe(0);
+  });
+
+  it("with a reason, asks for the v2 approval and the summary and payload carry the missing items and the reason", async () => {
+    const { store, gate, deal, lender, items, deps } = await gated("pending");
+    const reason = "Lender asked to see the deal before the T-12 is final";
+    const r = await sendPackageToLender(deps(), {
+      dealId: deal.id,
+      lenderId: lender.id,
+      items,
+      actor: "broker:ana",
+      note: "Rush",
+      submission: submission(lender.id, { readiness: { missing, hardStops: [], score: 80 }, overrideReason: `  ${reason}  `, fit: { ...submission(lender.id).fit, exceptions: ["LTV 75% vs 70% maximum"] } }),
+    });
+    expect(r.outreach.status).toBe("pending_approval");
+    const req = gate.requests[0]!;
+    expect(req.templateId).toBe(LENDER_SUBMISSION_TEMPLATE_ID_V2);
+    expect(req.summary).toBe(
+      `Send "Sunrise Assisted Living refi" (HUD 232 senior housing, term-sheet request) package v1 to Cambridge Realty Capital: $12,500,000, LTV 75%, DSCR 1.33x. Missing: T-12 operating statement; Rent roll, census or STR report — reason: ${reason}. Lender fit exceptions: LTV 75% vs 70% maximum. Note: Rush`,
+    );
+    expect(req.payload).toMatchObject({ targetStage: "term_sheet", summarySha256: "a".repeat(64), emailSha256: emailSha256(EMAIL_TEXT), readinessMissing: missing, overrideReason: reason, manifestSha256: r.pkg.manifestSha256 });
+    // The submission record is on the row.
+    const row = (await store.getOutreach(r.outreach.id))!;
+    expect(row).toMatchObject({ targetStage: "term_sheet", summaryId: "summary-1", readinessMissing: missing, readinessOverrideReason: reason, emailText: EMAIL_TEXT, emailSha256: emailSha256(EMAIL_TEXT), emailSubject: "Loan request: $12,500,000 HUD 232 | Corin Commercial" });
+    expect(row.lenderFit?.exceptions).toEqual(["LTV 75% vs 70% maximum"]);
+  });
+
+  it("holds and a closed deal still win over an override reason", async () => {
+    const { store, gate, deal, lender, items, deps } = await gated();
+    const input = { dealId: deal.id, lenderId: lender.id, items, actor: "broker:ana", submission: submission(lender.id, { readiness: { missing, hardStops: [], score: 80 }, overrideReason: "Lender asked to see the deal before the T-12 is final" }) };
+    const held = { active: async () => [{ detail: "Possible OFAC match for a principal" }] };
+    await expect(sendPackageToLender(deps({ holds: held }), input)).rejects.toMatchObject({ reason: "deal_held" });
+    await expect(sendPackageToLender(deps(), { ...input, submission: { ...input.submission, readiness: { ...input.submission.readiness, hardStops: ["On hold: OFAC"] } } })).rejects.toMatchObject({ reason: "deal_held" });
+    const d = (await store.getDeal(deal.id))!;
+    await store.updateDeal(d.id, d.recordVersion, { status: "withdrawn" }, "a", new Date());
+    await expect(sendPackageToLender(deps(), input)).rejects.toMatchObject({ reason: "deal_closed" });
+    expect(await store.listPackages(deal.id)).toEqual([]);
+    expect(gate.requests).toHaveLength(0);
+  });
+
+  it("refuses an unsafe email or one that does not match its hash", async () => {
+    const { gate, deal, lender, items, deps } = await gated();
+    const send = (email: SubmissionSendInput["email"]) => sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { email }) });
+    const bad = `${EMAIL_TEXT}Guarantor SSN 123-45-6789\n`;
+    await expect(send({ subject: "Loan request", text: bad, sha256: emailSha256(bad) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    await expect(send({ subject: "Loan request", text: EMAIL_TEXT, sha256: "0".repeat(64) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    const noLink = "Hello, no link here.";
+    await expect(send({ subject: "Loan request", text: noLink, sha256: emailSha256(noLink) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    await expect(send({ subject: "Line one\nline two", text: EMAIL_TEXT, sha256: emailSha256(EMAIL_TEXT) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    expect(gate.requests).toHaveLength(0);
+  });
+
+  it("refuses a missing, foreign or unpackaged summary, and fails closed without a summary store", async () => {
+    const { gate, deal, lender, items, deps, summaries } = await gated();
+    const input = { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id) };
+    await expect(sendPackageToLender(deps({ summaries: null }), input)).rejects.toMatchObject({ reason: "summary_missing" });
+    await expect(sendPackageToLender(deps(), { ...input, submission: submission(lender.id, { summaryId: "nope" }) })).rejects.toMatchObject({ reason: "summary_missing" });
+    await expect(sendPackageToLender(deps(), { ...input, items: docs(2) })).rejects.toThrow(/not in the package/);
+    await expect(sendPackageToLender(deps(), { ...input, submission: submission(lender.id, { targetStage: "screen" }) })).rejects.toThrow(/built for a term-sheet request/);
+    summaries.rows.set("summary-1", summaryRecord("another-deal"));
+    await expect(sendPackageToLender(deps(), input)).rejects.toMatchObject({ reason: "summary_missing" });
+    expect(gate.requests).toHaveLength(0);
+  });
+
+  it("with no mailer, emails nothing and returns the share URL and the approved email with the link filled in", async () => {
+    const { store, deal, lender, items, deps } = await gated();
+    const r = await sendPackageToLender(deps({ mailer: null }), { dealId: deal.id, lenderId: lender.id, items, actor: "broker:ana", ttlDays: 7, submission: submission(lender.id) });
+    expect(r.outreach.status).toBe("approved");
+    expect(r.shareUrl).toMatch(/^https:\/\/corincommercial\.com\/api\/deals\/share\/[A-Za-z0-9_-]{43}$/);
+    const link = store.links.get(r.outreach.shareLinkId!)!;
+    expect(r.email).toEqual({ subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: fillEmailPlaceholders(EMAIL_TEXT, { shareUrl: r.shareUrl!, expiresAt: link.expiresAt }) });
+    expect(r.email!.text).toContain(`${r.shareUrl}\n`);
+    expect(r.email!.text).not.toContain("{{");
+    expect(outreachMessage(r)).toMatch(/approved email are shown below once/);
+    // The stored text keeps its placeholders: the approved bytes never change.
+    expect((await store.getOutreach(r.outreach.id))!.emailText).toBe(EMAIL_TEXT);
+  });
+
+  it("with a mailer, sends the approved subject and text with the link filled in", async () => {
+    const { store, deal, lender, items, deps } = await gated();
+    const m = mailer();
+    const r = await sendPackageToLender(deps({ mailer: m }), { dealId: deal.id, lenderId: lender.id, items, actor: "broker:ana", submission: submission(lender.id) });
+    expect(r.outreach.status).toBe("sent");
+    expect(m.sent).toHaveLength(1);
+    const link = [...store.links.values()][0]!;
+    expect(m.sent[0]!.text).toMatch(/Secure link \(expires [A-Z][a-z]+ \d{1,2}, \d{4}\):\nhttps:\/\/corincommercial\.com\/api\/deals\/share\/[A-Za-z0-9_-]{43}\n/);
+    expect(m.sent[0]!.text).not.toContain("{{");
+    expect(m.sent[0]!.text).toContain(fmt.date(link.expiresAt));
+    expect(r.shareUrl).toBeUndefined();
+  });
+
+  it("re-checks a pending v2 submission with the stored payload, and words a changed email as a conflict", async () => {
+    const w = await world();
+    const proofs = new MemoryReauthStore();
+    const service = new ApprovalService(new MemoryApprovalStore(), w.now, {}, proofs);
+    const reauth = new ReauthService(proofs, w.now);
+    const gate = queueApprovalGate(service);
+    const summaries = summaryStore([summaryRecord(w.deal.id)]);
+    const items = [...docs(2), dealSummaryPackageItem(w.deal.id, PDF_SHA)];
+    const deps = { store: w.store, gate, now: w.now, baseUrl: base, holds: noHolds, summaries };
+    const first = await sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id) });
+    expect(first.outreach.status).toBe("pending_approval");
+    // Still pending: the re-check rebuilds the same payload from the row, so no conflict.
+    expect((await checkOutreachApproval(deps, first.outreach.id, "broker:ana")).outreach.status).toBe("pending_approval");
+    // The email changed after the request (a new contact name, an edited plan): conflict, reworded.
+    const changed = `${EMAIL_TEXT}P.S. updated\n`;
+    await expect(
+      sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id, { email: { subject: "Loan request", text: changed, sha256: emailSha256(changed) } }) }),
+    ).rejects.toThrow("The submission to Cambridge Realty Capital changed after approval was requested (recipient, summary or email text). Withdraw it and request approval again.");
+    // The broker approves (with step-up); the re-check mints the link and hands over the approved text.
+    const approval = (await service.getByKey(first.outreach.approvalKey))!;
+    expect(approval.templateId).toBe(LENDER_SUBMISSION_TEMPLATE_ID_V2);
+    await reauth.record({ approval, user: { userId: broker.userId, dreLicense: broker.dreLicense }, factor: { method: "totp", verifiedAt: w.now() } });
+    expect(await service.approve(approval.id, broker)).toMatchObject({ ok: true });
+    const r = await checkOutreachApproval(deps, first.outreach.id, "broker:ana");
+    expect(r.outreach.status).toBe("approved");
+    expect(r.email?.text).toContain(r.shareUrl!);
+    // A v2 row cannot be re-checked without the summary store.
+    const pending = await sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.other.id, items, actor: "broker:ana", submission: submission(w.other.id) });
+    await expect(checkOutreachApproval({ ...deps, summaries: null }, pending.outreach.id, "a")).rejects.toMatchObject({ reason: "summary_missing" });
+  });
+
+  it("keeps v1 rows (no email hash) on the v1 payload", async () => {
+    const { store, gate, deal, lender, deps } = await gated("pending");
+    const r = await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    expect(gate.requests[0]!.templateId).toBe(LENDER_SUBMISSION_TEMPLATE_ID);
+    expect(gate.requests[0]!.payload).not.toHaveProperty("emailSha256");
+    await checkOutreachApproval(deps(), r.outreach.id, "a");
+    expect(gate.requests[1]!.payload).toEqual(gate.requests[0]!.payload);
+    expect((await store.getOutreach(r.outreach.id))!.emailText).toBeUndefined();
   });
 });
