@@ -766,6 +766,12 @@ const POST_NUMBERS: Partial<Record<SubmissionPlaybook, (f: EmailRenderFacts) => 
   c_pace: (f) => [capitalStackBlock(f), improvementsBlock(f)],
 };
 
+/** The playbooks with their own blocks before and after THE NUMBERS (the email's variations; spec 5.3), for checks and tests. */
+export const EMAIL_BLOCK_PLAYBOOKS: { readonly beforeNumbers: readonly SubmissionPlaybook[]; readonly afterNumbers: readonly SubmissionPlaybook[] } = {
+  beforeNumbers: Object.keys(PRE_NUMBERS) as SubmissionPlaybook[],
+  afterNumbers: Object.keys(POST_NUMBERS) as SubmissionPlaybook[],
+};
+
 /**
  * Renders the email. Throws PackageCopyError on overclaiming staff copy and
  * EmailSafetyError when the text holds a restricted identifier or (with
