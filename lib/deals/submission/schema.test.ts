@@ -335,7 +335,7 @@ describe("twins of the migration's check constraints", () => {
     for (const col of ["highlights", "risks", "sources", "uses", "program_details"]) expect(profile, col).toContain(col);
     const sponsor = check("deal_sponsor_profiles_no_restricted");
     for (const col of [...SPONSOR_TEXT, "credit_events"]) expect(sponsor, col).toContain(col);
-    expect(SQL).toContain("check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason)))");
+    expect(SQL).toContain("check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason, lender_override_reason)))");
   });
 
   it("every free-text field refuses the restricted shapes in zod, however they are written", () => {

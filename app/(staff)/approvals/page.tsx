@@ -228,6 +228,24 @@ function SubmissionDetails({ d, content, id, pending }: { d: SubmissionApprovalD
           </ul>
         </div>
       ) : null}
+      {d.lenderOverrideReason ? (
+        <p>
+          <span className="font-medium">Reason to submit to this lender anyway: </span>
+          {d.lenderOverrideReason}
+        </p>
+      ) : null}
+      {d.neutralCopy?.flags.length ? (
+        <div>
+          <p className="font-medium text-warning">Fair-lending check: staff-typed words that touch a protected characteristic{d.neutralCopy.confirmed ? " (staff confirmed they are needed)" : ""}</p>
+          <ul className="list-disc pl-5">
+            {d.neutralCopy.flags.map((f) => (
+              <li key={`${f.topic}-${f.term}`}>&ldquo;{f.term}&rdquo;</li>
+            ))}
+          </ul>
+        </div>
+      ) : d.neutralCopy ? (
+        <p>Fair-lending check: no staff-typed word touches a protected characteristic.</p>
+      ) : null}
       {content?.email ? (
         <details className="rounded-lg bg-white/70 p-2" open>
           <summary className="cursor-pointer font-medium">The email you are approving (stored, exactly as it will be sent)</summary>

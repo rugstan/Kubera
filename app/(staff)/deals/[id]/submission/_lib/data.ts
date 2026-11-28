@@ -136,8 +136,12 @@ export type SubmissionRequestInput = {
   lenderIds: string[];
   stage: TargetStage;
   documentIds: string[];
-  /** Required when required items are missing at `stage`, or a lender is unranked or outside its recorded box; OVERRIDE_REASON_LENGTH after trimming. */
+  /** Required when required items are missing at `stage`; OVERRIDE_REASON_LENGTH after trimming. */
   overrideReason: string | null;
+  /** Required for a lender the matcher did not rank or whose recorded box the request falls outside: its own reason, OVERRIDE_REASON_LENGTH after trimming. */
+  lenderOverrideReason: string | null;
+  /** Staff confirmed the fair-lending flags on the staff-typed text (required when there are any). */
+  neutralCopyConfirmed: boolean;
   note: string | null;
   allowStaleLender: boolean;
 };
@@ -327,9 +331,10 @@ const STAGE_NOUN: Record<TargetStage, string> = { screen: "soft-quote", term_she
  * and asking no gate, when required items are missing at `stage` and no reason
  * of OVERRIDE_REASON_LENGTH.min characters is given, or when a hard stop
  * (hold, closed deal) applies. Then the lender desk's submitToLenders checks
- * each lender against the matcher and its recorded box (the same reason lets
- * an unranked or out-of-box lender through, and the broker sees it), and
- * send.ts locks the summary and the package and asks the gate per lender.
+ * each lender against the matcher and its recorded box (an unranked or
+ * out-of-box lender needs the separate lender override reason, which the
+ * broker sees), and send.ts locks the summary and the package and asks the
+ * gate per lender.
  */
 export async function requestSubmission(input: SubmissionRequestInput, staff: StaffSession): Promise<SubmissionRequestResult> {
   const rt = lenderRuntime();
@@ -349,6 +354,10 @@ export async function requestSubmission(input: SubmissionRequestInput, staff: St
     };
   }
   if (reason.length > OVERRIDE_REASON_LENGTH.max) return { ok: false, reason: "refused", message: `Keep the reason to ${OVERRIDE_REASON_LENGTH.max} characters` };
+  const lenderReason = input.lenderOverrideReason?.trim() ?? "";
+  if (lenderReason && (lenderReason.length < OVERRIDE_REASON_LENGTH.min || lenderReason.length > OVERRIDE_REASON_LENGTH.max)) {
+    return { ok: false, reason: "refused", message: `The reason to submit to an unranked or out-of-box lender must be ${OVERRIDE_REASON_LENGTH.min} to ${OVERRIDE_REASON_LENGTH.max} characters. Yours has ${lenderReason.length}.` };
+  }
   if (!input.lenderIds.length) return { ok: false, reason: "refused", message: "Choose at least one lender" };
 
   const deal = view.ctx.deal;
@@ -362,8 +371,11 @@ export async function requestSubmission(input: SubmissionRequestInput, staff: St
       items,
       actor: staff.actor,
       allowStaleLender: input.allowStaleLender,
-      overrideReason: reason || null,
+      // Two reasons, two purposes: the readiness reason never admits an unranked or out-of-box lender.
+      overrideReason: lenderReason || null,
       readinessOverrideReason: missing.length ? reason : null,
+      neutralCopyConfirmed: input.neutralCopyConfirmed,
+      requestedByUser: staff.userId,
       targetStage: input.stage,
       advisor: advisorFor(staff),
       note: input.note?.trim() || null,

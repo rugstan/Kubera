@@ -114,7 +114,17 @@ export async function requestSubmissionAction(_prev: RequestFormState, f: FormDa
     const stage = str(f, "stage");
     if (!isTargetStage(stage)) throw new SubmissionDataError("Pick what to ask the lender for");
     const r = await requestSubmission(
-      { dealId: id, lenderIds: ids(f, "lenderId"), stage, documentIds: ids(f, "documentId"), overrideReason: str(f, "overrideReason") || null, note: str(f, "note") || null, allowStaleLender: f.get("allowStale") === "on" },
+      {
+        dealId: id,
+        lenderIds: ids(f, "lenderId"),
+        stage,
+        documentIds: ids(f, "documentId"),
+        overrideReason: str(f, "overrideReason") || null,
+        lenderOverrideReason: str(f, "lenderOverrideReason") || null,
+        neutralCopyConfirmed: f.get("neutralCopyConfirmed") === "on",
+        note: str(f, "note") || null,
+        allowStaleLender: f.get("allowStale") === "on",
+      },
       staff,
     );
     if (!r.ok) return { error: r.message, ...(r.reason === "not_ready" ? { missing: r.missing } : {}), at: Date.now() };

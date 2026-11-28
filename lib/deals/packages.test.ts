@@ -104,6 +104,7 @@ function submission(lenderId: string, over: Partial<SubmissionSendInput> = {}): 
     fit: { lenderId, matches: ["HUD / FHA"], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 33, reason: null }, score: null },
     email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT) },
     nameCheck: { names: ["Pat Owner"], allow: ["Sunrise Care LLC"] },
+    neutralCopy: { flags: [], confirmed: false },
     ...over,
   };
 }
@@ -340,7 +341,7 @@ describe("checking a pending submission", () => {
     const { store, gate, now, deal, lender } = await queued();
     const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" }));
     await store.updateLender(lender.id, { submissionEmail: "new@cambridge.example" }, "a", now());
-    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a")).rejects.toThrow(/changed after approval was requested \(recipient, summary or email text\)/);
+    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a")).rejects.toThrow(/changed after approval was requested \(recipient, summary, email text or reasons\)/);
   });
 
   it("explains a changed primary contact email the same way", async () => {
@@ -348,7 +349,7 @@ describe("checking a pending submission", () => {
     const dana = await addPrimaryContact(store, lender.id, { fullName: "Dana Lee", email: "dana.lee@cambridge.example" });
     const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" }));
     await store.updateLenderContact(lender.id, dana.id, dana.recordVersion, { email: "dana@new-cambridge.example" }, "a", now());
-    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a")).rejects.toThrow(/changed after approval was requested \(recipient, summary or email text\)/);
+    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a")).rejects.toThrow(/changed after approval was requested \(recipient, summary, email text or reasons\)/);
   });
 
   it("mails the primary contact the approved text (the greeting is the email builder's)", async () => {
@@ -580,19 +581,44 @@ describe("submission gate (v2)", () => {
       items,
       actor: "broker:ana",
       note: "Rush",
-      submission: submission(lender.id, { readiness: { missing, hardStops: [], score: 80 }, overrideReason: `  ${reason}  `, fit: { ...submission(lender.id).fit, exceptions: ["LTV 75% vs 70% maximum"] } }),
+      submission: submission(lender.id, {
+        readiness: { missing, hardStops: [], score: 80 },
+        overrideReason: `  ${reason}  `,
+        lenderOverrideReason: "Their bridge desk confirmed 75% on this sponsor",
+        fit: { ...submission(lender.id).fit, exceptions: ["LTV 75% vs 70% maximum"] },
+      }),
     });
     expect(r.outreach.status).toBe("pending_approval");
     const req = gate.requests[0]!;
     expect(req.templateId).toBe(LENDER_SUBMISSION_TEMPLATE_ID_V2);
     expect(req.summary).toBe(
-      `Send "Sunrise Assisted Living refi" (HUD 232 senior housing, term-sheet request) package v1 to Cambridge Realty Capital: $12,500,000, LTV 75%, DSCR 1.33x. Missing: T-12 operating statement; Rent roll, census or STR report — reason: ${reason}. Lender fit exceptions: LTV 75% vs 70% maximum. Note: Rush`,
+      `Send "Sunrise Assisted Living refi" (HUD 232 senior housing, term-sheet request) package v1 to Cambridge Realty Capital: $12,500,000, LTV 75%, DSCR 1.33x. Missing: T-12 operating statement; Rent roll, census or STR report — reason: ${reason}. Lender fit exceptions: LTV 75% vs 70% maximum — lender override: Their bridge desk confirmed 75% on this sponsor. Note: Rush`,
     );
-    expect(req.payload).toMatchObject({ targetStage: "term_sheet", summarySha256: "a".repeat(64), emailSha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT), readinessMissing: missing, overrideReason: reason, manifestSha256: r.pkg.manifestSha256 });
+    expect(req.payload).toMatchObject({
+      targetStage: "term_sheet",
+      summaryId: "summary-1",
+      summarySha256: "a".repeat(64),
+      emailSha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT),
+      readinessMissing: missing,
+      overrideReason: reason,
+      fitExceptions: ["LTV 75% vs 70% maximum"],
+      lenderOverrideReason: "Their bridge desk confirmed 75% on this sponsor",
+      neutralCopy: { flags: [], confirmed: false },
+      manifestSha256: r.pkg.manifestSha256,
+    });
     // The submission record is on the row.
     const row = (await store.getOutreach(r.outreach.id))!;
-    expect(row).toMatchObject({ targetStage: "term_sheet", summaryId: "summary-1", readinessMissing: missing, readinessOverrideReason: reason, emailText: EMAIL_TEXT, emailSha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT), emailSubject: "Loan request: $12,500,000 HUD 232 | Corin Commercial" });
+    expect(row).toMatchObject({ targetStage: "term_sheet", summaryId: "summary-1", readinessMissing: missing, readinessOverrideReason: reason, lenderOverrideReason: "Their bridge desk confirmed 75% on this sponsor", emailText: EMAIL_TEXT, emailSha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT), emailSubject: "Loan request: $12,500,000 HUD 232 | Corin Commercial" });
     expect(row.lenderFit?.exceptions).toEqual(["LTV 75% vs 70% maximum"]);
+  });
+
+  it("refuses a lender outside its box without its own reason: the readiness reason does not cover it", async () => {
+    const { gate, deal, lender, items, deps } = await gated("pending");
+    const fit = { ...submission(lender.id).fit, exceptions: ["LTV 75% vs 70% maximum"] };
+    await expect(sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { readiness: { missing, hardStops: [], score: 80 }, overrideReason: "Lender asked to see the deal before the T-12 is final", fit }) })).rejects.toThrow(
+      /Outside Cambridge Realty Capital's recorded box: LTV 75% vs 70% maximum\. Give a reason to submit to this lender anyway\./,
+    );
+    expect(gate.requests).toHaveLength(0);
   });
 
   it("holds and a closed deal still win over an override reason", async () => {
@@ -673,7 +699,7 @@ describe("submission gate (v2)", () => {
     expect(r.shareUrl).toBeUndefined();
   });
 
-  it("re-checks a pending v2 submission with the stored payload, and words a changed email as a conflict", async () => {
+  it("re-checks a pending v2 submission with the stored payload; a changed email supersedes the waiting request", async () => {
     const w = await world();
     const proofs = new MemoryReauthStore();
     const service = new ApprovalService(new MemoryApprovalStore(), w.now, {}, proofs);
@@ -686,17 +712,24 @@ describe("submission gate (v2)", () => {
     expect(first.outreach.status).toBe("pending_approval");
     // Still pending: the re-check rebuilds the same payload from the row, so no conflict.
     expect((await checkOutreachApproval(deps, first.outreach.id, "broker:ana")).outreach.status).toBe("pending_approval");
-    // The email changed after the request (a new contact name, an edited plan): conflict, reworded.
+    // The email changed after the request (a new contact name, an edited plan): the waiting request is
+    // withdrawn as superseded and a new one (attempt 2) is asked, so a re-request is never a dead end.
     const changed = `${EMAIL_TEXT}P.S. updated\n`;
-    await expect(
-      sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id, { email: { subject: "Loan request", text: changed, sha256: emailSha256("Loan request", changed) } }) }),
-    ).rejects.toThrow("The submission to Cambridge Realty Capital changed after approval was requested (recipient, summary or email text). Withdraw it and request approval again.");
-    // The broker approves (with step-up); the re-check mints the link and hands over the approved text.
-    const approval = (await service.getByKey(first.outreach.approvalKey))!;
+    const second = await sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id, { email: { subject: "Loan request", text: changed, sha256: emailSha256("Loan request", changed) } }) });
+    expect(second.outreach).toMatchObject({ status: "pending_approval", approvalKey: outreachApprovalKey(w.deal.id, w.lender.id, 1, 2), emailText: changed });
+    expect(await w.store.getOutreach(first.outreach.id)).toMatchObject({ status: "withdrawn", responseNote: expect.stringMatching(/^Superseded/) });
+    // A broker approving the superseded request sends nothing: its row is withdrawn.
+    const stale = (await service.getByKey(first.outreach.approvalKey))!;
+    await reauth.record({ approval: stale, user: { userId: broker.userId, dreLicense: broker.dreLicense }, factor: { method: "totp", verifiedAt: w.now() } });
+    expect(await service.approve(stale.id, broker)).toMatchObject({ ok: true });
+    expect((await checkOutreachApproval(deps, first.outreach.id, "broker:ana")).outreach.status).toBe("withdrawn");
+    expect(await w.store.listShareLinks(w.deal.id)).toEqual([]);
+    // The broker approves the new one (with step-up); the re-check mints the link and hands over the approved text.
+    const approval = (await service.getByKey(second.outreach.approvalKey))!;
     expect(approval.templateId).toBe(LENDER_SUBMISSION_TEMPLATE_ID_V2);
     await reauth.record({ approval, user: { userId: broker.userId, dreLicense: broker.dreLicense }, factor: { method: "totp", verifiedAt: w.now() } });
     expect(await service.approve(approval.id, broker)).toMatchObject({ ok: true });
-    const r = await checkOutreachApproval(deps, first.outreach.id, "broker:ana");
+    const r = await checkOutreachApproval(deps, second.outreach.id, "broker:ana");
     expect(r.outreach.status).toBe("approved");
     expect(r.email?.text).toContain(r.shareUrl!);
     // A v2 row cannot be re-checked without the summary store.
@@ -728,11 +761,14 @@ describe("submission gate (v2)", () => {
     expect(gate.requests).toHaveLength(0);
   });
 
-  it("shows the approving broker any fair-lending copy flag in the email", async () => {
+  it("shows the approving broker the fair-lending flags staff confirmed, and refuses unconfirmed ones", async () => {
     const { gate, deal, lender, items, deps } = await gated("pending");
-    const text = EMAIL_TEXT.replace("not the lender.", "not the lender. The owner and his wife run the business.");
-    await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { email: { subject: "Loan request", text, sha256: emailSha256("Loan request", text) } }) });
-    expect(gate.requests[0]!.summary).toContain('Fair-lending copy flags: "wife" (sex or gender).');
+    const flagged = { flags: [{ topic: "sex", term: "wife" }], confirmed: false };
+    await expect(sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { neutralCopy: flagged }) })).rejects.toMatchObject({ reason: "not_ready" });
+    expect(gate.requests).toHaveLength(0);
+    await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { neutralCopy: { ...flagged, confirmed: true } }) });
+    expect(gate.requests[0]!.summary).toContain('Fair-lending copy flags (confirmed by staff): "wife".');
+    expect(gate.requests[0]!.payload.neutralCopy).toEqual({ flags: [{ topic: "sex", term: "wife" }], confirmed: true });
     expect(gate.requests[0]!.summary.length).toBeLessThanOrEqual(500);
   });
 });

@@ -91,11 +91,21 @@ export function RequestFields({
         <span className="mt-1 block text-xs text-titanium" id={`reason-hint-${dealId}`}>
           {missingCount
             ? `${missingCount} required item${missingCount === 1 ? " is" : "s are"} missing for ${TARGET_STAGE_LABELS[stage].toLowerCase()}. A send needs a reason of at least ${OVERRIDE_REASON_LENGTH.min} characters; the approving broker sees it with the missing items.`
-            : `Also needed to send to a lender the matcher did not rank. At least ${OVERRIDE_REASON_LENGTH.min} characters.`}
+            : `Only when required items are missing. At least ${OVERRIDE_REASON_LENGTH.min} characters.`}
+        </span>
+      </label>
+      <label className="block min-w-0 sm:col-span-2">
+        <span className="field-label">Reason to submit to a lender outside its recorded box or not ranked by the matcher</span>
+        <textarea aria-describedby={`lender-reason-hint-${dealId}`} className="field" maxLength={OVERRIDE_REASON_LENGTH.max} name="lenderOverrideReason" rows={2} />
+        <span className="mt-1 block text-xs text-titanium" id={`lender-reason-hint-${dealId}`}>
+          {`Its own reason, separate from the one above: it applies only to the lenders that need it, and the approving broker sees it with that lender's exceptions. At least ${OVERRIDE_REASON_LENGTH.min} characters.`}
         </span>
       </label>
       <div className="sm:col-span-2">
         <Check label="I re-checked a stale lender's appetite" name="allowStale" />
+      </div>
+      <div className="sm:col-span-2">
+        <Check label="I checked the fair-lending flags on the staff-typed text (if any): the flagged words are needed, and the approving broker will see them" name="neutralCopyConfirmed" />
       </div>
       <div className="sm:col-span-2">
         <Submit>Request broker approval</Submit>

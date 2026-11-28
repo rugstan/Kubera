@@ -143,11 +143,13 @@ describe("submitToLenders", () => {
     expect(w.gate.requests[0]!.summary).toMatch(/match \d+(\.\d)?\/100/);
   });
 
-  it.each(["rejected", "expired"] as const)("sends nothing when the approval is %s", async (status) => {
+  it.each(["rejected", "expired"] as const)("sends nothing when the approval is %s, and does not count it as requested", async (status) => {
     const w = await world(status);
     const r = await submitToLenders(w.deps, w.input());
     const o = r.outcomes[0]!;
-    expect(o.ok && o.result.outreach.status).toBe(status);
+    expect(o.ok).toBe(false);
+    expect(!o.ok && o.error).toMatch(status === "rejected" ? /rejected sending/ : /expired/);
+    expect((await w.store.listOutreach(w.deal.id)).map((x) => x.status)).toEqual([status]);
     expect(w.mailer.sent).toEqual([]);
     expect(await w.store.listShareLinks(w.deal.id)).toEqual([]);
   });
@@ -198,12 +200,12 @@ describe("submitToLenders", () => {
     const w = await world("approved");
     // The typed profile (DSCR 1.6x) ranks the strict lender; the computed DSCR sits below its 1.45x minimum.
     const refused = await submitToLenders(w.deps, w.input({ lenderIds: [w.lenders.d.id] }));
-    expect(!refused.outcomes[0]!.ok && refused.outcomes[0]!.error).toMatch(/^Outside Strict Senior Lender's recorded box: DSCR \d\.\d\dx vs 1\.45x minimum\. Add an override reason to submit anyway\.$/);
+    expect(!refused.outcomes[0]!.ok && refused.outcomes[0]!.error).toMatch(/^Outside Strict Senior Lender's recorded box: DSCR \d\.\d\dx vs 1\.45x minimum\. Give a lender override reason to submit to it anyway\.$/);
     expect(w.gate.requests).toEqual([]);
     const r = await submitToLenders(w.deps, w.input({ lenderIds: [w.lenders.d.id], overrideReason: "The lender sizes HUD 232 on its own DSCR" }));
     expect(r.outcomes[0]).toMatchObject({ ok: true, matched: true });
-    expect(w.gate.requests[0]!.summary).toContain("fit override: The lender sizes HUD 232 on its own DSCR");
-    expect(w.gate.requests[0]!.summary).toMatch(/Lender fit exceptions: DSCR \d\.\d\dx vs 1\.45x minimum/);
+    expect(w.gate.requests[0]!.summary).toMatch(/Lender fit exceptions: DSCR \d\.\d\dx vs 1\.45x minimum — lender override: The lender sizes HUD 232 on its own DSCR\./);
+    expect(w.gate.requests[0]!.payload).toMatchObject({ lenderOverrideReason: "The lender sizes HUD 232 on its own DSCR", overrideReason: null });
   });
 
   it("keeps the readiness gate: a missing required item needs its own reason, which the broker sees", async () => {

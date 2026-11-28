@@ -204,6 +204,8 @@ export const FIELD_CLASSIFICATION: Readonly<Record<string, FieldRule>> = {
   "lender_outreach.readiness_missing": I("deal"),
   "lender_outreach.readiness_override_reason": C("deal", false),
   "lender_outreach.lender_fit": I("partner"),
+  "lender_outreach.lender_override_reason": C("deal", false),
+  "lender_outreach.neutral_copy": I("deal"),
   // public data
   "rate_snapshots.benchmarks": P("market"),
   "kb_chunks.content": P("market"),

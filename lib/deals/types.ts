@@ -11,7 +11,7 @@ import type { BrokerOfRecordElements, LenderCategory, LenderChargesInput, Modifi
 import type { EsignProviderName } from "@/lib/esign/types";
 import type { Form159Data } from "./form159";
 import type { LenderLoanType } from "./loan-types";
-import type { LenderFit, TargetStage } from "./submission/types";
+import type { LenderFit, NeutralCopyRecord, TargetStage } from "./submission/types";
 
 /** Deal-desk programs. Each has a stage template (lib/deals/stages.ts). */
 export const dealPrograms = [
@@ -308,10 +308,14 @@ export type LenderOutreach = {
   /** Required (20–1000 characters) whenever readinessMissing is not empty. */
   readinessOverrideReason?: string | null;
   lenderFit?: LenderFit | null;
+  /** Why an unranked or out-of-box lender is submitted to (20–1000 characters); null when it needed none. */
+  lenderOverrideReason?: string | null;
+  /** The fair-lending flags on the staff-typed text at request time and staff's confirmation. */
+  neutralCopy?: NeutralCopyRecord | null;
   /** The approved email, with {{SHARE_LINK}} and {{LINK_EXPIRES}} placeholders. Subject, text and hash are set together. */
   emailSubject?: string | null;
   emailText?: string | null;
-  /** SHA-256 (hex) of emailText; in the approval payload. */
+  /** SHA-256 (hex) of emailSubject and emailText together (email.ts emailSha256); in the approval payload. */
   emailSha256?: string | null;
   createdAt: string;
   updatedAt: string;

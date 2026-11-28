@@ -10,7 +10,16 @@ describe("lenderSubmissionDetails", () => {
       {
         kind: "lender_submission",
         dealId: DEAL,
-        payload: { dealId: DEAL, lenderId: LENDER, targetStage: "term_sheet", readinessMissing: ["value.basis", "plan.risks"], overrideReason: "Lender asked to see it before the appraisal lands", lenderFit: { exceptions: ["LTV 78% vs 75% maximum"] } },
+        payload: {
+          dealId: DEAL,
+          lenderId: LENDER,
+          targetStage: "term_sheet",
+          readinessMissing: ["value.basis", "plan.risks"],
+          overrideReason: "Lender asked to see it before the appraisal lands",
+          fitExceptions: ["LTV 78% vs 75% maximum"],
+          lenderOverrideReason: "Their bridge desk takes 78% on a value-add story",
+          neutralCopy: { flags: [{ topic: "sex", term: "wife" }], confirmed: true },
+        },
       },
       (id) => ({ "value.basis": "Purchase price, or as-is value with its source and date" })[id] ?? id,
     );
@@ -20,13 +29,15 @@ describe("lenderSubmissionDetails", () => {
       missing: ["Purchase price, or as-is value with its source and date", "plan.risks"],
       overrideReason: "Lender asked to see it before the appraisal lands",
       fitExceptions: ["LTV 78% vs 75% maximum"],
+      lenderOverrideReason: "Their bridge desk takes 78% on a value-add story",
+      neutralCopy: { flags: [{ topic: "sex", term: "wife" }], confirmed: true },
       draftHref: `/deals/${DEAL}/submission/preview?lender=${LENDER}&stage=term_sheet`,
     });
   });
 
   it("does not claim readiness on a submission requested before the gate, and ignores other kinds", () => {
     const d = lenderSubmissionDetails({ kind: "lender_submission", dealId: DEAL, payload: { dealId: DEAL, lenderId: LENDER, packageVersion: 1 } });
-    expect(d).toMatchObject({ readinessChecked: false, missing: [], overrideReason: null, fitExceptions: [], stageLabel: null, draftHref: `/deals/${DEAL}/submission/preview?lender=${LENDER}` });
+    expect(d).toMatchObject({ readinessChecked: false, missing: [], overrideReason: null, fitExceptions: [], lenderOverrideReason: null, neutralCopy: null, stageLabel: null, draftHref: `/deals/${DEAL}/submission/preview?lender=${LENDER}` });
     expect(lenderSubmissionDetails({ kind: "email", dealId: DEAL, payload: {} })).toBeNull();
     expect(lenderSubmissionDetails({ kind: "lender_submission", dealId: null, payload: { dealId: "../../etc" } })?.draftHref).toBeNull();
   });

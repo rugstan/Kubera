@@ -15,10 +15,10 @@ import type { DealDeskStore } from "./store";
 import { emailSha256, fillEmailPlaceholders } from "./submission/email";
 import { PLAYBOOK_LABELS } from "./submission/playbooks";
 import { notReadyMessage } from "./submission/readiness";
-import { checkNeutralCopy, findRestrictedText, restrictedTextMessage, type EmailSafetyOptions } from "./submission/redaction";
+import { findRestrictedText, restrictedTextMessage, type EmailSafetyOptions } from "./submission/redaction";
 import { requirementLabel } from "./submission/requirements";
 import { fmt } from "./submission/summary";
-import { EMAIL_PLACEHOLDERS, OVERRIDE_REASON_LENGTH, SUBMISSION_TEXT_LIMITS, type DealSummaryRecord, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./submission/types";
+import { EMAIL_PLACEHOLDERS, OVERRIDE_REASON_LENGTH, SUBMISSION_TEXT_LIMITS, type DealSummaryRecord, type NeutralCopyRecord, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./submission/types";
 import type { Clock, Deal, DealPackage, LenderOutreach, LenderPanelEntry, PackageItem } from "./types";
 
 /** v1: documents only (submissions requested before the lender-ready flow keep this shape). */
@@ -115,6 +115,8 @@ export type SendPackageInput = {
   /** Staff acknowledged the lender's verification is stale. */
   allowStaleLender?: boolean;
   note?: string;
+  /** The requesting staff member's user id: the approvals queue refuses to let them approve their own override. */
+  requestedByUser?: string | null;
   /**
    * The lender-ready submission (spec 5.2): target stage, the locked summary,
    * readiness, the override reason, the lender fit and the exact email, built
@@ -134,8 +136,27 @@ export type SendPackageResult = {
   email?: { subject: string; text: string };
 };
 
-export function outreachApprovalKey(dealId: string, lenderId: string, version: number): string {
-  return `lender_submission:${dealId}:${lenderId}:v${version}`;
+/**
+ * The approval key of a submission to one lender of one package version. A
+ * request withdrawn, rejected, expired or superseded never blocks the next:
+ * each new request after one of those is attempt n + 1 (":r<n>"), with its own
+ * approval and its own row.
+ */
+export function outreachApprovalKey(dealId: string, lenderId: string, version: number, attempt = 1): string {
+  return `lender_submission:${dealId}:${lenderId}:v${version}${attempt > 1 ? `:r${attempt}` : ""}`;
+}
+
+/** Submission statuses that end a request without sending: the next request for the same lender and version is a new attempt. */
+export const CLOSED_OUTREACH_STATUSES: readonly LenderOutreach["status"][] = ["withdrawn", "rejected", "expired"];
+/** Statuses that are a request already approved (or past it): asking again returns it as it is. */
+const SETTLED_OUTREACH_STATUSES: readonly LenderOutreach["status"][] = ["approved", "sent", "declined", "term_sheet"];
+
+/** The approval's payload no longer matches what the submission now carries (recipient, summary, email or reasons). */
+export class SubmissionChangedError extends PackageError {
+  constructor(message: string) {
+    super("invalid_status", message);
+    this.name = "SubmissionChangedError";
+  }
 }
 
 /** Reads the deal's open sanctions holds (WS-U deal_holds). */
@@ -157,7 +178,20 @@ export type OutreachDeps = {
 };
 
 /** A submission that passed the gate: what is hashed into the approval and stored on lender_outreach. */
-type CheckedSubmission = { send: SubmissionSendInput; summary: DealSummaryRecord; overrideReason: string | null };
+type CheckedSubmission = { send: SubmissionSendInput; summary: DealSummaryRecord; overrideReason: string | null; lenderOverrideReason: string | null; neutralCopy: NeutralCopyRecord };
+
+const reasonProblem = (what: string, reason: string): string | null => {
+  if (reason.length < OVERRIDE_REASON_LENGTH.min) return `The reason ${what} must be at least ${OVERRIDE_REASON_LENGTH.min} characters.`;
+  if (reason.length > OVERRIDE_REASON_LENGTH.max) return `The reason ${what} must be at most ${OVERRIDE_REASON_LENGTH.max} characters.`;
+  const findings = findRestrictedText(reason);
+  return findings.length ? `The reason ${what}: ${restrictedTextMessage(findings)}` : null;
+};
+
+/** The fair-lending record as stored and hashed: flags in a stable order, terms trimmed. */
+function neutralCopyRecord(n: NeutralCopyRecord | undefined | null): NeutralCopyRecord {
+  const flags = [...(n?.flags ?? [])].map((f) => ({ topic: String(f.topic), term: String(f.term).trim().slice(0, 80) })).sort((a, b) => a.topic.localeCompare(b.topic) || a.term.localeCompare(b.term));
+  return { flags, confirmed: Boolean(n?.confirmed) };
+}
 
 const STAGE_REQUEST: Record<TargetStage, string> = { screen: "soft-quote", term_sheet: "term-sheet", underwrite: "underwriting" };
 
@@ -203,9 +237,20 @@ async function checkSubmission(deps: Pick<OutreachDeps, "summaries">, deal: Deal
   const reason = s.overrideReason?.trim() || null;
   if (s.readiness.missing.length) {
     if (!reason) throw new PackageError("not_ready", notReadyMessage(s.targetStage, missingLabels(s.readiness.missing, summary)));
-    if (reason.length < OVERRIDE_REASON_LENGTH.min) throw new PackageError("not_ready", `The reason to send with items missing must be at least ${OVERRIDE_REASON_LENGTH.min} characters.`);
-    if (reason.length > OVERRIDE_REASON_LENGTH.max) throw new PackageError("not_ready", `The reason to send with items missing must be at most ${OVERRIDE_REASON_LENGTH.max} characters.`);
+    const problem = reasonProblem("to send with items missing", reason);
+    if (problem) throw new PackageError("not_ready", problem);
   }
+  // A lender outside its recorded box needs its own reason (the readiness reason does not cover it).
+  const lenderReason = s.lenderOverrideReason?.trim() || null;
+  if (s.fit.exceptions.length && !lenderReason) throw new PackageError("not_ready", `Outside ${lender.name}'s recorded box: ${s.fit.exceptions.join("; ")}. Give a reason to submit to this lender anyway.`);
+  if (lenderReason) {
+    const problem = reasonProblem(`to submit to ${lender.name}`, lenderReason);
+    if (problem) throw new PackageError("not_ready", problem);
+  }
+  // Fair lending (spec 6.5): flagged staff copy goes out only once staff confirmed it.
+  const neutralCopy = neutralCopyRecord(s.neutralCopy);
+  if (!s.neutralCopy) throw new PackageError("not_ready", "The submission carries no fair-lending check; prepare it again.");
+  if (neutralCopy.flags.length && !neutralCopy.confirmed) throw new PackageError("not_ready", fairLendingMessage(neutralCopy));
 
   const { subject, text } = s.email;
   if (!subject.trim() || subject.length > SUBMISSION_TEXT_LIMITS.emailSubject || [...subject].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) throw new PackageError("email_unsafe", "The email subject must be one line of at most 200 characters.");
@@ -219,7 +264,12 @@ async function checkSubmission(deps: Pick<OutreachDeps, "summaries">, deal: Deal
   if (!summary || summary.dealId !== deal.id) throw new PackageError("summary_missing", "The locked deal summary for this submission was not found. Prepare the submission again.");
   if (summary.targetStage !== s.targetStage) throw new PackageError("summary_missing", `The deal summary was built for a ${STAGE_REQUEST[summary.targetStage]} request, not a ${STAGE_REQUEST[s.targetStage]} request.`);
   if (!items.some((i) => i.kind === DEAL_SUMMARY_KIND && i.sha256 === summary.pdfSha256)) throw new PackageError("summary_missing", "The deal summary PDF is not in the package; prepare the submission again.");
-  return { send: s, summary, overrideReason: s.readiness.missing.length ? reason : null };
+  return { send: s, summary, overrideReason: s.readiness.missing.length ? reason : null, lenderOverrideReason: lenderReason, neutralCopy };
+}
+
+/** The refusal when the fair-lending check flags staff copy that is not confirmed. */
+export function fairLendingMessage(n: NeutralCopyRecord): string {
+  return `The fair-lending check flags staff-typed words that touch a protected characteristic: ${n.flags.map((f) => `"${f.term}"`).join(", ")}. Edit the text, or confirm the words are needed (the approving broker sees them).`;
 }
 
 /**
@@ -263,10 +313,26 @@ export async function sendPackageToLender(deps: OutreachDeps, input: SendPackage
   const submission = await checkSubmission(deps, deal, lender, input.items, input.submission);
 
   const { pkg } = await lockPackageVersion(store, deal.id, input.items, input.actor, now);
-  const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);
-  const outreach = await store.getOutreachByKey(approvalKey);
-  if (outreach && ["approved", "sent", "declined", "term_sheet", "withdrawn"].includes(outreach.status)) return { outreach, pkg };
-  return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach?.staleLenderOverride ?? staleness.stale, note: input.note, ttlDays: input.ttlDays, actor: input.actor, submission });
+  // The current attempt for this lender and version: past withdrawn, rejected or expired ones.
+  let attempt = 1;
+  let outreach = await store.getOutreachByKey(outreachApprovalKey(deal.id, lender.id, pkg.version, attempt));
+  while (outreach && CLOSED_OUTREACH_STATUSES.includes(outreach.status)) outreach = await store.getOutreachByKey(outreachApprovalKey(deal.id, lender.id, pkg.version, ++attempt));
+  if (outreach && SETTLED_OUTREACH_STATUSES.includes(outreach.status)) return { outreach, pkg };
+  const decide = (o: LenderOutreach | null, n: number) =>
+    decideOutreach(deps, { deal, lender, pkg, outreach: o, approvalKey: outreachApprovalKey(deal.id, lender.id, pkg.version, n), staleLenderOverride: o?.staleLenderOverride ?? staleness.stale, note: input.note, ttlDays: input.ttlDays, actor: input.actor, requestedByUser: input.requestedByUser ?? null, submission });
+  if (!outreach) return decide(null, attempt);
+  let result: SendPackageResult;
+  try {
+    result = await decide(outreach, attempt);
+  } catch (err) {
+    if (!(err instanceof SubmissionChangedError)) throw err;
+    // The submission changed while the earlier request waited (a new reason, email or recipient): that
+    // request is withdrawn, so its approval, if a broker still gives it, sends nothing; a new one is asked.
+    await store.updateOutreach(outreach.id, { status: "withdrawn", responseNote: "Superseded: the submission changed before a broker decided; a new request replaced it." }, input.actor, now);
+    return decide(null, attempt + 1);
+  }
+  // The waiting request was rejected or expired meanwhile: asking again is a new request.
+  return CLOSED_OUTREACH_STATUSES.includes(result.outreach.status) ? decide(null, attempt + 1) : result;
 }
 
 /** The submission stored on a lender_outreach row (v2), rebuilt for a re-check; null for a v1 row. */
@@ -279,19 +345,25 @@ async function storedSubmission(deps: Pick<OutreachDeps, "summaries">, outreach:
   verifyApprovedEmail({ subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 }, outreach.emailSha256);
   const missing = outreach.readinessMissing ?? [];
   const reason = outreach.readinessOverrideReason ?? null;
+  const lenderReason = outreach.lenderOverrideReason ?? null;
+  const neutralCopy = neutralCopyRecord(outreach.neutralCopy);
   return {
     send: {
       targetStage: outreach.targetStage,
       summaryId: outreach.summaryId,
       readiness: { missing, hardStops: [], score: 0 },
       overrideReason: reason ?? undefined,
+      lenderOverrideReason: lenderReason ?? undefined,
       fit: outreach.lenderFit,
       email: { subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 },
       // Names were checked when the submission was requested; the hash binds the text since.
       nameCheck: { names: [], allow: [] },
+      neutralCopy,
     },
     summary,
     overrideReason: reason,
+    lenderOverrideReason: lenderReason,
+    neutralCopy,
   };
 }
 
@@ -314,10 +386,28 @@ export async function checkOutreachApproval(deps: OutreachDeps, outreachId: stri
   await assertDealCanGoToLenders(deps, deal);
   // v1 rows (no email hash) re-request with the v1 payload shape; v2 rows with what was stored.
   const submission = await storedSubmission(deps, outreach);
-  return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach.staleLenderOverride, ttlDays: opts.ttlDays, actor, submission });
+  return decideOutreach(deps, { deal, lender, pkg, outreach, approvalKey: outreach.approvalKey, staleLenderOverride: outreach.staleLenderOverride, ttlDays: opts.ttlDays, actor, requestedByUser: null, submission });
 }
 
-/** The approving broker's one line (spec 5.2); not hashed, so it can carry labels and the note. */
+/** A reason cut at a word boundary to at most `max` characters ("…" marks the cut); empty at 0. */
+function cutReason(text: string, max: number): string {
+  const t = text.trim().replace(/\s+/g, " ");
+  if (t.length <= max) return t;
+  if (max <= 1) return "…";
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.5 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, "")}…`;
+}
+
+const SUMMARY_MAX = 500;
+
+/**
+ * The approving broker's one line (spec 5.2); not hashed, so it can carry
+ * labels and the note. Every part always shows (the request, the missing
+ * items, the fit exceptions, the fair-lending flags and the lender override);
+ * when the line runs past 500 characters the free-text reasons and the note
+ * are shortened, never the tail. The card shows everything in full.
+ */
 function submissionApprovalSummary(deal: Deal, lender: LenderPanelEntry, pkg: DealPackage, s: CheckedSubmission, note: string | undefined): string {
   const tiles = s.summary.spec.headline;
   const tile = (labels: readonly string[]) => tiles.find((t) => labels.includes(t.label));
@@ -325,28 +415,57 @@ function submissionApprovalSummary(deal: Deal, lender: LenderPanelEntry, pkg: De
   const dscr = tile(["DSCR", "Global DSCR"]);
   const figures = [deal.loanAmountCents ? fmt.usd(deal.loanAmountCents) : null, ltv ? `${ltv.label} ${ltv.value}` : null, dscr ? `${dscr.label} ${dscr.value}` : null].filter(Boolean).join(", ");
   const missing = s.send.readiness.missing;
-  const flags = [...new Set(checkNeutralCopy([s.send.email.text]).map((f) => `"${f.term}" (${f.label})`))];
-  const parts = [
-    `Send "${deal.title}" (${PLAYBOOK_LABELS[s.summary.playbook]}, ${STAGE_REQUEST[s.send.targetStage]} request) package v${pkg.version} to ${lender.name}${figures ? `: ${figures}` : ""}.`,
-    `Missing: ${missing.length ? missingLabels(missing, s.summary).join("; ") : "none"}${s.overrideReason ? ` — reason: ${s.overrideReason}` : ""}.`,
-    `Lender fit exceptions: ${s.send.fit.exceptions.length ? s.send.fit.exceptions.join("; ") : "none"}.`,
-    // Fair lending (spec 6.5): staff confirmed copy that touches a protected characteristic; the broker sees it.
-    flags.length ? `Fair-lending copy flags: ${flags.join("; ")}.` : null,
-    note ? `Note: ${note.slice(0, 200)}` : null,
-  ].filter(Boolean);
-  const line = parts.join(" ");
-  return line.length <= 500 ? line : `${line.slice(0, 499)}…`;
+  const labels = missing.length ? missingLabels(missing, s.summary) : [];
+  const flags = [...new Set(s.neutralCopy.flags.map((f) => `"${f.term}"`))];
+  const build = (reasonMax: number, compact: boolean) => {
+    const reason = s.overrideReason ? cutReason(s.overrideReason, reasonMax) : "";
+    const lenderReason = s.lenderOverrideReason ? cutReason(s.lenderOverrideReason, reasonMax) : "";
+    const n = note ? cutReason(note, Math.min(reasonMax, 200)) : "";
+    const missingText = !missing.length ? "none" : compact ? `${missing.length} required item${missing.length === 1 ? "" : "s"}` : labels.join("; ");
+    const exceptions = !s.send.fit.exceptions.length ? "none" : compact ? `${s.send.fit.exceptions.length} (see the card)` : s.send.fit.exceptions.join("; ");
+    return [
+      `Send "${deal.title}" (${PLAYBOOK_LABELS[s.summary.playbook]}, ${STAGE_REQUEST[s.send.targetStage]} request) package v${pkg.version} to ${lender.name}${figures ? `: ${figures}` : ""}.`,
+      `Missing: ${missingText}${reason ? ` — reason: ${reason}` : ""}.`,
+      `Lender fit exceptions: ${exceptions}${lenderReason ? ` — lender override: ${lenderReason}` : ""}.`,
+      // Fair lending (spec 6.5): staff confirmed copy that touches a protected characteristic; the broker sees it.
+      flags.length ? `Fair-lending copy flags (confirmed by staff): ${compact ? `${flags.length}` : flags.join(", ")}.` : null,
+      n ? `Note: ${n}` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  };
+  for (const compact of [false, true]) {
+    for (const max of [1000, 400, 250, 160, 100, 60, 30, 0]) {
+      const line = build(max, compact);
+      if (line.length <= SUMMARY_MAX) return line;
+    }
+  }
+  // Only a very long deal or lender name gets here; the card still shows every part.
+  const line = build(0, true);
+  return `${line.slice(0, SUMMARY_MAX - 1)}…`;
 }
 
 async function decideOutreach(
   deps: OutreachDeps,
-  input: { deal: Deal; lender: LenderPanelEntry; pkg: DealPackage; outreach: LenderOutreach | null; staleLenderOverride: boolean; note?: string | null; ttlDays?: number; actor: string; submission: CheckedSubmission | null },
+  input: {
+    deal: Deal;
+    lender: LenderPanelEntry;
+    pkg: DealPackage;
+    outreach: LenderOutreach | null;
+    approvalKey: string;
+    staleLenderOverride: boolean;
+    note?: string | null;
+    ttlDays?: number;
+    actor: string;
+    requestedByUser: string | null;
+    submission: CheckedSubmission | null;
+  },
 ): Promise<SendPackageResult> {
   const { store } = deps;
   const { deal, lender, pkg, submission } = input;
   let outreach = input.outreach;
   const now = deps.now();
-  const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);
+  const approvalKey = input.outreach?.approvalKey ?? input.approvalKey;
   const note = input.note?.trim();
 
   const v1Payload = {
@@ -385,16 +504,21 @@ async function decideOutreach(
             emailSha256: submission.send.email.sha256,
             readinessMissing: [...submission.send.readiness.missing],
             overrideReason: submission.overrideReason,
+            // What the broker weighs besides the email: the facts outside the lender's box, the
+            // lender override's own reason, and the fair-lending flags with staff's confirmation.
+            fitExceptions: [...submission.send.fit.exceptions],
+            lenderOverrideReason: submission.lenderOverrideReason,
+            neutralCopy: submission.neutralCopy,
           }
         : v1Payload,
       requestedBy: input.actor,
+      ...(input.requestedByUser ? { requestedByUser: input.requestedByUser } : {}),
     });
   } catch (err) {
     if (err instanceof Error && err.name === "ApprovalConflictError") {
-      throw new PackageError(
-        "invalid_status",
+      throw new SubmissionChangedError(
         submission
-          ? `The submission to ${lender.name} changed after approval was requested (recipient, summary or email text). Withdraw it and request approval again.`
+          ? `The submission to ${lender.name} changed after approval was requested (recipient, summary, email text or reasons). Request approval again: the new request replaces the waiting one.`
           : `${lender.name}'s contact email changed after approval was requested for package v${pkg.version}. Withdraw this submission and send the package again so a broker approves the new recipient.`,
       );
     }
@@ -416,6 +540,8 @@ async function decideOutreach(
           summaryId: submission.summary.id,
           readinessMissing: [...submission.send.readiness.missing],
           readinessOverrideReason: submission.overrideReason,
+          lenderOverrideReason: submission.lenderOverrideReason,
+          neutralCopy: submission.neutralCopy,
           lenderFit: submission.send.fit,
           emailSubject: submission.send.email.subject,
           emailText: submission.send.email.text,

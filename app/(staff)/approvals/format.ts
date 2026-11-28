@@ -17,6 +17,10 @@ export type SubmissionApprovalDetails = {
   missing: string[];
   overrideReason: string | null;
   fitExceptions: string[];
+  /** The lender override's own reason (an unranked or out-of-box lender). */
+  lenderOverrideReason: string | null;
+  /** Fair-lending flags on the staff-typed text, and whether staff confirmed them (null on requests made before the check). */
+  neutralCopy: { flags: { topic: string; term: string }[]; confirmed: boolean } | null;
   /** The live preview of the deal as it is now ("current draft"); never the approved content. */
   draftHref: string | null;
 };
@@ -24,6 +28,13 @@ export type SubmissionApprovalDetails = {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 const texts = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0) : []);
+
+function neutralCopyOf(v: unknown): SubmissionApprovalDetails["neutralCopy"] {
+  if (!v || typeof v !== "object") return null;
+  const o = v as { flags?: unknown; confirmed?: unknown };
+  const flags = Array.isArray(o.flags) ? o.flags.flatMap((f) => (f && typeof f === "object" && typeof (f as { term?: unknown }).term === "string" ? [{ topic: String((f as { topic?: unknown }).topic ?? ""), term: (f as { term: string }).term }] : [])) : [];
+  return { flags, confirmed: o.confirmed === true };
+}
 
 export function lenderSubmissionDetails(r: Pick<ApprovalRecord, "kind" | "payload" | "dealId">, labelFor: (requirementId: string) => string = (id) => id): SubmissionApprovalDetails | null {
   if (r.kind !== "lender_submission") return null;
@@ -39,6 +50,8 @@ export function lenderSubmissionDetails(r: Pick<ApprovalRecord, "kind" | "payloa
     missing: texts(p.readinessMissing).map(labelFor),
     overrideReason: text(p.overrideReason),
     fitExceptions: texts(fit?.exceptions ?? p.fitExceptions),
+    lenderOverrideReason: text(p.lenderOverrideReason),
+    neutralCopy: neutralCopyOf(p.neutralCopy),
     draftHref: dealId && UUID.test(dealId) ? `/deals/${dealId}/submission/preview${query ? `?${query}` : ""}` : null,
   };
 }

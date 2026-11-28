@@ -1304,6 +1304,12 @@ export type SubmissionSendInput = {
   readiness: Pick<Readiness, "missing" | "hardStops" | "score">;
   /** Required when readiness.missing is not empty; OVERRIDE_REASON_LENGTH after trimming. */
   overrideReason?: string;
+  /**
+   * Why this lender is submitted to although the matcher did not rank it or
+   * the request falls outside its recorded box (OVERRIDE_REASON_LENGTH): its
+   * own reason, never the readiness one. Absent when the lender needed none.
+   */
+  lenderOverrideReason?: string;
   fit: LenderFit;
   /** The approved subject and text with EMAIL_PLACEHOLDERS; sha256 is email.ts emailSha256(subject, text). */
   email: { subject: string; text: string; sha256: string };
@@ -1313,7 +1319,16 @@ export type SubmissionSendInput = {
    * it may skip. The send gate re-runs the restricted-text check with it.
    */
   nameCheck: { names: readonly string[]; allow: readonly string[] };
+  /**
+   * The fair-lending check (redaction.ts checkNeutralCopy) on every staff-typed
+   * text at request time, summary included, and whether staff confirmed the
+   * flagged copy. Hashed into the approval and shown to the approving broker.
+   */
+  neutralCopy: NeutralCopyRecord;
 };
+
+/** lender_outreach.neutral_copy: the flagged terms (topic and the matched words) and staff's confirmation. */
+export type NeutralCopyRecord = { flags: { topic: string; term: string }[]; confirmed: boolean };
 
 /** Shape of playbooks.ts playbookLoanTypes. */
 export type PlaybookLoanTypes = Readonly<Record<SubmissionPlaybook, readonly LenderLoanType[]>>;

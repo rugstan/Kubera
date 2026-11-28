@@ -183,12 +183,15 @@ describe("submitDealToLenders", () => {
     const w = await world("bridge", "pending");
     const input = { dealId: w.deal.id, targetStage: "screen" as const, lenderIds: [w.lenders.outOfBox.id], items: w.items, advisor: ADVISOR, actor: "broker:ana" };
     const refused = await submitDealToLenders(w.deps, input);
-    expect(refused.outcomes[0]).toMatchObject({ ok: false, error: "Outside Desert Only Capital's recorded box: CA is outside your recorded states (NV). Add a reason to submit anyway." });
+    expect(refused.outcomes[0]).toMatchObject({ ok: false, error: "Outside Desert Only Capital's recorded box: CA is outside your recorded states (NV). Give a reason to submit to this lender anyway." });
     expect(w.gate.requests).toEqual([]);
+    // The readiness reason is not a lender override.
+    const stillRefused = await submitDealToLenders(w.deps, { ...input, overrideReason: "Lender confirmed a CA exception by phone" });
+    expect(stillRefused.outcomes[0]).toMatchObject({ ok: false });
     const sent = await submitDealToLenders(w.deps, { ...input, lenderOverrideReason: "Lender confirmed a CA exception by phone" });
     expect(sent.outcomes[0]).toMatchObject({ ok: true });
-    expect(w.gate.requests[0]!.summary).toContain("Lender fit exceptions: CA is outside your recorded states (NV).");
-    expect(w.gate.requests[0]!.summary).toContain("lender fit override: Lender confirmed a CA exception by phone");
+    expect(w.gate.requests[0]!.summary).toContain("Lender fit exceptions: CA is outside your recorded states (NV) — lender override: Lender confirmed a CA exception by phone.");
+    expect(w.gate.requests[0]!.payload).toMatchObject({ fitExceptions: ["CA is outside your recorded states (NV)"], lenderOverrideReason: "Lender confirmed a CA exception by phone", overrideReason: null });
     expect(sent.prepared.lenders[0]!.email.text).toContain("Outside your recorded box: CA is outside your recorded states (NV).");
   });
 

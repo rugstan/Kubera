@@ -18,7 +18,7 @@ import type { AgentEventStore } from "@/lib/agents/core/events";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage } from "@/lib/disclosures/store";
 import type { DealDeskStore } from "@/lib/deals/store";
-import { prepareSubmission, sendPreparedToLender, type SubmissionSendDeps } from "@/lib/deals/submission/send";
+import { outreachClosed, prepareSubmission, sendPreparedToLender, type SubmissionSendDeps } from "@/lib/deals/submission/send";
 import type { EmailAdvisor, LenderFit, TargetStage } from "@/lib/deals/submission/types";
 import type { LenderPanelEntry, PackageItem } from "@/lib/deals/types";
 import { logLenderMatch } from "./decision-log";
@@ -54,9 +54,18 @@ export type SubmitInput = {
   items: PackageItem[];
   actor: string;
   allowStaleLender?: boolean;
-  /** Required to submit to a lender the matcher did not rank, or whose recorded box the request falls outside. */
+  /**
+   * The lender override: required to submit to a lender the matcher did not
+   * rank, or whose recorded box the request falls outside (20–1,000
+   * characters). Its own reason, never the readiness one; recorded only on the
+   * lenders that need it, and shown to the approving broker.
+   */
   overrideReason?: string | null;
   note?: string | null;
+  /** Staff confirmed the fair-lending flags on the staff-typed text (required when there are any). */
+  neutralCopyConfirmed?: boolean;
+  /** The requesting staff member's user id (the approvals queue refuses self-approval of an override). */
+  requestedByUser?: string | null;
   /** What the lender is asked for (default Screen). */
   targetStage?: TargetStage;
   /** The advisor who signs the email. */
@@ -136,14 +145,29 @@ async function submitPrepared(
   const admit = (lender: LenderPanelEntry, fit: LenderFit): string | null => {
     if (!m.ranked.get(lender.id) && !m.override) {
       const ex = m.match.excluded.find((e) => e.lender?.id === lender.id);
-      return `Not a match${ex ? `: ${ex.failures.join("; ")}` : " (no approved credit box covers this deal)"}. Add an override reason to submit anyway.`;
+      return `Not a match${ex ? `: ${ex.failures.join("; ")}` : " (no approved credit box covers this deal)"}. Give a lender override reason to submit to it anyway.`;
     }
-    return fit.exceptions.length && !m.override ? `Outside ${lender.name}'s recorded box: ${fit.exceptions.join("; ")}. Add an override reason to submit anyway.` : null;
+    return fit.exceptions.length && !m.override ? `Outside ${lender.name}'s recorded box: ${fit.exceptions.join("; ")}. Give a lender override reason to submit to it anyway.` : null;
   };
+  // The lender override reason is recorded (and shown to the broker) on exactly the lenders that needed it.
+  const needsLenderOverride = (lender: LenderPanelEntry, fit: LenderFit) => !m.ranked.get(lender.id) || fit.exceptions.length > 0;
   const sendDeps: SubmissionSendDeps = { ...deps.submission, desk: deps.desk, storage: deps.storage, boxes: deps.boxes, gate: deps.gate, now: deps.now, baseUrl: deps.baseUrl, mailer: deps.mailer, holds: deps.holds };
   let prepared;
   try {
-    prepared = await prepareSubmission(sendDeps, { dealId: input.dealId, targetStage: input.targetStage ?? "screen", lenderIds: m.lenderIds, items: input.items, advisor, actor: input.actor, overrideReason: input.readinessOverrideReason, admit });
+    prepared = await prepareSubmission(sendDeps, {
+      dealId: input.dealId,
+      targetStage: input.targetStage ?? "screen",
+      lenderIds: m.lenderIds,
+      items: input.items,
+      advisor,
+      actor: input.actor,
+      overrideReason: input.readinessOverrideReason,
+      lenderOverrideReason: m.override,
+      needsLenderOverride,
+      admit,
+      neutralCopyConfirmed: input.neutralCopyConfirmed,
+      note: input.note,
+    });
   } catch (err) {
     if (err instanceof PackageError) throw new OutreachError(err.message);
     throw err;
@@ -153,11 +177,14 @@ async function submitPrepared(
   if (!locked) return { outcomes, summaryItem: null };
   for (const p of prepared.lenders) {
     const candidate = m.ranked.get(p.lender.id);
-    const why = candidate ? `match ${candidate.score}/100 (${candidate.reasons.slice(0, 3).join("; ")})` : `override: ${m.override}`;
-    const note = [why, candidate && p.fit.exceptions.length ? `fit override: ${m.override}` : null, input.note?.trim()].filter(Boolean).join(" — ");
+    // The lender override's reason is in the approval itself (lenderOverrideReason); the note says how the lender was picked.
+    const why = candidate ? `match ${candidate.score}/100 (${candidate.reasons.slice(0, 3).join("; ")})` : "not ranked by the matcher";
+    const note = [why, input.note?.trim()].filter(Boolean).join(" — ");
     try {
-      const result = await sendPreparedToLender(sendDeps, locked, p, { dealId: input.dealId, actor: input.actor, allowStaleLender: input.allowStaleLender, note });
-      outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: true, result, message: outreachMessage(result), matched: Boolean(candidate) });
+      const result = await sendPreparedToLender(sendDeps, locked, p, { dealId: input.dealId, actor: input.actor, allowStaleLender: input.allowStaleLender, note, requestedByUser: input.requestedByUser ?? null });
+      // A withdrawn, rejected or expired answer is not a request in flight.
+      if (outreachClosed(result)) outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: false, error: outreachMessage(result) });
+      else outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: true, result, message: outreachMessage(result), matched: Boolean(candidate) });
     } catch (err) {
       if (err instanceof PackageError) outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: false, error: err.message });
       else throw err;

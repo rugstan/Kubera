@@ -286,6 +286,19 @@ alter table public.lender_outreach
     check (readiness_override_reason is null or length(btrim(readiness_override_reason)) between 20 and 1000),
   add column lender_fit jsonb
     check (lender_fit is null or jsonb_typeof(lender_fit) = 'object'),
+  -- Why this lender is submitted to although the matcher did not rank it, or the request falls
+  -- outside its recorded box. Its own reason, apart from the readiness reason.
+  add column lender_override_reason text
+    check (lender_override_reason is null or length(btrim(lender_override_reason)) between 20 and 1000),
+  -- The fair-lending check on the staff-typed text at request time ({flags: [{topic, term}], confirmed}):
+  -- flagged copy goes out only with staff's confirmation, and the approving broker sees both.
+  add column neutral_copy jsonb
+    check (neutral_copy is null or (
+      jsonb_typeof(neutral_copy) = 'object'
+      and jsonb_typeof(neutral_copy -> 'flags') = 'array'
+      and jsonb_typeof(neutral_copy -> 'confirmed') = 'boolean'
+      and (jsonb_array_length(neutral_copy -> 'flags') = 0 or (neutral_copy ->> 'confirmed')::boolean)
+    )),
   -- The text the broker approved, with {{SHARE_LINK}} and {{LINK_EXPIRES}} placeholders
   -- (the link exists only after approval). email_sha256 is in the approval payload:
   -- the SHA-256 of the subject and text together (lib/deals/submission/email.ts emailSha256).
@@ -306,7 +319,7 @@ alter table public.lender_outreach
     check (email_sha256 is null or email_sha256 = encode(sha256(convert_to(email_subject || chr(10) || email_text, 'UTF8')), 'hex')),
   -- No restricted identifier in the subject, the body or the staff reason (the app's anchored patterns, normalized).
   add constraint lender_outreach_email_no_restricted
-    check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason)));
+    check (not public.submission_text_restricted(concat_ws(chr(31), email_subject, email_text, readiness_override_reason, lender_override_reason)));
 
 -- 5. Audit -----------------------------------------------------------------------
 -- audit_row_change_redacted() wrote deal_id = null because its first tables

@@ -21,7 +21,7 @@ import { dealSummaryPackageItem, sha256Hex, summaryStoragePath } from "@/lib/age
 import type { CreditBox } from "@/lib/agents/lenders/types";
 import type { ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DocumentStorage } from "@/lib/disclosures/store";
-import { PackageError, assertDealCanGoToLenders, lockPackageVersion, outreachMessage, sendPackageToLender, type DealHoldReader, type LenderMailer, type SendPackageResult } from "../packages";
+import { CLOSED_OUTREACH_STATUSES, PackageError, assertDealCanGoToLenders, fairLendingMessage, lockPackageVersion, outreachMessage, sendPackageToLender, type DealHoldReader, type LenderMailer, type SendPackageResult } from "../packages";
 import type { DealDeskStore } from "../store";
 import type { DealPackage, LenderPanelEntry, PackageItem } from "../types";
 import { buildLenderEmail, emailLenderFrom, emailNameCheck, type LenderEmail } from "./email";
@@ -29,7 +29,7 @@ import { evaluateReadiness, lenderSafeMissingLabels, notReadyMessage } from "./r
 import { EmailSafetyError, checkNeutralCopy, findRestrictedText, restrictedTextMessage, type NeutralCopyFlag } from "./redaction";
 import { buildDealSummary, staffTypedText, summarySpecSha256 } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
-import { OVERRIDE_REASON_LENGTH, type DealSummaryRecord, type DealSummarySpec, type EmailAdvisor, type LenderFit, type Readiness, type SubmissionContext, type SubmissionMetrics, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./types";
+import { OVERRIDE_REASON_LENGTH, type DealSummaryRecord, type DealSummarySpec, type EmailAdvisor, type LenderFit, type NeutralCopyRecord, type Readiness, type SubmissionContext, type SubmissionMetrics, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./types";
 
 /**
  * What the integrator wires (lib/deals/runtime.ts and the lender desk runtime).
@@ -100,9 +100,39 @@ export type PrepareInput = {
   actor: string;
   /** Why to send with required items missing (20–1000 characters); shown to the approving broker. */
   overrideReason?: string | null;
+  /**
+   * Why to submit to a lender outside its recorded box (or, on the matching
+   * desk, one the matcher did not rank): its own reason, 20–1000 characters,
+   * apart from the readiness reason. Recorded only on the lenders that need it.
+   */
+  lenderOverrideReason?: string | null;
+  /** Whether a lender needs the lender override reason (default: its fit has exceptions). */
+  needsLenderOverride?: (lender: LenderPanelEntry, fit: LenderFit) => boolean;
   /** Decides, before anything is stored, whether a lender may be submitted to; returns the refusal, or null to admit. */
   admit?: (lender: LenderPanelEntry, fit: LenderFit) => string | null;
+  /** Staff confirmed the fair-lending flags on the staff-typed text (spec 6.5); required when there are any. */
+  neutralCopyConfirmed?: boolean;
+  /** The note for the approving broker: staff-typed, so the fair-lending check reads it too. */
+  note?: string | null;
 };
+
+/** Every staff-typed text a request carries: the summary's and the email's (staffTypedText), the reasons and the note. */
+export function requestStaffText(ctx: SubmissionContext, input: Pick<PrepareInput, "overrideReason" | "lenderOverrideReason" | "note">): string[] {
+  return [...staffTypedText(ctx), input.overrideReason, input.lenderOverrideReason, input.note].filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+}
+
+/** The fair-lending record a request carries: the flags (topic and term) and whether staff confirmed them. */
+export function neutralCopyFor(flags: readonly NeutralCopyFlag[], confirmed: boolean): NeutralCopyRecord {
+  const seen = new Set<string>();
+  const out: NeutralCopyRecord["flags"] = [];
+  for (const f of flags) {
+    const key = `${f.topic}:${f.term.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ topic: f.topic, term: f.term });
+  }
+  return { flags: out.sort((a, b) => a.topic.localeCompare(b.topic) || a.term.localeCompare(b.term)), confirmed: out.length > 0 && confirmed };
+}
 
 function uniqueLenderIds(ids: readonly string[]): string[] {
   const out = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
@@ -121,12 +151,16 @@ function gateReadiness(readiness: Readiness, overrideReason: string | null | und
   if (!readiness.missing.length) return null;
   const reason = overrideReason?.trim() || null;
   if (!reason) throw new PackageError("not_ready", notReadyMessage(readiness.stage, missingLabels(readiness)));
+  return checkedReason(reason, "to send with items missing");
+}
+
+/** A written reason as stored: 20–1000 characters after trimming, and free of restricted identifiers (the same rules as every free text). */
+function checkedReason(reason: string, what: string): string {
   if (reason.length < OVERRIDE_REASON_LENGTH.min || reason.length > OVERRIDE_REASON_LENGTH.max) {
-    throw new PackageError("not_ready", `The reason to send with items missing must be ${OVERRIDE_REASON_LENGTH.min} to ${OVERRIDE_REASON_LENGTH.max} characters.`);
+    throw new PackageError("not_ready", `The reason ${what} must be ${OVERRIDE_REASON_LENGTH.min} to ${OVERRIDE_REASON_LENGTH.max} characters.`);
   }
-  // Stored on the submission and shown to the approving broker: the same restricted-text rules as every other free text.
   const findings = findRestrictedText(reason);
-  if (findings.length) throw new PackageError("not_ready", `The reason to send anyway: ${restrictedTextMessage(findings)}`);
+  if (findings.length) throw new PackageError("not_ready", `The reason ${what}: ${restrictedTextMessage(findings)}`);
   return reason;
 }
 
@@ -201,6 +235,12 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
   const lenderOpenItems = lenderSafeMissingLabels(readiness, ctx);
   // Pure, so overclaiming or unsafe staff text stops the batch before anything is stored.
   const spec = buildDealSummary(ctx, metrics, input.targetStage, { openItems, advisor: { name: input.advisor.name, email: input.advisor.email, dreLicense: input.advisor.dreLicense } });
+  // Fair lending (spec 6.5): every staff-typed text the request carries, summary included; flagged copy needs staff's confirmation.
+  const neutralCopy = neutralCopyFor(checkNeutralCopy(requestStaffText(ctx, input)), Boolean(input.neutralCopyConfirmed));
+  if (neutralCopy.flags.length && !neutralCopy.confirmed) throw new PackageError("not_ready", fairLendingMessage(neutralCopy));
+  const lenderOverride = input.lenderOverrideReason?.trim() || null;
+  if (lenderOverride) checkedReason(lenderOverride, "to submit to a lender outside its recorded box");
+  const needsOverride = input.needsLenderOverride ?? ((_l: LenderPanelEntry, fit: LenderFit) => fit.exceptions.length > 0);
 
   // Each lender's fit, admission and email are decided before anything is stored.
   const [panel, boxes] = await Promise.all([deps.desk.listLenders(), deps.boxes ? deps.boxes.listBoxes({ status: "approved" }) : Promise.resolve([] as CreditBox[])]);
@@ -215,7 +255,7 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
       continue;
     }
     const fit = lenderFit(lender, boxes, tailorDeal, metrics.metrics);
-    const refusal = input.admit?.(lender, fit) ?? null;
+    const refusal = input.admit?.(lender, fit) ?? (needsOverride(lender, fit) && !lenderOverride ? fitRefusal(lender, fit, null) : null);
     if (refusal) {
       skipped.push({ lenderId, lenderName: lender.name, error: refusal, fit });
       continue;
@@ -271,9 +311,11 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
         summaryId: summary.id,
         readiness: { missing: [...readiness.missing], hardStops: [...readiness.hardStops], score: readiness.score },
         ...(overrideReason ? { overrideReason } : {}),
+        ...(lenderOverride && needsOverride(lender, fit) ? { lenderOverrideReason: lenderOverride } : {}),
         fit,
         email: { subject: email.subject, text: email.text, sha256: email.sha256 },
         nameCheck: emailNameCheck(ctx, emailLenderFrom(lender), input.advisor),
+        neutralCopy,
       },
     };
   });
@@ -281,11 +323,10 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
 }
 
 export type SubmitDealInput = PrepareInput & {
-  /** Required to submit to a lender whose fit has exceptions (spec 5.6); shown to the approving broker. */
-  lenderOverrideReason?: string | null;
   allowStaleLender?: boolean;
-  note?: string | null;
   ttlDays?: number;
+  /** The requesting staff member's user id (the approvals queue refuses self-approval of an override). */
+  requestedByUser?: string | null;
 };
 
 export type SubmitDealOutcome =
@@ -299,17 +340,22 @@ export async function sendPreparedToLender(
   deps: Omit<SubmissionSendDeps, "storage" | "renderPdf" | "loadContext" | "computeMetrics" | "boxes">,
   locked: Pick<LockedSubmission, "items">,
   lender: PreparedLender,
-  opts: { dealId: string; actor: string; allowStaleLender?: boolean; note?: string | null; ttlDays?: number },
+  opts: { dealId: string; actor: string; allowStaleLender?: boolean; note?: string | null; ttlDays?: number; requestedByUser?: string | null },
 ): Promise<SendPackageResult> {
   return sendPackageToLender(
     { store: deps.desk, gate: deps.gate, now: deps.now, baseUrl: deps.baseUrl, mailer: deps.mailer, holds: deps.holds, summaries: deps.summaries },
-    { dealId: opts.dealId, lenderId: lender.lender.id, items: locked.items, actor: opts.actor, ttlDays: opts.ttlDays, allowStaleLender: opts.allowStaleLender, note: opts.note ?? undefined, submission: lender.submission },
+    { dealId: opts.dealId, lenderId: lender.lender.id, items: locked.items, actor: opts.actor, ttlDays: opts.ttlDays, allowStaleLender: opts.allowStaleLender, note: opts.note ?? undefined, requestedByUser: opts.requestedByUser ?? null, submission: lender.submission },
   );
 }
 
-/** The refusal for a lender the request falls outside of, when no reason was given (spec 5.6). */
+/** The refusal for a lender the request falls outside of, when no lender override reason was given (spec 5.6). */
 export function fitRefusal(lender: Pick<LenderPanelEntry, "name">, fit: LenderFit, reason: string | null): string | null {
-  return fit.exceptions.length && !reason ? `Outside ${lender.name}'s recorded box: ${fit.exceptions.join("; ")}. Add a reason to submit anyway.` : null;
+  return fit.exceptions.length && !reason ? `Outside ${lender.name}'s recorded box: ${fit.exceptions.join("; ")}. Give a reason to submit to this lender anyway.` : null;
+}
+
+/** A request that ended without going ahead (withdrawn, rejected or expired): never counted as requested. */
+export function outreachClosed(result: SendPackageResult): boolean {
+  return CLOSED_OUTREACH_STATUSES.includes(result.outreach.status);
 }
 
 /**
@@ -320,16 +366,16 @@ export function fitRefusal(lender: Pick<LenderPanelEntry, "name">, fit: LenderFi
  * email for staff to send by hand; nothing is emailed.
  */
 export async function submitDealToLenders(deps: SubmissionSendDeps, input: SubmitDealInput): Promise<SubmitDealResult> {
-  const lenderOverride = input.lenderOverrideReason?.trim() || null;
-  const prepared = await prepareSubmission(deps, { ...input, admit: (lender, fit) => input.admit?.(lender, fit) ?? fitRefusal(lender, fit, lenderOverride) });
+  const prepared = await prepareSubmission(deps, input);
   const outcomes: SubmitDealOutcome[] = prepared.skipped.map((s) => ({ lenderId: s.lenderId, lenderName: s.lenderName, ok: false as const, error: s.error, fit: s.fit }));
   const locked = prepared.locked;
   if (!locked) return { prepared, outcomes };
   for (const p of prepared.lenders) {
-    const note = [p.fit.exceptions.length && lenderOverride ? `lender fit override: ${lenderOverride}` : null, input.note?.trim() || null].filter(Boolean).join(" — ") || null;
     try {
-      const result = await sendPreparedToLender(deps, locked, p, { dealId: prepared.ctx.deal.id, actor: input.actor, allowStaleLender: input.allowStaleLender, note, ttlDays: input.ttlDays });
-      outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: true, result, message: outreachMessage(result), fit: p.fit });
+      const result = await sendPreparedToLender(deps, locked, p, { dealId: prepared.ctx.deal.id, actor: input.actor, allowStaleLender: input.allowStaleLender, note: input.note?.trim() || null, ttlDays: input.ttlDays, requestedByUser: input.requestedByUser ?? null });
+      // A withdrawn, rejected or expired answer is not a request in flight.
+      if (outreachClosed(result)) outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: false, error: outreachMessage(result), fit: p.fit });
+      else outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: true, result, message: outreachMessage(result), fit: p.fit });
     } catch (err) {
       if (err instanceof PackageError) outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: false, error: err.message, fit: p.fit });
       else throw err;
