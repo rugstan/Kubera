@@ -66,7 +66,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
   if (!deal) notFound();
   // Approved with email to lenders off: the link and the approved email, shown once (spec 5.1 step 6).
   // The page only learns that one is waiting; OneTimeApprovedEmail claims it (and deletes it) on first render.
-  const [sharePending, outreachRows] = await Promise.all([hasPendingShareLink(), rt.store.listOutreach(deal.id)]);
+  const [sharePending, outreachRows] = await Promise.all([hasPendingShareLink(deal.id), rt.store.listOutreach(deal.id)]);
   const approvedOutreachIds = outreachRows.filter((o) => o.status === "approved").map((o) => o.id);
   const write = can(staff, "write");
   const officer = can(staff, "officer");
