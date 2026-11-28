@@ -1,39 +1,12 @@
-import { PackageCopyError, buildExecutiveSummary } from "@/lib/agents/lenders/package";
-import { lenderRuntime, renderSummaryPdf, savedSpreadsFor } from "@/lib/agents/lenders/runtime";
-import { currentStaff } from "@/lib/deals/runtime";
-import { FormInputError, mergeSavedSpreads, metricsFromSource, withSavedSpreadDefaults } from "../../../_lib/forms";
-
-// Staff-only preview of the executive summary PDF for a deal, from the deal
-// record and the metrics in the query string. What a lender receives is the
-// copy locked into the package when a submission is approved.
+// The executive summary preview moved to the deal's lender submission: the
+// summary is built from the stored submission profile, not from figures in a
+// query string. Old links redirect there; that route checks the staff session.
 
 const noStore = { "cache-control": "no-store", "x-robots-tag": "noindex" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const staff = await currentStaff();
-  if (!staff) return Response.json({ error: "Staff sign-in required" }, { status: 401, headers: noStore });
-  const rt = lenderRuntime();
-  if (!rt) return Response.json({ error: "Lender matching storage is not configured" }, { status: 503, headers: noStore });
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   if (!UUID.test(id)) return Response.json({ error: "Not found" }, { status: 404, headers: noStore });
-  const deal = await rt.desk.store.getDeal(id);
-  if (!deal) return Response.json({ error: "Not found" }, { status: 404, headers: noStore });
-  try {
-    // Saved spreads (from the borrower's documents) fill whatever the query leaves blank.
-    const saved = await savedSpreadsFor(rt, deal);
-    const metrics = metricsFromSource(withSavedSpreadDefaults(new URL(req.url).searchParams, saved), deal.loanAmountCents);
-    const spec = buildExecutiveSummary({
-      deal: { ...deal, loanAmountCents: metrics.overrides.loanAmountCents ?? deal.loanAmountCents },
-      assetClass: metrics.overrides.assetClass ?? null,
-      spreads: mergeSavedSpreads(metrics.spreads, saved),
-      asOf: rt.desk.now().toISOString().slice(0, 10),
-      advisor: { name: staff.name, email: staff.email, dreLicense: staff.dreLicense },
-    });
-    const pdf = await renderSummaryPdf(spec);
-    return new Response(new Uint8Array(pdf), { headers: { ...noStore, "content-type": "application/pdf", "content-disposition": `inline; filename="executive-summary-preview.pdf"` } });
-  } catch (err) {
-    if (err instanceof FormInputError || err instanceof PackageCopyError) return Response.json({ error: err.message }, { status: 400, headers: noStore });
-    throw err;
-  }
+  return new Response(null, { status: 308, headers: { ...noStore, location: `/deals/${id.toLowerCase()}/submission/summary.pdf` } });
 }

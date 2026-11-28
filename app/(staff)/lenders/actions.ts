@@ -3,29 +3,28 @@
 // Server actions for the lenders desk. Each verifies the staff session and
 // permission itself (a layout guard does not protect server actions), runs
 // one operation from lib/agents/lenders, and redirects back with a notice or
-// error. Outbound submissions go through the broker approval gate; nothing
-// here sends mail directly.
+// error. Lender submissions are requested from the deal's submission flow
+// (app/(staff)/deals/[id]/submission/actions.ts), which the matching desk's
+// submit form posts to; nothing here sends mail.
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { agentSafety } from "@/lib/agents/core/server";
 import { AllInError } from "@/lib/agents/lenders/all-in";
 import { CreditBoxError } from "@/lib/agents/lenders/credit-box";
-import { OutreachError, submitToLenders } from "@/lib/agents/lenders/outreach";
 import { PackageCopyError } from "@/lib/agents/lenders/package";
-import { indexRatesFromEnv, lenderRuntime, modelGateway, savedSpreadsFor, type LenderRuntime } from "@/lib/agents/lenders/runtime";
-import { LenderMatchError, addStaffQuote, dealProfile, importLenderRegistrations, ingestTermSheets, reviewCreditBox, reviewQuote, saveCreditBox, setQuoteStatus, verifyCreditBox } from "@/lib/agents/lenders/service";
+import { indexRatesFromEnv, lenderRuntime, modelGateway, type LenderRuntime } from "@/lib/agents/lenders/runtime";
+import { LenderMatchError, addStaffQuote, importLenderRegistrations, ingestTermSheets, reviewCreditBox, reviewQuote, saveCreditBox, setQuoteStatus, verifyCreditBox } from "@/lib/agents/lenders/service";
 import { LenderStoreError } from "@/lib/agents/lenders/store";
 import { quoteStatuses, type CreditBoxStatus, type QuoteStatus } from "@/lib/agents/lenders/types";
 import { currentStaff } from "@/lib/deals/runtime";
 import { StaffAccessError, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { PackageError } from "@/lib/deals/packages";
 import { MoneyError } from "@/lib/deals/money";
-import { FormInputError, boxTermsFromForm, lines, list, mergeSavedSpreads, metricsFromSource, quoteTermsFromForm } from "./_lib/forms";
+import { FormInputError, boxTermsFromForm, quoteTermsFromForm } from "./_lib/forms";
 
-const KNOWN = [StaffAccessError, CreditBoxError, LenderMatchError, LenderStoreError, OutreachError, PackageCopyError, PackageError, AllInError, FormInputError, MoneyError];
+const KNOWN = [StaffAccessError, CreditBoxError, LenderMatchError, LenderStoreError, PackageCopyError, PackageError, AllInError, FormInputError, MoneyError];
 
 function messageOf(err: unknown): string {
   if (err instanceof ZodError) return err.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
@@ -119,50 +118,6 @@ export async function reviewBoxAction(f: FormData): Promise<never> {
     }
     const box = await reviewCreditBox(deps, { id, expectedVersion: int(f, "recordVersion"), to: op, note: str(f, "note") || null, lenderId: str(f, "lenderId") || null, verify: str(f, "verify") === "on" }, staff.actor);
     return `${box.label}: ${box.status.replace("_", " ")}.`;
-  });
-}
-
-// Outreach ---------------------------------------------------------------------------------
-
-export async function submitOutreachAction(f: FormData): Promise<never> {
-  const back = backTo(f);
-  return run(back, "write", async ({ staff, rt }) => {
-    const dealId = str(f, "dealId");
-    dealPath(dealId);
-    const deal = await rt.desk.store.getDeal(dealId);
-    if (!deal) throw new LenderMatchError("Deal not found");
-    const documentIds = list(f, "documentId");
-    if (documentIds.length && !deal.leadId) throw new LenderMatchError("Link the deal to its lead so vault documents can be packaged");
-    const items = documentIds.length && deal.leadId ? await rt.desk.vaultItems(deal.leadId, documentIds) : [];
-    const metrics = metricsFromSource(f, deal.loanAmountCents);
-    const saved = await savedSpreadsFor(rt, deal);
-    const includeSummary = str(f, "includeSummary") === "on";
-    const asOf = rt.desk.now().toISOString().slice(0, 10);
-    const r = await submitToLenders(rt.outreach, {
-      dealId,
-      profile: dealProfile(deal, metrics.overrides),
-      lenderIds: list(f, "lenderId"),
-      items,
-      summary: includeSummary
-        ? {
-            asOf,
-            assetClass: metrics.overrides.assetClass ?? null,
-            spreads: mergeSavedSpreads(metrics.spreads, saved),
-            highlights: lines(f, "highlights"),
-            risks: lines(f, "risks"),
-            purpose: str(f, "purpose") || null,
-            advisor: { name: staff.name, email: staff.email, dreLicense: staff.dreLicense },
-          }
-        : null,
-      actor: staff.actor,
-      allowStaleLender: str(f, "allowStale") === "on",
-      overrideReason: str(f, "overrideReason") || null,
-      note: str(f, "note") || null,
-    });
-    // One-time share links (approved, no mailer configured) are shown once on the next view, never put in the URL.
-    const urls = r.outcomes.flatMap((o) => (o.ok && o.result.shareUrl ? [{ lender: o.lenderName, url: o.result.shareUrl }] : []));
-    if (urls.length) (await cookies()).set("lender_share_urls", JSON.stringify(urls), { httpOnly: true, secure: true, sameSite: "strict", path: `/lenders/deals/${dealId}`, maxAge: 120 });
-    return r.outcomes.map((o) => `${o.lenderName}: ${o.ok ? o.message : o.error}`).join(" · ");
   });
 }
 

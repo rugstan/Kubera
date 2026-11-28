@@ -130,16 +130,22 @@ export function quoteTermsFromForm(f: Source): QuoteTerms {
   };
 }
 
-/** Matching inputs and summary metrics from the deal-metrics form (query string or hidden fields). */
-export function metricsFromSource(f: Source, dealLoanCents: number | null = null): { overrides: ProfileOverrides; spreads: PackageSpreads; holdMonths: number | null; reinvestmentRatePct: number | null } {
+/**
+ * Matching inputs and summary metrics from the deal-metrics form (query string).
+ * No ratio is read from the form: LTV, LTC and debt yield are derived from the
+ * loan, value, cost and NOI, and DSCR comes from the deal's submission profile
+ * (computed at its assumed sizing terms). A typed `ltv`, `ltc`, `dscr` or
+ * `debtYield` parameter is ignored.
+ */
+export function metricsFromSource(
+  f: Source,
+  dealLoanCents: number | null = null,
+  computed: { dscr?: number | null } = {},
+): { overrides: ProfileOverrides; spreads: PackageSpreads; holdMonths: number | null; reinvestmentRatePct: number | null } {
   const noiCents = optCents(f, "noi", "NOI");
   const valueCents = optCents(f, "value", "Value");
   const costCents = optCents(f, "cost", "Total cost");
   const loanAmountCents = optCents(f, "loan", "Loan amount");
-  let ltvPct = optNum(f, "ltv", "LTV");
-  let ltcPct = optNum(f, "ltc", "LTC");
-  const dscr = optNum(f, "dscr", "DSCR");
-  let debtYieldPct = optNum(f, "debtYield", "Debt yield");
   const overrides: ProfileOverrides = {};
   if (loanAmountCents !== null) overrides.loanAmountCents = loanAmountCents;
   const state = str(f, "state").toUpperCase();
@@ -152,11 +158,11 @@ export function metricsFromSource(f: Source, dealLoanCents: number | null = null
   const close = optInt(f, "closeDays", "Days to close");
   if (close !== null) overrides.targetCloseDays = close;
   if (str(f, "franchise")) overrides.franchise = str(f, "franchise").slice(0, 120);
-  // Ratios the deal's numbers imply, when not typed.
   const loanForRatios = loanAmountCents ?? dealLoanCents;
-  if (ltvPct === null && loanForRatios && valueCents) ltvPct = Math.round((loanForRatios / valueCents) * 10_000) / 100;
-  if (ltcPct === null && loanForRatios && costCents) ltcPct = Math.round((loanForRatios / costCents) * 10_000) / 100;
-  if (debtYieldPct === null && loanForRatios && noiCents) debtYieldPct = Math.round((noiCents / loanForRatios) * 10_000) / 100;
+  const ltvPct = loanForRatios && valueCents ? Math.round((loanForRatios / valueCents) * 10_000) / 100 : null;
+  const ltcPct = loanForRatios && costCents ? Math.round((loanForRatios / costCents) * 10_000) / 100 : null;
+  const debtYieldPct = loanForRatios && noiCents !== null ? Math.round((noiCents / loanForRatios) * 10_000) / 100 : null;
+  const dscr = typeof computed.dscr === "number" && Number.isFinite(computed.dscr) ? computed.dscr : null;
   if (ltvPct !== null) overrides.ltvPct = ltvPct;
   if (ltcPct !== null) overrides.ltcPct = ltcPct;
   if (dscr !== null) overrides.dscr = dscr;
@@ -166,8 +172,45 @@ export function metricsFromSource(f: Source, dealLoanCents: number | null = null
   return { overrides, spreads, holdMonths: optInt(f, "hold", "Hold"), reinvestmentRatePct: optNum(f, "reinvest", "Reinvestment rate") };
 }
 
-/** The metric field names carried from the GET form into the submission form. */
-export const METRIC_FIELDS = ["loan", "state", "assetClass", "lien", "nonRecourse", "closeDays", "franchise", "ltv", "ltc", "dscr", "debtYield", "noi", "value", "cost", "occupancy", "hold", "reinvest"] as const;
+/** The metric field names the GET form carries (no ratio: those are computed). `submitted` marks a form the staff member sent. */
+export const METRIC_FIELDS = ["loan", "state", "assetClass", "lien", "nonRecourse", "closeDays", "franchise", "noi", "value", "cost", "occupancy", "hold", "reinvest", "submitted"] as const;
+
+/** What the deal's submission profile says, as the matching form's starting values (app/(staff)/deals/[id]/submission/_lib/data.ts matchingDefaults). */
+export type ProfileMetricDefaults = {
+  noiCents: number | null;
+  valueCents: number | null;
+  costCents: number | null;
+  occupancyPct: number | null;
+  lien: "first" | "second" | null;
+  nonRecourse: boolean;
+  closeDays: number | null;
+  assetClass: AssetClass | null;
+};
+
+/**
+ * The deal-metrics query with blanks filled from the submission profile. The
+ * figures fill any blank; the choices (asset class, lien, non-recourse, days to
+ * close) only on first load, before the staff member has sent the form, since
+ * an unticked box and a cleared field are answers too.
+ */
+export function withProfileDefaults(query: URLSearchParams, d: ProfileMetricDefaults | null): URLSearchParams {
+  if (!d) return query;
+  const q = new URLSearchParams(query);
+  const fill = (k: string, v: number | string | null) => {
+    if (!q.get(k) && v !== null) q.set(k, String(v));
+  };
+  fill("noi", d.noiCents !== null ? d.noiCents / 100 : null);
+  fill("value", d.valueCents !== null ? d.valueCents / 100 : null);
+  fill("cost", d.costCents !== null ? d.costCents / 100 : null);
+  fill("occupancy", d.occupancyPct);
+  if (!q.has("submitted")) {
+    fill("assetClass", d.assetClass);
+    fill("lien", d.lien);
+    fill("closeDays", d.closeDays);
+    if (d.nonRecourse && !q.get("nonRecourse")) q.set("nonRecourse", "on");
+  }
+  return q;
+}
 
 /** The saved-spread fields the desk uses (lib/spreads/workflow SavedPackageSpreads). */
 export type SavedSpreadDefaults = {

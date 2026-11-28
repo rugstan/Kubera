@@ -22,7 +22,10 @@ test.describe("lenders desk without a staff session", () => {
     });
   }
 
-  test("the executive summary preview answers 401 without a session", async ({ request }) => {
+  test("the old summary preview redirects to the deal's submission summary, which answers 401 without a session", async ({ request }) => {
+    const moved = await request.get(`/lenders/deals/${DEAL}/package?ltv=75&dscr=1.4`, { maxRedirects: 0 });
+    expect(moved.status()).toBe(308);
+    expect(moved.headers()["location"]).toBe(`/deals/${DEAL}/submission/summary.pdf`);
     const res = await request.get(`/lenders/deals/${DEAL}/package`);
     expect(res.status()).toBe(401);
     expect(res.headers()["cache-control"]).toContain("no-store");
