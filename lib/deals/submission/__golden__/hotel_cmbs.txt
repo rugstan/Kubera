@@ -28,7 +28,6 @@ THE NUMBERS
   Underwritten NOI:  $2,050,000 (Corin normalization of the operating statement)
   Debt yield:        14.5% in place
   LTV:               59.6% as-is (Corin calculation)
-  LTC:               100% of $14,900,000 total cost
   DSCR:              1.69x in place at an assumed 7.1% / 25-year schedule — an assumption, not a quote
   Loan per key:      $112,879
 

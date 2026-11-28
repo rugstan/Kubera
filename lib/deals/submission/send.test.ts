@@ -10,7 +10,7 @@ import { emailSha256 } from "./email";
 import { playbookLoanTypes } from "./playbooks";
 import { prepareSubmission, previewSubmission, submitDealToLenders, type SubmissionSendDeps } from "./send";
 import { summarySpecSha256 } from "./summary";
-import { stubSubmissionMetrics } from "./test-metrics";
+import { computeSubmissionMetrics } from "./metrics";
 import { submissionFixture } from "./test-fixtures";
 import { EMAIL_PLACEHOLDERS, type DealSummaryRecord, type DealSummarySpec, type SubmissionContext, type SubmissionPlaybook } from "./types";
 
@@ -61,7 +61,7 @@ async function world(playbook: SubmissionPlaybook = "bridge", gateDefault: "appr
     storage,
     renderPdf: async (spec) => (renders.push(spec), new TextEncoder().encode(JSON.stringify(spec))),
     loadContext: async (id) => (id === deal.id ? ctx : null),
-    computeMetrics: stubSubmissionMetrics,
+    computeMetrics: computeSubmissionMetrics,
     boxes: null,
     gate,
     now,
@@ -227,7 +227,7 @@ describe("previewSubmission", () => {
   it("writes nothing, calls no gate, and shows the same email the approval will carry", async () => {
     const w = await world();
     const lenders = [w.lenders.a, w.lenders.b];
-    const preview = previewSubmission({ ctx: w.ctx, metrics: stubSubmissionMetrics(w.ctx), stage: "term_sheet", lenders, boxes: [], documents: w.items, advisor: ADVISOR });
+    const preview = previewSubmission({ ctx: w.ctx, metrics: computeSubmissionMetrics(w.ctx), stage: "term_sheet", lenders, boxes: [], documents: w.items, advisor: ADVISOR });
     expect(w.summaries.rows.size).toBe(0);
     expect(w.storage.objects.size).toBe(0);
     expect(await w.store.listPackages(w.deal.id)).toEqual([]);
@@ -247,11 +247,11 @@ describe("previewSubmission", () => {
     const w = await world();
     // A principal's name is fine behind the link but never in the email body.
     w.ctx.profile!.exitDetail = `${w.ctx.principals[1]!.legalName} will sign the completion guaranty. His wife co-owns the business.`;
-    const preview = previewSubmission({ ctx: w.ctx, metrics: stubSubmissionMetrics(w.ctx), stage: "screen", lenders: [w.lenders.a], boxes: [], documents: w.items, advisor: ADVISOR });
+    const preview = previewSubmission({ ctx: w.ctx, metrics: computeSubmissionMetrics(w.ctx), stage: "screen", lenders: [w.lenders.a], boxes: [], documents: w.items, advisor: ADVISOR });
     expect(preview.lenders[0]).toMatchObject({ ok: false, error: expect.stringMatching(/guarantor's or principal's name/) });
     expect(preview.neutralCopy.map((f) => f.topic)).toEqual(["sex"]);
     const ctx = submissionFixture("bridge");
     ctx.profile!.exitDetail = "Guarantor SSN 123-45-6789 on file";
-    expect(() => previewSubmission({ ctx, metrics: stubSubmissionMetrics(ctx), stage: "screen", lenders: [], boxes: [], documents: [], advisor: ADVISOR })).toThrow(/Social Security/);
+    expect(() => previewSubmission({ ctx, metrics: computeSubmissionMetrics(ctx), stage: "screen", lenders: [], boxes: [], documents: [], advisor: ADVISOR })).toThrow(/Social Security/);
   });
 });

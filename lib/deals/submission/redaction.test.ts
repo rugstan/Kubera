@@ -5,7 +5,7 @@ import { buildLenderEmail, emailLenderFrom } from "./email";
 import { EmailSafetyError, assertEmailSafe, checkNeutralCopy, findRestrictedText, guarantorCovenantLine, isFreeTextSafe, restrictedTextMessage } from "./redaction";
 import { fmt } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
-import { stubSubmissionMetrics } from "./test-metrics";
+import { computeSubmissionMetrics } from "./metrics";
 import { allSubmissionFixtures, submissionFixture } from "./test-fixtures";
 import { emailFinancialsModes, submissionPlaybooks, type SponsorStrength, type SubmissionContext } from "./types";
 
@@ -99,7 +99,7 @@ describe("property: no restricted value reaches a lender email", () => {
   const LAST = ["Quarrington", "Featherstonehaugh", "Ellsworth-Pike", "Vandermolen", "Okonkwo-Reyes", "Thistlethwaite", "Abernathy", "Castellanos", "Lindqvist", "Marchetti"];
 
   function emailFor(ctx: SubmissionContext) {
-    const metrics = stubSubmissionMetrics(ctx);
+    const metrics = computeSubmissionMetrics(ctx);
     const panel = toPanelEntry(lenderInput({ name: "Harborline Capital", programs: [ctx.deal.program] }), "lender-p", [{ id: "c1", fullName: "Dana Whitfield", email: "dana@harborline.example", isPrimary: true, status: "active" }]);
     return buildLenderEmail({
       ctx,

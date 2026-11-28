@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CHECKLIST_REQUIREMENT_PREFIX, defaultTargetStage, evaluateAllStages, evaluateReadiness, lenderSafeMissingLabels, notReadyMessage, readinessHeadline } from "./readiness";
 import { computeSubmissionMetrics } from "./metrics";
-import { stubSubmissionMetrics } from "./test-metrics";
 import { submissionFixture } from "./test-fixtures";
 
-const ready = (ctx = submissionFixture("bridge"), stage: "screen" | "term_sheet" | "underwrite" = "screen") => evaluateReadiness(ctx, stubSubmissionMetrics(ctx), stage);
+const ready = (ctx = submissionFixture("bridge"), stage: "screen" | "term_sheet" | "underwrite" = "screen") => evaluateReadiness(ctx, computeSubmissionMetrics(ctx), stage);
 
 describe("evaluateReadiness", () => {
   it("scores met required items as a whole-number percent and is ready only when all are met", () => {
@@ -126,12 +125,12 @@ describe("evaluateReadiness", () => {
 
   it("picks the highest ready stage by default and never says approved or qualified", () => {
     const ctx = submissionFixture("bridge");
-    const all = evaluateAllStages(ctx, stubSubmissionMetrics(ctx));
+    const all = evaluateAllStages(ctx, computeSubmissionMetrics(ctx));
     expect(defaultTargetStage(all)).toBe("term_sheet");
     expect(readinessHeadline(all.term_sheet)).toBe("Lender-ready for a term sheet");
     expect(readinessHeadline(all.underwrite)).toMatch(/^Underwrite: \d+ of \d+ required items in hand$/);
     ctx.profile!.purpose = null;
-    expect(defaultTargetStage(evaluateAllStages(ctx, stubSubmissionMetrics(ctx)))).toBe("screen");
+    expect(defaultTargetStage(evaluateAllStages(ctx, computeSubmissionMetrics(ctx)))).toBe("screen");
     for (const r of Object.values(all)) expect(readinessHeadline(r)).not.toMatch(/approv|qualif/i);
   });
 

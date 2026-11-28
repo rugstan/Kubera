@@ -326,7 +326,8 @@ function pickHeadline(playbook: ReturnType<typeof playbookOf>, metrics: Submissi
     tiles.push({ label: headlineLabel(m), value: formatMetricValue(m)! });
   };
   for (const alternatives of headlineMetricKeys(playbook)) push(alternatives.map((k) => metricOf(metrics, k)).find(Boolean) ?? null);
-  for (const k of ["ltv_as_is", "ltc", "dscr_in_place", "debt_yield_in_place", "ltarv", "yield_on_cost"] as const) {
+  // Then the usual in-place figures; a project not yet built (construction) has only stabilized ones.
+  for (const k of ["ltv_as_is", "ltc", "dscr_in_place", "debt_yield_in_place", "ltarv", "yield_on_cost", "ltv_stabilized", "debt_yield_stabilized"] as const) {
     if (tiles.length >= 5) break;
     push(metricOf(metrics, k));
   }

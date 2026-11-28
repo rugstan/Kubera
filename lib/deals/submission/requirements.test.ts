@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateReadiness } from "./readiness";
 import { SUBMISSION_REQUIREMENTS, requirementById, requirementLabel, requirementLevel } from "./requirements";
-import { stubSubmissionMetrics } from "./test-metrics";
+import { computeSubmissionMetrics } from "./metrics";
 import { allSubmissionFixtures, emptyProfileContext, emptySubmissionContext } from "./test-fixtures";
 import { submissionPlaybooks, submissionSections, type SubmissionPlaybook } from "./types";
 
@@ -78,14 +78,14 @@ describe("requirement table", () => {
   describe.each(submissionPlaybooks.map((p) => [p] as const))("%s", (playbook) => {
     it("an empty profile lists the expected Screen items", () => {
       const ctx = emptyProfileContext(playbook);
-      const r = evaluateReadiness(ctx, stubSubmissionMetrics(ctx), "screen");
+      const r = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "screen");
       expect([...r.missing].sort()).toEqual([...CORE_SCREEN, ...EMPTY_SCREEN_EXTRAS[playbook]].sort());
       expect(r.ready).toBe(false);
     });
 
     it("the complete fixture lists nothing at Screen or Term sheet, required or recommended", () => {
       const ctx = allSubmissionFixtures().find(([p]) => p === playbook)![1];
-      const m = stubSubmissionMetrics(ctx);
+      const m = computeSubmissionMetrics(ctx);
       for (const stage of ["screen", "term_sheet"] as const) {
         const r = evaluateReadiness(ctx, m, stage);
         expect(r.missing, stage).toEqual([]);
@@ -98,7 +98,7 @@ describe("requirement table", () => {
 
   it("a deal with no profile at all is evaluated under the program's default playbook", () => {
     const ctx = emptySubmissionContext("HOTEL_CMBS");
-    const r = evaluateReadiness(ctx, stubSubmissionMetrics(ctx), "screen");
+    const r = evaluateReadiness(ctx, computeSubmissionMetrics(ctx), "screen");
     expect(r.playbook).toBe("hotel_cmbs");
     expect(r.missing).toEqual(expect.arrayContaining(["hotel.identity", "hotel.pip", "request.amount"]));
   });

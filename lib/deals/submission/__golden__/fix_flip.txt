@@ -1,4 +1,4 @@
-Subject: Loan request: $800,000 fix & flip | 1-unit house, San Diego CA | 81.8% LTC, 66.9% LTARV | Corin Commercial
+Subject: Loan request: $800,000 fix & flip | 1-unit house, San Diego CA | 81.8% LTC, 67% LTARV | Corin Commercial
 
 Dana,
 
@@ -19,7 +19,7 @@ THE NUMBERS
   After-repair value: $1,195,000 (Comparable sales)
   Rehab:             $180,000 budget plus $18,000 contingency; about 22 weeks of work (from the hard money file)
   LTC:               81.8% of $978,000 total cost
-  LTARV:             66.9% of the after-repair value
+  LTARV:             67% of the after-repair value
   LTV:               101.3% as-is (Corin calculation)
   Projected margin:  12.2% of the sale price after selling costs (Corin calculation)
 

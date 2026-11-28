@@ -3,12 +3,12 @@ import type { CreditBox } from "@/lib/agents/lenders/types";
 import { lenderInput, toPanelEntry } from "../test-fixtures";
 import type { NewLender } from "../types";
 import { assetClassFor, lenderFit, submissionDealProfile, tailorDealFrom, type TailorDeal } from "./tailor";
-import { stubSubmissionMetrics } from "./test-metrics";
+import { computeSubmissionMetrics } from "./metrics";
 import { submissionFixture } from "./test-fixtures";
 
 const bridge = () => {
   const ctx = submissionFixture("bridge");
-  return { ctx, deal: tailorDealFrom(ctx), metrics: stubSubmissionMetrics(ctx).metrics };
+  return { ctx, deal: tailorDealFrom(ctx), metrics: computeSubmissionMetrics(ctx).metrics };
 };
 const lender = (over: Partial<NewLender> = {}) => toPanelEntry(lenderInput({ programs: ["PRIVATE_BRIDGE"], loanTypes: ["bridge"], minLoanCents: 200_000_000, maxLoanCents: 2_500_000_000, states: ["CA", "AZ"], assetTypes: ["multifamily"], verifiedAt: "2026-10-01T00:00:00.000Z", ...over }), "lender-1");
 
@@ -109,10 +109,10 @@ describe("lenderFit", () => {
     const deal: TailorDeal = tailorDealFrom(ctx);
     expect(Object.keys(deal).sort()).toEqual(["assetType", "dealId", "franchise", "lienPosition", "loanAmountCents", "now", "playbook", "program", "propertyState", "recourse", "requestedTermMonths", "targetCloseDate"]);
     // Changing every principal and sponsor fact changes nothing.
-    const before = lenderFit(lender(), [box()], deal, stubSubmissionMetrics(ctx).metrics);
+    const before = lenderFit(lender(), [box()], deal, computeSubmissionMetrics(ctx).metrics);
     ctx.principals = [];
     ctx.sponsor = null;
-    expect(lenderFit(lender(), [box()], tailorDealFrom(ctx), stubSubmissionMetrics(ctx).metrics)).toEqual(before);
+    expect(lenderFit(lender(), [box()], tailorDealFrom(ctx), computeSubmissionMetrics(ctx).metrics)).toEqual(before);
   });
 
   it("builds the matcher profile from computed metrics", () => {

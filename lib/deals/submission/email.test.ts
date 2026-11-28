@@ -8,7 +8,7 @@ import { playbookLoanTypes } from "./playbooks";
 import { evaluateReadiness } from "./readiness";
 import { EmailSafetyError } from "./redaction";
 import { lenderFit, tailorDealFrom } from "./tailor";
-import { stubSubmissionMetrics } from "./test-metrics";
+import { computeSubmissionMetrics } from "./metrics";
 import { emptyProfileContext, submissionFixture } from "./test-fixtures";
 import { EMAIL_PLACEHOLDERS, submissionPlaybooks, type SubmissionContext, type SubmissionPlaybook, type TargetStage } from "./types";
 
@@ -24,7 +24,7 @@ export function goldenLender(playbook: SubmissionPlaybook) {
 }
 
 function input(ctx: SubmissionContext, stage: TargetStage = "term_sheet", over: Partial<LenderEmailInput> = {}): LenderEmailInput {
-  const metrics = stubSubmissionMetrics(ctx);
+  const metrics = computeSubmissionMetrics(ctx);
   const panel = goldenLender(ctx.profile?.playbook ?? "bridge");
   const readiness = evaluateReadiness(ctx, metrics, stage);
   return {

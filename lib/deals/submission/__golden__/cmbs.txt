@@ -23,7 +23,6 @@ THE NUMBERS
   Underwritten NOI:  $1,410,000 (Corin normalization of the operating statement)
   Debt yield:        11.8% in place
   LTV:               63.1% as-is (Corin calculation)
-  LTC:               100% of $12,500,000 total cost
   DSCR:              1.58x in place at an assumed 6.4% / 30-year schedule — an assumption, not a quote
   Loan per SF:       $145.35
 

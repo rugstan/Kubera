@@ -4,11 +4,11 @@ import { PackageCopyError, dealSummaryPackageItem, sha256Hex } from "@/lib/agent
 import { renderDealSummaryPdf } from "@/lib/agents/lenders/package-pdf";
 import { EmailSafetyError } from "./redaction";
 import { buildDealSummary, fmt, sizePhrase, summaryAsOf, summarySpecSha256, summaryText } from "./summary";
-import { stubSubmissionMetrics } from "./test-metrics";
+import { computeSubmissionMetrics } from "./metrics";
 import { allSubmissionFixtures, emptyProfileContext, submissionFixture } from "./test-fixtures";
 import { submissionPlaybooks, type DealSummarySpec, type SubmissionContext } from "./types";
 
-const build = (ctx: SubmissionContext, stage: "screen" | "term_sheet" | "underwrite" = "term_sheet", openItems: string[] = []) => buildDealSummary(ctx, stubSubmissionMetrics(ctx), stage, { openItems, advisor: { name: "Ana Ruiz", email: "ana@corincommercial.com", dreLicense: "01234567" } });
+const build = (ctx: SubmissionContext, stage: "screen" | "term_sheet" | "underwrite" = "term_sheet", openItems: string[] = []) => buildDealSummary(ctx, computeSubmissionMetrics(ctx), stage, { openItems, advisor: { name: "Ana Ruiz", email: "ana@corincommercial.com", dreLicense: "01234567" } });
 const rows = (spec: DealSummarySpec) => spec.sections.flatMap((s) => (s.rows ?? []).map((r) => ({ ...r, section: s.title })));
 
 /** Text drawn in the PDF (Flate streams decompressed, TJ strings concatenated). */
@@ -112,7 +112,7 @@ describe("buildDealSummary", () => {
   it("produces no row for a missing value and fabricates no figure on an empty profile", () => {
     for (const playbook of submissionPlaybooks) {
       const ctx = emptyProfileContext(playbook);
-      const spec = buildDealSummary(ctx, stubSubmissionMetrics(ctx), "screen");
+      const spec = buildDealSummary(ctx, computeSubmissionMetrics(ctx), "screen");
       expect(spec.headline).toEqual([]);
       const withDigits = rows(spec).filter((r) => r.label !== "Program" && /\d/.test(r.value));
       expect(withDigits, playbook).toEqual([]);
