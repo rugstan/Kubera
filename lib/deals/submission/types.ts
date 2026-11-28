@@ -1298,8 +1298,14 @@ export type SubmissionSendInput = {
   /** Required when readiness.missing is not empty; OVERRIDE_REASON_LENGTH after trimming. */
   overrideReason?: string;
   fit: LenderFit;
-  /** The approved text with EMAIL_PLACEHOLDERS; sha256 is hex of the UTF-8 bytes of `text`. */
+  /** The approved subject and text with EMAIL_PLACEHOLDERS; sha256 is email.ts emailSha256(subject, text). */
   email: { subject: string; text: string; sha256: string };
+  /**
+   * The principal-name check the email was built with (email.ts
+   * emailNameCheck): the individual principals' legal names and the phrases
+   * it may skip. The send gate re-runs the restricted-text check with it.
+   */
+  nameCheck: { names: readonly string[]; allow: readonly string[] };
 };
 
 /** Shape of playbooks.ts playbookLoanTypes. */

@@ -52,7 +52,7 @@ KNOWN ISSUES
   - Staffing costs in Sonoma County: Labor is 48% of revenue today, in line with the operator's other communities, and the underwriting adds a 3% wage increase.
 
 IN THE PACKAGE (7 documents)
-  Deal summary (PDF); T-12 operating statement through September 2026; census dated October 31, 2026; Thornfield Terrace operator lease; Thornfield Terrace state license and survey history; 2 sponsor financial statements
+  Deal summary (PDF); T-12 operating statement through September 2026; census dated October 31, 2026; 2 other borrower documents; 2 sponsor financial statements
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

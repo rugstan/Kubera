@@ -211,7 +211,9 @@ async function checkSubmission(deps: Pick<OutreachDeps, "summaries">, deal: Deal
   if (!subject.trim() || subject.length > SUBMISSION_TEXT_LIMITS.emailSubject || [...subject].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) throw new PackageError("email_unsafe", "The email subject must be one line of at most 200 characters.");
   if (!text.trim() || text.length > SUBMISSION_TEXT_LIMITS.emailText) throw new PackageError("email_unsafe", "The email text is empty or longer than 20,000 characters.");
   if (!text.includes(EMAIL_PLACEHOLDERS.shareLink)) throw new PackageError("email_unsafe", "The email has no place for the share link.");
-  verifyApprovedEmail(s.email, s.email.sha256);
+  // The restricted-text check again, with the principals' names the email was built against.
+  if (!s.nameCheck || !Array.isArray(s.nameCheck.names)) throw new PackageError("email_unsafe", "The submission carries no principal-name check; prepare it again.");
+  verifyApprovedEmail(s.email, s.email.sha256, s.nameCheck);
 
   if (!deps.summaries) throw new PackageError("summary_missing", "Deal summaries cannot be checked because the submission store is not configured; nothing was sent.");
   if (!summary || summary.dealId !== deal.id) throw new PackageError("summary_missing", "The locked deal summary for this submission was not found. Prepare the submission again.");
@@ -285,6 +287,8 @@ async function storedSubmission(deps: Pick<OutreachDeps, "summaries">, outreach:
       overrideReason: reason ?? undefined,
       fit: outreach.lenderFit,
       email: { subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 },
+      // Names were checked when the submission was requested; the hash binds the text since.
+      nameCheck: { names: [], allow: [] },
     },
     summary,
     overrideReason: reason,

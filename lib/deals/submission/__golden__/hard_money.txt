@@ -43,7 +43,7 @@ KNOWN ISSUES
   - Storefront lease-up timing: Letters of intent are in hand for one storefront; the loan term gives 12 months after the renovation to lease the second.
 
 IN THE PACKAGE (6 documents)
-  Deal summary (PDF); Mercantile Row broker price opinion; Mercantile Row photos; Mercantile Row purchase contract; Mercantile Row scope of work; 1 sponsor financial statement
+  Deal summary (PDF); 4 other borrower documents; 1 sponsor financial statement
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

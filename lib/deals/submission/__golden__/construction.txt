@@ -51,7 +51,7 @@ KNOWN ISSUES
   - Cost overruns on a ground-up build: GMP contract, 5% hard-cost contingency and a completion guaranty from the sponsor.
 
 IN THE PACKAGE (7 documents)
-  Deal summary (PDF); Copperfinch construction budget rev 3; Copperfinch GMP contract draft; Copperfinch land closing statement; Copperfinch plans and specifications (permit set); 2 sponsor financial statements
+  Deal summary (PDF); 4 other borrower documents; 2 sponsor financial statements
   Reports on hand: Phase I environmental dated October 20, 2026, Geotechnical report
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):

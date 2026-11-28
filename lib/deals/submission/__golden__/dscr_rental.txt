@@ -46,7 +46,7 @@ KNOWN ISSUES
   - DSCR near 1.0x at the assumed rate: Nine months of reserves after closing, and in-place rents are about $300 a month below market in total.
 
 IN THE PACKAGE (5 documents)
-  Deal summary (PDF); rent roll dated October 31, 2026; appraisal dated October 8, 2026; Larch Row existing loan statement Oct 2026; 1 sponsor financial statement
+  Deal summary (PDF); rent roll dated October 31, 2026; appraisal dated October 8, 2026; 1 other borrower document; 1 sponsor financial statement
   Reports on hand: Appraisal dated October 8, 2026
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):

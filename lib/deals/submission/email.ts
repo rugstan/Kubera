@@ -18,7 +18,7 @@ import { licenseLine, site } from "@/lib/site";
 import { LENDER_LOAN_TYPE_LABELS } from "../loan-types";
 import type { LenderPanelEntry, PackageItem } from "../types";
 import { PLAYBOOK_SHORT_LABELS, defaultPlaybook, playbookLoanTypes } from "./playbooks";
-import { assertEmailSafe, guarantorCovenantLine, type EmailSafetyOptions } from "./redaction";
+import { assertEmailSafe, guarantorCovenantLine, nameTokens, safeAllowPhrases, type EmailSafetyOptions } from "./redaction";
 import { RECEIVED_STATUSES } from "./requirements";
 import { fmt, formatMetricValue, headlineLabel, headlineMetricKeys, metricOf, sizePhrase } from "./summary";
 import {
@@ -127,11 +127,29 @@ function hardMoneyFacts(ctx: SubmissionContext): EmailHardMoneyFacts | null {
   };
 }
 
+const individualNames = (ctx: Pick<SubmissionContext, "principals">) => ctx.principals.filter((p) => p.kind === "individual").map((p) => p.legalName);
+const sameName = (a: string, b: string) => nameTokens(a).join(" ") === nameTokens(b).join(" ");
+
+/**
+ * The borrower as the email may name it (spec 5.4): the deal's borrower name,
+ * else the borrowing entity on the org chart, but only when it names no
+ * individual principal (a guarantor borrowing in their own name is "the
+ * borrower"). The formation state comes only from the entity principal with
+ * that same name.
+ */
+export function emailBorrower(ctx: Pick<SubmissionContext, "deal" | "principals">): { name: string | null; formationState: string | null } | null {
+  const entity = ctx.principals.find((p) => p.kind === "entity" && p.roles.includes("borrower_entity")) ?? null;
+  const name = ctx.deal.borrowerName?.trim() || entity?.legalName || null;
+  if (!name) return null;
+  if (!safeAllowPhrases([name], individualNames(ctx)).length) return { name: null, formationState: null };
+  const match = ctx.principals.find((p) => p.kind === "entity" && sameName(p.legalName, name)) ?? null;
+  return { name, formationState: match?.formationState ?? null };
+}
+
 function sponsorFacts(ctx: SubmissionContext, metrics: SubmissionMetrics): EmailSponsorFacts | null {
   const s = ctx.sponsor;
-  const entity = ctx.principals.find((p) => p.roles.includes("borrower_entity")) ?? null;
-  const name = ctx.deal.borrowerName ?? entity?.legalName ?? null;
-  if (!s && !name) return null;
+  const borrower = emailBorrower(ctx);
+  if (!s && !borrower) return null;
   const mode = s?.emailFinancialsMode ?? "covenant_only";
   const answers = s ? creditEventKinds.map((k) => s.creditEvents[k]?.occurred) : [];
   const creditEventsReported = answers.some((a) => a === true) ? true : answers.length && answers.every((a) => a === false) ? false : null;
@@ -144,7 +162,7 @@ function sponsorFacts(ctx: SubmissionContext, metrics: SubmissionMetrics): Email
     managementCompany: s?.managementCompany ?? null,
     creditBand: s?.creditBand ?? null,
     emailFinancialsMode: mode,
-    borrowerEntity: name ? { name, formationState: entity?.formationState ?? null } : null,
+    borrowerEntity: borrower,
     creditEventsReported,
     covenants: guarantorCovenantLine(metrics.sponsorStrength, mode),
   };
@@ -612,7 +630,9 @@ function sponsorBlock(f: EmailRenderFacts): string[] {
   const out = ["THE SPONSOR"];
   const e = s.borrowerEntity;
   const type = e?.name ? ENTITY_TYPES.find(([re]) => re.test(e.name!.trim()))?.[1] : undefined;
-  const entity = e?.name ? `${e.name}${e.formationState || type ? `, a ${[e.formationState, type].filter(has).join(" ") || "borrowing entity"}` : ""}` : null;
+  // A borrower whose name is a principal's is "the borrower" here; the summary behind the link names it.
+  const what = [e?.formationState, type].filter(has).join(" ");
+  const entity = e ? (e.name ? `${e.name}${what ? `, ${/^(?:LLC|[aeiou])/i.test(what) ? "an" : "a"} ${what}` : ""}` : "The borrower (named in the summary)") : null;
   const first = [entity ? `${entity}.` : null, s.experienceSummary ? excerpt(s.experienceSummary, 300) : null].filter(has);
   if (first.length) out.push(`  ${first.join(" ")}`);
   const track = [s.yearsExperience !== null ? `${s.yearsExperience} years` : null, s.similarProjectsCount !== null ? `${s.similarProjectsCount} similar project${s.similarProjectsCount === 1 ? "" : "s"}` : null, s.portfolioSizeNote ?? (s.portfolioCount !== null ? `${s.portfolioCount} properties owned` : null)].filter(has);
@@ -688,19 +708,26 @@ const DOC_LABELS: Record<string, string> = {
 function documentsBlock(f: EmailRenderFacts): string[] {
   const n = f.documents.length;
   const out = [`IN THE PACKAGE (${n} document${n === 1 ? "" : "s"})`];
-  // Personal documents are counted, never named (a file name could carry a person's name).
+  // Documents print by kind, never by file name (a borrower's file name can carry a person's
+  // name or an account number); personal documents and every other kind are counted.
   const counts = new Map<string, number>();
   const labels: string[] = [];
   for (const d of f.documents) {
-    if (d.kind === "PFS" || d.kind === "TAX_RETURN") {
-      counts.set(d.kind, (counts.get(d.kind) ?? 0) + 1);
+    const base = DOC_LABELS[d.kind];
+    if (d.kind === "PFS" || d.kind === "TAX_RETURN" || !base) {
+      const k = d.kind === "PFS" || d.kind === "TAX_RETURN" ? d.kind : "OTHER";
+      counts.set(k, (counts.get(k) ?? 0) + 1);
       continue;
     }
-    const base = DOC_LABELS[d.kind] ?? d.label.replace(/\.[a-z0-9]{2,5}$/i, "");
     const date = d.date ? (d.kind === "T12" ? ` through ${fmt.monthYear(d.date)}` : ` dated ${fmt.date(d.date)}`) : "";
     labels.push(`${base}${date}`);
   }
-  for (const [kind, count] of counts) labels.push(kind === "PFS" ? `${count} sponsor financial statement${count === 1 ? "" : "s"}` : `${count} set${count === 1 ? "" : "s"} of tax returns`);
+  const other = counts.get("OTHER");
+  if (other) labels.push(`${other} other borrower document${other === 1 ? "" : "s"}`);
+  for (const kind of ["PFS", "TAX_RETURN"] as const) {
+    const count = counts.get(kind);
+    if (count) labels.push(kind === "PFS" ? `${count} sponsor financial statement${count === 1 ? "" : "s"}` : `${count} set${count === 1 ? "" : "s"} of tax returns`);
+  }
   if (labels.length) out.push(`  ${labels.join("; ")}`);
   if (f.reportsOnHand.length) out.push(`  Reports on hand: ${f.reportsOnHand.map((r) => `${r.label}${r.date ? ` dated ${fmt.date(r.date)}` : ""}`).join(", ")}`);
   if (f.notYetInHand.length) out.push(`  Not yet in hand: ${f.notYetInHand.join("; ")}`);
@@ -818,14 +845,33 @@ export function renderLenderEmail(f: EmailRenderFacts, safety: EmailSafetyOption
   return { subject, text, sha256: emailSha256(subject, text) };
 }
 
-/** The principals' names the email must never print, and the borrowing entity's own name it may. */
-export function emailSafetyFor(ctx: SubmissionContext): EmailSafetyOptions {
-  return { names: ctx.principals.filter((p) => p.kind === "individual").map((p) => p.legalName), allow: [ctx.deal.borrowerName, ...ctx.principals.filter((p) => p.kind === "entity").map((p) => p.legalName)].filter((n): n is string => Boolean(n)) };
+/**
+ * The principals' names the email must never print, and the phrases the name
+ * check may skip: the borrower and entity names that name no individual
+ * principal (safeAllowPhrases). The deal's borrower name is never allowed
+ * when it is an individual's.
+ */
+export function emailSafetyFor(ctx: Pick<SubmissionContext, "deal" | "principals">): EmailSafetyOptions {
+  const names = individualNames(ctx);
+  return { names, allow: safeAllowPhrases([ctx.deal.borrowerName, ...ctx.principals.filter((p) => p.kind === "entity").map((p) => p.legalName)], names) };
+}
+
+/**
+ * The name check for one lender's email: emailSafetyFor, plus the phrases
+ * every email prints that are not the deal's (Corin, its designated officer,
+ * the signing advisor, the lender), so a principal who shares a surname with
+ * one of them does not block the email. The send gate re-runs the check with
+ * exactly these options.
+ */
+export function emailNameCheck(ctx: Pick<SubmissionContext, "deal" | "principals">, lender: Pick<EmailLender, "name">, advisor: Pick<EmailAdvisor, "name">): { names: string[]; allow: string[] } {
+  const base = emailSafetyFor(ctx);
+  const names = [...(base.names ?? [])];
+  return { names, allow: [...(base.allow ?? []), ...safeAllowPhrases([site.legalName, site.name, site.designatedOfficer, advisor.name, lender.name], names)] };
 }
 
 /** Facts and rendering in one step, with the principal-name check (spec 5.3 buildLenderEmail). */
 export function buildLenderEmail(input: LenderEmailInput): LenderEmail {
-  return renderLenderEmail(lenderEmailFacts(input), emailSafetyFor(input.ctx));
+  return renderLenderEmail(lenderEmailFacts(input), emailNameCheck(input.ctx, input.lender, input.advisor));
 }
 
 /** The approved text with the share link and its expiry filled in (after approval only). */

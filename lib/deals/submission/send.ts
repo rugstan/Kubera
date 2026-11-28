@@ -24,7 +24,7 @@ import type { DocumentStorage } from "@/lib/disclosures/store";
 import { PackageError, assertDealCanGoToLenders, lockPackageVersion, outreachMessage, sendPackageToLender, type DealHoldReader, type LenderMailer, type SendPackageResult } from "../packages";
 import type { DealDeskStore } from "../store";
 import type { DealPackage, LenderPanelEntry, PackageItem } from "../types";
-import { buildLenderEmail, emailLenderFrom, type LenderEmail } from "./email";
+import { buildLenderEmail, emailLenderFrom, emailNameCheck, type LenderEmail } from "./email";
 import { evaluateReadiness, lenderSafeMissingLabels, notReadyMessage } from "./readiness";
 import { EmailSafetyError, checkNeutralCopy, type NeutralCopyFlag } from "./redaction";
 import { buildDealSummary, staffTypedText, summarySpecSha256 } from "./summary";
@@ -270,6 +270,7 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
         ...(overrideReason ? { overrideReason } : {}),
         fit,
         email: { subject: email.subject, text: email.text, sha256: email.sha256 },
+        nameCheck: emailNameCheck(ctx, emailLenderFrom(lender), input.advisor),
       },
     };
   });

@@ -103,6 +103,7 @@ function submission(lenderId: string, over: Partial<SubmissionSendInput> = {}): 
     readiness: { missing: [], hardStops: [], score: 100 },
     fit: { lenderId, matches: ["HUD / FHA"], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 33, reason: null }, score: null },
     email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT) },
+    nameCheck: { names: ["Pat Owner"], allow: ["Sunrise Care LLC"] },
     ...over,
   };
 }

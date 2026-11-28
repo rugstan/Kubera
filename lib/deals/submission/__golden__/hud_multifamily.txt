@@ -49,7 +49,7 @@ KNOWN ISSUES
   - Statewide rent cap limits annual increases: In-place rents are about 6% below market, and the underwriting uses only cap-compliant increases.
 
 IN THE PACKAGE (7 documents)
-  Deal summary (PDF); T-12 operating statement; T-12 operating statement through September 2026; rent roll dated October 31, 2026; Saltmeadow Gardens existing loan statement Oct 2026; 2 sponsor financial statements
+  Deal summary (PDF); T-12 operating statement; T-12 operating statement through September 2026; rent roll dated October 31, 2026; 1 other borrower document; 2 sponsor financial statements
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

@@ -39,16 +39,106 @@ export type RestrictedFinding = { kind: RestrictedKind; label: string };
 export type EmailSafetyOptions = {
   /** Legal names that must not appear (the deal's individual principals). */
   names?: readonly string[];
-  /** Phrases removed before the name check, e.g. the borrowing entity's own name. */
+  /** Phrases removed before the name check, e.g. the borrowing entity's own name (see safeAllowPhrases). */
   allow?: readonly string[];
 };
 
-const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// ---------------------------------------------------------------------------
+// Names (spec 5.4 "Guarantor names: not by default"). Text and names are
+// compared as token streams: NFKD with combining marks removed, format
+// characters (zero-width, bidi) removed, lower case, and every run of
+// anything that is not a letter or digit (spaces, "_", "-", ".", ",") one
+// separator. A principal matches on the full name, first plus last name in
+// either order (with or without the middle names), an honorific with the
+// surname, or the surname alone (initials with the surname are caught by it).
 
-function namePattern(name: string): RegExp | null {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (!words.length || words.join("").length < 3) return null;
-  return new RegExp(`(?<![\\p{L}\\p{N}])${words.map(escapeRe).join("\\s+")}(?![\\p{L}\\p{N}])`, "iu");
+const FORMAT_CHARS = /\p{Cf}/gu;
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "esq", "md", "phd", "cpa"]);
+const HONORIFICS = ["mr", "mrs", "ms", "mx", "miss", "dr", "sir", "madam"];
+/**
+ * Surnames that are also everyday words the email or staff copy prints
+ * (labels, months, figures, the parties' roles). They are matched only with a first name or an
+ * honorific, so a guarantor named Price or May does not block every email
+ * with a purchase price or a May date.
+ */
+const COMMON_WORD_SURNAMES = new Set([
+  "january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december",
+  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+  "price", "cash", "stack", "bond", "bonds", "bank", "banks", "rent", "rate", "cost", "value", "worth", "fund", "capital", "credit", "equity", "loan", "trust", "grant",
+  "senior", "brand", "scope", "budget", "exit", "plan", "term", "close", "closing", "link", "package", "summary", "request", "property", "hotel", "business",
+  "young", "long", "short", "little", "small", "strong", "best", "good", "rich", "wise", "hope", "love", "day", "days", "way", "case", "page", "king",
+  "white", "black", "brown", "green", "gray", "grey", "gold", "golden", "silver", "rose", "hill", "hall", "wood", "woods", "lane", "park", "parks", "field", "fields",
+  "ford", "west", "east", "north", "south", "street", "lake", "river", "rivers", "stone", "wall", "walls", "wells", "house", "cross", "bell", "cook", "mason",
+  "baker", "hunt", "frost", "snow", "winter", "summer", "spring", "storm", "moon", "star", "fox", "wolf", "lamb", "bird", "fisher", "glass", "steel", "iron",
+  "owner", "sponsor", "guarantor", "borrower", "member", "manager", "partner", "principal", "buyer", "seller", "tenant", "lender", "broker", "builder", "contractor",
+]);
+
+/** Lower-case tokens of `s` for the name check (see above). */
+export function nameTokens(s: string): string[] {
+  return s
+    .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
+    .replace(FORMAT_CHARS, "")
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+}
+
+type NameForms = { combos: string[][]; surnames: string[] };
+
+function nameForms(name: string): NameForms {
+  const words = name
+    .normalize("NFKD")
+    .replace(FORMAT_CHARS, "")
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w && !NAME_SUFFIXES.has(nameTokens(w).join("")));
+  while (words.length > 1 && HONORIFICS.includes(nameTokens(words[0]!).join(""))) words.shift();
+  const tokens = words.flatMap(nameTokens);
+  if (!tokens.length || tokens.join("").length < 3) return { combos: [], surnames: [] };
+  if (tokens.length === 1) return { combos: [tokens], surnames: tokens[0]!.length >= 3 ? tokens : [] };
+  const surname = nameTokens(words.at(-1)!);
+  const first = words.length > 1 ? nameTokens(words[0]!) : [tokens[0]!];
+  const middles = words.slice(1, -1).flatMap(nameTokens);
+  const combos = [tokens, [...first, ...surname], [...surname, ...first], [...surname, ...first, ...middles], ...HONORIFICS.map((h) => [h, ...surname])];
+  const surnames = surname.filter((t) => t.length >= 3 && !COMMON_WORD_SURNAMES.has(t));
+  return { combos, surnames };
+}
+
+const stream = (tokens: readonly string[]) => ` ${tokens.join(" ")} `;
+const hasSeq = (hay: string, seq: readonly string[]) => seq.length > 0 && hay.includes(stream(seq));
+
+/** True when `text` names one of `names` in a full-name form (full, first and last either way, honorific with the surname); the surname alone does not count. */
+export function fullNameIn(text: string, names: readonly string[]): boolean {
+  const hay = stream(nameTokens(text));
+  return names.some((n) => nameForms(n).combos.some((c) => c.length > 1 && hasSeq(hay, c)));
+}
+
+function nameFound(text: string, opts: EmailSafetyOptions): boolean {
+  if (!opts.names?.length) return false;
+  let hay = stream(nameTokens(text));
+  for (const phrase of opts.allow ?? []) {
+    const seq = nameTokens(phrase);
+    if (seq.length) hay = hay.split(stream(seq)).join(" | ");
+  }
+  return opts.names.some((n) => {
+    const f = nameForms(n);
+    return f.combos.some((c) => hasSeq(hay, c)) || f.surnames.some((t) => hasSeq(hay, [t]));
+  });
+}
+
+/**
+ * The phrases the name check may skip: an entity's (or the deal's borrower)
+ * name is allowed only when it names no individual principal in a full-name
+ * form and is not made only of their name tokens ("Ellingsworth" alone would
+ * otherwise switch the surname check off).
+ */
+export function safeAllowPhrases(candidates: readonly (string | null | undefined)[], individuals: readonly string[]): string[] {
+  const personal = new Set(individuals.flatMap(nameTokens));
+  return [...new Set(candidates.filter((c): c is string => typeof c === "string" && c.trim().length > 0))].filter((c) => {
+    const t = nameTokens(c);
+    return t.length > 0 && !fullNameIn(c, individuals) && !t.every((x) => personal.has(x));
+  });
 }
 
 /** Every restricted shape in `text`, deduplicated by kind. Empty when the text is safe. */
@@ -61,14 +151,7 @@ export function findRestrictedText(text: string, opts: EmailSafetyOptions = {}):
     out.push(f);
   };
   for (const p of RESTRICTED_TEXT_PATTERNS) if (p.re.test(text)) add({ kind: p.kind, label: p.label });
-  if (opts.names?.length) {
-    let scan = text;
-    for (const phrase of opts.allow ?? []) {
-      const re = namePattern(phrase);
-      if (re) scan = scan.replace(new RegExp(re.source, "giu"), " ");
-    }
-    if (opts.names.some((n) => namePattern(n)?.test(scan))) add({ kind: "name", label: "a guarantor's or principal's name (write \"the guarantors\")" });
-  }
+  if (nameFound(text, opts)) add({ kind: "name", label: "a guarantor's or principal's name (write \"the guarantors\")" });
   return out;
 }
 

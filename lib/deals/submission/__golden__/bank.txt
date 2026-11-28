@@ -51,7 +51,7 @@ KNOWN ISSUES
   - 48% of rent rolls during the loan term: Tenants have occupied the building an average of nine years, and a $120,000 leasing reserve is offered.
 
 IN THE PACKAGE (6 documents)
-  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; Oakhurst Professional Center lease abstracts; Oakhurst Professional Center purchase contract; 1 sponsor financial statement
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; 2 other borrower documents; 1 sponsor financial statement
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

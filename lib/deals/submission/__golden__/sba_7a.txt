@@ -45,7 +45,7 @@ KNOWN ISSUES
   - Moving production could interrupt sales for a few weeks: The current lease runs through March 31, 2027, so the bakery can fit out the new building before moving.
 
 IN THE PACKAGE (9 documents)
-  Deal summary (PDF); Hollowcrest Way purchase contract; Tallowmere business debt schedule; Tallowmere interim financials Sep 2026; 2 sponsor financial statements; 3 sets of tax returns
+  Deal summary (PDF); 3 other borrower documents; 2 sponsor financial statements; 3 sets of tax returns
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

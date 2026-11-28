@@ -130,6 +130,7 @@ export function testSubmission(dealId: string, lenderId: string, over: Partial<S
     readiness: { missing: [], hardStops: [], score: 100 },
     fit: { lenderId, matches: [], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 0, reason: null }, score: null },
     email: { subject: "Loan request | Corin Commercial", text: TEST_EMAIL_TEXT, sha256: emailSha256("Loan request | Corin Commercial", TEST_EMAIL_TEXT) },
+    nameCheck: { names: ["Pat Owner"], allow: ["Sunrise Care LLC"] },
     ...over,
   };
 }

@@ -52,7 +52,7 @@ KNOWN ISSUES
   - Oakland rent control limits increases on occupied units: The plan only raises rents on turnover; 30 of 42 units are expected to turn within 24 months at the building's historical rate.
 
 IN THE PACKAGE (7 documents)
-  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; Brindlewood property photos; Brindlewood purchase contract; 2 sponsor financial statements
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; 2 other borrower documents; 2 sponsor financial statements
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

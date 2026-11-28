@@ -42,7 +42,7 @@ KNOWN ISSUES
   - Resale prices could soften before listing: At a 7% lower sale price the project still repays this loan with a positive margin.
 
 IN THE PACKAGE (6 documents)
-  Deal summary (PDF); Quill Hollow comparable sales; Quill Hollow photos; Quill Hollow purchase contract; Quill Hollow scope of work and bids; 1 sponsor financial statement
+  Deal summary (PDF); 4 other borrower documents; 1 sponsor financial statement
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

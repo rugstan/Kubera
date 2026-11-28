@@ -46,7 +46,7 @@ KNOWN ISSUES
   - Build-out could delay the move: The practice keeps its current lease until the hospital opens; the contractor's bid includes a 120-day schedule.
 
 IN THE PACKAGE (7 documents)
-  Deal summary (PDF); Galewood Parkway build-out bid; Galewood Parkway purchase contract; Redfinch interim financials Sep 2026; 2 sponsor financial statements; 1 set of tax returns
+  Deal summary (PDF); 3 other borrower documents; 2 sponsor financial statements; 1 set of tax returns
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

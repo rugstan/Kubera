@@ -52,7 +52,7 @@ KNOWN ISSUES
   - Older building systems (1964): Roof, plumbing risers and electrical service were replaced in 2016 and 2017; the capital history is on file.
 
 IN THE PACKAGE (7 documents)
-  Deal summary (PDF); T-12 operating statement through September 2026; T-12 operating statement; rent roll dated October 31, 2026; Kestrel Court existing loan statement Oct 2026; 2 sponsor financial statements
+  Deal summary (PDF); T-12 operating statement through September 2026; T-12 operating statement; rent roll dated October 31, 2026; 1 other borrower document; 2 sponsor financial statements
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
 {{SHARE_LINK}}

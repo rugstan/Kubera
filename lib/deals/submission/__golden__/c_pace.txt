@@ -55,7 +55,7 @@ KNOWN ISSUES
   - The mortgage holder's consent is still pending: Consent was requested in October; the C-PACE assessment cannot record without it, and the existing loan has seven years to run.
 
 IN THE PACKAGE (8 documents)
-  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; appraisal dated August 20, 2026; Galeview contractor proposal (stipulated sum); Galeview energy study; 2 sponsor financial statements
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; appraisal dated August 20, 2026; 2 other borrower documents; 2 sponsor financial statements
   Reports on hand: Geotechnical report, Appraisal dated August 20, 2026
 
 Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
