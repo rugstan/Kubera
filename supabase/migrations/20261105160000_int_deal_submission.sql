@@ -240,7 +240,7 @@ create trigger deal_sponsor_profiles_touch before update on public.deal_sponsor_
 
 -- 3. Locked summaries ----------------------------------------------------------
 -- The one-page summary a lender was shown: the structured spec (rendered on the
--- share page) and the PDF added to the locked package manifest. Never updated.
+-- share page) and the PDF added to the locked package manifest. Never updated or deleted.
 create table public.deal_summaries (
   id uuid primary key default gen_random_uuid(),
   deal_id uuid not null references public.deals (id) on delete restrict,
@@ -272,7 +272,7 @@ begin
 end;
 $$;
 revoke execute on function public.deal_summaries_immutable() from public, anon, authenticated;
-create trigger deal_summaries_immutable before update on public.deal_summaries
+create trigger deal_summaries_immutable before update or delete on public.deal_summaries
   for each row execute function public.deal_summaries_immutable();
 
 -- 4. Submission record ---------------------------------------------------------
@@ -373,11 +373,13 @@ revoke execute on function public.audit_row_change_redacted() from public, anon,
 -- Deal and property facts: full values, so a changed NOI or value shows old and new.
 create trigger deal_submission_profiles_audit after insert or update or delete on public.deal_submission_profiles
   for each row execute function public.audit_row_change();
--- Sponsor summary: who changed which column, never the values.
+-- Sponsor summary: who changed which column, never the values. Every column but the keys and
+-- the row bookkeeping (id, deal_id, created_*, updated_*, record_version) is redacted.
 create trigger deal_sponsor_profiles_audit after insert or update or delete on public.deal_sponsor_profiles
   for each row execute function public.audit_row_change_redacted(
-    'experience_summary', 'portfolio_size_note', 'stated_net_worth_cents', 'stated_liquidity_cents',
-    'credit_band', 'credit_events', 'notes'
+    'experience_summary', 'years_experience', 'similar_projects_count', 'portfolio_count', 'portfolio_size_note',
+    'stated_net_worth_cents', 'stated_liquidity_cents', 'stated_as_of', 'credit_band', 'credit_events',
+    'management_company', 'notes', 'email_financials_mode'
   );
 -- Locked summaries: the spec holds sponsor totals; its hashes stay readable.
 create trigger deal_summaries_audit after insert or update or delete on public.deal_summaries

@@ -141,7 +141,7 @@ describe("deal_sponsor_profiles", () => {
     await expect(sponsorRow({ email_financials_mode: "exact" })).rejects.toThrow(/check constraint/);
   });
 
-  it("audits who changed which column, with the deal id, and redacts the seven personal columns", async () => {
+  it("audits who changed which column, with the deal id, and redacts every column but the keys", async () => {
     const id = await sponsorRow({
       experience_summary: "Eleven value-add projects",
       portfolio_size_note: "11 properties",
@@ -152,6 +152,10 @@ describe("deal_sponsor_profiles", () => {
       credit_events: { bankruptcy: { occurred: false } },
       notes: "Prefers email",
       years_experience: 14,
+      similar_projects_count: 9,
+      portfolio_count: 31,
+      management_company: "Halvorsen Property Services",
+      email_financials_mode: "rounded",
     });
     const dealId = (await one<{ deal_id: string }>(`select deal_id from public.deal_sponsor_profiles where id = $1`, [id])).deal_id;
     await db.query(`update public.deal_sponsor_profiles set stated_net_worth_cents = 1_900_000_000, years_experience = 15, record_version = 2, updated_by = 'broker:lee' where id = $1`, [id]);
@@ -161,12 +165,20 @@ describe("deal_sponsor_profiles", () => {
     );
     expect(audit.map((a) => a.action)).toEqual(["INSERT", "UPDATE"]);
     expect(audit[1]).toMatchObject({ actor: "broker:lee", deal_id: dealId, changed: ["record_version", "stated_net_worth_cents", "updated_by", "years_experience"] });
-    for (const col of ["experience_summary", "portfolio_size_note", "stated_net_worth_cents", "stated_liquidity_cents", "credit_band", "credit_events", "notes"]) {
+    // Every column of the table except the keys and the row bookkeeping is redacted, in old and new rows alike.
+    const KEPT = new Set(["id", "deal_id", "created_at", "created_by", "updated_at", "updated_by", "record_version"]);
+    const columns = (await rows<{ column_name: string }>(`select column_name from information_schema.columns where table_schema = 'public' and table_name = 'deal_sponsor_profiles'`)).map((c) => c.column_name).filter((c) => !KEPT.has(c));
+    expect(columns.length).toBe(13);
+    for (const col of columns) {
       expect(audit[1]!.old_row[col], col).toBe("[redacted]");
       expect(audit[1]!.new_row[col], col).toBe("[redacted]");
+      expect(audit[0]!.new_row[col], col).toBe("[redacted]");
     }
-    expect(audit[1]!.new_row.years_experience).toBe(15);
-    for (const secret of ["1850000000", "1900000000", "240000000", "Eleven value-add", "Prefers email", "740_PLUS", "bankruptcy"]) for (const a of audit) expect(a.blob).not.toContain(secret);
+    for (const secret of ["1850000000", "1900000000", "240000000", "Eleven value-add", "Prefers email", "740_PLUS", "bankruptcy", "2026-09-30", "Halvorsen", "rounded", '"years_experience": 15', '"years_experience": 14', '"portfolio_count": 31']) {
+      for (const a of audit) expect(a.blob, secret).not.toContain(secret);
+    }
+    // The changed-column list still says what changed (never the values).
+    expect(audit[1]!.changed).toContain("years_experience");
   });
 });
 
@@ -192,6 +204,8 @@ describe("deal_summaries", () => {
     const d = await deal();
     const id = await summary(d);
     await expect(db.query(`update public.deal_summaries set template_version = 'x' where id = $1`, [id])).rejects.toThrow(/immutable/);
+    await expect(db.query(`delete from public.deal_summaries where id = $1`, [id])).rejects.toThrow(/immutable/);
+    expect((await rows(`select id from public.deal_summaries where id = $1`, [id])).length).toBe(1);
     await expect(summary(d)).rejects.toThrow(/deal_summaries_deal_id_pdf_sha256_key/);
     await summary(await deal());
     await expect(insert("deal_summaries", { deal_id: d, created_by: "a", as_of: "2026-11-18", playbook: "bridge", target_stage: "close", template_version: "v", spec: {}, spec_sha256: sha("a"), pdf_sha256: sha("c"), pdf_storage_path: "p", profile_version: 1 })).rejects.toThrow(/check constraint/);
