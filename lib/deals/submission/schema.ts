@@ -63,9 +63,10 @@ import {
 //
 // Saved free text is normalized (redaction.ts normalizeForScan: NFKC, Unicode
 // digits as ASCII, format characters removed) and refused on the same shapes
-// the lender email is (redaction.ts RESTRICTED_TEXT_PATTERNS: SSN / ITIN in
-// any grouping or wording, EIN, nine-digit runs, account groupings,
-// date-of-birth and account wording), which the database checks too
+// the lender email is (redaction.ts RESTRICTED_TEXT_PATTERNS: the SSN / ITIN
+// 3-2-4 shape and wording, EIN, nine-digit runs; 3-3-3 and 4-4-4 groupings
+// after an identity or account word, birth wording with a date, account
+// wording with digits), which the database checks too
 // (public.submission_text_restricted), and on the restricted detectors of
 // lib/privacy/classification.ts (card numbers).
 

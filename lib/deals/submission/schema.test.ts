@@ -196,7 +196,9 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
   it.each([
     ssn,
     "Spaced 123 45 6789",
-    "Grouped 3-3-3: 123 456 789",
+    "Tax id grouped 3-3-3: 123 456 789",
+    "SS# on file",
+    "Social security last four 6789",
     "Full-width １２３-４５-６７８９",
     "En dash 123–45–6789 and slashes 123/45/6789",
     "Zero-width 1234\u200b56789",
@@ -210,7 +212,8 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
     // redaction.ts patterns the email gate uses, applied to saved text too.
     "Borrower EIN 12-3456789",
     "The guarantor's ITIN is in the vault",
-    "Date of birth on the PFS",
+    "Date of birth 04/12/1971 on the PFS",
+    "Wire to account: 0123 4567 8901",
   ])("refuses %j", (text) => {
     expect(restrictedTextReason(text)).not.toBeNull();
     expect(SECTION_SCHEMAS.plan_exit.safeParse({ businessPlan: text }).success).toBe(false);
@@ -224,6 +227,11 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
     "Account executive at the senior lender approved subordinate debt in principle.",
     // The database check is anchored like the app's (F15): digits inside a longer group are not an SSN.
     "Embedded 1234-56-78901",
+    // Context decides (N3): no identity word before a 3-3-3 or 4-4-4 grouping, no date after birth wording, no digits after account wording.
+    "Date of birth on the PFS",
+    "APN 226-180-021; Units 101 102 103; tax returns 2022/2023/2024; rents 2400 2600 2800",
+    "Escrow account ending balance; DOB permits; truck routing hub; born in Ohio; taking into account no rent growth",
+    "Sponsor's Sydney office: +61 412 345 678",
   ])("accepts %j", (text) => {
     expect(restrictedTextReason(text)).toBeNull();
     expect(SECTION_SCHEMAS.plan_exit.safeParse({ businessPlan: text }).success).toBe(true);
@@ -340,7 +348,7 @@ describe("twins of the migration's check constraints", () => {
 
   it("every free-text field refuses the restricted shapes in zod, however they are written", () => {
     const camel = (c: string) => c.replace(/_([a-z])/g, (_m, x: string) => x.toUpperCase());
-    const bad = ["Ref 123-45-6789", "Tax id １２３-４５-６７８９", "id ١٢٣-٤٥-٦٧٨٩", "id 123–45–6789", "id 123/45/6789", "id 123 456 789", "acct 1234\u200b56789", "date-of-birth 01/02/1970", "birthday 1/2/1970", "S.S.N. on file", "D\u200bOB on file", "acct ending 0123 4567", "Wire to account: 0123 4567 8901"];
+    const bad = ["Ref 123-45-6789", "Tax id １２３-４５-６７８９", "id ١٢٣-٤٥-٦٧٨٩", "id 123–45–6789", "id 123/45/6789", "tax id 123 456 789", "acct 1234\u200b56789", "date-of-birth 01/02/1970", "birthday 1/2/1970", "S.S.N. on file", "D\u200bOB 1/2/1970", "SS# on file", "id 123:45:6789", "id (123) 45-6789", "acct ending 0123 4567", "Wire to account: 0123 4567 8901"];
     for (const col of PROFILE_TEXT) {
       const schema = PROFILE_FIELD_SCHEMAS[camel(col) as keyof typeof PROFILE_FIELD_SCHEMAS];
       for (const t of bad) {

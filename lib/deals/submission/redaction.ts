@@ -39,40 +39,75 @@ function asciiDigit(ch: string): string {
   return out;
 }
 
+/** Marks and fillers that can sit after a digit without changing how it reads: combining marks, variation selectors, CGJ, Hangul fillers. */
+const AFTER_DIGIT_NOISE = /(?<=\d)[\p{M}\uFE00-\uFE0F\u{E0100}-\u{E01EF}\u034F\u115F\u1160\u3164\uFFA0]+/gu;
+
 /**
  * Text as the restricted-identifier patterns read it, and as staff free text
  * is stored: NFKC, Unicode decimal digits as ASCII, format characters (\p{Cf}:
- * zero-width spaces and joiners, bidi marks, soft hyphens) removed.
+ * zero-width spaces and joiners, bidi marks, soft hyphens) removed, the marks
+ * and fillers above removed after a digit (inside a number they only hide
+ * it), and NEL (U+0085) read as a space, as the database does.
  */
 export function normalizeForScan(text: string): string {
   return text
     .normalize("NFKC")
     .replace(/\p{Cf}/gu, "")
-    .replace(/[^\x00-\x7f]/gu, (c) => (/\p{Nd}/u.test(c) ? asciiDigit(c) : c));
+    .replace(/\u0085/g, " ")
+    .replace(/[^\x00-\x7f]/gu, (c) => (/\p{Nd}/u.test(c) ? asciiDigit(c) : c))
+    .replace(AFTER_DIGIT_NOISE, "");
 }
 
-// Between digit groups: any dash, a slash, a dot, an underscore, or spaces.
-const SEP = String.raw`(?:\s*[\p{Pd}\u2212/._]\s*|\s+)`;
-const group = (...sizes: number[]) => new RegExp(String.raw`(?<!\d)${sizes.map((n) => `\\d{${n}}`).join(SEP)}(?!\d)`, "u");
+// Between digit groups: one to three characters that are neither a letter nor a digit
+// ("-", "--", " - ", ":", ",", "·", "|", ") " as in "(123) 45-6789", a newline...).
+const SEP = String.raw`[^\p{L}\p{N}]{1,3}`;
+const grouped = (...sizes: number[]) => String.raw`(?<!\d)${sizes.map((n) => String.raw`\d{${n}}`).join(SEP)}(?!\d)`;
+/** Words that make a 3-3-3 or 4-4-4 grouping an identifier when they come within about 30 characters before it. */
+const ID_WORDS = String.raw`\b(?:ssns?|social|tax[^\p{L}\p{N}]{0,3}id|tins?|itins?|eins?|accounts?|acct|card|routing)\b`;
+const afterIdWord = (body: string) => new RegExp(String.raw`${ID_WORDS}[\s\S]{0,30}${body}`, "iu");
+/** A date: 3/4/1971, 1971-03-04, March 4, or a year. */
+const DATE = String.raw`(?<!\d)(?:\d{1,2}[^\p{L}\p{N}]{1,2}\d{1,2}[^\p{L}\p{N}]{1,2}\d{2,4}|\d{4}[^\p{L}\p{N}]\d{1,2}[^\p{L}\p{N}]\d{1,2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}|(?:19|20)\d{2})(?!\d)`;
+const BIRTH_WORDS = String.raw`\b(?:d\.?\s?o\.?\s?b|date[\s_.-]*of[\s_.-]*birth|birth[\s_.-]?(?:dates?|days?)|b-?day|born|birth)\b`;
+/** Between a birth word and its date: punctuation and at most two of "is / was / on / in / of / date / dated" ("born on March 3, 1980", "DOB: 4/12/71"); "DOB permits filed 2024" is not a birth date. */
+const BIRTH_GAP = String.raw`[^\p{L}\p{N}]{0,4}(?:(?:is|was|on|in|of|date|dated)[^\p{L}\p{N}]{1,4}){0,2}`;
+/** Four or more digits, possibly grouped or masked first ("x1234", "****1234", "55-1234-889"). */
+const DIGIT_RUN = String.raw`[x*•]*\d(?:[^\p{L}\p{N}]{0,3}\d){3,}`;
+/** "#", "no.", "number", "ending", "ends in" and the like, then the digits. */
+const QUALIFIED_DIGITS = String.raw`(?:#|(?:no|nos|number|numbers|num|(?:ending|ends?)(?:[^\p{L}\p{N}]{1,3}(?:in|with))?)\b)[^\p{L}\p{N}]{0,6}${DIGIT_RUN}`;
+/**
+ * Account wording followed by digits. "Account", "acct", "routing", "IBAN" and "ABA" take any four-digit run;
+ * "checking", "savings" and "A/C" (also air conditioning, energy savings) need a qualifier, a mask ("x4821")
+ * or seven digits in a row.
+ */
+const ACCOUNT_WITH_DIGITS = String.raw`\b(?:accounts?|acct|routing|iban|aba)\b[^\p{L}\p{N}]{0,6}(?:${QUALIFIED_DIGITS}|${DIGIT_RUN})|\b(?:checking|savings|a/c)\b[^\p{L}\p{N}]{0,3}(?:${QUALIFIED_DIGITS}|[x*•]+\d{4}|\d{7,})`;
 
 /**
  * Shapes that never belong in an email body or in saved free text, matched on
- * normalizeForScan(text). Formatted money ("$8,400,000"), dates, APNs and
- * phone numbers written 415-555-0100 do not match.
+ * normalizeForScan(text) (public.submission_text_restricted is the database
+ * twin). Always refused: nine or more digits in a row, the SSN / ITIN 3-2-4
+ * shape and the EIN 2-7 shape (with any one to three separators), and SSN /
+ * ITIN wording. Refused only in context, so APNs, unit lists, years and
+ * phone numbers save: a 3-3-3 or 4-4-4 grouping only with an identity or
+ * account word just before it; birth wording only when a date follows; and
+ * account or routing wording only when digits follow.
  */
 export const RESTRICTED_TEXT_PATTERNS: readonly RestrictedPattern[] = [
-  // SSN and ITIN share the 3-2-4 shape (an ITIN starts with 9); 3-3-3 is the same nine digits grouped another way.
-  { kind: "ssn", label: "a Social Security number or ITIN", re: group(3, 2, 4) },
-  { kind: "ssn", label: "a Social Security number or ITIN", re: group(3, 3, 3) },
-  { kind: "ssn", label: "a Social Security number or ITIN", re: /\b(?:ssns?|s\.\s?s\.\s?n|itins?|i\.\s?t\.\s?i\.\s?n)\b|\bsocial[\s_.-]*security[\s_.-]*(?:numbers?\b|nos?\b|#)|\bsoc\.?\s?sec\b/i },
-  { kind: "ein", label: "an employer identification number", re: group(2, 7) },
+  // SSN and ITIN share the 3-2-4 shape (an ITIN starts with 9). Index 0: schema.ts's APN check reuses it.
+  { kind: "ssn", label: "a Social Security number or ITIN", re: new RegExp(grouped(3, 2, 4), "u") },
+  { kind: "ssn", label: "a Social Security number or ITIN", re: afterIdWord(grouped(3, 3, 3)) },
+  {
+    kind: "ssn",
+    label: "a Social Security number or ITIN",
+    re: /\b(?:ssns?|s\.\s?s\.\s?n|itins?|i\.\s?t\.\s?i\.\s?n)\b|\bss\s?#|\bsocial[\s_.-]*security[\s_.-]*(?:numbers?\b|nos?\b|#|cards?\b)|\bsocial[\s_.-]*security\b[^\d]{0,25}?(?:last|ending|ends)[^\d]{0,12}\d{4}|\bsoc\.?\s?sec\b/i,
+  },
+  { kind: "ein", label: "an employer identification number", re: new RegExp(grouped(2, 7), "u") },
   { kind: "digit_run", label: "a run of nine or more digits (an account, routing or tax id)", re: /\d{9,}/ },
-  { kind: "account", label: "a bank account or routing number", re: new RegExp(String.raw`(?<!\d)\d{4}(?:${SEP}\d{4}){2,}(?!\d)`, "u") },
-  { kind: "dob", label: "a date of birth", re: /\b(?:dob|d\.\s?o\.\s?b|date[\s_.-]*of[\s_.-]*birth|birth[\s_.-]?(?:dates?|days?)|born)\b/i },
+  { kind: "account", label: "a bank account or routing number", re: afterIdWord(String.raw`(?<!\d)\d{4}(?:${SEP}\d{4}){2,}(?!\d)`) },
+  { kind: "dob", label: "a date of birth", re: new RegExp(String.raw`${BIRTH_WORDS}${BIRTH_GAP}${DATE}`, "iu") },
   {
     kind: "account",
     label: "a bank account or routing number",
-    re: /\brouting\b|\b(?:account|acct)s?\.?\s*(?:#|no\b|numbers?\b|num\b|ending\b|ends?\s+(?:in|with)\b)|\b(?:checking|savings)\s+(?:#|no\b|number\b|ending\b|ends?\s+in\b)|\biban\b|\baba\s*(?:#|no\b|number\b)/i,
+    re: new RegExp(ACCOUNT_WITH_DIGITS, "iu"),
   },
 ];
 

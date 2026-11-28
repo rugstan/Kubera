@@ -23,14 +23,36 @@
 
 -- 0. Restricted identifiers in free text ------------------------------------------
 -- The database twin of lib/deals/submission/redaction.ts RESTRICTED_TEXT_PATTERNS,
--- after the same normalization (normalizeForScan): NFKC, the common scripts'
--- decimal digits as ASCII, format characters (zero-width, bidi marks, soft
--- hyphen) removed, lower case. True when the text holds an SSN / ITIN shape
--- (3-2-4 or 3-3-3 with any dash, slash, dot, underscore or space between the
--- groups), SSN wording, an EIN shape, nine or more digits in a row, a 4-4-4
--- account or card grouping, date-of-birth wording, or account / routing
--- wording. The app refuses the same text first, with a message; these checks
--- hold the database to the rule.
+-- after the same normalization (normalizeForScan): NFKC; format characters
+-- (zero-width, bidi marks, soft hyphen, tags) removed; NEL (U+0085) read as a
+-- space; every Unicode decimal digit that NFKC leaves alone read as its ASCII
+-- digit; combining marks, variation selectors, CGJ and Hangul fillers removed
+-- after a digit; lower case. Between digit groups, one to three characters
+-- that are neither a letter nor a digit.
+--
+-- Always restricted: nine or more digits in a row, the SSN / ITIN 3-2-4 shape,
+-- the EIN 2-7 shape, SSN / ITIN wording ("SSN", "SS#", "social security
+-- number", "social security ... last four 6789"). Restricted in context only,
+-- so APNs, unit lists, years, rents and phone numbers save: a 3-3-3 or 4-4-4
+-- grouping with an identity or account word (SSN, social, tax id, TIN, ITIN,
+-- EIN, account, acct, card, routing) up to 30 characters before it; birth
+-- wording (DOB, date of birth, born, birth) followed by a date; account
+-- wording (account, acct, routing, IBAN, ABA) followed by four or more digits,
+-- and checking / savings / A/C only with "#", "no.", "ending" or a mask.
+--
+-- The app refuses the same text first, with a message; these checks hold the
+-- database to the rule. What only a direct database write (service role,
+-- psql) could still get past, because Postgres regular expressions are not
+-- JavaScript's:
+--   * Combining marks after a digit are removed only from the main combining
+--     blocks listed below (the app removes every \p{M}); other scripts' marks
+--     still split a number here.
+--   * [[:alnum:]], [[:space:]] and \y follow the database's character
+--     classification, not Unicode \p{L} / \p{N} / \s and JavaScript's ASCII
+--     \b. With the C collation they agree for letters, digits and NFKC's
+--     spaces; another locale may count a few symbols differently.
+--   * The decimal digits are the Unicode 16 list the app was built with; a
+--     digit added to Unicode later reads as a letter here.
 create or replace function public.submission_text_restricted(t text)
 returns boolean
 language sql
@@ -38,23 +60,49 @@ immutable
 set search_path = ''
 as $$
   select
+    -- SSN / ITIN 3-2-4, any separators
     n.s ~ ('(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{2}' || p.sep || '[0-9]{4}(?![0-9])')
-    or n.s ~ ('(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{3}' || p.sep || '[0-9]{3}(?![0-9])')
-    or n.s ~ '\m(ssns?|s\.[[:space:]]?s\.[[:space:]]?n|itins?|i\.[[:space:]]?t\.[[:space:]]?i\.[[:space:]]?n)\M'
-    or n.s ~ '\msocial[[:space:]_.-]*security[[:space:]_.-]*(numbers?\M|nos?\M|#)'
-    or n.s ~ '\msoc\.?[[:space:]]?sec\M'
+    -- 3-3-3 after an identity or account word
+    or n.s ~ (p.id_word || '.{0,30}(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{3}' || p.sep || '[0-9]{3}(?![0-9])')
+    -- SSN / ITIN wording
+    or n.s ~ '\y(ssns?|s\.[[:space:]]?s\.[[:space:]]?n|itins?|i\.[[:space:]]?t\.[[:space:]]?i\.[[:space:]]?n)\y|\yss[[:space:]]?#|\ysocial[[:space:]_.-]*security[[:space:]_.-]*(numbers?\y|nos?\y|#|cards?\y)|\ysoc\.?[[:space:]]?sec\y'
+    or n.s ~ '\ysocial[[:space:]_.-]*security\y[^0-9]{0,25}(last|ending|ends)[^0-9]{0,12}[0-9]{4}'
+    -- EIN 2-7
     or n.s ~ ('(?<![0-9])[0-9]{2}' || p.sep || '[0-9]{7}(?![0-9])')
+    -- nine or more digits in a row
     or n.s ~ '[0-9]{9,}'
-    or n.s ~ ('(?<![0-9])[0-9]{4}(' || p.sep || '[0-9]{4}){2,}(?![0-9])')
-    or n.s ~ '\m(dob|d\.[[:space:]]?o\.[[:space:]]?b|date[[:space:]_.-]*of[[:space:]_.-]*birth|birth[[:space:]_.-]?(dates?|days?)|born)\M'
-    or n.s ~ '\mrouting\M|\m(account|acct)s?\.?[[:space:]]*(#|no\M|numbers?\M|num\M|ending\M|ends?[[:space:]]+(in|with)\M)|\m(checking|savings)[[:space:]]+(#|no\M|number\M|ending\M|ends?[[:space:]]+in\M)|\miban\M|\maba[[:space:]]*(#|no\M|number\M)'
+    -- 4-4-4 (account, card) after an identity or account word
+    or n.s ~ (p.id_word || '.{0,30}(?<![0-9])[0-9]{4}(' || p.sep || '[0-9]{4}){2,}(?![0-9])')
+    -- birth wording followed by a date
+    or n.s ~ ('\y(d\.?[[:space:]]?o\.?[[:space:]]?b|date[[:space:]_.-]*of[[:space:]_.-]*birth|birth[[:space:]_.-]?(dates?|days?)|b-?day|born|birth)\y'
+      || '[^[:alnum:]]{0,4}((is|was|on|in|of|date|dated)[^[:alnum:]]{1,4}){0,2}'
+      || '(?<![0-9])([0-9]{1,2}[^[:alnum:]]{1,2}[0-9]{1,2}[^[:alnum:]]{1,2}[0-9]{2,4}|[0-9]{4}[^[:alnum:]][0-9]{1,2}[^[:alnum:]][0-9]{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?[[:space:]]+[0-9]{1,2}|(19|20)[0-9]{2})(?![0-9])')
+    -- account wording followed by digits
+    or n.s ~ ('\y(accounts?|acct|routing|iban|aba)\y[^[:alnum:]]{0,6}(' || p.qualified || '|' || p.digit_run || ')')
+    or n.s ~ ('\y(checking|savings|a/c)\y[^[:alnum:]]{0,3}(' || p.qualified || '|[x*•]+[0-9]{4}|[0-9]{7,})')
   from
-    (select lower(translate(
-      regexp_replace(normalize(coalesce(t, ''), NFKC), '[\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff]', '', 'g'),
-      '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹०१२३४५६७८९০১২৩৪৫৬৭৮৯੦੧੨੩੪੫੬੭੮੯૦૧૨૩૪૫૬૭૮૯௦௧௨௩௪௫௬௭௮௯౦౧౨౩౪౫౬౭౮౯೦೧೨೩೪೫೬೭೮೯൦൧൨൩൪൫൬൭൮൯๐๑๒๓๔๕๖๗๘๙',
-      '01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'
-    )) as s) n,
-    (select '([[:space:]]*[-‐‑‒–—―−⸺⸻﹘﹣－/._][[:space:]]*|[[:space:]]+)'::text as sep) p
+    (select lower(regexp_replace(
+      translate(
+        regexp_replace(
+          translate(normalize(coalesce(t, ''), NFKC), chr(133), ' '),
+          '[\u00ad\u0600-\u0605\u061c\u06dd\u070f\u0890\u0891\u08e2\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\U000110bd\U000110cd\U00013430-\U0001343f\U0001bca0-\U0001bca3\U0001d173-\U0001d17a\U000e0001\U000e0020-\U000e007f]',
+          '', 'g'),
+        '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹߀߁߂߃߄߅߆߇߈߉०१२३४५६७८९০১২৩৪৫৬৭৮৯੦੧੨੩੪੫੬੭੮੯૦૧૨૩૪૫૬૭૮૯୦୧୨୩୪୫୬୭୮୯௦௧௨௩௪௫௬௭௮௯౦౧౨౩౪౫౬౭౮౯'
+      || '೦೧೨೩೪೫೬೭೮೯൦൧൨൩൪൫൬൭൮൯෦෧෨෩෪෫෬෭෮෯๐๑๒๓๔๕๖๗๘๙໐໑໒໓໔໕໖໗໘໙༠༡༢༣༤༥༦༧༨༩၀၁၂၃၄၅၆၇၈၉႐႑႒႓႔႕႖႗႘႙០១២៣៤៥៦៧៨៩᠐᠑᠒᠓᠔᠕᠖᠗᠘᠙'
+      || '᥆᥇᥈᥉᥊᥋᥌᥍᥎᥏᧐᧑᧒᧓᧔᧕᧖᧗᧘᧙᪀᪁᪂᪃᪄᪅᪆᪇᪈᪉᪐᪑᪒᪓᪔᪕᪖᪗᪘᪙᭐᭑᭒᭓᭔᭕᭖᭗᭘᭙᮰᮱᮲᮳᮴᮵᮶᮷᮸᮹᱀᱁᱂᱃᱄᱅᱆᱇᱈᱉᱐᱑᱒᱓᱔᱕᱖᱗᱘᱙꘠꘡꘢꘣꘤꘥꘦꘧꘨꘩꣐꣑꣒꣓꣔꣕꣖꣗꣘꣙'
+      || '꤀꤁꤂꤃꤄꤅꤆꤇꤈꤉꧐꧑꧒꧓꧔꧕꧖꧗꧘꧙꧰꧱꧲꧳꧴꧵꧶꧷꧸꧹꩐꩑꩒꩓꩔꩕꩖꩗꩘꩙꯰꯱꯲꯳꯴꯵꯶꯷꯸꯹𐒠𐒡𐒢𐒣𐒤𐒥𐒦𐒧𐒨𐒩𐴰𐴱𐴲𐴳𐴴𐴵𐴶𐴷𐴸𐴹𐵀𐵁𐵂𐵃𐵄𐵅𐵆𐵇𐵈𐵉𑁦𑁧𑁨𑁩𑁪𑁫𑁬𑁭𑁮𑁯𑃰𑃱𑃲𑃳𑃴𑃵𑃶𑃷𑃸𑃹'
+      || '𑄶𑄷𑄸𑄹𑄺𑄻𑄼𑄽𑄾𑄿𑇐𑇑𑇒𑇓𑇔𑇕𑇖𑇗𑇘𑇙𑋰𑋱𑋲𑋳𑋴𑋵𑋶𑋷𑋸𑋹𑑐𑑑𑑒𑑓𑑔𑑕𑑖𑑗𑑘𑑙𑓐𑓑𑓒𑓓𑓔𑓕𑓖𑓗𑓘𑓙𑙐𑙑𑙒𑙓𑙔𑙕𑙖𑙗𑙘𑙙𑛀𑛁𑛂𑛃𑛄𑛅𑛆𑛇𑛈𑛉𑛐𑛑𑛒𑛓𑛔𑛕𑛖𑛗𑛘𑛙𑛚𑛛𑛜𑛝𑛞𑛟𑛠𑛡𑛢𑛣𑜰𑜱𑜲𑜳𑜴𑜵𑜶𑜷𑜸𑜹'
+      || '𑣠𑣡𑣢𑣣𑣤𑣥𑣦𑣧𑣨𑣩𑥐𑥑𑥒𑥓𑥔𑥕𑥖𑥗𑥘𑥙𑯰𑯱𑯲𑯳𑯴𑯵𑯶𑯷𑯸𑯹𑱐𑱑𑱒𑱓𑱔𑱕𑱖𑱗𑱘𑱙𑵐𑵑𑵒𑵓𑵔𑵕𑵖𑵗𑵘𑵙𑶠𑶡𑶢𑶣𑶤𑶥𑶦𑶧𑶨𑶩𑷠𑷡𑷢𑷣𑷤𑷥𑷦𑷧𑷨𑷩𑽐𑽑𑽒𑽓𑽔𑽕𑽖𑽗𑽘𑽙𖄰𖄱𖄲𖄳𖄴𖄵𖄶𖄷𖄸𖄹𖩠𖩡𖩢𖩣𖩤𖩥𖩦𖩧𖩨𖩩'
+      || '𖫀𖫁𖫂𖫃𖫄𖫅𖫆𖫇𖫈𖫉𖭐𖭑𖭒𖭓𖭔𖭕𖭖𖭗𖭘𖭙𖵰𖵱𖵲𖵳𖵴𖵵𖵶𖵷𖵸𖵹𞅀𞅁𞅂𞅃𞅄𞅅𞅆𞅇𞅈𞅉𞋰𞋱𞋲𞋳𞋴𞋵𞋶𞋷𞋸𞋹𞓰𞓱𞓲𞓳𞓴𞓵𞓶𞓷𞓸𞓹𞗱𞗲𞗳𞗴𞗵𞗶𞗷𞗸𞗹𞗺𞥐𞥑𞥒𞥓𞥔𞥕𞥖𞥗𞥘𞥙',
+        repeat('0123456789', 68)),
+      '([0-9])[\u0300-\u036f\u0483-\u0489\u034f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe00-\ufe0f\ufe20-\ufe2f\u115f\u1160\u3164\uffa0\U000e0100-\U000e01ef]+',
+      '\1', 'g')) as s) n,
+    (select
+      '[^[:alnum:]]{1,3}'::text as sep,
+      '\y(ssns?|social|tax[^[:alnum:]]{0,3}id|tins?|itins?|eins?|accounts?|acct|card|routing)\y'::text as id_word,
+      '[x*•]*[0-9]([^[:alnum:]]{0,3}[0-9]){3,}'::text as digit_run,
+      '(#|(no|nos|number|numbers|num|(ending|ends?)([^[:alnum:]]{1,3}(in|with))?)\y)[^[:alnum:]]{0,6}[x*•]*[0-9]([^[:alnum:]]{0,3}[0-9]){3,}'::text as qualified
+    ) p
 $$;
 revoke execute on function public.submission_text_restricted(text) from public, anon, authenticated;
 

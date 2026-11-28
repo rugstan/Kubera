@@ -23,11 +23,48 @@ describe("assertEmailSafe", () => {
     for (const t of ["acct 123456789", "routing 021000021", "ref 4111111111111111"]) expect(kinds(t), t).toContain("digit_run");
   });
 
-  it("rejects date-of-birth phrasing and account wording", () => {
-    for (const t of ["DOB 01/02/1970", "D.O.B.: on file", "date of birth", "birthdate", "born in 1961"]) expect(kinds(t), t).toContain("dob");
-    for (const t of ["routing number to follow", "Account # ending 4411", "account number 4411", "acct. # 12", "account no. 7", "IBAN on file", "two account numbers"]) {
+  it("rejects date-of-birth wording followed by a date, and account wording followed by digits", () => {
+    for (const t of ["DOB 01/02/1970", "D.O.B.: 1/2/70", "date of birth is 1970-01-02", "birthdate March 4", "born in 1961", "Sponsor born on March 3, 1980", "birth: 03/04/1971", "bday 3/4/71"]) {
+      expect(kinds(t), t).toContain("dob");
+    }
+    for (const t of ["Account # ending 4411", "account number 4411", "acct no. 55-1234-889", "routing: 1210-0035-8", "Wells account 12345678", "Chase checking x4821", "savings ending in 0042", "a/c 44556677"]) {
       expect(kinds(t), t).toContain("account");
     }
+  });
+
+  it("reads birth and account wording only in context: no date or no digits, nothing to refuse", () => {
+    const ok = [
+      "D.O.B.: on file", "date of birth", "Date of birth on the PFS", "DOB permits are closed", "DOB permits filed 2024", "born in the USA", "the concept was born from",
+      "routing number to follow", "truck routing hub", "IBAN on file", "two account numbers", "acct. # 12", "taking into account no rent growth", "escrow account ending balance",
+      "on account no later than June", "savings ending the year", "projected energy savings 2027", "new A/C 2023",
+    ];
+    for (const t of ok) expect(findRestrictedText(t), t).toEqual([]);
+  });
+
+  it("refuses 3-3-3 and 4-4-4 groupings only after an identity or account word; 3-2-4 always", () => {
+    const ok = ["APN 226-180-021", "Units 101 102 103", "tax returns 2022/2023/2024", "rents 2400 2600 2800", "+61 412 345 678", "Tranche 500 000 000", "Suites 100-200-300"];
+    for (const t of ok) expect(findRestrictedText(t), t).toEqual([]);
+    const bad = ["SSN 123 456 789", "tax id 123 456 789", "TIN 123-456-789", "EIN: 123.456.789", "card 4111 1111 1111 1111", "account 0123 4567 8901", "routing no 1210 0035 8000", "ITIN 912 78 1234", "id 123 45 6789"];
+    for (const t of bad) expect(findRestrictedText(t).length, t).toBeGreaterThan(0);
+  });
+
+  it("refuses SS#, social security last four, and birth with a date", () => {
+    expect(kinds("SS# on file")).toContain("ssn");
+    expect(kinds("social security last four 6789")).toContain("ssn");
+    expect(kinds("Social Security ending 6789")).toContain("ssn");
+    expect(kinds("social security income")).toEqual([]);
+    expect(kinds("birth: 03/04/1971")).toContain("dob");
+  });
+
+  it("reads any one to three separators between digit groups, and strips marks, selectors and fillers inside a number", () => {
+    const shapes = ["123--45--6789", "123:45:6789", "123,45,6789", "123·45·6789", "123|45|6789", "(123) 45-6789", "123 - 45 - 6789", "123\n45\n6789", "123\u008545\u00856789"];
+    for (const t of shapes) expect(kinds(`id ${t}`), t).toContain("ssn");
+    const hidden = ["123-45-6\u0308789", "123-45-6\uFE0F789", "123-45-6\u{E0101}789", "123-45-6\u034F789", "123-45-6\u115F789", "123-45-6\u1160789", "123-45-6\u3164789", "123-45-6\uFFA0789"];
+    for (const t of hidden) expect(kinds(`id ${t}`), JSON.stringify(t)).toContain("ssn");
+    expect(normalizeForScan("12\u0308 3\uFE0F4\u3164")).toBe("12 34");
+    expect(normalizeForScan("a\u0085b")).toBe("a b");
+    // A mark after a letter stays: only numbers lose them.
+    expect(normalizeForScan("e\u0301")).toBe("\u00e9");
   });
 
   it("rejects a principal's legal name, case- and spacing-insensitive, but not the borrowing entity's own name", () => {

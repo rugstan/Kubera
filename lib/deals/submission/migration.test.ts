@@ -352,10 +352,23 @@ describe("zod and the database agree (schema.ts twins)", () => {
       "1234-56-78901", "12-345-6789", "12345678", "415-555-0100", "(415) 555-0100", "2026-10-31", "$1,020,000", "$1,234,567.89", "Loan request: $8,400,000 bridge | 42-unit multifamily, Oakland CA | 68% LTV, 1.10x DSCR",
       "APN 048A-7012-015-00, 006-0123-004-0000, 331-030-19-00-5", "CA DRE Corp. License #01522444", "Sponsor offers an operating account and deposits; dental, therapy and accounting tenants",
       "Reborn? No: newborn, adobe and itinerary are fine words.", "Suites 101-103", "Units 1 2 3", "18 months, 360-month amortization", "٠١٢٣٤٥٦٧", "Assn. dues", "Doberman", "soccer",
+      // Context decides (N3): these save in both.
+      "APN 226-180-021", "Units 101 102 103", "tax returns 2022/2023/2024", "rents 2400 2600 2800", "escrow account ending balance", "DOB permits", "DOB permits filed 2024", "truck routing hub",
+      "born in", "born in the USA", "taking into account no rent growth", "+61 412 345 678", "projected energy savings 2027", "new A/C 2023", "two account numbers", "acct. # 12", "social security income",
+      "Tranche 500 000 000", "Date of birth on the PFS",
+      // ...and these are refused in both.
+      "id 123--45--6789", "id 123:45:6789", "id 123,45,6789", "id 123·45·6789", "id 123|45|6789", "id (123) 45-6789", "id 123\u008545\u00856789", "SSN 123 456 789", "TIN 123-456-789",
+      "card 4111 1111 1111 1111", "account 0123 4567 8901", "birth: 03/04/1971", "Sponsor born on March 3, 1980", "bday 3/4/71", "SS# on file", "social security last four 6789",
+      "Chase checking x4821", "savings ending in 0042", "acct no. 55-1234-889", "routing: 1210-0035-8", "a/c 44556677",
+      "id 123-45-6\u0308789", "id 123-45-6\uFE0F789", "id 123-45-6\u{E0101}789", "id 123-45-6\u034F789", "id 123-45-6\u115F789", "id 1234\u316456789", "id 123-45-6\uFFA0789", "id 123-45-6\u{E0031}789",
+      "id ၁၂၃-၄၅-၆၇၈၉", "id ១២៣-៤៥-៦៧៨៩", "id 𝟏𝟐𝟑-𝟒𝟓-𝟔𝟕𝟖𝟗", "id ¹²³-⁴⁵-⁶⁷⁸⁹", "id 12٣-4٥-67۸9",
     ];
     for (const v of samples) expect(await pg(v), JSON.stringify(v)).toBe(findRestrictedText(v).length > 0);
     expect(await pg("SSN 123-45-6789")).toBe(true);
     expect(await pg("Call 415-555-0100")).toBe(false);
+    // The N3 lists hold in the database on their own, not only as "agrees with the app".
+    for (const v of ["APN 226-180-021", "rents 2400 2600 2800", "+61 412 345 678", "escrow account ending balance", "taking into account no rent growth", "DOB permits"]) expect(await pg(v), v).toBe(false);
+    for (const v of ["id 123--45--6789", "id (123) 45-6789", "birth: 03/04/1971", "SS# on file", "social security last four 6789", "id 123-45-6\u0308789"]) expect(await pg(v), v).toBe(true);
   });
 
   it("text past a column's length, which zod refuses, the database refuses too", async () => {
