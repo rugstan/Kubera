@@ -14,7 +14,7 @@ import { LockedFieldError } from "@/lib/deals/stages";
 import { LedgerError, agencySplit, assertFeeTransition, brokerFee, hardMoneyPoints, partnerSplit, sbaLenderReferralFee, sbaPackagingFee } from "@/lib/deals/ledger";
 import { MoneyError, dollarsToCents } from "@/lib/deals/money";
 import { InvoiceError, createInvoice, issueInvoice, issueInvoiceMessage, settleInvoice, voidInvoice } from "@/lib/deals/invoices";
-import { PackageError, checkOutreachApproval, markOutreachSent, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type SendPackageResult } from "@/lib/deals/packages";
+import { PackageError, checkOutreachApproval, markOutreachSent, outreachMessage, recordLenderResponse, withdrawOutreach, type SendPackageResult } from "@/lib/deals/packages";
 import { ModificationError, applyModificationTerms, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, withdrawModification } from "@/lib/deals/modifications";
 import { Form159BlockedError, generateForm159, sendForm159 } from "@/lib/deals/form159";
 import { MldsDeskError, generateDealMlds, holdDealMlds, mldsInputFromForm, officeDateTime, openDealMlds, releaseDealMlds, sendDealMlds } from "@/lib/deals/mlds";
@@ -286,21 +286,6 @@ export async function invoiceAction(f: FormData): Promise<never> {
 }
 
 // Packages and outreach -----------------------------------------------------------------------
-
-export async function sendPackageAction(f: FormData): Promise<never> {
-  const id = str(f, "dealId");
-  return run(dealPath(id), "write", async ({ staff, rt }) => {
-    const deal = await rt.store.getDeal(id);
-    if (!deal?.leadId) throw new DealError("Link the deal to its lead so vault documents can be packaged");
-    const items = await rt.vaultItems(deal.leadId, ids(f, "documentId"));
-    const r = await sendPackageToLender(
-      { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null },
-      { dealId: id, lenderId: str(f, "lenderId"), items, actor: staff.actor, ttlDays: num(f, "ttlDays"), allowStaleLender: bool(f, "allowStale"), note: opt(f, "note") ?? undefined },
-    );
-    await rememberShareUrl(id, r);
-    return outreachMessage(r);
-  });
-}
 
 /** The one-time share URL, shown on the next page view; never put in the URL or the logs. */
 async function rememberShareUrl(dealId: string, r: SendPackageResult): Promise<void> {
