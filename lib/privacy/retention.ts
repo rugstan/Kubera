@@ -612,6 +612,38 @@ export const CONTACT_RECORDS: readonly ContactRecordSpec[] = [
   { table: "lender_contacts", column: "phone_mobile", match: "phone", hasLegalHold: false, keepColumns: ["created_by"], copyKept: legacyLenderAuditCopy },
 ];
 
+/**
+ * Loan-file records about a deal (the lender-ready submission, migration
+ * 20261105160000_int_deal_submission). They hold the borrower's deal facts,
+ * the sponsor's stated experience and financial strength, and the summaries
+ * shown to lenders, so they are kept with the loan file and never deleted on
+ * request. A deletion request that finds them through the person's leads
+ * reports each one under `retained`, with the reason.
+ */
+export type DealFileRecordSpec = { table: string; reason: string };
+
+export const DEAL_FILE_RECORDS: readonly DealFileRecordSpec[] = [
+  // VERIFY with counsel: record retention for loan files under B&P §10148 (three years).
+  { table: "deal_submission_profiles", reason: "Deal and property facts for a loan we arranged or presented to lenders; kept with that loan file under B&P §10148" },
+  { table: "deal_sponsor_profiles", reason: "Sponsor experience and stated financial strength on a loan file; kept with that loan file under B&P §10148" },
+  { table: "deal_summaries", reason: "Record of the loan summary shown to lenders; kept as part of the loan file under B&P §10148" },
+];
+
+/** The deals opened from the person's leads (read before the leads are deleted: deals.lead_id is set null with them). */
+async function dealsOfLeads(leadIds: readonly RowId[], db: RetentionDb): Promise<RowId[]> {
+  if (!leadIds.length) return [];
+  return (await db.selectRows({ table: "deals", column: "lead_id", values: leadIds, columns: ["id"] })).map((r) => r.id as RowId);
+}
+
+async function retainedDealFileRecords(dealIds: readonly RowId[], db: RetentionDb): Promise<ErasureResolution["retained"]> {
+  if (!dealIds.length) return [];
+  const out: ErasureResolution["retained"] = [];
+  for (const spec of DEAL_FILE_RECORDS) {
+    for (const r of await db.selectRows({ table: spec.table, column: "deal_id", values: dealIds, columns: ["id"] })) out.push({ table: spec.table, id: r.id as RowId, reason: spec.reason });
+  }
+  return out;
+}
+
 export type DeletionRequestSummary = { processed: number; completed: number; partial: number; errors: string[] };
 
 export type ErasureResolution = {
@@ -710,7 +742,9 @@ async function eraseContactRecords(
  * Erases one person: their leads (with documents, conversations, mail, texts
  * and notification records) and partner registrations, then the mail, texts,
  * notification log and newsletter rows found by their email address or phone
- * numbers. Keeps what the law or a legal hold requires, and says why.
+ * numbers. Keeps what the law or a legal hold requires, and says why,
+ * including the loan-file records of deals opened from their leads
+ * (DEAL_FILE_RECORDS).
  */
 export async function eraseSubject(email: string, deps: PurgeDeps, now: Date = new Date(), opts: { phones?: readonly string[] } = {}): Promise<ErasureResolution> {
   const deleted: ErasureResolution["deleted"] = [];
@@ -720,8 +754,9 @@ export async function eraseSubject(email: string, deps: PurgeDeps, now: Date = n
     leads: await deps.db.findSubject("leads", email),
     partners: await deps.db.findSubject("partners", email),
   };
-  // Read phone numbers before the rows that hold them are deleted.
+  // Read phone numbers and the leads' deals before the rows that hold them are deleted.
   const phones = await subjectPhones(email, subjects.leads.map((r) => r.id), subjects.partners.map((r) => r.id), opts.phones ?? [], deps.db);
+  const dealIds = await dealsOfLeads(subjects.leads.map((r) => r.id), deps.db);
 
   for (const policy of [LEAD_POLICY, PARTNER_POLICY]) {
     const rows = policy === LEAD_POLICY ? subjects.leads : subjects.partners;
@@ -742,6 +777,7 @@ export async function eraseSubject(email: string, deps: PurgeDeps, now: Date = n
 
   const contact = await eraseContactRecords({ email, phones }, { retainedLeads }, deps);
   retained.push(...contact.retained);
+  retained.push(...(await retainedDealFileRecords(dealIds, deps.db)));
   return { kind: "deletion", completedAt: now.toISOString(), deleted, contactRecords: contact.counts, retained, notes: [...ERASURE_NOTES] };
 }
 
