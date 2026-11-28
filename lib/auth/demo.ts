@@ -26,6 +26,21 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     },
   },
   {
+    // A second licensed broker: an override a broker requested is approved by someone else.
+    id: "00000000-0000-4000-8000-0000000000b2",
+    email: "broker2@corin.test",
+    roles: ["broker"],
+    totp: true,
+    profile: {
+      fullName: "Demo Second Broker",
+      title: "Director",
+      dreLicenseNumber: "01234568",
+      dreLicenseType: "broker",
+      dreLicenseExpiresOn: "2029-06-30",
+      dreLicenseVerifiedAt: "2026-10-01T00:00:00.000Z",
+    },
+  },
+  {
     id: "00000000-0000-4000-8000-0000000000a1",
     email: "analyst@corin.test",
     roles: ["analyst"],

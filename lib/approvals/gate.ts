@@ -12,6 +12,8 @@ import type { ApprovalDecision, ApprovalGate, OutboundAction } from "@/lib/compl
 import type { ApprovalService } from "./service";
 import type { ApprovalRecord } from "./types";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function queueApprovalGate(service: ApprovalService, opts: { ttlMinutes?: number } = {}): ApprovalGate {
   async function lookup(action: OutboundAction): Promise<ApprovalRecord> {
     const { record } = await service.request({
@@ -23,6 +25,7 @@ export function queueApprovalGate(service: ApprovalService, opts: { ttlMinutes?:
       templateBodySha256: typeof action.payload.templateBodySha256 === "string" ? action.payload.templateBodySha256 : undefined,
       payload: action.payload,
       requestedBy: action.requestedBy,
+      ...(action.requestedByUser && UUID.test(action.requestedByUser) ? { requestedByUser: action.requestedByUser } : {}),
       ttlMinutes: opts.ttlMinutes,
     });
     return record;

@@ -6,7 +6,7 @@ import { requiresReauthentication } from "@/lib/agents/core/reauth";
 import { requireStaff } from "@/lib/auth/dal";
 import { californiaDate, can, licenseStatus } from "@/lib/auth/policy";
 import { getApprovalService } from "@/lib/approvals/server";
-import { kindLabel, type ApprovalRecord } from "@/lib/approvals/types";
+import { isSelfApproval, kindLabel, needsSeparateApprover, type ApprovalRecord } from "@/lib/approvals/types";
 import { DecisionForm, SweepButton } from "./DecisionForm";
 import { approvalSubmissionContent, requirementLabel, type ApprovalSubmissionContent } from "@/app/(staff)/deals/[id]/submission/_lib/data";
 import { SummaryView } from "@/app/(staff)/deals/[id]/submission/_components/SummaryView";
@@ -52,6 +52,9 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
   // A lender submission's card shows what is approved, from storage: the stored email and the locked summary.
   const contents = new Map<string, ApprovalSubmissionContent | null>(await Promise.all(records.filter((r) => r.kind === "lender_submission").map(async (r) => [r.id, await approvalSubmissionContent(r)] as const)));
   const decidedId = z.uuid().safeParse(sp.decided).data;
+  // An override the viewer requested needs another approver, unless the viewer is the designated officer.
+  const officer = ctx.principal.profile.dreLicenseType === "broker_officer" && Boolean(ctx.principal.profile.dreLicenseNumber);
+  const ownOverride = (r: ApprovalRecord) => !officer && needsSeparateApprover(r) && isSelfApproval(r, { userId: ctx.principal.userId, email: ctx.principal.email });
   const justDecided = decidedId ? await service.get(decidedId) : null;
 
   return (
@@ -93,7 +96,15 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
         <ul className="grid gap-4" aria-label={view === "pending" ? "Requests waiting for a decision" : "Decided requests"}>
           {records.map((r) => (
             <li key={r.id}>
-              <ApprovalCard record={r} now={now} pending={view === "pending"} canApprove={approve.ok} blocked={approve.ok ? undefined : approve.reason} canReject={reject.ok} content={contents.get(r.id) ?? null} />
+              <ApprovalCard
+                record={r}
+                now={now}
+                pending={view === "pending"}
+                canApprove={approve.ok && !ownOverride(r)}
+                blocked={!approve.ok ? approve.reason : ownOverride(r) ? "You requested this submission with a reason to send anyway; another licensed broker, or the designated officer, must approve it." : undefined}
+                canReject={reject.ok}
+                content={contents.get(r.id) ?? null}
+              />
             </li>
           ))}
         </ul>

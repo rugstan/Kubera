@@ -21,6 +21,8 @@ export type OutboundAction = {
   templateId?: string;
   payload: Record<string, unknown>;
   requestedBy: string;
+  /** The requesting staff member's user id (approvals.requested_by_user): the queue refuses to let them approve their own override. */
+  requestedByUser?: string;
 };
 
 export type ApprovalDecision =

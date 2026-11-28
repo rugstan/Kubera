@@ -89,8 +89,8 @@ async function signInWithCode(page: Page, next: string, email: string) {
   await expect(page).toHaveURL(/\/mfa\?next=/);
 }
 
-async function signIn(page: Page, next: string) {
-  await signInWithCode(page, next, "broker@corin.test");
+async function signIn(page: Page, next: string, email = "broker@corin.test") {
+  await signInWithCode(page, next, email);
   await page.getByLabel("Authenticator code").fill(totp(DEMO_TOTP_SECRET));
   await page.getByRole("button", { name: "Verify" }).click();
   await expect(page).toHaveURL((url) => url.pathname === next.split("?")[0]);
@@ -314,7 +314,15 @@ test("a request with missing items and no reason is refused with the list; with 
 });
 
 test("after a broker approves, the link and the approved email show once, Mark sent works, and the share page leads with the summary", async ({ page }) => {
+  // The requester cannot approve their own override (a reason to send with items missing).
   await signIn(page, "/approvals");
+  const own = page.getByRole("list", { name: "Requests waiting for a decision" }).getByRole("article", { name: /Larkspur Example Terrace \(demo\).*Sample Private Fund/ });
+  await expect(own).toContainText("another licensed broker, or the designated officer, must approve it");
+  await expect(own.getByLabel("Authenticator code")).toHaveCount(0);
+  await page.context().clearCookies();
+
+  // A second licensed broker approves it.
+  await signIn(page, "/approvals", "broker2@corin.test");
   const queue = page.getByRole("list", { name: "Requests waiting for a decision" });
   const card = queue.getByRole("article", { name: /Larkspur Example Terrace \(demo\).*Sample Private Fund/ });
   // A lender submission is sensitive: a fresh authenticator code before it is approved.

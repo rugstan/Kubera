@@ -7,7 +7,7 @@ import { reauthSatisfied, requiresReauthentication, type ReauthCheck, type Reaut
 import { DRE_LICENSE_PATTERN } from "@/lib/site";
 import { payloadHash } from "./hash";
 import type { ApprovalStore } from "./store";
-import { KIND_PATTERN, type ApprovalListFilter, type ApprovalRecord, type Approver } from "./types";
+import { KIND_PATTERN, SELF_APPROVED_NOTE, isSelfApproval, needsSeparateApprover, type ApprovalListFilter, type ApprovalRecord, type Approver } from "./types";
 
 type Clock = () => Date;
 
@@ -46,7 +46,7 @@ export class ApprovalNotFoundError extends Error {
 
 export type DecisionResult =
   | { ok: true; record: ApprovalRecord }
-  | { ok: false; reason: "expired" | "already_decided" | "invalid_approver" | "reason_required" | "reauth_required"; record: ApprovalRecord };
+  | { ok: false; reason: "expired" | "already_decided" | "invalid_approver" | "reason_required" | "reauth_required" | "self_approval"; record: ApprovalRecord };
 
 export type ExecuteResult =
   | { status: "executed"; record: ApprovalRecord; executionRef?: string }
@@ -166,6 +166,10 @@ export class ApprovalService {
     if (!approver.userId || !approver.dreLicense || !DRE_LICENSE_PATTERN.test(approver.dreLicense)) {
       return { ok: false, reason: "invalid_approver", record };
     }
+    // An override (lender submission with a reason to send anyway) needs a second person; only the
+    // designated officer may approve their own, and the decision says so.
+    const selfApproved = needsSeparateApprover(record) && isSelfApproval(record, approver);
+    if (selfApproved && !approver.designatedOfficer) return { ok: false, reason: "self_approval", record };
     if (requiresReauthentication(record)) {
       // The broker must have recorded a fresh second factor for this exact
       // approval and payload (ReauthService.record) before approving it.
@@ -173,7 +177,7 @@ export class ApprovalService {
       const check = await this.reauthCheck(asDecided);
       if (!check.ok) return { ok: false, reason: "reauth_required", record };
     }
-    return this.decide(record, { status: "approved", decidedBy: approver.userId, decidedByLabel: approver.label, decidedByDre: approver.dreLicense, decisionReason: null });
+    return this.decide(record, { status: "approved", decidedBy: approver.userId, decidedByLabel: approver.label, decidedByDre: approver.dreLicense, decisionReason: selfApproved ? SELF_APPROVED_NOTE : null });
   }
 
   async reject(id: string, approver: Approver, reason: string): Promise<DecisionResult> {

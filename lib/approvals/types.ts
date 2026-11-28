@@ -76,7 +76,34 @@ export type Approver = {
   userId: string;
   label: string;
   dreLicense: string | null;
+  /** The corporation's designated officer (a DRE broker-officer license): the only one who may approve their own override. */
+  designatedOfficer?: boolean;
+  /** The approver's sign-in email: matches requests made before requestedByUser was recorded ("staff:<email>"). */
+  email?: string | null;
 };
+
+/**
+ * A lender submission requested with an override reason (missing required
+ * items, or a lender outside its recorded box): the broker's approval is the
+ * control, so the requester may not approve it themselves. The one exception,
+ * for a small firm, is the designated officer, and it is recorded.
+ */
+export function needsSeparateApprover(record: Pick<ApprovalRecord, "kind" | "payload">): boolean {
+  if (record.kind !== "lender_submission") return false;
+  const p = record.payload ?? {};
+  const has = (v: unknown) => typeof v === "string" && v.trim().length > 0;
+  return has(p.overrideReason) || has(p.lenderOverrideReason);
+}
+
+/** True when `approver` is the person who requested `record`. */
+export function isSelfApproval(record: Pick<ApprovalRecord, "requestedBy" | "requestedByUser">, approver: Pick<Approver, "userId" | "email">): boolean {
+  if (record.requestedByUser && record.requestedByUser === approver.userId) return true;
+  const email = approver.email?.trim().toLowerCase();
+  return Boolean(email) && record.requestedBy.trim().toLowerCase() === `staff:${email}`;
+}
+
+/** decisionReason on an override the designated officer approved for their own request. */
+export const SELF_APPROVED_NOTE = "Self-approved by the designated officer: the requester approved their own override reason.";
 
 export type ApprovalListFilter = {
   status?: ApprovalStatus | ApprovalStatus[];
