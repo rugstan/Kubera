@@ -8,8 +8,9 @@
 //   2. assertEmailSafe() below, run on the rendered text and again in the send
 //      gate (lib/deals/packages.ts).
 //   3. The database checks (public.submission_text_restricted, the same
-//      shapes after the same normalization) on lender_outreach and on every
-//      free-text column of the submission and sponsor profiles.
+//      shapes after the same normalization and money masking) on
+//      lender_outreach and on every free-text column of the submission and
+//      sponsor profiles.
 //
 // Text is normalized before any pattern runs (normalizeForScan): NFKC, every
 // Unicode decimal digit as its ASCII digit, and format characters
@@ -58,52 +59,94 @@ export function normalizeForScan(text: string): string {
     .replace(AFTER_DIGIT_NOISE, "");
 }
 
+/**
+ * Money amounts, read as money before any identifier pattern runs, so their
+ * digit groups never start or join an identifier ("Rent of $850.00 (2024)",
+ * "NOI $468,250.00 2025", "Insurance 310.50, 2026"): anything after "$", a
+ * number with comma thousands, and a number ending in cents (".dd", unless
+ * another digit group follows the dot as in "123.45.6789"). Each amount is
+ * replaced by "$".
+ */
+const MONEY = /\$\s?\d[\d,]*(?:\.\d+)?|(?<!\d)\d{1,3}(?:,\d{3})+(?:\.\d+)?(?!\d|,\d)|(?<![\d.,])\d+\.\d{2}(?!\d|[./-]\d)/g;
+
+/** normalizeForScan text with its money amounts masked: what the identifier patterns read. */
+export function maskMoney(scan: string): string {
+  return scan.replace(MONEY, "$");
+}
+
 // Between digit groups: one to three characters that are neither a letter nor a digit
-// ("-", "--", " - ", ":", ",", "·", "|", ") " as in "(123) 45-6789", a newline...).
+// ("-", "--", " - ", "·", "|", ") " as in "(123) 45-6789", a newline...).
 const SEP = String.raw`[^\p{L}\p{N}]{1,3}`;
 const grouped = (...sizes: number[]) => String.raw`(?<!\d)${sizes.map((n) => String.raw`\d{${n}}`).join(SEP)}(?!\d)`;
-/** Words that make a 3-3-3 or 4-4-4 grouping an identifier when they come within about 30 characters before it. */
-const ID_WORDS = String.raw`\b(?:ssns?|social|tax[^\p{L}\p{N}]{0,3}id|tins?|itins?|eins?|accounts?|acct|card|routing)\b`;
-const afterIdWord = (body: string) => new RegExp(String.raw`${ID_WORDS}[\s\S]{0,30}${body}`, "iu");
-/** A date: 3/4/1971, 1971-03-04, March 4, or a year. */
-const DATE = String.raw`(?<!\d)(?:\d{1,2}[^\p{L}\p{N}]{1,2}\d{1,2}[^\p{L}\p{N}]{1,2}\d{2,4}|\d{4}[^\p{L}\p{N}]\d{1,2}[^\p{L}\p{N}]\d{1,2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}|(?:19|20)\d{2})(?!\d)`;
+/**
+ * The SSN / ITIN 3-2-4 shape. Separators that hold a comma, colon or
+ * semicolon are list punctuation ("Suite 200, 15, 2025"), so they count only
+ * when both are the same character: with no space ("123,45,6789",
+ * "123:45:6789"), or with a space when the last group is not a year.
+ */
+const SSN_SEP = String.raw`[^\p{L}\p{N},:;]{1,3}`;
+const SSN_SHAPE = String.raw`(?<!\d)\d{3}(?:${SSN_SEP}\d{2}${SSN_SEP}|,\d{2},|:\d{2}:|;\d{2};|(?:,\s{1,2}\d{2},|:\s{1,2}\d{2}:|;\s{1,2}\d{2};)\s{1,2}(?!(?:19|20)\d{2}(?!\d)))\d{4}(?!\d)`;
+/** The EIN 2-7 shape: dashes, spaces, dots or slashes between, never list punctuation or brackets ("Phase 12: 8400000", "Lot 12 (1234567)"). */
+const EIN_SHAPE = String.raw`(?<!\d)\d{2}[^\p{L}\p{N},:;()\[\]{}]{1,3}\d{7}(?!\d)`;
+/**
+ * An identity or account word directly before its number: only punctuation
+ * and "no.", "number" or "is" between ("SSN: 123 456 789", "tax id number
+ * 123-456-789"); "account for units 101 102 103" and "tax ID parcel
+ * 226-180-021" are not.
+ */
+const ID_WORDS = String.raw`\b(?:ssns?|social(?:[\s_.-]*security)?|tax[^\p{L}\p{N}]{0,3}id|tins?|itins?|eins?|accounts?|acct|card|routing)\b`;
+const ID_LEAD = String.raw`${ID_WORDS}(?:[^\p{L}\p{N}]{0,4}(?:no|nos|number|num|is)\b){0,2}[^\p{L}\p{N}]{0,4}`;
+const afterIdWord = (body: string) => new RegExp(String.raw`${ID_LEAD}${body}`, "iu");
+const MONTH = String.raw`(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?`;
+/** A full date, with day and month: 3/4/1971, 1971-03-04, March 4, 4 March. A bare year is not a birth date ("the brand was born in 1998"). */
+const DATE = String.raw`(?<!\d)(?:\d{1,2}[^\p{L}\p{N}]{1,2}\d{1,2}[^\p{L}\p{N}]{1,2}\d{2,4}|\d{4}[^\p{L}\p{N}]\d{1,2}[^\p{L}\p{N}]\d{1,2}|${MONTH}\s+\d{1,2}|\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?${MONTH})(?!\d)`;
 const BIRTH_WORDS = String.raw`\b(?:d\.?\s?o\.?\s?b|date[\s_.-]*of[\s_.-]*birth|birth[\s_.-]?(?:dates?|days?)|b-?day|born|birth)\b`;
 /** Between a birth word and its date: punctuation and at most two of "is / was / on / in / of / date / dated" ("born on March 3, 1980", "DOB: 4/12/71"); "DOB permits filed 2024" is not a birth date. */
 const BIRTH_GAP = String.raw`[^\p{L}\p{N}]{0,4}(?:(?:is|was|on|in|of|date|dated)[^\p{L}\p{N}]{1,4}){0,2}`;
+/** "Year of birth 1971", "birth year: 1971": a year counts only after these. */
+const BIRTH_YEAR = String.raw`\b(?:year[\s_.-]*of[\s_.-]*birth|birth[\s_.-]?year)\b${BIRTH_GAP}(?:19|20)\d{2}(?!\d)`;
 /** Four or more digits, possibly grouped or masked first ("x1234", "****1234", "55-1234-889"). */
 const DIGIT_RUN = String.raw`[x*•]*\d(?:[^\p{L}\p{N}]{0,3}\d){3,}`;
 /** "#", "no.", "number", "ending", "ends in" and the like, then the digits. */
-const QUALIFIED_DIGITS = String.raw`(?:#|(?:no|nos|number|numbers|num|(?:ending|ends?)(?:[^\p{L}\p{N}]{1,3}(?:in|with))?)\b)[^\p{L}\p{N}]{0,6}${DIGIT_RUN}`;
+const QUALIFIED_DIGITS = String.raw`(?:#|(?:no|nos|number|numbers|num|(?:ending|ends?)(?:[^\p{L}\p{N}]{1,3}(?:in|with))?)\b)[^\p{L}\p{N}$]{0,6}${DIGIT_RUN}`;
 /**
- * Account wording followed by digits. "Account", "acct", "routing", "IBAN" and "ABA" take any four-digit run;
- * "checking", "savings" and "A/C" (also air conditioning, energy savings) need a qualifier, a mask ("x4821")
- * or seven digits in a row.
+ * Account wording followed by an account number: a qualified number
+ * ("# 4821", "no. 55-1234-889", "ending 4821"), a masked one ("x4821",
+ * "****1234"), or an unformatted run of six or more digits (seven after
+ * "checking", "savings" and "A/C"). A money amount ("reserve account
+ * $250,000", masked above) and a lone year or count ("lockbox account 2026",
+ * "routing 1200 trucks a day") are not.
  */
-const ACCOUNT_WITH_DIGITS = String.raw`\b(?:accounts?|acct|routing|iban|aba)\b[^\p{L}\p{N}]{0,6}(?:${QUALIFIED_DIGITS}|${DIGIT_RUN})|\b(?:checking|savings|a/c)\b[^\p{L}\p{N}]{0,3}(?:${QUALIFIED_DIGITS}|[x*•]+\d{4}|\d{7,})`;
+const ACCOUNT_WITH_DIGITS = String.raw`\b(?:accounts?|acct|routing|iban|aba)\b[^\p{L}\p{N}$]{0,6}(?:${QUALIFIED_DIGITS}|[x*•]+\d{4}|\d{6,}(?!\d|[.,]\d))|\b(?:checking|savings|a/c)\b[^\p{L}\p{N}$]{0,3}(?:${QUALIFIED_DIGITS}|[x*•]+\d{4}|\d{7,}(?!\d|[.,]\d))`;
+/** "Loan", "loan #", "loan no." or "loan number" just before a run: a 10 to 12 digit run there is a loan number. */
+const LOAN_LEAD = String.raw`\bloan\b[^\p{L}\p{N}]{0,4}(?:(?:no|nos|number|num)\b[^\p{L}\p{N}]{0,4})?`;
+/** Nine or more digits in a row, except a 10 to 12 digit loan number. */
+const DIGIT_RUN_9 = String.raw`(?<!\d)(?:\d{9}|\d{13,})(?!\d)|(?<!${LOAN_LEAD})(?<!\d)\d{10,12}(?!\d)`;
 
 /**
  * Shapes that never belong in an email body or in saved free text, matched on
- * normalizeForScan(text) (public.submission_text_restricted is the database
- * twin). Always refused: nine or more digits in a row, the SSN / ITIN 3-2-4
- * shape and the EIN 2-7 shape (with any one to three separators), and SSN /
- * ITIN wording. Refused only in context, so APNs, unit lists, years and
- * phone numbers save: a 3-3-3 or 4-4-4 grouping only with an identity or
- * account word just before it; birth wording only when a date follows; and
- * account or routing wording only when digits follow.
+ * maskMoney(normalizeForScan(text)) (public.submission_text_restricted is the
+ * database twin). Always refused: nine or more digits in a row (a 10 to 12
+ * digit loan number after "loan" excepted), the SSN / ITIN 3-2-4 shape and
+ * the EIN 2-7 shape, and SSN / ITIN wording. Refused only in context, so
+ * APNs, unit lists, years, rents, money and phone numbers save: a 3-3-3 or
+ * 4-4-4 grouping only right after an identity or account word; birth wording
+ * only with a full date; and account or routing wording only with an account
+ * number.
  */
 export const RESTRICTED_TEXT_PATTERNS: readonly RestrictedPattern[] = [
   // SSN and ITIN share the 3-2-4 shape (an ITIN starts with 9). Index 0: schema.ts's APN check reuses it.
-  { kind: "ssn", label: "a Social Security number or ITIN", re: new RegExp(grouped(3, 2, 4), "u") },
+  { kind: "ssn", label: "a Social Security number or ITIN", re: new RegExp(SSN_SHAPE, "u") },
   { kind: "ssn", label: "a Social Security number or ITIN", re: afterIdWord(grouped(3, 3, 3)) },
   {
     kind: "ssn",
     label: "a Social Security number or ITIN",
     re: /\b(?:ssns?|s\.\s?s\.\s?n|itins?|i\.\s?t\.\s?i\.\s?n)\b|\bss\s?#|\bsocial[\s_.-]*security[\s_.-]*(?:numbers?\b|nos?\b|#|cards?\b)|\bsocial[\s_.-]*security\b[^\d]{0,25}?(?:last|ending|ends)[^\d]{0,12}\d{4}|\bsoc\.?\s?sec\b/i,
   },
-  { kind: "ein", label: "an employer identification number", re: new RegExp(grouped(2, 7), "u") },
-  { kind: "digit_run", label: "a run of nine or more digits (an account, routing or tax id)", re: /\d{9,}/ },
+  { kind: "ein", label: "an employer identification number", re: new RegExp(EIN_SHAPE, "u") },
+  { kind: "digit_run", label: "a run of nine or more digits (an account, routing or tax id)", re: new RegExp(DIGIT_RUN_9, "iu") },
   { kind: "account", label: "a bank account or routing number", re: afterIdWord(String.raw`(?<!\d)\d{4}(?:${SEP}\d{4}){2,}(?!\d)`) },
-  { kind: "dob", label: "a date of birth", re: new RegExp(String.raw`${BIRTH_WORDS}${BIRTH_GAP}${DATE}`, "iu") },
+  { kind: "dob", label: "a date of birth", re: new RegExp(String.raw`${BIRTH_WORDS}${BIRTH_GAP}${DATE}|${BIRTH_YEAR}`, "iu") },
   {
     kind: "account",
     label: "a bank account or routing number",
@@ -297,7 +340,8 @@ export function findRestrictedText(text: string, opts: EmailSafetyOptions = {}):
     out.push(f);
   };
   const scan = normalizeForScan(text);
-  for (const p of RESTRICTED_TEXT_PATTERNS) if (p.re.test(scan)) add({ kind: p.kind, label: p.label });
+  const ids = maskMoney(scan);
+  for (const p of RESTRICTED_TEXT_PATTERNS) if (p.re.test(ids)) add({ kind: p.kind, label: p.label });
   if (nameFound(scan, opts)) add({ kind: "name", label: "a guarantor's or principal's name (write \"the guarantors\")" });
   return out;
 }

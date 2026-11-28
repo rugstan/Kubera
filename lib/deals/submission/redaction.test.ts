@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { dealSummaryPackageItem } from "@/lib/agents/lenders/package";
 import { lenderInput, toPanelEntry } from "../test-fixtures";
 import { buildLenderEmail, emailLenderFrom } from "./email";
-import { EmailSafetyError, assertEmailSafe, checkNeutralCopy, findRestrictedText, guarantorCovenantLine, isFreeTextSafe, normalizeForScan, restrictedTextMessage } from "./redaction";
+import { EmailSafetyError, assertEmailSafe, checkNeutralCopy, findRestrictedText, guarantorCovenantLine, isFreeTextSafe, maskMoney, normalizeForScan, restrictedTextMessage } from "./redaction";
 import { fmt } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
 import { computeSubmissionMetrics } from "./metrics";
@@ -24,18 +24,61 @@ describe("assertEmailSafe", () => {
   });
 
   it("rejects date-of-birth wording followed by a date, and account wording followed by digits", () => {
-    for (const t of ["DOB 01/02/1970", "D.O.B.: 1/2/70", "date of birth is 1970-01-02", "birthdate March 4", "born in 1961", "Sponsor born on March 3, 1980", "birth: 03/04/1971", "bday 3/4/71"]) {
+    for (const t of ["DOB 01/02/1970", "D.O.B.: 1/2/70", "date of birth is 1970-01-02", "birthdate March 4", "born 4 March 1961", "Sponsor born on March 3, 1980", "birth: 03/04/1971", "bday 3/4/71", "year of birth 1971"]) {
       expect(kinds(t), t).toContain("dob");
     }
-    for (const t of ["Account # ending 4411", "account number 4411", "acct no. 55-1234-889", "routing: 1210-0035-8", "Wells account 12345678", "Chase checking x4821", "savings ending in 0042", "a/c 44556677"]) {
+    for (const t of ["Account # ending 4411", "account number 4411", "acct no. 55-1234-889", "routing no. 1210-0035-8", "Wells account 12345678", "Chase checking x4821", "savings ending in 0042", "a/c 44556677"]) {
       expect(kinds(t), t).toContain("account");
     }
+  });
+
+  // Round 3 (R2, R4): ordinary CRE text that staff type must save; the identifiers beside it are still refused.
+  it("reads money as money: its digit groups never start or join an identifier", () => {
+    for (const t of ["Rent of $850.00 (2024) rising to $925.00 (2025)", "NOI $468,250.00 2025", "Insurance 310.50, 2026", "Taxes $12,450.75 - 2026 bill", "$1,234.56 / 7890 SF", "Loan of $125000000", "accounts receivable 1,250,000, 2024"]) {
+      expect(findRestrictedText(t), t).toEqual([]);
+    }
+    expect(maskMoney("$850.00 (2024); 1,250,000.50 and 310.50, then 123.45.6789")).toBe("$ (2024); $ and $, then 123.45.6789");
+    for (const t of ["id 123.45.6789", "SSN 123-45-6789 paid $850.00", "NOI $468,250.00; EIN 12-3456789"]) expect(findRestrictedText(t).length, t).toBeGreaterThan(0);
+  });
+
+  it("refuses account wording only with an account number, never with money, a year or a count", () => {
+    const ok = [
+      "reserve account $250,000", "funded into a lender-controlled account ($500,000)", "replacement reserve account: $1,200 per unit", "interest reserve account of $420,000", "lockbox account 2026",
+      "taking into account 2025 rents", "operating account, 2024 statements", "account 4821", "routing 1200 trucks a day", "ABA 2024 survey", "energy savings 15000 kWh", "A/C 2019 replaced",
+    ];
+    for (const t of ok) expect(findRestrictedText(t), t).toEqual([]);
+    const bad = ["Wells account 12345678", "account # 4821", "account no. 4821", "account number 4821", "acct ending 4821", "account x4821", "account ****1234", "Chase checking x4821", "savings no. 0042 1188", "routing 121000358"];
+    for (const t of bad) expect(kinds(t), t).toContain("account");
+  });
+
+  it("reads comma and colon lists as lists: a 3-2-4 or 2-7 shape across them is not an SSN or EIN", () => {
+    for (const t of ["Suite 200, 15, 2025", "Units 101, 12, 2024", "Phase 12: 8400000 budget", "Lot 12 (1234567)"]) expect(findRestrictedText(t), t).toEqual([]);
+    for (const t of ["123 45 6789", "123-45-6789", "123.45.6789", "123–45–6789", "123,45,6789", "123:45:6789", "123, 45, 6789", "(123) 45-6789", "12-3456789", "12 3456789"]) {
+      expect(findRestrictedText(`id ${t}`).length, t).toBeGreaterThan(0);
+    }
+  });
+
+  it("needs a full date after birth wording: a bare year is not a date of birth", () => {
+    for (const t of ["the brand was born in 1998", "birth 2020", "Birth center tenant since 2015", "born in San Diego"]) expect(findRestrictedText(t), t).toEqual([]);
+    for (const t of ["born March 4", "born 4 March", "born on 3/4/1971", "DOB 1971-03-04", "birth year: 1971"]) expect(kinds(t), t).toContain("dob");
+  });
+
+  it("needs the identity word right before a 3-3-3 or 4-4-4 group", () => {
+    for (const t of ["account for units 101 102 103", "tax ID parcel 226-180-021", "the card room: tables 100 200 300", "social club at 123 456 789 Main", "tin roof 2019 2020 2021"]) expect(findRestrictedText(t), t).toEqual([]);
+    for (const t of ["SSN 123 456 789", "SSN: 123 456 789", "tax id no. 123-456-789", "TIN is 123.456.789", "social security 123 456 789", "card number 4111 1111 1111 1111", "account # 0123 4567 8901"]) {
+      expect(findRestrictedText(t).length, t).toBeGreaterThan(0);
+    }
+  });
+
+  it("lets a 10 to 12 digit loan number through after \"loan\", and no other long run", () => {
+    for (const t of ["SBA loan 1234567890", "Chase loan 1002003004", "loan #100200300400", "loan no. 1234567890", "loan number: 123456789012"]) expect(findRestrictedText(t), t).toEqual([]);
+    for (const t of ["loan 123456789", "loan 1234567890123", "account 1234567890", "ref 1234567890", "loan officer said 1234567890"]) expect(findRestrictedText(t).length, t).toBeGreaterThan(0);
   });
 
   it("reads birth and account wording only in context: no date or no digits, nothing to refuse", () => {
     const ok = [
       "D.O.B.: on file", "date of birth", "Date of birth on the PFS", "DOB permits are closed", "DOB permits filed 2024", "born in the USA", "the concept was born from",
-      "routing number to follow", "truck routing hub", "IBAN on file", "two account numbers", "acct. # 12", "taking into account no rent growth", "escrow account ending balance",
+      "born in 1961", "routing number to follow", "truck routing hub", "IBAN on file", "two account numbers", "acct. # 12", "taking into account no rent growth", "escrow account ending balance",
       "on account no later than June", "savings ending the year", "projected energy savings 2027", "new A/C 2023",
     ];
     for (const t of ok) expect(findRestrictedText(t), t).toEqual([]);

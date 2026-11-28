@@ -291,6 +291,20 @@ describe("audit_row_change_redacted for tables without a deal", () => {
   });
 });
 
+// Round 3 (R2, R4): ordinary CRE text that saves (money, account wording without an account number, list
+// punctuation, a bare year after "born", loan numbers), and the identifiers beside it that are still refused.
+const CRE_TEXT_SAVES = [
+  "reserve account $250,000", "funded into a lender-controlled account ($500,000)", "replacement reserve account: $1,200 per unit", "lockbox account 2026", "taking into account 2025 rents", "routing 1200 trucks a day",
+  "operating account, 2024 statements", "account 4821", "ABA 2024 survey", "Rent of $850.00 (2024) rising to $925.00 (2025)", "NOI $468,250.00 2025", "Insurance 310.50, 2026", "Taxes $12,450.75 - 2026 bill",
+  "Suite 200, 15, 2025", "Units 101, 12, 2024", "Phase 12: 8400000 budget", "Lot 12 (1234567)", "the brand was born in 1998", "birth 2020", "account for units 101 102 103", "tax ID parcel 226-180-021",
+  "the card room: tables 100 200 300", "social club at 123 456 789 Main", "SBA loan 1234567890", "Chase loan 1002003004", "loan no. 123456789012", "Loan of $125000000",
+];
+const CRE_TEXT_REFUSED = [
+  "id 123 45 6789", "id 123-45-6789", "id 123.45.6789", "id 123–45–6789", "id 123, 45, 6789", "Wells account 12345678", "account # 4821", "account x4821", "account ****1234", "routing 121000358",
+  "born March 4", "born 4 March", "year of birth 1971", "SSN: 123 456 789", "tax id no. 123-456-789", "social security 123 456 789", "loan 123456789", "loan 1234567890123", "account 1234567890",
+  "SSN 123-45-6789 paid $850.00", "NOI $468,250.00; EIN 12-3456789", "EIN 12 3456789",
+];
+
 describe("zod and the database agree (schema.ts twins)", () => {
   it("every fixture profile and sponsor that zod accepts, the database accepts (row mapping included)", async () => {
     for (const [pb, ctx] of allSubmissionFixtures()) {
@@ -357,7 +371,7 @@ describe("zod and the database agree (schema.ts twins)", () => {
       "123-45-6789", "x123-45-6789y", "Tax id １２３-４５-６７８９ on file", "id ١٢٣-٤٥-٦٧٨٩", "id ۱۲۳-۴۵-۶۷۸۹", "id १२३-४५-६७८९", "id 123–45–6789", "id 123—45—6789", "id 123/45/6789", "id 123_45_6789", "id 123 45 6789", "id 123 - 45 - 6789",
       "tax id 123 456 789", "acct 1234\u200b56789", "Wire to account: 0123 4567 8901", "card 4111-1111-1111-1111", "12-3456789", "123456789", "a1234567890b",
       "SSN on request", "S.S.N. on file", "ssns", "ITIN", "the social security number is on file", "soc. sec. card",
-      "DOB 01/02/1970", "D.O.B.: on file", "D\u200bOB 1/2/1970", "date of birth", "date-of-birth 01/02/1970", "birthdate", "birth date", "birthday 1/2/1970", "born in 1961",
+      "DOB 01/02/1970", "D.O.B.: on file", "D\u200bOB 1/2/1970", "date of birth", "date-of-birth 01/02/1970", "birthdate", "birth date", "birthday 1/2/1970", "born 4 March 1961",
       "routing number to follow", "Account # ending 4411", "account number 4411", "acct. # 12", "account no. 7", "acct ending 0123 4567", "accounts ending in 12", "Chase checking ending 4821", "IBAN on file", "ABA number",
       // Fine.
       "1234-56-78901", "12-345-6789", "12345678", "415-555-0100", "(415) 555-0100", "2026-10-31", "$1,020,000", "$1,234,567.89", "Loan request: $8,400,000 bridge | 42-unit multifamily, Oakland CA | 68% LTV, 1.10x DSCR",
@@ -370,9 +384,13 @@ describe("zod and the database agree (schema.ts twins)", () => {
       // ...and these are refused in both.
       "id 123--45--6789", "id 123:45:6789", "id 123,45,6789", "id 123·45·6789", "id 123|45|6789", "id (123) 45-6789", "id 123\u008545\u00856789", "SSN 123 456 789", "TIN 123-456-789",
       "card 4111 1111 1111 1111", "account 0123 4567 8901", "birth: 03/04/1971", "Sponsor born on March 3, 1980", "bday 3/4/71", "SS# on file", "social security last four 6789",
-      "Chase checking x4821", "savings ending in 0042", "acct no. 55-1234-889", "routing: 1210-0035-8", "a/c 44556677",
+      "Chase checking x4821", "savings ending in 0042", "acct no. 55-1234-889", "routing no. 1210-0035-8", "a/c 44556677",
       "id 123-45-6\u0308789", "id 123-45-6\uFE0F789", "id 123-45-6\u{E0101}789", "id 123-45-6\u034F789", "id 123-45-6\u115F789", "id 1234\u316456789", "id 123-45-6\uFFA0789", "id 123-45-6\u{E0031}789",
       "id ၁၂၃-၄၅-၆၇၈၉", "id ១២៣-៤៥-៦៧៨៩", "id 𝟏𝟐𝟑-𝟒𝟓-𝟔𝟕𝟖𝟗", "id ¹²³-⁴⁵-⁶⁷⁸⁹", "id 12٣-4٥-67۸9",
+      // Ordinary CRE text that saves in both (money, account wording without an account number, list punctuation, bare years, loan numbers)...
+      ...CRE_TEXT_SAVES,
+      // ...and the identifiers beside it, still refused in both.
+      ...CRE_TEXT_REFUSED,
     ];
     for (const v of samples) expect(await pg(v), JSON.stringify(v)).toBe(findRestrictedText(v).length > 0);
     expect(await pg("SSN 123-45-6789")).toBe(true);
@@ -380,6 +398,8 @@ describe("zod and the database agree (schema.ts twins)", () => {
     // The N3 lists hold in the database on their own, not only as "agrees with the app".
     for (const v of ["APN 226-180-021", "rents 2400 2600 2800", "+61 412 345 678", "escrow account ending balance", "taking into account no rent growth", "DOB permits"]) expect(await pg(v), v).toBe(false);
     for (const v of ["id 123--45--6789", "id (123) 45-6789", "birth: 03/04/1971", "SS# on file", "social security last four 6789", "id 123-45-6\u0308789"]) expect(await pg(v), v).toBe(true);
+    for (const v of CRE_TEXT_SAVES) expect(await pg(v), v).toBe(false);
+    for (const v of CRE_TEXT_REFUSED) expect(await pg(v), v).toBe(true);
   });
 
   it("text past a column's length, which zod refuses, the database refuses too", async () => {

@@ -23,22 +23,29 @@
 
 -- 0. Restricted identifiers in free text ------------------------------------------
 -- The database twin of lib/deals/submission/redaction.ts RESTRICTED_TEXT_PATTERNS,
--- after the same normalization (normalizeForScan): NFKC; format characters
--- (zero-width, bidi marks, soft hyphen, tags) removed; NEL (U+0085) read as a
--- space; every Unicode decimal digit that NFKC leaves alone read as its ASCII
--- digit; combining marks, variation selectors, CGJ and Hangul fillers removed
--- after a digit; lower case. Between digit groups, one to three characters
--- that are neither a letter nor a digit.
+-- after the same normalization (normalizeForScan, then maskMoney): NFKC;
+-- format characters (zero-width, bidi marks, soft hyphen, tags) removed; NEL
+-- (U+0085) read as a space; every Unicode decimal digit that NFKC leaves alone
+-- read as its ASCII digit; combining marks, variation selectors, CGJ and
+-- Hangul fillers removed after a digit; lower case; and every money amount
+-- (after "$", with comma thousands, or ending in cents) replaced by "$", so its
+-- digit groups never start or join an identifier.
 --
--- Always restricted: nine or more digits in a row, the SSN / ITIN 3-2-4 shape,
--- the EIN 2-7 shape, SSN / ITIN wording ("SSN", "SS#", "social security
--- number", "social security ... last four 6789"). Restricted in context only,
--- so APNs, unit lists, years, rents and phone numbers save: a 3-3-3 or 4-4-4
--- grouping with an identity or account word (SSN, social, tax id, TIN, ITIN,
--- EIN, account, acct, card, routing) up to 30 characters before it; birth
--- wording (DOB, date of birth, born, birth) followed by a date; account
--- wording (account, acct, routing, IBAN, ABA) followed by four or more digits,
--- and checking / savings / A/C only with "#", "no.", "ending" or a mask.
+-- Always restricted: nine or more digits in a row (a 10 to 12 digit run right
+-- after "loan", "loan #", "loan no." or "loan number" excepted); the SSN /
+-- ITIN 3-2-4 shape (one to three separators that are not list punctuation, or
+-- the same comma or colon on both sides, and with a space only when the last
+-- group is not a year); the EIN 2-7 shape (dashes, spaces, dots or slashes
+-- between); SSN / ITIN wording ("SSN", "SS#", "social security number",
+-- "social security ... last four 6789"). Restricted in context only, so APNs,
+-- unit lists, years, rents, money and phone numbers save: a 3-3-3 or 4-4-4
+-- grouping right after an identity or account word (SSN, social security, tax
+-- id, TIN, ITIN, EIN, account, acct, card, routing; only punctuation, "no.",
+-- "number" or "is" between); birth wording followed by a full date (day and
+-- month), or "year of birth" / "birth year" followed by a year; account
+-- wording followed by an account number ("#", "no.", "number" or "ending" and
+-- digits, a mask such as x4821, or six or more digits in a row; seven after
+-- checking, savings and A/C), never by money, a year or a count.
 --
 -- The app refuses the same text first, with a message; these checks hold the
 -- database to the rule. What only a direct database write (service role,
@@ -60,33 +67,35 @@ immutable
 set search_path = ''
 as $$
   select
-    -- SSN / ITIN 3-2-4, any separators
-    n.s ~ ('(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{2}' || p.sep || '[0-9]{4}(?![0-9])')
-    -- 3-3-3 after an identity or account word
-    or n.s ~ (p.id_word || '.{0,30}(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{3}' || p.sep || '[0-9]{3}(?![0-9])')
+    -- SSN / ITIN 3-2-4
+    n.s ~ ('(?<![0-9])[0-9]{3}(' || p.ssn_sep || '[0-9]{2}' || p.ssn_sep
+      || '|,[0-9]{2},|:[0-9]{2}:|;[0-9]{2};|(,[[:space:]]{1,2}[0-9]{2},|:[[:space:]]{1,2}[0-9]{2}:|;[[:space:]]{1,2}[0-9]{2};)[[:space:]]{1,2}(?!(19|20)[0-9]{2}(?![0-9])))[0-9]{4}(?![0-9])')
+    -- 3-3-3 right after an identity or account word
+    or n.s ~ (p.id_lead || '(?<![0-9])[0-9]{3}' || p.sep || '[0-9]{3}' || p.sep || '[0-9]{3}(?![0-9])')
     -- SSN / ITIN wording
     or n.s ~ '\y(ssns?|s\.[[:space:]]?s\.[[:space:]]?n|itins?|i\.[[:space:]]?t\.[[:space:]]?i\.[[:space:]]?n)\y|\yss[[:space:]]?#|\ysocial[[:space:]_.-]*security[[:space:]_.-]*(numbers?\y|nos?\y|#|cards?\y)|\ysoc\.?[[:space:]]?sec\y'
     or n.s ~ '\ysocial[[:space:]_.-]*security\y[^0-9]{0,25}(last|ending|ends)[^0-9]{0,12}[0-9]{4}'
     -- EIN 2-7
-    or n.s ~ ('(?<![0-9])[0-9]{2}' || p.sep || '[0-9]{7}(?![0-9])')
-    -- nine or more digits in a row
-    or n.s ~ '[0-9]{9,}'
-    -- 4-4-4 (account, card) after an identity or account word
-    or n.s ~ (p.id_word || '.{0,30}(?<![0-9])[0-9]{4}(' || p.sep || '[0-9]{4}){2,}(?![0-9])')
-    -- birth wording followed by a date
+    or n.s ~ '(?<![0-9])[0-9]{2}[^[:alnum:],:;(){}\[\]]{1,3}[0-9]{7}(?![0-9])'
+    -- nine or more digits in a row; a 10 to 12 digit loan number after "loan" excepted
+    or n.s ~ '(?<![0-9])([0-9]{9}|[0-9]{13,})(?![0-9])'
+    or n.s ~ '(?<!\yloan\y[^[:alnum:]]{0,4}((no|nos|number|num)\y[^[:alnum:]]{0,4})?)(?<![0-9])[0-9]{10,12}(?![0-9])'
+    -- 4-4-4 (account, card) right after an identity or account word
+    or n.s ~ (p.id_lead || '(?<![0-9])[0-9]{4}(' || p.sep || '[0-9]{4}){2,}(?![0-9])')
+    -- birth wording followed by a full date; "year of birth" followed by a year
     or n.s ~ ('\y(d\.?[[:space:]]?o\.?[[:space:]]?b|date[[:space:]_.-]*of[[:space:]_.-]*birth|birth[[:space:]_.-]?(dates?|days?)|b-?day|born|birth)\y'
-      || '[^[:alnum:]]{0,4}((is|was|on|in|of|date|dated)[^[:alnum:]]{1,4}){0,2}'
-      || '(?<![0-9])([0-9]{1,2}[^[:alnum:]]{1,2}[0-9]{1,2}[^[:alnum:]]{1,2}[0-9]{2,4}|[0-9]{4}[^[:alnum:]][0-9]{1,2}[^[:alnum:]][0-9]{1,2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?[[:space:]]+[0-9]{1,2}|(19|20)[0-9]{2})(?![0-9])')
-    -- account wording followed by digits
-    or n.s ~ ('\y(accounts?|acct|routing|iban|aba)\y[^[:alnum:]]{0,6}(' || p.qualified || '|' || p.digit_run || ')')
-    or n.s ~ ('\y(checking|savings|a/c)\y[^[:alnum:]]{0,3}(' || p.qualified || '|[x*•]+[0-9]{4}|[0-9]{7,})')
+      || p.birth_gap
+      || '(?<![0-9])([0-9]{1,2}[^[:alnum:]]{1,2}[0-9]{1,2}[^[:alnum:]]{1,2}[0-9]{2,4}|[0-9]{4}[^[:alnum:]][0-9]{1,2}[^[:alnum:]][0-9]{1,2}|'
+      || p.month || '[[:space:]]+[0-9]{1,2}|[0-9]{1,2}(st|nd|rd|th)?[[:space:]]+(of[[:space:]]+)?' || p.month || ')(?![0-9])')
+    or n.s ~ ('\y(year[[:space:]_.-]*of[[:space:]_.-]*birth|birth[[:space:]_.-]?year)\y' || p.birth_gap || '(19|20)[0-9]{2}(?![0-9])')
+    -- account wording followed by an account number (never money, a year or a count)
+    or n.s ~ ('\y(accounts?|acct|routing|iban|aba)\y[^[:alnum:]$]{0,6}(' || p.qualified || '|[x*•]+[0-9]{4}|[0-9]{6,}(?![0-9]|[.,][0-9]))')
+    or n.s ~ ('\y(checking|savings|a/c)\y[^[:alnum:]$]{0,3}(' || p.qualified || '|[x*•]+[0-9]{4}|[0-9]{7,}(?![0-9]|[.,][0-9]))')
   from
-    (select lower(regexp_replace(
-      translate(
-        regexp_replace(
-          translate(normalize(coalesce(t, ''), NFKC), chr(133), ' '),
-          '[\u00ad\u0600-\u0605\u061c\u06dd\u070f\u0890\u0891\u08e2\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\U000110bd\U000110cd\U00013430-\U0001343f\U0001bca0-\U0001bca3\U0001d173-\U0001d17a\U000e0001\U000e0020-\U000e007f]',
-          '', 'g'),
+    (select regexp_replace(lower(regexp_replace(
+      -- Most text is plain ASCII: the 680-character digit translation runs only on text that holds anything else.
+      case when a.s ~ '[^\u0001-\u007f]' then translate(
+        a.s,
         '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹߀߁߂߃߄߅߆߇߈߉०१२३४५६७८९০১২৩৪৫৬৭৮৯੦੧੨੩੪੫੬੭੮੯૦૧૨૩૪૫૬૭૮૯୦୧୨୩୪୫୬୭୮୯௦௧௨௩௪௫௬௭௮௯౦౧౨౩౪౫౬౭౮౯'
       || '೦೧೨೩೪೫೬೭೮೯൦൧൨൩൪൫൬൭൮൯෦෧෨෩෪෫෬෭෮෯๐๑๒๓๔๕๖๗๘๙໐໑໒໓໔໕໖໗໘໙༠༡༢༣༤༥༦༧༨༩၀၁၂၃၄၅၆၇၈၉႐႑႒႓႔႕႖႗႘႙០១២៣៤៥៦៧៨៩᠐᠑᠒᠓᠔᠕᠖᠗᠘᠙'
       || '᥆᥇᥈᥉᥊᥋᥌᥍᥎᥏᧐᧑᧒᧓᧔᧕᧖᧗᧘᧙᪀᪁᪂᪃᪄᪅᪆᪇᪈᪉᪐᪑᪒᪓᪔᪕᪖᪗᪘᪙᭐᭑᭒᭓᭔᭕᭖᭗᭘᭙᮰᮱᮲᮳᮴᮵᮶᮷᮸᮹᱀᱁᱂᱃᱄᱅᱆᱇᱈᱉᱐᱑᱒᱓᱔᱕᱖᱗᱘᱙꘠꘡꘢꘣꘤꘥꘦꘧꘨꘩꣐꣑꣒꣓꣔꣕꣖꣗꣘꣙'
@@ -94,14 +103,23 @@ as $$
       || '𑄶𑄷𑄸𑄹𑄺𑄻𑄼𑄽𑄾𑄿𑇐𑇑𑇒𑇓𑇔𑇕𑇖𑇗𑇘𑇙𑋰𑋱𑋲𑋳𑋴𑋵𑋶𑋷𑋸𑋹𑑐𑑑𑑒𑑓𑑔𑑕𑑖𑑗𑑘𑑙𑓐𑓑𑓒𑓓𑓔𑓕𑓖𑓗𑓘𑓙𑙐𑙑𑙒𑙓𑙔𑙕𑙖𑙗𑙘𑙙𑛀𑛁𑛂𑛃𑛄𑛅𑛆𑛇𑛈𑛉𑛐𑛑𑛒𑛓𑛔𑛕𑛖𑛗𑛘𑛙𑛚𑛛𑛜𑛝𑛞𑛟𑛠𑛡𑛢𑛣𑜰𑜱𑜲𑜳𑜴𑜵𑜶𑜷𑜸𑜹'
       || '𑣠𑣡𑣢𑣣𑣤𑣥𑣦𑣧𑣨𑣩𑥐𑥑𑥒𑥓𑥔𑥕𑥖𑥗𑥘𑥙𑯰𑯱𑯲𑯳𑯴𑯵𑯶𑯷𑯸𑯹𑱐𑱑𑱒𑱓𑱔𑱕𑱖𑱗𑱘𑱙𑵐𑵑𑵒𑵓𑵔𑵕𑵖𑵗𑵘𑵙𑶠𑶡𑶢𑶣𑶤𑶥𑶦𑶧𑶨𑶩𑷠𑷡𑷢𑷣𑷤𑷥𑷦𑷧𑷨𑷩𑽐𑽑𑽒𑽓𑽔𑽕𑽖𑽗𑽘𑽙𖄰𖄱𖄲𖄳𖄴𖄵𖄶𖄷𖄸𖄹𖩠𖩡𖩢𖩣𖩤𖩥𖩦𖩧𖩨𖩩'
       || '𖫀𖫁𖫂𖫃𖫄𖫅𖫆𖫇𖫈𖫉𖭐𖭑𖭒𖭓𖭔𖭕𖭖𖭗𖭘𖭙𖵰𖵱𖵲𖵳𖵴𖵵𖵶𖵷𖵸𖵹𞅀𞅁𞅂𞅃𞅄𞅅𞅆𞅇𞅈𞅉𞋰𞋱𞋲𞋳𞋴𞋵𞋶𞋷𞋸𞋹𞓰𞓱𞓲𞓳𞓴𞓵𞓶𞓷𞓸𞓹𞗱𞗲𞗳𞗴𞗵𞗶𞗷𞗸𞗹𞗺𞥐𞥑𞥒𞥓𞥔𞥕𞥖𞥗𞥘𞥙',
-        repeat('0123456789', 68)),
+        repeat('0123456789', 68)) else a.s end,
       '([0-9])[\u0300-\u036f\u0483-\u0489\u034f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe00-\ufe0f\ufe20-\ufe2f\u115f\u1160\u3164\uffa0\U000e0100-\U000e01ef]+',
-      '\1', 'g')) as s) n,
+      '\1', 'g')),
+      -- maskMoney: after "$", comma thousands, or cents (not "123.45.6789")
+      '\$[[:space:]]?[0-9][0-9,]*(\.[0-9]+)?|(?<![0-9])[0-9]{1,3}(,[0-9]{3})+(\.[0-9]+)?(?![0-9]|,[0-9])|(?<![0-9.,])[0-9]+\.[0-9]{2}(?![0-9]|[./-][0-9])',
+      '$', 'g') as s
+    from (select regexp_replace(
+      translate(normalize(coalesce(t, ''), NFKC), chr(133), ' '),
+      '[\u00ad\u0600-\u0605\u061c\u06dd\u070f\u0890\u0891\u08e2\u180e\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u206f\ufeff\ufff9-\ufffb\U000110bd\U000110cd\U00013430-\U0001343f\U0001bca0-\U0001bca3\U0001d173-\U0001d17a\U000e0001\U000e0020-\U000e007f]',
+      '', 'g') as s) a) n,
     (select
       '[^[:alnum:]]{1,3}'::text as sep,
-      '\y(ssns?|social|tax[^[:alnum:]]{0,3}id|tins?|itins?|eins?|accounts?|acct|card|routing)\y'::text as id_word,
-      '[x*•]*[0-9]([^[:alnum:]]{0,3}[0-9]){3,}'::text as digit_run,
-      '(#|(no|nos|number|numbers|num|(ending|ends?)([^[:alnum:]]{1,3}(in|with))?)\y)[^[:alnum:]]{0,6}[x*•]*[0-9]([^[:alnum:]]{0,3}[0-9]){3,}'::text as qualified
+      '[^[:alnum:],:;]{1,3}'::text as ssn_sep,
+      '\y(ssns?|social([[:space:]_.-]*security)?|tax[^[:alnum:]]{0,3}id|tins?|itins?|eins?|accounts?|acct|card|routing)\y([^[:alnum:]]{0,4}(no|nos|number|num|is)\y){0,2}[^[:alnum:]]{0,4}'::text as id_lead,
+      '[^[:alnum:]]{0,4}((is|was|on|in|of|date|dated)[^[:alnum:]]{1,4}){0,2}'::text as birth_gap,
+      '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?'::text as month,
+      '(#|(no|nos|number|numbers|num|(ending|ends?)([^[:alnum:]]{1,3}(in|with))?)\y)[^[:alnum:]$]{0,6}[x*•]*[0-9]([^[:alnum:]]{0,3}[0-9]){3,}'::text as qualified
     ) p
 $$;
 revoke execute on function public.submission_text_restricted(text) from public, anon, authenticated;

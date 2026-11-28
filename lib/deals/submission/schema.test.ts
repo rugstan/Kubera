@@ -196,7 +196,7 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
   it.each([
     ssn,
     "Spaced 123 45 6789",
-    "Tax id grouped 3-3-3: 123 456 789",
+    "Tax id: 123 456 789",
     "SS# on file",
     "Social security last four 6789",
     "Full-width １２３-４５-６７８９",
@@ -205,7 +205,7 @@ describe("restricted text (redaction.ts patterns plus the database's own checks)
     "Wire to 021000021 at First Bank",
     "Operating account # 4412 0098 7712",
     "acct no. 55-1234-889",
-    "routing: 1210-0035-8",
+    "routing no. 1210-0035-8",
     "Card 4111 1111 1111 1111 on file",
     "DOB: 04/12/1971",
     "Sponsor born on March 3, 1980",
