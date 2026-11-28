@@ -5,7 +5,6 @@
 // back with a short notice or error (no client JavaScript needed).
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ZodError, z } from "zod";
 import { ConcurrentUpdateError, GuardError } from "@/lib/deals/store";
@@ -14,7 +13,7 @@ import { LockedFieldError } from "@/lib/deals/stages";
 import { LedgerError, agencySplit, assertFeeTransition, brokerFee, hardMoneyPoints, partnerSplit, sbaLenderReferralFee, sbaPackagingFee } from "@/lib/deals/ledger";
 import { MoneyError, dollarsToCents } from "@/lib/deals/money";
 import { InvoiceError, createInvoice, issueInvoice, issueInvoiceMessage, settleInvoice, voidInvoice } from "@/lib/deals/invoices";
-import { PackageError, checkOutreachApproval, markOutreachSent, outreachMessage, recordLenderResponse, sendPackageToLender, withdrawOutreach, type SendPackageResult } from "@/lib/deals/packages";
+import { PackageError, approvedEmailForShare, checkOutreachApproval, markOutreachSent, outreachMessage, recordLenderResponse, withdrawOutreach, type SendPackageResult } from "@/lib/deals/packages";
 import { ModificationError, applyModificationTerms, lenderNoticeMessage, recordLenderNoticeSent, recordOfficerApproval, retryLenderNotice, submitModification, withdrawModification } from "@/lib/deals/modifications";
 import { Form159BlockedError, generateForm159, sendForm159 } from "@/lib/deals/form159";
 import { MldsDeskError, generateDealMlds, holdDealMlds, mldsInputFromForm, officeDateTime, openDealMlds, releaseDealMlds, sendDealMlds } from "@/lib/deals/mlds";
@@ -47,6 +46,7 @@ import { authServices } from "@/lib/auth/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { re853Data, thresholdMonitor, thresholdSnapshot } from "@/lib/deals/dre";
 import { brokerIdentity, currentStaff, dealDeskRuntime, deskDeps, form159TemplateId, corinAgent, renderPdf, type DealDeskRuntime } from "@/lib/deals/runtime";
+import { claimShareLink, forgetShareLink, rememberShareLink } from "./share-once";
 import { StaffAccessError, can, requirePermission, type Permission, type StaffSession } from "@/lib/deals/session";
 import { dealPrograms, type DealProgram, type FeeStatus, type NewFeeEntry } from "@/lib/deals/types";
 import { lenderCategories, type LenderCategory, type LenderChargesInput, type ModificationFacts } from "@/lib/compliance/schemas";
@@ -287,39 +287,62 @@ export async function invoiceAction(f: FormData): Promise<never> {
 
 // Packages and outreach -----------------------------------------------------------------------
 
-export async function sendPackageAction(f: FormData): Promise<never> {
-  const id = str(f, "dealId");
-  return run(dealPath(id), "write", async ({ staff, rt }) => {
-    const deal = await rt.store.getDeal(id);
-    if (!deal?.leadId) throw new DealError("Link the deal to its lead so vault documents can be packaged");
-    const items = await rt.vaultItems(deal.leadId, ids(f, "documentId"));
-    const r = await sendPackageToLender(
-      { store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null },
-      { dealId: id, lenderId: str(f, "lenderId"), items, actor: staff.actor, ttlDays: num(f, "ttlDays"), allowStaleLender: bool(f, "allowStale"), note: opt(f, "note") ?? undefined },
-    );
-    await rememberShareUrl(id, r);
-    return outreachMessage(r);
-  });
-}
-
-/** The one-time share URL, shown on the next page view; never put in the URL or the logs. */
+/**
+ * The one-time share URL, shown on the next page view with the approved email
+ * it fills in (the outreach row is named so the page can find that email);
+ * never put in the URL or the logs.
+ */
 async function rememberShareUrl(dealId: string, r: SendPackageResult): Promise<void> {
   if (!r.shareUrl) return;
-  (await cookies()).set("deal_share_url", r.shareUrl, { httpOnly: true, secure: true, sameSite: "strict", path: dealPath(dealId), maxAge: 120 });
+  await rememberShareLink(dealId, r.shareUrl, r.outreach.id);
+}
+
+/** The approved email shown once on the deal page: claimed (and its cookies deleted) by the page's first render. */
+export type ClaimedShare = { shareUrl: string; outreachId: string | null; email: { subject: string; text: string } | null };
+
+/**
+ * Claims the one-time share link waiting for this deal page (share-once.ts):
+ * reads and deletes it in one step, so it renders once. The approved email is
+ * re-verified against its approved hash before it is returned
+ * (approvedEmailForShare). Null when nothing is waiting or the caller cannot write.
+ */
+export async function claimApprovedEmailAction(dealId: string): Promise<ClaimedShare | null> {
+  try {
+    requirePermission(await currentStaff(), "write");
+    if (typeof dealId !== "string" || !UUID.test(dealId)) return null;
+    const claimed = await claimShareLink(dealId);
+    if (!claimed) return null;
+    const rt = dealDeskRuntime();
+    const email = rt ? await approvedEmailForShare(rt.store, dealId, claimed.outreachId, claimed.shareUrl) : null;
+    return { shareUrl: claimed.shareUrl, outreachId: claimed.outreachId, email: email ? { subject: email.subject, text: email.text } : null };
+  } catch (err) {
+    console.error("[deals] claiming the approved email failed", err instanceof Error ? err.name : "Error");
+    return null;
+  }
+}
+
+/** A submission row of this deal: the form's outreach id must be a UUID and the row must belong to the form's deal. */
+async function outreachOfDeal(rt: DealDeskRuntime, dealId: string, outreachId: string) {
+  if (!UUID.test(dealId) || !UUID.test(outreachId)) throw new DealError("Not found");
+  const o = await rt.store.getOutreach(outreachId);
+  if (!o || o.dealId !== dealId) throw new DealError("That submission does not belong to this deal.");
+  return o;
 }
 
 export async function outreachAction(f: FormData): Promise<never> {
   const id = str(f, "dealId");
-  return run(dealPath(id), "write", async ({ staff, rt }) => {
+  return run(UUID.test(id) ? dealPath(id) : "/deals", "write", async ({ staff, rt }) => {
     const outreachId = str(f, "outreachId");
+    await outreachOfDeal(rt, id, outreachId);
     switch (str(f, "op")) {
       case "check": {
-        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
+        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null, summaries: rt.submission.store }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
         await rememberShareUrl(id, r);
         return outreachMessage(r);
       }
       case "sent":
         await markOutreachSent(rt.store, outreachId, staff.actor, rt.now(), opt(f, "messageId") ?? undefined);
+        await forgetShareLink(id);
         return "Marked sent.";
       case "declined":
         await recordLenderResponse(rt.store, outreachId, { status: "declined", note: opt(f, "note") ?? undefined }, staff.actor, rt.now());
@@ -328,8 +351,9 @@ export async function outreachAction(f: FormData): Promise<never> {
         await recordLenderResponse(rt.store, outreachId, { status: "term_sheet", termSheetRef: str(f, "termSheetRef"), note: opt(f, "note") ?? undefined }, staff.actor, rt.now());
         return "Term sheet recorded.";
       case "withdraw":
-        await withdrawOutreach(rt.store, outreachId, str(f, "note") || "Withdrawn by staff", staff.actor, rt.now());
-        return "Submission withdrawn and its link revoked.";
+        await withdrawOutreach(rt.store, outreachId, str(f, "note") || "Withdrawn by staff", staff.actor, rt.now(), rt.gate);
+        await forgetShareLink(id);
+        return "Submission withdrawn, its link revoked and any waiting approval closed.";
       default:
         throw new DealError("Unknown outreach action");
     }
@@ -338,8 +362,10 @@ export async function outreachAction(f: FormData): Promise<never> {
 
 export async function revokeLinkAction(f: FormData): Promise<never> {
   const id = str(f, "dealId");
-  return run(dealPath(id), "write", async ({ staff, rt }) => {
-    await rt.store.revokeShareLink(str(f, "linkId"), staff.actor, str(f, "reason") || "Revoked by staff", rt.now());
+  return run(UUID.test(id) ? dealPath(id) : "/deals", "write", async ({ staff, rt }) => {
+    const linkId = str(f, "linkId");
+    if (!UUID.test(id) || !UUID.test(linkId) || !(await rt.store.listShareLinks(id)).some((l) => l.id === linkId)) throw new DealError("That share link does not belong to this deal.");
+    await rt.store.revokeShareLink(linkId, staff.actor, str(f, "reason") || "Revoked by staff", rt.now());
     return "Share link revoked.";
   });
 }

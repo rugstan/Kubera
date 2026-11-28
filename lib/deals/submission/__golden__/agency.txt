@@ -1,0 +1,64 @@
+Subject: Loan request: $7,600,000 agency | 36-unit multifamily, Long Beach CA | 66.7% LTV, 1.10x DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Agency (Fannie / Freddie), $500K–$50M, CA and AZ. This request: Agency (Fannie / Freddie), $7.6M, CA.
+
+THE REQUEST
+  Loan:        $7,600,000, cash-out refinance, first lien
+  Structure:   120 months, 30-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target February 19, 2027 (The current loan matures March 1, 2027)
+  Existing debt: $6,900,000 with Bayridge Thrift & Loan, matures March 1, 2027
+  Cash out:    $428,000 (Return of equity to the members after nine years of ownership)
+
+THE PROPERTY
+  Kestrel Court, 925 Kestrel Court, Long Beach, CA 90813 — 36-unit multifamily, built 1964, renovated 2017
+  Occupancy:   96% as of October 31, 2026 (from the rent roll)
+  As-is value: $11,400,000 (Corin broker opinion of value, October 18, 2026)
+
+AGENCY DETAILS
+  Unit mix:    20 x 1BR / 1BA at $1,950; 16 x 2BR / 1BA at $2,450
+  Occupancy:   96% physical, 93.5% economic
+  Student or senior concentration: 0%
+  Affordability: No income-restricted units; the statewide rent cap (AB 1482) applies
+
+THE NUMBERS
+  NOI in place:      $610,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $588,000 (Corin normalization of the operating statement)
+  LTV:               66.7% as-is (Corin calculation)
+  Debt yield:        8% in place
+  DSCR:              1.10x in place at an assumed 6.1% / 30-year schedule — an assumption, not a quote
+  Loan per unit:     $211,111
+
+THE SPONSOR
+  Kestrel Court Apartments LLC, a CA LLC. The sponsor has owned and managed Long Beach and South Bay apartment buildings since 2010 and has financed twelve of them with agency, bank and life company loans.
+  16 years, 12 similar projects, 12 apartment buildings, 410 units in Los Angeles County
+  Key principal net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Kestrel Residential Management
+
+THE PLAN AND THE EXIT
+  Refinance a stabilized 36-unit courtyard building into a 10-year fixed-rate agency small-balance loan. The members renovated every unit between 2015 and 2017; occupancy has stayed between 95% and 97% since, and the loan returns part of their equity.
+  Exit: hold to maturity. Long-term hold; refinance at the 10-year maturity.
+
+SOURCES AND USES
+  Sources: Senior loan $7,600,000 = $7,600,000
+  Uses:    Payoff of existing debt $6,900,000; Closing costs $120,000; Financing costs $152,000; Cash out to borrower $428,000 = $7,600,000
+
+KNOWN ISSUES
+  - Older building systems (1964): Roof, plumbing risers and electrical service were replaced in 2016 and 2017; the capital history is on file.
+
+IN THE PACKAGE (7 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; T-12 operating statement; rent roll dated October 31, 2026; 1 other borrower document; 2 sponsor financial statements
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

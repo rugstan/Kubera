@@ -6,14 +6,25 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { DEAL_SUMMARY_KIND } from "@/lib/agents/lenders/package";
 import { isApproved, type ApprovalDecision, type ApprovalGate } from "@/lib/compliance/approval-gate";
 import type { DealHold } from "@/lib/screening/store";
 import { lenderStaleness } from "./lenders";
-import { createShareLink, dealAcceptsLenderAccess, shareLinkUrl } from "./share-links";
+import { createShareLink, dealAcceptsLenderAccess, shareLinkUrl, tokenMatches } from "./share-links";
 import type { DealDeskStore } from "./store";
+import { emailSha256, fillEmailPlaceholders } from "./submission/email";
+import { PLAYBOOK_LABELS } from "./submission/playbooks";
+import { notReadyMessage } from "./submission/readiness";
+import { findRestrictedText, restrictedTextMessage, type EmailSafetyOptions } from "./submission/redaction";
+import { requirementLabel } from "./submission/requirements";
+import { fmt } from "./submission/summary";
+import { EMAIL_PLACEHOLDERS, OVERRIDE_REASON_LENGTH, SUBMISSION_TEXT_LIMITS, type DealSummaryRecord, type NeutralCopyRecord, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./submission/types";
 import type { Clock, Deal, DealPackage, LenderOutreach, LenderPanelEntry, PackageItem } from "./types";
 
+/** v1: documents only (submissions requested before the lender-ready flow keep this shape). */
 export const LENDER_SUBMISSION_TEMPLATE_ID = "lender_package_submission_v1";
+/** v2: the readiness gate, the locked deal summary and the exact email text (spec 5.2). */
+export const LENDER_SUBMISSION_TEMPLATE_ID_V2 = "lender_package_submission_v2";
 
 const itemSchema = z.object({
   documentId: z.string().trim().min(1).max(100),
@@ -25,7 +36,24 @@ const itemSchema = z.object({
 
 export class PackageError extends Error {
   constructor(
-    readonly reason: "empty" | "invalid" | "deal_not_found" | "deal_closed" | "deal_held" | "lender_not_found" | "lender_inactive" | "lender_program" | "stale_lender" | "no_contact" | "invalid_status",
+    readonly reason:
+      | "empty"
+      | "invalid"
+      | "deal_not_found"
+      | "deal_closed"
+      | "deal_held"
+      | "lender_not_found"
+      | "lender_inactive"
+      | "lender_program"
+      | "stale_lender"
+      | "no_contact"
+      | "invalid_status"
+      /** Required items are missing at the target stage and no reason (20+ characters) was given. */
+      | "not_ready"
+      /** The email text failed the restricted-data check, its hash, its placeholders or its limits. */
+      | "email_unsafe"
+      /** The locked deal summary is missing, belongs to another deal or stage, or is not in the package. */
+      | "summary_missing",
     message: string,
   ) {
     super(message);
@@ -87,6 +115,16 @@ export type SendPackageInput = {
   /** Staff acknowledged the lender's verification is stale. */
   allowStaleLender?: boolean;
   note?: string;
+  /** The requesting staff member's user id: the approvals queue refuses to let them approve their own override. */
+  requestedByUser?: string | null;
+  /**
+   * The lender-ready submission (spec 5.2): target stage, the locked summary,
+   * readiness, the override reason, the lender fit and the exact email, built
+   * by lib/deals/submission/send.ts prepareSubmission. Required: no send skips
+   * the readiness gate. (Rows requested under the v1 documents-only template
+   * before the lender-ready flow are only re-checked, by checkOutreachApproval.)
+   */
+  submission: SubmissionSendInput;
 };
 
 export type SendPackageResult = {
@@ -94,10 +132,31 @@ export type SendPackageResult = {
   pkg: DealPackage;
   /** Present once, when a share link was minted and not emailed (copy it now). */
   shareUrl?: string;
+  /** With shareUrl, for a submission: the approved email with the link and its expiry filled in, for staff to send by hand. */
+  email?: { subject: string; text: string };
 };
 
-export function outreachApprovalKey(dealId: string, lenderId: string, version: number): string {
-  return `lender_submission:${dealId}:${lenderId}:v${version}`;
+/**
+ * The approval key of a submission to one lender of one package version. A
+ * request withdrawn, rejected, expired or superseded never blocks the next:
+ * each new request after one of those is attempt n + 1 (":r<n>"), with its own
+ * approval and its own row.
+ */
+export function outreachApprovalKey(dealId: string, lenderId: string, version: number, attempt = 1): string {
+  return `lender_submission:${dealId}:${lenderId}:v${version}${attempt > 1 ? `:r${attempt}` : ""}`;
+}
+
+/** Submission statuses that end a request without sending: the next request for the same lender and version is a new attempt. */
+export const CLOSED_OUTREACH_STATUSES: readonly LenderOutreach["status"][] = ["withdrawn", "rejected", "expired"];
+/** Statuses that are a request already approved (or past it): asking again returns it as it is. */
+const SETTLED_OUTREACH_STATUSES: readonly LenderOutreach["status"][] = ["approved", "sent", "declined", "term_sheet"];
+
+/** The approval's payload no longer matches what the submission now carries (recipient, summary, email or reasons). */
+export class SubmissionChangedError extends PackageError {
+  constructor(message: string) {
+    super("invalid_status", message);
+    this.name = "SubmissionChangedError";
+  }
 }
 
 /** Reads the deal's open sanctions holds (WS-U deal_holds). */
@@ -114,7 +173,104 @@ export type OutreachDeps = {
    * screening desk is not configured, which fails closed: nothing is sent.
    */
   holds: DealHoldReader | null;
+  /** Locked deal summaries (deal_summaries): every send and every v2 re-check reads it; null fails closed with summary_missing. */
+  summaries: Pick<SubmissionStore, "getSummary"> | null;
 };
+
+/** A submission that passed the gate: what is hashed into the approval and stored on lender_outreach. */
+type CheckedSubmission = { send: SubmissionSendInput; summary: DealSummaryRecord; overrideReason: string | null; lenderOverrideReason: string | null; neutralCopy: NeutralCopyRecord };
+
+const reasonProblem = (what: string, reason: string): string | null => {
+  if (reason.length < OVERRIDE_REASON_LENGTH.min) return `The reason ${what} must be at least ${OVERRIDE_REASON_LENGTH.min} characters.`;
+  if (reason.length > OVERRIDE_REASON_LENGTH.max) return `The reason ${what} must be at most ${OVERRIDE_REASON_LENGTH.max} characters.`;
+  const findings = findRestrictedText(reason);
+  return findings.length ? `The reason ${what}: ${restrictedTextMessage(findings)}` : null;
+};
+
+/** The fair-lending record as stored and hashed: flags in a stable order, terms trimmed. */
+function neutralCopyRecord(n: NeutralCopyRecord | undefined | null): NeutralCopyRecord {
+  const flags = [...(n?.flags ?? [])].map((f) => ({ topic: String(f.topic), term: String(f.term).trim().slice(0, 80) })).sort((a, b) => a.topic.localeCompare(b.topic) || a.term.localeCompare(b.term));
+  return { flags, confirmed: Boolean(n?.confirmed) };
+}
+
+const STAGE_REQUEST: Record<TargetStage, string> = { screen: "soft-quote", term_sheet: "term-sheet", underwrite: "underwriting" };
+
+/** Missing ids as labels: the summary's open items when they line up with the ids, else the requirement table. */
+function missingLabels(missing: readonly string[], summary: DealSummaryRecord | null): string[] {
+  if (summary && summary.spec.openItems.length === missing.length) return [...summary.spec.openItems];
+  return missing.map(requirementLabel);
+}
+
+/**
+ * The approved email is still exactly what was approved: subject and text
+ * hash (emailSha256) to `sha256` and to the hash in the approval payload, and
+ * the text holds no restricted identifier. Run when the submission is
+ * requested, when it is re-checked, and again immediately before the email is
+ * mailed or shown to staff; any mismatch is email_unsafe and nothing is sent.
+ */
+export function verifyApprovedEmail(email: { subject: string; text: string; sha256: string | null | undefined }, approvedSha256: string | null | undefined, safety: EmailSafetyOptions = {}): void {
+  const actual = emailSha256(email.subject, email.text);
+  if (!email.sha256 || actual !== email.sha256 || actual !== approvedSha256) throw new PackageError("email_unsafe", "The email no longer matches the text the broker approved (its SHA-256 differs); nothing was sent. Prepare the submission again.");
+  const findings = findRestrictedText(`${email.subject}\n${email.text}`, safety);
+  if (findings.length) throw new PackageError("email_unsafe", restrictedTextMessage(findings));
+}
+
+/**
+ * The readiness gate (spec 5.2), checked before anything is locked or any
+ * approval is requested. Order: hard stops, then missing items without a
+ * reason, then the email, then the summary. Holds and deal status are never
+ * overridable.
+ */
+async function checkSubmission(deps: Pick<OutreachDeps, "summaries">, deal: Deal, lender: LenderPanelEntry, items: readonly PackageItem[], s: SubmissionSendInput): Promise<CheckedSubmission> {
+  if (s.readiness.hardStops.length) throw new PackageError("deal_held", `${s.readiness.hardStops.join(" ")} A reason to send anyway does not lift a hold.`);
+  if (s.fit.lenderId !== lender.id) throw new PackageError("invalid", `The lender fit was built for another lender, not ${lender.name}`);
+  let summary: DealSummaryRecord | null = null;
+  if (deps.summaries) {
+    try {
+      summary = await deps.summaries.getSummary(s.summaryId);
+    } catch (err) {
+      console.error("[deals] summary lookup failed", err instanceof Error ? err.message : err);
+      throw new PackageError("summary_missing", "The deal summary could not be read; nothing was sent. Try again.");
+    }
+  }
+
+  const reason = s.overrideReason?.trim() || null;
+  if (s.readiness.missing.length) {
+    if (!reason) throw new PackageError("not_ready", notReadyMessage(s.targetStage, missingLabels(s.readiness.missing, summary)));
+    const problem = reasonProblem("to send with items missing", reason);
+    if (problem) throw new PackageError("not_ready", problem);
+  }
+  // A lender outside its recorded box needs its own reason (the readiness reason does not cover it).
+  const lenderReason = s.lenderOverrideReason?.trim() || null;
+  if (s.fit.exceptions.length && !lenderReason) throw new PackageError("not_ready", `Outside ${lender.name}'s recorded box: ${s.fit.exceptions.join("; ")}. Give a reason to submit to this lender anyway.`);
+  if (lenderReason) {
+    const problem = reasonProblem(`to submit to ${lender.name}`, lenderReason);
+    if (problem) throw new PackageError("not_ready", problem);
+  }
+  // Fair lending (spec 6.5): flagged staff copy goes out only once staff confirmed it.
+  const neutralCopy = neutralCopyRecord(s.neutralCopy);
+  if (!s.neutralCopy) throw new PackageError("not_ready", "The submission carries no fair-lending check; prepare it again.");
+  if (neutralCopy.flags.length && !neutralCopy.confirmed) throw new PackageError("not_ready", fairLendingMessage(neutralCopy));
+
+  const { subject, text } = s.email;
+  if (!subject.trim() || subject.length > SUBMISSION_TEXT_LIMITS.emailSubject || [...subject].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) throw new PackageError("email_unsafe", "The email subject must be one line of at most 200 characters.");
+  if (!text.trim() || text.length > SUBMISSION_TEXT_LIMITS.emailText) throw new PackageError("email_unsafe", "The email text is empty or longer than 20,000 characters.");
+  if (!text.includes(EMAIL_PLACEHOLDERS.shareLink)) throw new PackageError("email_unsafe", "The email has no place for the share link.");
+  // The restricted-text check again, with the principals' names the email was built against.
+  if (!s.nameCheck || !Array.isArray(s.nameCheck.names)) throw new PackageError("email_unsafe", "The submission carries no principal-name check; prepare it again.");
+  verifyApprovedEmail(s.email, s.email.sha256, s.nameCheck);
+
+  if (!deps.summaries) throw new PackageError("summary_missing", "Deal summaries cannot be checked because the submission store is not configured; nothing was sent.");
+  if (!summary || summary.dealId !== deal.id) throw new PackageError("summary_missing", "The locked deal summary for this submission was not found. Prepare the submission again.");
+  if (summary.targetStage !== s.targetStage) throw new PackageError("summary_missing", `The deal summary was built for a ${STAGE_REQUEST[summary.targetStage]} request, not a ${STAGE_REQUEST[s.targetStage]} request.`);
+  if (!items.some((i) => i.kind === DEAL_SUMMARY_KIND && i.sha256 === summary.pdfSha256)) throw new PackageError("summary_missing", "The deal summary PDF is not in the package; prepare the submission again.");
+  return { send: s, summary, overrideReason: s.readiness.missing.length ? reason : null, lenderOverrideReason: lenderReason, neutralCopy };
+}
+
+/** The refusal when the fair-lending check flags staff copy that is not confirmed. */
+export function fairLendingMessage(n: NeutralCopyRecord): string {
+  return `The fair-lending check flags staff-typed words that touch a protected characteristic: ${n.flags.map((f) => `"${f.term}"`).join(", ")}. Edit the text, or confirm the words are needed (the approving broker sees them).`;
+}
 
 /**
  * Refuses a lender submission (or minting its share link) unless the deal is
@@ -141,6 +297,8 @@ export async function assertDealCanGoToLenders(deps: Pick<OutreachDeps, "holds">
 
 export async function sendPackageToLender(deps: OutreachDeps, input: SendPackageInput): Promise<SendPackageResult> {
   const { store } = deps;
+  // The type requires the submission; this keeps an untyped caller from skipping the readiness gate.
+  if (!input.submission) throw new PackageError("not_ready", "Prepare the lender submission first: every send carries the readiness check, the locked deal summary and the approved email.");
   const deal = await store.getDeal(input.dealId);
   if (!deal) throw new PackageError("deal_not_found", `Deal ${input.dealId} not found`);
   await assertDealCanGoToLenders(deps, deal);
@@ -151,12 +309,65 @@ export async function sendPackageToLender(deps: OutreachDeps, input: SendPackage
   const now = deps.now();
   const staleness = lenderStaleness(lender, now);
   if (staleness.stale && !input.allowStaleLender) throw new PackageError("stale_lender", `${lender.name}: ${staleness.reason} Re-verify or acknowledge before sending.`);
+  // The readiness gate runs before anything is locked or requested.
+  const submission = await checkSubmission(deps, deal, lender, input.items, input.submission);
 
   const { pkg } = await lockPackageVersion(store, deal.id, input.items, input.actor, now);
-  const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);
-  const outreach = await store.getOutreachByKey(approvalKey);
-  if (outreach && ["approved", "sent", "declined", "term_sheet", "withdrawn"].includes(outreach.status)) return { outreach, pkg };
-  return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach?.staleLenderOverride ?? staleness.stale, note: input.note, ttlDays: input.ttlDays, actor: input.actor });
+  // The current attempt for this lender and version: past withdrawn, rejected or expired ones.
+  let attempt = 1;
+  let outreach = await store.getOutreachByKey(outreachApprovalKey(deal.id, lender.id, pkg.version, attempt));
+  while (outreach && CLOSED_OUTREACH_STATUSES.includes(outreach.status)) outreach = await store.getOutreachByKey(outreachApprovalKey(deal.id, lender.id, pkg.version, ++attempt));
+  if (outreach && SETTLED_OUTREACH_STATUSES.includes(outreach.status)) return { outreach, pkg };
+  const decide = (o: LenderOutreach | null, n: number) =>
+    decideOutreach(deps, { deal, lender, pkg, outreach: o, approvalKey: outreachApprovalKey(deal.id, lender.id, pkg.version, n), staleLenderOverride: o?.staleLenderOverride ?? staleness.stale, note: input.note, ttlDays: input.ttlDays, actor: input.actor, requestedByUser: input.requestedByUser ?? null, submission });
+  if (!outreach) return decide(null, attempt);
+  let result: SendPackageResult;
+  try {
+    result = await decide(outreach, attempt);
+  } catch (err) {
+    if (!(err instanceof SubmissionChangedError)) throw err;
+    // The submission changed while the earlier request waited (a new reason, email or recipient): that
+    // request is withdrawn, so its approval, if a broker still gives it, sends nothing; a new one is asked.
+    const note = "Superseded: the submission changed before a broker decided; a new request replaced it.";
+    await store.updateOutreach(outreach.id, { status: "withdrawn", responseNote: note }, input.actor, now);
+    // Its waiting approval is closed too, so the queue no longer offers it.
+    await closePendingApproval(deps.gate, outreach.approvalKey, note, input.actor);
+    return decide(null, attempt + 1);
+  }
+  // The waiting request was rejected or expired meanwhile: asking again is a new request.
+  return CLOSED_OUTREACH_STATUSES.includes(result.outreach.status) ? decide(null, attempt + 1) : result;
+}
+
+/** The submission stored on a lender_outreach row (v2), rebuilt for a re-check; null for a v1 row. */
+async function storedSubmission(deps: Pick<OutreachDeps, "summaries">, outreach: LenderOutreach): Promise<CheckedSubmission | null> {
+  if (!outreach.emailSha256 || !outreach.emailText || !outreach.emailSubject) return null;
+  if (!deps.summaries || !outreach.summaryId || !outreach.targetStage || !outreach.lenderFit) throw new PackageError("summary_missing", "The submission's deal summary cannot be read; nothing was sent.");
+  const summary = await deps.summaries.getSummary(outreach.summaryId);
+  if (!summary || summary.dealId !== outreach.dealId) throw new PackageError("summary_missing", "The submission's locked deal summary was not found; nothing was sent.");
+  // The stored text must still hash to what the broker approves (and to the row's own hash) before the gate is asked.
+  verifyApprovedEmail({ subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 }, outreach.emailSha256);
+  const missing = outreach.readinessMissing ?? [];
+  const reason = outreach.readinessOverrideReason ?? null;
+  const lenderReason = outreach.lenderOverrideReason ?? null;
+  const neutralCopy = neutralCopyRecord(outreach.neutralCopy);
+  return {
+    send: {
+      targetStage: outreach.targetStage,
+      summaryId: outreach.summaryId,
+      readiness: { missing, hardStops: [], score: 0 },
+      overrideReason: reason ?? undefined,
+      lenderOverrideReason: lenderReason ?? undefined,
+      fit: outreach.lenderFit,
+      email: { subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 },
+      // Names were checked when the submission was requested; the hash binds the text since.
+      nameCheck: { names: [], allow: [] },
+      neutralCopy,
+    },
+    summary,
+    overrideReason: reason,
+    lenderOverrideReason: lenderReason,
+    neutralCopy,
+  };
 }
 
 /**
@@ -176,20 +387,102 @@ export async function checkOutreachApproval(deps: OutreachDeps, outreachId: stri
   if (!lender) throw new PackageError("lender_not_found", `Lender ${outreach.lenderId} not found`);
   // A hold placed (or the deal closed) after the submission was queued stops it here.
   await assertDealCanGoToLenders(deps, deal);
-  return decideOutreach(deps, { deal, lender, pkg, outreach, staleLenderOverride: outreach.staleLenderOverride, ttlDays: opts.ttlDays, actor });
+  // v1 rows (no email hash) re-request with the v1 payload shape; v2 rows with what was stored.
+  const submission = await storedSubmission(deps, outreach);
+  return decideOutreach(deps, { deal, lender, pkg, outreach, approvalKey: outreach.approvalKey, staleLenderOverride: outreach.staleLenderOverride, ttlDays: opts.ttlDays, actor, requestedByUser: null, submission });
+}
+
+/** A reason cut at a word boundary to at most `max` characters ("…" marks the cut); empty at 0. */
+function cutReason(text: string, max: number): string {
+  const t = text.trim().replace(/\s+/g, " ");
+  if (t.length <= max) return t;
+  if (max <= 1) return "…";
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > max * 0.5 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, "")}…`;
+}
+
+const SUMMARY_MAX = 500;
+
+/**
+ * The approving broker's one line (spec 5.2); not hashed, so it can carry
+ * labels and the note. Every part always shows (the request, the missing
+ * items, the fit exceptions, the fair-lending flags and the lender override);
+ * when the line runs past 500 characters the free-text reasons and the note
+ * are shortened, never the tail. The card shows everything in full.
+ */
+function submissionApprovalSummary(deal: Deal, lender: LenderPanelEntry, pkg: DealPackage, s: CheckedSubmission, note: string | undefined): string {
+  const tiles = s.summary.spec.headline;
+  const tile = (labels: readonly string[]) => tiles.find((t) => labels.includes(t.label));
+  const ltv = tile(["LTV", "Loan to price", "Combined LTV", "LTC", "Combined LTC"]);
+  const dscr = tile(["DSCR", "Global DSCR", "Combined DSCR"]);
+  const figures = [deal.loanAmountCents ? fmt.usd(deal.loanAmountCents) : null, ltv ? `${ltv.label} ${ltv.value}` : null, dscr ? `${dscr.label} ${dscr.value}` : null].filter(Boolean).join(", ");
+  const missing = s.send.readiness.missing;
+  const labels = missing.length ? missingLabels(missing, s.summary) : [];
+  const flags = [...new Set(s.neutralCopy.flags.map((f) => `"${f.term}"`))];
+  const build = (reasonMax: number, compact: boolean) => {
+    const reason = s.overrideReason ? cutReason(s.overrideReason, reasonMax) : "";
+    const lenderReason = s.lenderOverrideReason ? cutReason(s.lenderOverrideReason, reasonMax) : "";
+    const n = note ? cutReason(note, Math.min(reasonMax, 200)) : "";
+    const missingText = !missing.length ? "none" : compact ? `${missing.length} required item${missing.length === 1 ? "" : "s"}` : labels.join("; ");
+    const exceptions = !s.send.fit.exceptions.length ? "none" : compact ? `${s.send.fit.exceptions.length} (see the card)` : s.send.fit.exceptions.join("; ");
+    return [
+      `Send "${deal.title}" (${PLAYBOOK_LABELS[s.summary.playbook]}, ${STAGE_REQUEST[s.send.targetStage]} request) package v${pkg.version} to ${lender.name}${figures ? `: ${figures}` : ""}.`,
+      `Missing: ${missingText}${reason ? ` — reason: ${reason}` : ""}.`,
+      `Lender fit exceptions: ${exceptions}${lenderReason ? ` — lender override: ${lenderReason}` : ""}.`,
+      // Fair lending (spec 6.5): staff confirmed copy that touches a protected characteristic; the broker sees it.
+      flags.length ? `Fair-lending copy flags (confirmed by staff): ${compact ? `${flags.length}` : flags.join(", ")}.` : null,
+      n ? `Note: ${n}` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  };
+  for (const compact of [false, true]) {
+    for (const max of [1000, 400, 250, 160, 100, 60, 30, 0]) {
+      const line = build(max, compact);
+      if (line.length <= SUMMARY_MAX) return line;
+    }
+  }
+  // Only a very long deal or lender name gets here; the card still shows every part.
+  const line = build(0, true);
+  return `${line.slice(0, SUMMARY_MAX - 1)}…`;
 }
 
 async function decideOutreach(
   deps: OutreachDeps,
-  input: { deal: Deal; lender: LenderPanelEntry; pkg: DealPackage; outreach: LenderOutreach | null; staleLenderOverride: boolean; note?: string | null; ttlDays?: number; actor: string },
+  input: {
+    deal: Deal;
+    lender: LenderPanelEntry;
+    pkg: DealPackage;
+    outreach: LenderOutreach | null;
+    approvalKey: string;
+    staleLenderOverride: boolean;
+    note?: string | null;
+    ttlDays?: number;
+    actor: string;
+    requestedByUser: string | null;
+    submission: CheckedSubmission | null;
+  },
 ): Promise<SendPackageResult> {
   const { store } = deps;
-  const { deal, lender, pkg } = input;
+  const { deal, lender, pkg, submission } = input;
   let outreach = input.outreach;
   const now = deps.now();
-  const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);
+  const approvalKey = input.outreach?.approvalKey ?? input.approvalKey;
   const note = input.note?.trim();
 
+  const v1Payload = {
+    dealId: deal.id,
+    lenderId: lender.id,
+    packageId: pkg.id,
+    packageVersion: pkg.version,
+    manifestSha256: pkg.manifestSha256,
+    // The derived submission recipient (lib/deals/lender-contacts.ts deriveLenderContacts):
+    // the primary contact's email, else the lender's submission inbox. Changing either
+    // after the request changes this hash, which surfaces as "contact email changed".
+    to: lender.contactEmail,
+    staleLenderOverride: input.staleLenderOverride,
+  };
   let decision: ApprovalDecision;
   try {
     decision = await deps.gate.request({
@@ -199,27 +492,37 @@ async function decideOutreach(
       idempotencyKey: approvalKey,
       // The staff note is shown to the approving broker but is not part of the
       // hashed payload, so re-checking (or re-sending with another note) never conflicts.
-      summary: `Send "${deal.title}" package v${pkg.version} (${pkg.manifest.length} document${pkg.manifest.length === 1 ? "" : "s"}) to ${lender.name}${note ? ` — note: ${note.slice(0, 200)}` : ""}`,
-      templateId: LENDER_SUBMISSION_TEMPLATE_ID,
-      payload: {
-        dealId: deal.id,
-        lenderId: lender.id,
-        packageId: pkg.id,
-        packageVersion: pkg.version,
-        manifestSha256: pkg.manifestSha256,
-        // The derived submission recipient (lib/deals/lender-contacts.ts deriveLenderContacts):
-        // the primary contact's email, else the lender's submission inbox. Changing either
-        // after the request changes this hash, which surfaces as "contact email changed".
-        to: lender.contactEmail,
-        staleLenderOverride: input.staleLenderOverride,
-      },
+      summary: submission
+        ? submissionApprovalSummary(deal, lender, pkg, submission, note)
+        : `Send "${deal.title}" package v${pkg.version} (${pkg.manifest.length} document${pkg.manifest.length === 1 ? "" : "s"}) to ${lender.name}${note ? ` — note: ${note.slice(0, 200)}` : ""}`,
+      templateId: submission ? LENDER_SUBMISSION_TEMPLATE_ID_V2 : LENDER_SUBMISSION_TEMPLATE_ID,
+      // v2 also hashes the target stage, the locked summary, the exact email and the
+      // readiness gap with its reason: a change to any of them after the request is a conflict.
+      payload: submission
+        ? {
+            ...v1Payload,
+            targetStage: submission.send.targetStage,
+            summaryId: submission.summary.id,
+            summarySha256: submission.summary.specSha256,
+            emailSha256: submission.send.email.sha256,
+            readinessMissing: [...submission.send.readiness.missing],
+            overrideReason: submission.overrideReason,
+            // What the broker weighs besides the email: the facts outside the lender's box, the
+            // lender override's own reason, and the fair-lending flags with staff's confirmation.
+            fitExceptions: [...submission.send.fit.exceptions],
+            lenderOverrideReason: submission.lenderOverrideReason,
+            neutralCopy: submission.neutralCopy,
+          }
+        : v1Payload,
       requestedBy: input.actor,
+      ...(input.requestedByUser ? { requestedByUser: input.requestedByUser } : {}),
     });
   } catch (err) {
     if (err instanceof Error && err.name === "ApprovalConflictError") {
-      throw new PackageError(
-        "invalid_status",
-        `${lender.name}'s contact email changed after approval was requested for package v${pkg.version}. Withdraw this submission and send the package again so a broker approves the new recipient.`,
+      throw new SubmissionChangedError(
+        submission
+          ? `The submission to ${lender.name} changed after approval was requested (recipient, summary, email text or reasons). Request approval again: the new request replaces the waiting one.`
+          : `${lender.name}'s contact email changed after approval was requested for package v${pkg.version}. Withdraw this submission and send the package again so a broker approves the new recipient.`,
       );
     }
     throw err;
@@ -233,6 +536,21 @@ async function decideOutreach(
     approvalKey,
     requestedBy: input.actor,
     staleLenderOverride: input.staleLenderOverride,
+    // The submission record (spec 3.6 section 4): what the broker approved, kept on the row.
+    ...(submission
+      ? {
+          targetStage: submission.send.targetStage,
+          summaryId: submission.summary.id,
+          readinessMissing: [...submission.send.readiness.missing],
+          readinessOverrideReason: submission.overrideReason,
+          lenderOverrideReason: submission.lenderOverrideReason,
+          neutralCopy: submission.neutralCopy,
+          lenderFit: submission.send.fit,
+          emailSubject: submission.send.email.subject,
+          emailText: submission.send.email.text,
+          emailSha256: submission.send.email.sha256,
+        }
+      : {}),
   };
   if (!isApproved(decision)) {
     // A used-up approval ("already_executed") cannot send again: show it as rejected.
@@ -253,6 +571,8 @@ async function decideOutreach(
   const current = await store.getDeal(deal.id);
   if (!current) throw new PackageError("deal_not_found", `Deal ${deal.id} not found`);
   await assertDealCanGoToLenders(deps, current);
+  // No link exists for an email that no longer matches what was approved.
+  if (submission) verifyApprovedEmail(outreach?.emailText && outreach.emailSubject ? { subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 } : submission.send.email, submission.send.email.sha256);
   const { token, link } = await createShareLink(store, { pkg, lenderId: lender.id, createdBy: input.actor, ttlDays: input.ttlDays, now });
   const url = shareLinkUrl(deps.baseUrl, token);
   const approved = { status: "approved" as const, approvalId: decision.approvalId, approvedBy: decision.decidedBy, shareLinkId: link.id };
@@ -260,25 +580,58 @@ async function decideOutreach(
     ? await store.updateOutreach(outreach.id, approved, input.actor, now)
     : await store.insertOutreach({ ...base, ...approved, sentAt: null, externalMessageId: null, responseNote: null, termSheetRef: null }, now);
 
+  // The approved email (v2) with the link filled in; v1 rows keep the documents-only note.
+  // Re-verified against the approved hash immediately before it is mailed or handed to staff.
+  if (submission && outreach.emailText && outreach.emailSubject) verifyApprovedEmail({ subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 }, submission.send.email.sha256);
+  const approvedEmail =
+    outreach.emailText && outreach.emailSubject
+      ? { subject: outreach.emailSubject, text: fillEmailPlaceholders(outreach.emailText, { shareUrl: url, expiresAt: link.expiresAt }) }
+      : null;
   if (deps.mailer && lender.contactEmail) {
     const { messageId } = await deps.mailer.send({
       to: lender.contactEmail,
-      subject: `Corin Commercial · ${deal.title} · package v${pkg.version}`,
-      text: [
-        `${lender.contactName ? `${lender.contactName},` : "Hello,"}`,
-        "",
-        `Corin Commercial, Inc. (broker, not the lender) is submitting "${deal.title}" for your review.`,
-        `Package version ${pkg.version} (${pkg.manifest.length} documents) is available until ${new Date(link.expiresAt).toUTCString()}:`,
-        url,
-        "",
-        "This link is for your institution only. Please do not forward it.",
-      ].join("\n"),
+      subject: approvedEmail?.subject ?? `Corin Commercial · ${deal.title} · package v${pkg.version}`,
+      text:
+        approvedEmail?.text ??
+        [
+          `${lender.contactName ? `${lender.contactName},` : "Hello,"}`,
+          "",
+          `Corin Commercial, Inc. (broker, not the lender) is submitting "${deal.title}" for your review.`,
+          `Package version ${pkg.version} (${pkg.manifest.length} documents) is available until ${new Date(link.expiresAt).toUTCString()}:`,
+          url,
+          "",
+          "This link is for your institution only. Please do not forward it.",
+        ].join("\n"),
       idempotencyKey: approvalKey,
     });
     outreach = await store.updateOutreach(outreach.id, { status: "sent", sentAt: now.toISOString(), externalMessageId: messageId }, input.actor, now);
     return { outreach, pkg };
   }
-  return { outreach, pkg, shareUrl: url };
+  // No lender mailer (LENDER_EMAIL_ENABLED unset): nothing is emailed; staff get the link and the approved text once.
+  return { outreach, pkg, shareUrl: url, ...(approvedEmail ? { email: approvedEmail } : {}) };
+}
+
+/**
+ * The approved email for the one-time "send it yourself" view (email to
+ * lenders off): the stored text with the link and its expiry filled in. Only
+ * for the outreach row the share URL was minted for (its token matches the
+ * row's link) on this deal, and only for a lender-ready (v2) row; null otherwise.
+ */
+export async function approvedEmailForShare(store: Pick<DealDeskStore, "getOutreach" | "listShareLinks">, dealId: string, outreachId: string | null | undefined, shareUrl: string): Promise<{ lenderId: string; subject: string; text: string } | null> {
+  if (!outreachId) return null;
+  const o = await store.getOutreach(outreachId);
+  if (!o || o.dealId !== dealId || !o.emailText || !o.emailSubject || !o.shareLinkId) return null;
+  const link = (await store.listShareLinks(dealId)).find((l) => l.id === o.shareLinkId);
+  const token = shareUrl.split("/").pop() ?? "";
+  if (!link || link.revokedAt || !tokenMatches(token, link.tokenHash)) return null;
+  // Shown only while it still matches the approved hash and passes the restricted-data check.
+  try {
+    verifyApprovedEmail({ subject: o.emailSubject, text: o.emailText, sha256: o.emailSha256 }, o.emailSha256);
+  } catch (err) {
+    console.error("[deals] approved email no longer verifies; not shown", err instanceof PackageError ? err.reason : "error");
+    return null;
+  }
+  return { lenderId: o.lenderId, subject: o.emailSubject, text: fillEmailPlaceholders(o.emailText, { shareUrl, expiresAt: link.expiresAt }) };
 }
 
 /** One line for staff describing a submission after a send or an approval check. */
@@ -288,6 +641,7 @@ export function outreachMessage(r: SendPackageResult): string {
     case "pending_approval":
       return `${v} locked; the submission is waiting for broker approval. Nothing was sent; use Check approval once a broker decides.`;
     case "approved":
+      if (r.shareUrl && r.email) return `${v} approved; the share link and the approved email are shown below once. Email to lenders is off, so send it from your mailbox, then click Mark sent.`;
       return r.shareUrl ? `${v} approved; the share link is shown below once. Send it from your mailbox, then click Mark sent.` : `${v} is approved; the share link was already shown. Mark it sent once delivered.`;
     case "sent":
       return `${v} sent to the lender.`;
@@ -326,13 +680,31 @@ export async function recordLenderResponse(
   return store.updateOutreach(o.id, { status: response.status, responseNote: response.note ?? null, termSheetRef: response.termSheetRef ?? o.termSheetRef }, actor, now);
 }
 
-/** Withdraw a submission: revoke its share link so the lender loses access. */
-export async function withdrawOutreach(store: DealDeskStore, outreachId: string, reason: string, actor: string, now: Date): Promise<LenderOutreach> {
+/**
+ * Closes the pending approval of a submission that will never go out
+ * (superseded or withdrawn), so no broker approves it later. A gate that
+ * cannot withdraw, or a failure here, leaves the request in the queue: the
+ * submission is already withdrawn, so approving it sends nothing.
+ */
+async function closePendingApproval(gate: ApprovalGate | undefined, approvalKey: string | null | undefined, reason: string, actor: string): Promise<boolean> {
+  if (!gate?.withdraw || !approvalKey) return false;
+  try {
+    return await gate.withdraw(approvalKey, reason, actor);
+  } catch (err) {
+    console.warn("[deals] closing the waiting approval failed", err instanceof Error ? err.name : "Error");
+    return false;
+  }
+}
+
+/** Withdraw a submission: revoke its share link so the lender loses access, and close its waiting approval. */
+export async function withdrawOutreach(store: DealDeskStore, outreachId: string, reason: string, actor: string, now: Date, gate?: ApprovalGate): Promise<LenderOutreach> {
   const o = await findOutreach(store, outreachId);
   if (o.shareLinkId) {
     const links = await store.listShareLinks(o.dealId);
     const link = links.find((l) => l.id === o.shareLinkId);
     if (link && !link.revokedAt) await store.revokeShareLink(link.id, actor, reason, now);
   }
-  return store.updateOutreach(o.id, { status: "withdrawn", responseNote: reason }, actor, now);
+  const withdrawn = await store.updateOutreach(o.id, { status: "withdrawn", responseNote: reason }, actor, now);
+  await closePendingApproval(gate, o.approvalKey, `Withdrawn: ${reason}`, actor);
+  return withdrawn;
 }

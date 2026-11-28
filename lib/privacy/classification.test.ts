@@ -51,6 +51,26 @@ describe("field registry", () => {
   });
 });
 
+describe("deal submission tables", () => {
+  it("registers deal facts as confidential deal data and the sponsor profile and locked summary as borrower PII, none restricted", () => {
+    expect(fieldRule("deal_submission_profiles.noi_in_place_cents")).toMatchObject({ level: "confidential", category: "deal", pii: false });
+    expect(fieldRule("deal_submission_profiles.business_plan")).toMatchObject({ level: "confidential", category: "deal" });
+    expect(fieldRule("deal_submission_profiles.playbook")).toMatchObject({ level: "internal" });
+    for (const col of ["experience_summary", "portfolio_size_note", "stated_net_worth_cents", "stated_liquidity_cents", "credit_band", "credit_events", "notes"]) {
+      expect(fieldRule(`deal_sponsor_profiles.${col}`), col).toMatchObject({ level: "confidential", category: "borrower", pii: true });
+    }
+    expect(fieldRule("deal_summaries.spec")).toMatchObject({ level: "confidential", category: "borrower", pii: true });
+    expect(fieldRule("lender_outreach.email_text")).toMatchObject({ level: "confidential", pii: true });
+    for (const t of ["deal_submission_profiles", "deal_sponsor_profiles", "deal_summaries"]) expect(encryptedFields(t), t).toEqual([]);
+  });
+
+  it("classifies a sponsor row read from the table as personal information", () => {
+    const c = classifyPayload({ experience_summary: "Nine value-add renovations since 2012", stated_net_worth_cents: 1_850_000_000, email_financials_mode: "covenant_only" }, { table: "deal_sponsor_profiles" });
+    expect(c).toMatchObject({ level: "confidential", pii: true });
+    expect(c.categories).toContain("borrower");
+  });
+});
+
 describe("key heuristics", () => {
   it.each([
     ["ssn", "restricted"],

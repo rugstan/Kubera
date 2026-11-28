@@ -110,6 +110,23 @@ describe("ApprovalService decisions", () => {
     expect(await service.cancel(record.id, broker)).toMatchObject({ ok: false, reason: "already_decided" });
   });
 
+  it("withdraws a pending request by key as cancelled by the system, and nothing else", async () => {
+    const { store, service } = setup();
+    const { record } = await service.request(req());
+    const onDecided = vi.fn(async () => undefined);
+    const hooked = new ApprovalService(store, () => T0, { onDecided });
+    expect(await hooked.withdraw("no-such-key", "gone", "broker:ana")).toBeNull();
+    expect(await hooked.withdraw(record.idempotencyKey, "Superseded: a new request replaced it", "broker:ana")).toMatchObject({
+      ok: true,
+      record: { status: "cancelled", decidedBy: null, decidedByLabel: "broker:ana", decidedByDre: null, decisionReason: "Superseded: a new request replaced it" },
+    });
+    expect(onDecided).toHaveBeenCalledTimes(1);
+    expect(await hooked.approve(record.id, broker)).toMatchObject({ ok: false, reason: "already_decided", record: { status: "cancelled" } });
+    expect(await hooked.withdraw(record.idempotencyKey, "again", "broker:ana")).toMatchObject({ ok: false, reason: "already_decided" });
+    const gate = queueApprovalGate(hooked);
+    expect(await gate.withdraw!(record.idempotencyKey, "again", "broker:ana")).toBe(false);
+  });
+
   it("expires on timeout and never approves afterwards", async () => {
     const { service, advance } = setup();
     const { record } = await service.request(req());

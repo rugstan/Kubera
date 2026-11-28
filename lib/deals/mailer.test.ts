@@ -39,7 +39,9 @@ describe("email to lenders switch", () => {
 
   it("the deal desk actions give lender submissions and lender notices only the lender mailer", () => {
     const src = read("app/(staff)/deals/actions.ts");
-    for (const call of ["sendPackageToLender(", "checkOutreachApproval(", "submitModification("]) {
+    // Submissions are requested from the submission flow (below); here the approval re-check mints the link and mails it.
+    expect(src).not.toContain("sendPackageToLender(");
+    for (const call of ["checkOutreachApproval(", "submitModification("]) {
       const at = src.indexOf(call);
       expect(at, call).toBeGreaterThan(-1);
       const args = src.slice(at, src.indexOf(");", at));
@@ -51,6 +53,13 @@ describe("email to lenders switch", () => {
     // The only borrower-mailer use is the invoice, which also carries the lender mailer for lender-billed invoices.
     expect(src.match(/mailer: rt\.mailer\b/g)).toHaveLength(1);
     expect(src).toContain("mailer: rt.mailer, lenderMailer: rt.lenderMailer");
+  });
+
+  it("the submission flow sends only through the lender desk's outreach, which carries the lender mailer", () => {
+    const src = read("app/(staff)/deals/[id]/submission/_lib/data.ts");
+    expect(src).toContain("submitToLenders(rt.outreach,");
+    expect(src).not.toMatch(/\bmailer:/);
+    expect(src).not.toMatch(/sendPackageToLender\(/);
   });
 
   it("the lender-matching agent sends only through the lender mailer", () => {

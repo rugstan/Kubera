@@ -1,0 +1,66 @@
+Subject: Loan request: $12,500,000 CMBS | 86,000 SF retail, Stockton CA | 63.1% LTV, 11.8% debt yield | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: CMBS / conduit, $500K–$50M, CA and AZ. This request: CMBS / conduit, $12.5M, CA.
+
+THE REQUEST
+  Loan:        $12,500,000, cash-out refinance, first lien
+  Structure:   120 months, 60 months interest-only, then 30-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target March 12, 2027 (The life company loan matures April 1, 2027)
+  Existing debt: $10,200,000 with Brightwater Mutual Life, matures April 1, 2027
+  Cash out:    $1,860,000 (Return of equity to the partners after 12 years of ownership)
+
+THE PROPERTY
+  Greenhollow Crossing, 4800 Greenhollow Boulevard, Stockton, CA 95207 — 86,000 SF retail, built 1998, renovated 2016
+  Occupancy:   92% as of October 31, 2026 (from the rent roll)
+  As-is value: $19,800,000 (Appraisal, September 25, 2026)
+
+THE NUMBERS
+  NOI in place:      $1,480,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $1,410,000 (Corin normalization of the operating statement)
+  Debt yield:        11.8% in place
+  LTV:               63.1% as-is (Corin calculation)
+  DSCR:              1.58x in place at an assumed 6.4% / 30-year schedule — an assumption, not a quote
+  Loan per SF:       $145.35
+
+THE TENANCY
+  Greenhollow Market (grocery anchor): 34% of rent, lease ends May 31, 2034
+  Brightpath Fitness: 12% of rent, lease ends August 31, 2030
+  Northvale Drug: 9% of rent, lease ends January 31, 2031
+  Cinder & Sage Kitchen: 4% of rent, lease ends October 31, 2028
+  Rollover:    22% of rent ends inside the requested term; weighted average lease term 74 months
+
+THE SPONSOR
+  Greenhollow Crossing Partners LP, a CA limited partnership. The partnership has owned and leased neighborhood and community shopping centers in the Central Valley since 2001 and has placed ten conduit and life company loans on them.
+  25 years, 10 similar projects, 15 retail centers, about 1.4 million SF
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Greenhollow Retail Management
+
+THE PLAN AND THE EXIT
+  Refinance a grocery-anchored neighborhood center the partnership has owned since 2014 into a 10-year fixed-rate conduit loan. The grocery anchor renewed early through 2034, the center is 92% leased with 22 suites, and in-place NOI supports a debt yield near 12%.
+  Exit: refinance in about 120 months. Refinance at maturity; the anchor lease runs past the loan term.
+
+SOURCES AND USES
+  Sources: Senior loan $12,500,000 = $12,500,000
+  Uses:    Payoff of existing debt $10,200,000; Closing costs $190,000; Financing costs $250,000; Cash out to borrower $1,860,000 = $12,500,000
+
+KNOWN ISSUES
+  - 22% of rent rolls during the loan term: Rollover is spread over eight years, no single year exceeds 6%, and in-line rents are at market.
+
+IN THE PACKAGE (8 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; appraisal dated September 25, 2026; 2 other borrower documents; 2 sponsor financial statements
+  Reports on hand: Appraisal dated September 25, 2026
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

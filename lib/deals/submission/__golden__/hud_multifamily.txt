@@ -1,0 +1,61 @@
+Subject: Loan request: $12,900,000 HUD multifamily | 120-unit multifamily, Riverside CA | 66.2% LTV, 1.43x DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: HUD / FHA, $500K–$50M, CA and AZ. This request: HUD / FHA, $12.9M, CA.
+
+THE REQUEST
+  Loan:        $12,900,000, refinance, first lien
+  Structure:   420 months, 35-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target May 28, 2027 (The existing loan matures June 1, 2027; HUD processing takes about six months)
+  Existing debt: $11,900,000 with Harrowgate Federal Savings, matures June 1, 2027
+
+THE PROPERTY
+  Saltmeadow Gardens, 6400 Saltmeadow Drive, Riverside, CA 92506 — 120-unit multifamily, built 1986, renovated 2018
+  Occupancy:   95% as of October 31, 2026 (from the rent roll)
+  As-is value: $19,500,000 (Corin broker opinion of value, October 15, 2026)
+
+HUD DETAILS
+  Program:     223(f) refinance or acquisition; repairs $360,000 from the capital needs assessment
+  Prior HUD participation: no
+
+THE NUMBERS
+  NOI in place:      $1,240,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $1,190,000 (Corin normalization of the operating statement)
+  LTV:               66.2% as-is (Corin calculation)
+  Debt yield:        9.6% in place
+  DSCR:              1.43x in place at an assumed 5.85% / 35-year schedule — an assumption, not a quote
+  Loan per unit:     $107,500
+
+THE SPONSOR
+  Saltmeadow Gardens LP, a CA limited partnership. The general partner has owned and operated Inland Empire apartment communities since 2004 and has refinanced eight of them with agency and bank loans; this is its first HUD loan.
+  22 years, 8 similar projects, 9 apartment communities, 1,460 units in Riverside and San Bernardino counties
+  Key principal net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Harrowgate Residential Management
+
+THE PLAN AND THE EXIT
+  Refinance a stabilized 120-unit garden community out of a maturing bank loan into a 35-year fixed-rate HUD 223(f) loan. The property was renovated in 2018, has held 94% to 96% occupancy for three years, and the loan funds the repairs the capital needs assessment calls for.
+  Exit: hold to maturity. Long-term hold on a fully amortizing loan; no balloon.
+
+SOURCES AND USES
+  Sources: Senior loan $12,900,000 = $12,900,000
+  Uses:    Payoff of existing debt $11,900,000; Closing costs $200,000; Financing costs $440,000; Renovation / capital work (Repairs from the capital needs assessment, funded at closing) $360,000 = $12,900,000
+
+KNOWN ISSUES
+  - Statewide rent cap limits annual increases: In-place rents are about 6% below market, and the underwriting uses only cap-compliant increases.
+
+IN THE PACKAGE (7 documents)
+  Deal summary (PDF); T-12 operating statement; T-12 operating statement through September 2026; rent roll dated October 31, 2026; 1 other borrower document; 2 sponsor financial statements
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

@@ -69,6 +69,8 @@ export type Profile = {
   /** ISO date (YYYY-MM-DD). */
   dreLicenseExpiresOn: string | null;
   dreLicenseVerifiedAt: string | null;
+  /** Work phone (profiles.phone), printed in a lender email's signature when on file. */
+  phone?: string | null;
 };
 
 /** The signed-in person as the staff app sees them. */

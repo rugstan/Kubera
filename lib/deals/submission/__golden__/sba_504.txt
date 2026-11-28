@@ -1,0 +1,58 @@
+Subject: Loan request: $2,400,000 SBA 504 | 12,500 SF commercial, Roseville CA | 57.1% loan-to-price, 1.92x global DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: SBA 7(a) / 504, $500K–$50M, CA and AZ. This request: SBA 7(a) / 504, $2.4M, CA.
+
+THE REQUEST
+  Loan:        $2,400,000, acquisition, first lien
+  Structure:   120 months, 25-year amortization, fixed, full recourse
+  Closing:     target March 5, 2027 (The seller's exchange deadline of March 5, 2027)
+
+THE PROPERTY
+  Galewood Parkway veterinary building, 3100 Galewood Parkway, Roseville, CA 95678 — 12,500 SF commercial, built 2004
+  Purchase price: $4,200,000, closing March 5, 2027
+
+THE BUSINESS
+  Redfinch Veterinary Group Inc., NAICS 541940, 8 years in business, 26 employees, occupies 100% of the property
+  Cash flow:   revenue $4,100,000, EBITDA $690,000, existing debt service $85,000 (annual; entered by Corin)
+  Injection:   $480,000 (Owner cash and retained earnings)
+  Eligibility: franchise: no; change of ownership: no; affiliates: yes
+  CDC: Galewood Valley CDC; 6 jobs created or retained
+
+THE NUMBERS
+  Loan to price:     57.1% of the purchase price (Corin calculation)
+  Global DSCR:       1.92x (Corin spread of the business and personal cash flow)
+  Loan per SF:       $192
+
+THE SPONSOR
+  Redfinch Veterinary Group Inc., a CA corporation. The owners have run the practice since 2018, opened a second clinic in 2022 and grew revenue to $4.1 million with 26 employees; the affiliate is that second clinic's operating company.
+  8 years, 1 similar project, Two small commercial condominiums held personally
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+
+THE PLAN AND THE EXIT
+  An eight-year-old veterinary practice with two clinics is buying a 12,500 SF building and converting it into a 24-hour animal hospital with surgery suites and an emergency department. The $560,000 improvement budget covers the medical build-out; the practice moves its larger clinic in and adds six jobs.
+  Exit: refinance in about 120 months. Refinance or pay off the bank first lien at its 10-year maturity; the CDC debenture runs 25 years.
+
+SOURCES AND USES
+  Sources: Senior loan $2,400,000; Subordinate debt (CDC 504 debenture (40%)) $1,920,000; Sponsor equity $480,000 = $4,800,000
+  Uses:    Purchase price $4,200,000; Renovation / capital work $560,000; Closing costs $40,000 = $4,800,000
+
+KNOWN ISSUES
+  - Build-out could delay the move: The practice keeps its current lease until the hospital opens; the contractor's bid includes a 120-day schedule.
+
+IN THE PACKAGE (7 documents)
+  Deal summary (PDF); 3 other borrower documents; 2 sponsor financial statements; 1 set of tax returns
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

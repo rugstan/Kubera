@@ -18,7 +18,9 @@ import { FakeLicenseLookup } from "@/lib/construction/cslb";
 import { MemoryConstructionStore } from "@/lib/construction/store";
 import { MemoryDisclosureStore, MemoryDocumentStorage } from "@/lib/disclosures/store";
 import { MemoryLenderMatchStore, MemoryPartnerSource, MemoryTermSheetMailSource } from "@/lib/agents/lenders/store";
+import { sealPrincipalSecrets } from "@/lib/principals/crypto-fields";
 import { MemoryPortalInviteStore, MemoryPrincipalStore } from "@/lib/principals/store";
+import type { Pfs, PrincipalRow, ReoEntry } from "@/lib/principals/types";
 import { createKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { FakeSanctionsClient } from "@/lib/screening/fake";
 import { MemoryDealHoldStore, MemoryScreeningStore } from "@/lib/screening/store";
@@ -28,6 +30,8 @@ import { sealLenderAccountNumber } from "./lender-accounts";
 import { EMPTY_LENDER_CONTACT_INFO } from "./lender-contacts";
 import { stageTemplate, templateDigest } from "./stages";
 import { MemoryDealDeskStore } from "./store";
+import { assertProfileFields, assertSponsorFields, MemorySubmissionStore } from "./submission/store";
+import { blankSponsorProfileFields, blankSubmissionProfileFields, creditEventKinds, type SponsorProfile, type SubmissionProfile } from "./submission/types";
 import type { Deal, DealProgram, LenderContact, LenderRow } from "./types";
 
 /** True when the in-memory demo desks are in use (fake-auth mode). */
@@ -47,6 +51,23 @@ export const DEMO_EXTRA_DEAL_IDS = {
   townhomes: "10000000-0000-4000-8000-000000000006",
   pipHotel: "10000000-0000-4000-8000-000000000007",
   cedarCourt: "10000000-0000-4000-8000-000000000008",
+} as const;
+
+/**
+ * Demo deals for the lender-ready submission (e2e/deal-submission.spec.ts).
+ * `ready` has every Screen item answered: profile, sponsor and principals with
+ * personal financial statements on file. `empty` has no profile yet; its lead
+ * intake gives "Start from these" values to suggest.
+ */
+export const DEMO_SUBMISSION_DEAL_IDS = {
+  ready: "10000000-0000-4000-8000-000000000009",
+  empty: "10000000-0000-4000-8000-000000000010",
+} as const;
+
+/** The leads behind the submission demo deals (their intakes live in DemoDesks.leadIntakes). */
+export const DEMO_LEAD_IDS = {
+  ready: "40000000-0000-4000-8000-000000000001",
+  empty: "40000000-0000-4000-8000-000000000002",
 } as const;
 
 export const DEMO_LENDER_IDS = {
@@ -87,9 +108,13 @@ export type DemoDesks = {
   partners: MemoryPartnerSource;
   termSheetMail: MemoryTermSheetMailSource;
   spreads: MemorySpreadStore;
+  /** Deal submission profiles, sponsor profiles and locked summaries. */
+  submission: MemorySubmissionStore;
+  /** leads.intake and created_at by lead id (the demo has no leads table). */
+  leadIntakes: Map<string, { intake: unknown; createdAt: string }>;
 };
 
-type DemoDeal = { id: string; title: string; program: DealProgram; stage: string; status?: Deal["status"]; borrowerName: string; propertyAddress: string; loanAmountCents: number; collateralRealProperty: boolean; engagementAgreementRef?: string; updatedAt: string; lockedTerms?: Record<string, unknown> };
+type DemoDeal = { id: string; title: string; program: DealProgram; stage: string; status?: Deal["status"]; borrowerName: string; propertyAddress: string; loanAmountCents: number; collateralRealProperty: boolean; engagementAgreementRef?: string; updatedAt: string; lockedTerms?: Record<string, unknown>; leadId?: string };
 
 const DEMO_DEALS: DemoDeal[] = [
   { id: DEMO_DEAL_IDS.seniorLiving, title: "Sunrise Senior Living (demo)", program: "HUD_232", stage: "packaging", borrowerName: "Sunrise Care Example LLC", propertyAddress: "100 Example Way, Sacramento", loanAmountCents: 1_850_000_000, collateralRealProperty: true, engagementAgreementRef: "demo://engagement/sunrise.pdf", updatedAt: "2026-10-30T18:20:00.000Z" },
@@ -100,6 +125,8 @@ const DEMO_DEALS: DemoDeal[] = [
   { id: DEMO_EXTRA_DEAL_IDS.townhomes, title: "Coastal Ground-up Townhomes (demo)", program: "CONSTRUCTION", stage: "engaged", borrowerName: "Coastal Example Builders LLC", propertyAddress: "600 Demo Coast Hwy, Ventura", loanAmountCents: 1_475_000_000, collateralRealProperty: true, engagementAgreementRef: "demo://engagement/coastal.pdf", updatedAt: "2026-10-26T19:30:00.000Z" },
   { id: DEMO_EXTRA_DEAL_IDS.pipHotel, title: "Desert Palms Hotel PIP (demo)", program: "PIP_BRIDGE", stage: "closing", borrowerName: "Desert Palms Example LLC", propertyAddress: "700 Illustration Dr, Palm Springs", loanAmountCents: 710_000_000, collateralRealProperty: true, engagementAgreementRef: "demo://engagement/desert-palms.pdf", updatedAt: "2026-10-25T17:45:00.000Z", lockedTerms: { lenderName: "Sample Bridge Lender (demo)", noteRatePct: 9.25, termMonths: 24 } },
   { id: DEMO_EXTRA_DEAL_IDS.cedarCourt, title: "Cedar Court Refinance (demo)", program: "HUD_MULTIFAMILY", stage: "lost", status: "lost", borrowerName: "Cedar Court Example LP", propertyAddress: "800 Sample Ct, Stockton", loanAmountCents: 2_200_000_000, collateralRealProperty: true, updatedAt: "2026-10-10T12:00:00.000Z" },
+  { id: DEMO_SUBMISSION_DEAL_IDS.ready, title: "Brindle Example Apartments (demo)", program: "PRIVATE_BRIDGE", stage: "packaging", borrowerName: "Brindle Example Partners LLC", propertyAddress: "900 Example Court, Oakland, CA 94611", loanAmountCents: 840_000_000, collateralRealProperty: true, engagementAgreementRef: "demo://engagement/brindle.pdf", updatedAt: "2026-11-18T19:30:00.000Z", leadId: DEMO_LEAD_IDS.ready },
+  { id: DEMO_SUBMISSION_DEAL_IDS.empty, title: "Larkspur Example Terrace (demo)", program: "PRIVATE_BRIDGE", stage: "engaged", borrowerName: "Larkspur Example Holdings LLC", propertyAddress: "1200 Example Terrace, San Jose, CA 95112", loanAmountCents: 520_000_000, collateralRealProperty: true, engagementAgreementRef: "demo://engagement/larkspur.pdf", updatedAt: "2026-11-02T17:00:00.000Z", leadId: DEMO_LEAD_IDS.empty },
 ];
 
 // Contact info uses only fictional .example domains and 555-01xx numbers.
@@ -242,7 +269,7 @@ export function seedDemoDealDesk(store: MemoryDealDeskStore = new MemoryDealDesk
       status: d.status ?? "active",
       stageTemplateVersion: template.version,
       stageEnteredAt: d.updatedAt,
-      leadId: null,
+      leadId: d.leadId ?? null,
       twentyOpportunityId: null,
       ownerId: null,
       borrowerName: d.borrowerName,
@@ -286,6 +313,198 @@ export function seedDemoDealDesk(store: MemoryDealDeskStore = new MemoryDealDesk
   return store;
 }
 
+// ---------------------------------------------------------------------------
+// Lender-ready submission demo (invented figures; no principal is named in free text)
+
+const usd = (dollars: number) => Math.round(dollars * 100);
+const SUBMISSION_ACTOR = "staff:broker@corin.test";
+
+/** The lead intakes behind the submission demo deals (dollars, as the qualifier posts them). */
+export const DEMO_LEAD_INTAKES: ReadonlyMap<string, { intake: unknown; createdAt: string }> = new Map([
+  [
+    DEMO_LEAD_IDS.ready,
+    { intake: { assetType: "MULTIFAMILY", transaction: "PURCHASE", loanAmount: 8_400_000, noi: 750_000, value: 12_000_000, unitCount: 42, occupancyPct: 88, timelineDays: 120, nonRecourseOnly: true, creditBand: "740_PLUS", source: "website" }, createdAt: "2026-09-08T16:20:00.000Z" },
+  ],
+  [
+    DEMO_LEAD_IDS.empty,
+    { intake: { assetType: "MULTIFAMILY", transaction: "REFINANCE", loanAmount: 5_200_000, noi: 410_000, value: 7_400_000, unitCount: 30, occupancyPct: 92, timelineDays: 60, nonRecourseOnly: true, creditBand: "700_739", source: "website" }, createdAt: "2026-11-02T17:00:00.000Z" },
+  ],
+]);
+
+function demoReadyProfile(): SubmissionProfile {
+  const fields = assertProfileFields({
+    ...blankSubmissionProfileFields("bridge"),
+    purpose: "acquisition",
+    requestedTermMonths: 24,
+    requestedIoMonths: 24,
+    rateType: "floating",
+    recourse: "non_recourse",
+    lienPosition: "first",
+    targetCloseDate: "2027-01-15",
+    closeDriver: "Purchase contract closes January 15, 2027",
+    prepayPreference: "Open after month 12",
+    assumedRatePct: 8.75,
+    assumedAmortMonths: 360,
+    assetType: "MULTIFAMILY",
+    propertyName: "Brindle Example Apartments",
+    city: "Oakland",
+    county: "Alameda",
+    postalCode: "94611",
+    yearBuilt: 1972,
+    sizeCount: 42,
+    sizeUnit: "units",
+    rentableSf: 36_800,
+    tenancy: "multi_tenant",
+    occupancyPct: 88,
+    occupancyAsOf: "2026-10-31",
+    floodZone: "X",
+    rentControl: true,
+    seismicZone: true,
+    purchasePriceCents: usd(12_000_000),
+    purchaseCloseDate: "2027-01-15",
+    asIsValueCents: usd(12_350_000),
+    asIsValueSource: "broker_opinion",
+    asIsValueAsOf: "2026-10-20",
+    stabilizedValueCents: usd(16_000_000),
+    stabilizedValueSource: "broker_opinion",
+    revenueCents: usd(1_410_000),
+    expensesCents: usd(645_000),
+    noiInPlaceCents: usd(765_000),
+    noiPeriodEnd: "2026-09-30",
+    noiBasis: "t12",
+    noiStabilizedCents: usd(1_020_000),
+    stabilizationMonths: 24,
+    businessPlan:
+      "Buy a 42-unit 1972 garden building below replacement cost and renovate 30 units as they turn over (kitchens, baths, flooring, laundry hookups). Replace the roof, finish the city-required soft-story seismic retrofit and refresh the common areas, taking NOI from $765,000 to about $1,020,000 within two years.",
+    exitStrategy: "refinance",
+    exitMonths: 24,
+    exitDetail: "Refinance into an agency or bank loan on stabilized NOI of about $1,020,000; at a 6.5% rate and 1.25x the take-out is about $11,500,000, well above this loan plus the exit fee.",
+    highlights: ["Basis about $286,000 a unit, below recent Oakland sales", "Soft-story retrofit already permitted"],
+    risks: [{ risk: "In-place DSCR is below 1.0x at the assumed bridge rate", mitigant: "A $420,000 interest reserve covers about seven months of interest; renovated units add income from month 4." }],
+    sources: [
+      { kind: "senior_loan", amountCents: usd(8_400_000) },
+      { kind: "sponsor_equity", amountCents: usd(4_188_000) },
+      { kind: "investor_equity", amountCents: usd(1_500_000) },
+    ],
+    uses: [
+      { kind: "purchase_price", amountCents: usd(12_000_000) },
+      { kind: "renovation", amountCents: usd(1_260_000) },
+      { kind: "closing_costs", amountCents: usd(240_000) },
+      { kind: "financing_costs", amountCents: usd(168_000) },
+      { kind: "interest_reserve", amountCents: usd(420_000) },
+    ],
+    programDetails: {
+      rehab: { budgetCents: usd(1_260_000), scopeSummary: "Interior upgrades in 30 units as they turn, new roof, soft-story seismic retrofit and common areas", months: 18, reservesRequested: { interestCents: usd(420_000), capexCents: usd(1_260_000) } },
+    },
+    fieldSources: {
+      assetType: { source: "borrower", by: SUBMISSION_ACTOR, at: "2026-10-02T18:00:00.000Z", ref: DEMO_LEAD_IDS.ready },
+    },
+  });
+  return { id: "50000000-0000-4000-8000-000000000001", dealId: DEMO_SUBMISSION_DEAL_IDS.ready, createdAt: "2026-10-02T18:00:00.000Z", createdBy: SUBMISSION_ACTOR, updatedAt: "2026-11-18T19:30:00.000Z", updatedBy: SUBMISSION_ACTOR, recordVersion: 3, ...fields };
+}
+
+function demoReadySponsor(): SponsorProfile {
+  const fields = assertSponsorFields({
+    ...blankSponsorProfileFields(),
+    experienceSummary: "The sponsor has bought, renovated and held East Bay apartment buildings since 2012, completing nine value-add renovations of 20 to 80 units, and manages its own portfolio.",
+    yearsExperience: 14,
+    similarProjectsCount: 9,
+    portfolioCount: 11,
+    portfolioSizeNote: "11 properties, 612 units in the East Bay",
+    statedNetWorthCents: usd(18_500_000),
+    statedLiquidityCents: usd(2_400_000),
+    statedAsOf: "2026-09-30",
+    creditBand: "740_PLUS",
+    creditEvents: Object.fromEntries(creditEventKinds.map((k) => [k, { occurred: false }])),
+    managementCompany: "Brindle Example Management (sponsor affiliate)",
+  });
+  return { id: "50000000-0000-4000-8000-000000000002", dealId: DEMO_SUBMISSION_DEAL_IDS.ready, createdAt: "2026-10-02T18:00:00.000Z", createdBy: SUBMISSION_ACTOR, updatedAt: "2026-11-14T18:00:00.000Z", updatedBy: SUBMISSION_ACTOR, recordVersion: 2, ...fields };
+}
+
+const demoPfs = (cash: number, securities: number, realEstate: number, mortgages: number): Pfs => ({
+  asOf: "2026-10-15",
+  assets: { cash, marketableSecurities: securities, retirementAccounts: 400_000, realEstate, businessInterests: 0, otherAssets: 0 },
+  liabilities: { mortgages, notesPayable: 0, creditCards: 0, taxesOwed: 0, otherLiabilities: 0 },
+  contingentLiabilities: { guarantees: 0, legalClaims: 0, other: 0 },
+  annualIncome: { salary: 0, investmentIncome: 120_000, realEstateIncome: 900_000, otherIncome: 0 },
+});
+const demoReo = (address: string, value: number, loan: number, noi: number, monthlyDebt: number): ReoEntry => ({ address, propertyType: "Multifamily", ownershipPct: 100, status: "owned", marketValue: value, loanBalance: loan, monthlyDebtService: monthlyDebt, annualNoi: noi, maturityDate: "2029-06-01", inDefault: false });
+
+/** The borrowing entity and its two guarantors, PFS sealed with the demo key. */
+function demoReadyPrincipals(keyring: PiiKeyring): PrincipalRow[] {
+  const ts = "2026-10-05T17:00:00.000Z";
+  const base = (id: string, over: Partial<PrincipalRow>): PrincipalRow => ({
+    id,
+    dealId: DEMO_SUBMISSION_DEAL_IDS.ready,
+    leadId: DEMO_LEAD_IDS.ready,
+    parentId: null,
+    kind: "individual",
+    legalName: "",
+    roles: [],
+    title: null,
+    ownershipPct: null,
+    isGuarantor: false,
+    email: null,
+    phone: null,
+    homeAddress: null,
+    formationState: null,
+    citizenship: null,
+    reoSchedule: null,
+    hud2530: null,
+    creditAuthorization: null,
+    hasSsn: false,
+    hasDob: false,
+    hasPfs: false,
+    hasForm1919: false,
+    pfsAsOf: null,
+    taxIdIndex: null,
+    version: 1,
+    createdAt: ts,
+    updatedAt: ts,
+    ssnEnc: null,
+    dobEnc: null,
+    pfsEnc: null,
+    form1919Enc: null,
+    ...over,
+  });
+  const entity = "60000000-0000-4000-8000-000000000001";
+  const one = "60000000-0000-4000-8000-000000000002";
+  const two = "60000000-0000-4000-8000-000000000003";
+  return [
+    base(entity, { kind: "entity", legalName: "Brindle Example Partners LLC", roles: ["borrower_entity"], formationState: "CA" }),
+    base(one, {
+      parentId: entity,
+      legalName: "Demo Guarantor One",
+      roles: ["managing_member", "guarantor"],
+      title: "Managing member",
+      ownershipPct: 60,
+      isGuarantor: true,
+      reoSchedule: [demoReo("10 Example Row, Oakland CA", 9_800_000, 5_900_000, 610_000, 33_000), demoReo("22 Example Park, Berkeley CA", 7_400_000, 4_300_000, 455_000, 24_500)],
+      ...sealPrincipalSecrets(one, { pfs: demoPfs(1_000_000, 600_000, 14_000_000, 3_900_000) }, { keyring }),
+    }),
+    base(two, {
+      parentId: entity,
+      legalName: "Demo Guarantor Two",
+      roles: ["member", "guarantor"],
+      title: "Member",
+      ownershipPct: 40,
+      isGuarantor: true,
+      reoSchedule: [demoReo("31 Example Lane, Alameda CA", 6_100_000, 3_700_000, 380_000, 20_500)],
+      ...sealPrincipalSecrets(two, { pfs: demoPfs(550_000, 400_000, 8_200_000, 2_250_000) }, { keyring }),
+    }),
+  ];
+}
+
+/** Seeds the submission demo: the ready deal's profile, sponsor and principals, and both deals' lead intakes. */
+export function seedDemoSubmissions(desks: Pick<DemoDesks, "submission" | "principals" | "leadIntakes" | "keyring">): void {
+  for (const [id, v] of DEMO_LEAD_INTAKES) desks.leadIntakes.set(id, structuredClone(v));
+  const profile = demoReadyProfile();
+  desks.submission.profiles.set(profile.dealId, profile);
+  const sponsor = demoReadySponsor();
+  desks.submission.sponsors.set(sponsor.dealId, sponsor);
+  for (const p of demoReadyPrincipals(desks.keyring)) desks.principals.rows.set(p.id, p);
+}
+
 function buildDemoDesks(): DemoDesks {
   const licenses = new FakeLicenseLookup().set(DEMO_CONTRACTOR_LICENSE, {
     licenseNumber: DEMO_CONTRACTOR_LICENSE,
@@ -299,8 +518,9 @@ function buildDemoDesks(): DemoDesks {
     workersCompStatus: "active",
     disciplinaryAction: false,
   });
-  return {
-    deals: seedDemoDealDesk(new MemoryDealDeskStore(), DEMO_PII_KEYRING),
+  const deals = seedDemoDealDesk(new MemoryDealDeskStore(), DEMO_PII_KEYRING);
+  const desks: DemoDesks = {
+    deals,
     disclosures: new MemoryDisclosureStore(),
     storage: new MemoryDocumentStorage(),
     effects: new MemoryIdempotencyStore(),
@@ -317,7 +537,11 @@ function buildDemoDesks(): DemoDesks {
     partners: new MemoryPartnerSource(),
     termSheetMail: new MemoryTermSheetMailSource(),
     spreads: new MemorySpreadStore(),
+    submission: new MemorySubmissionStore({ dealExists: (id) => deals.deals.has(id) }),
+    leadIntakes: new Map(),
   };
+  seedDemoSubmissions(desks);
+  return desks;
 }
 
 const DEMO_KEY = Symbol.for("corin.desks.demo");

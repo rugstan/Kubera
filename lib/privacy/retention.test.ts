@@ -6,6 +6,7 @@ import { submitPrivacyRequest, markVerified } from "./requests";
 import {
   cutoffFor,
   DEAL_DOCUMENTS_BUCKET,
+  DEAL_FILE_RECORDS,
   DOCUMENT_QUARANTINE_BUCKET,
   eraseSubject,
   LEAD_POLICY,
@@ -536,5 +537,45 @@ describe("lender contacts", () => {
     for (const c of [backfilled, later]) expect(db.find("lender_contacts", c.id)).toBeUndefined();
     expect(r.retained).toEqual([{ table: "audit_log", id: backfilled.id, reason: expect.stringMatching(/append-only change log/) }]);
     expect(JSON.stringify(r.retained)).not.toContain("pat@example.com");
+  });
+});
+
+describe("deal submission records", () => {
+  it("lists the three submission tables as loan-file records kept under B&P §10148", () => {
+    expect(DEAL_FILE_RECORDS.map((r) => r.table)).toEqual(["deal_submission_profiles", "deal_sponsor_profiles", "deal_summaries"]);
+    for (const r of DEAL_FILE_RECORDS) expect(r.reason, r.table).toMatch(/B&P §10148/);
+    for (const p of RETENTION_POLICIES) expect(DEAL_FILE_RECORDS.map((r) => r.table), p.id).not.toContain(p.table);
+  });
+
+  it("a deletion request reports a deal's profile, sponsor profile and locked summaries as kept, and deletes the lead", async () => {
+    const mine = lead(RECENT, "sam@example.com");
+    const other = lead(RECENT, "lee@example.com");
+    const deal = db.insertRow("deals", { lead_id: mine.id, title: "Brindlewood" });
+    const otherDeal = db.insertRow("deals", { lead_id: other.id, title: "Other" });
+    const profile = db.insertRow("deal_submission_profiles", { deal_id: deal.id });
+    const sponsor = db.insertRow("deal_sponsor_profiles", { deal_id: deal.id });
+    const s1 = db.insertRow("deal_summaries", { deal_id: deal.id });
+    const s2 = db.insertRow("deal_summaries", { deal_id: deal.id });
+    db.insertRow("deal_submission_profiles", { deal_id: otherDeal.id });
+
+    const res = await eraseSubject("Sam@Example.com", { db, storage }, NOW);
+    expect(res.deleted.map((d) => d.id)).toEqual([mine.id]);
+    const kept = res.retained.filter((r) => r.table.startsWith("deal_"));
+    expect(kept.map((r) => [r.table, r.id]).sort()).toEqual(
+      [
+        ["deal_submission_profiles", profile.id],
+        ["deal_sponsor_profiles", sponsor.id],
+        ["deal_summaries", s1.id],
+        ["deal_summaries", s2.id],
+      ].sort(),
+    );
+    for (const r of kept) expect(r.reason).toMatch(/loan file/);
+    expect(db.rows("deal_submission_profiles")).toHaveLength(2);
+  });
+
+  it("reports nothing when the person's leads have no deal", async () => {
+    lead(RECENT, "pat@example.com");
+    const res = await eraseSubject("pat@example.com", { db, storage }, NOW);
+    expect(res.retained.filter((r) => r.table.startsWith("deal_"))).toEqual([]);
   });
 });

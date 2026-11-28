@@ -1,0 +1,55 @@
+Subject: Loan request: $1,600,000 hard money | 8-unit mixed use, Los Angeles CA | 64.2% LTC, 55.2% LTARV | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Private / hard money, $500K–$50M, CA and AZ. This request: Private / hard money, $1.6M, CA.
+
+THE REQUEST
+  Loan:        $1,600,000, acquisition, first lien
+  Structure:   18 months, interest-only, fixed, full recourse
+  Closing:     target December 18, 2026 (The seller requires closing by December 18, 2026)
+
+THE PROPERTY
+  Mercantile Row Building, 731 Tallowmere Avenue, Los Angeles, CA 90021 — 8-unit mixed use, built 1926
+  Occupancy:   75% as of October 31, 2026 (entered by Corin)
+
+THE NUMBERS
+  Purchase price:    $2,150,000   As-is value: $2,200,000 (Broker price opinion, October 12, 2026)
+  After-repair value: $2,900,000 (Broker price opinion)
+  Rehab:             $310,000 budget plus $31,000 contingency; about 24 weeks of work (from the hard money file)
+  LTC:               64.2% of $2,491,000 total cost
+  LTARV:             55.2% of the after-repair value
+  LTV:               72.7% as-is (Corin calculation)
+
+THE SPONSOR
+  Mercantile Row Holdings LLC, a CA LLC. The sponsor buys and repositions small mixed-use and apartment buildings in central Los Angeles and has completed and refinanced five such projects since 2023.
+  9 years, 5 similar projects, 7 properties, 46 units and 9 storefronts in Los Angeles, 5 verified projects in the last 36 months
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 700–739 (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Mercantile Row Property Services
+
+THE PLAN AND THE EXIT
+  Buy a 1926 brick building with six apartments over two storefronts in the Arts District, replace the roof and the heating and cooling systems, renovate the two vacant apartments and the storefronts, and lease the retail space to food and design tenants. Work takes about six months; the building is then refinanced on its leased income.
+  Exit: refinance in about 14 months into a bank permanent loan. Refinance into a bank permanent loan of about $2,030,000 once both storefronts are leased, at a value near the $2,900,000 after-repair estimate.
+
+SOURCES AND USES
+  Sources: Senior loan $1,600,000; Sponsor equity $891,000 = $2,491,000
+  Uses:    Purchase price $2,150,000; Renovation / capital work $310,000; Contingency $31,000 = $2,491,000
+
+KNOWN ISSUES
+  - Storefront lease-up timing: Letters of intent are in hand for one storefront; the loan term gives 12 months after the renovation to lease the second.
+
+IN THE PACKAGE (6 documents)
+  Deal summary (PDF); 4 other borrower documents; 1 sponsor financial statement
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

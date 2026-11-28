@@ -302,8 +302,14 @@ test("a broker adds a credit box, approves it, and the deal matches it", async (
 
   await page.goto(`${base}/lenders/deals/${DEALS.hotel}`);
   await expect(page.getByRole("heading", { name: "Harbor Inn (demo)", level: 1 })).toBeVisible();
+  // Ratios are computed from the deal's figures and its lender submission; none can be typed.
+  const metrics = section(page, "Deal metrics");
+  await expect(metrics.getByRole("textbox", { name: /^(LTV|LTC|DSCR|Debt yield)\b/ })).toHaveCount(0);
+  await expect(metrics.getByText("Ratios the matcher uses (Corin calculation)")).toBeVisible();
   const ranked = section(page, "Ranked lenders");
   await expect(ranked.getByRole("checkbox", { name: "Submit to Example Community Bank (demo)" })).toBeVisible();
+  // The submit form posts to the deal's submission request (readiness gate, broker approval).
+  await expect(ranked.getByRole("form", { name: "Request approval to submit" }).getByRole("button", { name: "Request broker approval" })).toBeVisible();
   await expectAccessibleAndReflows(page, "lender match");
 
   await page.goto(`${base}/lenders`);

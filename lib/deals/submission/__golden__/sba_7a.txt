@@ -1,0 +1,57 @@
+Subject: Loan request: $2,850,000 SBA 7(a) | 9,800 SF industrial, San Jose CA | 91.9% loan-to-price, 2.18x global DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: SBA 7(a) / 504, $500K–$50M, CA and AZ. This request: SBA 7(a) / 504, $2.85M, CA.
+
+THE REQUEST
+  Loan:        $2,850,000, acquisition, first lien
+  Structure:   300 months, 25-year amortization, floating, full recourse
+  Closing:     target February 12, 2027 (Purchase contract close; the bakery's current lease ends March 31, 2027)
+
+THE PROPERTY
+  Hollowcrest Way industrial building, 88 Hollowcrest Way, San Jose, CA 95112 — 9,800 SF industrial, built 1988
+  Purchase price: $3,100,000, closing February 12, 2027
+
+THE BUSINESS
+  Tallowmere Bakeworks Inc., NAICS 311812, 11 years in business, 38 employees, occupies 100% of the property
+  Cash flow:   revenue $6,400,000, EBITDA $910,000, existing debt service $120,000 (annual; entered by Corin)
+  Injection:   $355,000 (Business cash reserves; bank statements on file)
+  Eligibility: franchise: no; change of ownership: no; affiliates: no
+
+THE NUMBERS
+  Loan to price:     91.9% of the purchase price (Corin calculation)
+  Global DSCR:       2.18x (Corin spread of the business and personal cash flow)
+  Loan per SF:       $290.82
+
+THE SPONSOR
+  Tallowmere Bakeworks Inc., a CA corporation. The owners founded the bakery in 2015 and have grown it to $6.4 million of annual sales with 38 employees, supplying grocery stores and cafes across the South Bay.
+  11 years, 0 similar projects, One rental condominium held personally
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+
+THE PLAN AND THE EXIT
+  An 11-year-old wholesale bakery that supplies grocery stores and cafes across the South Bay is buying the light-industrial building it will move into when its lease ends. Owning replaces about $252,000 a year of rent, adds a second production line on the larger floor and keeps all 38 jobs in San Jose.
+  Exit: hold to maturity. Owner-occupied hold; the loan amortizes over 25 years from the business's cash flow.
+
+SOURCES AND USES
+  Sources: Senior loan $2,850,000; Sponsor equity $355,000 = $3,205,000
+  Uses:    Purchase price $3,100,000; Closing costs $42,000; Financing costs $63,000 = $3,205,000
+
+KNOWN ISSUES
+  - Moving production could interrupt sales for a few weeks: The current lease runs through March 31, 2027, so the bakery can fit out the new building before moving.
+
+IN THE PACKAGE (9 documents)
+  Deal summary (PDF); 3 other borrower documents; 2 sponsor financial statements; 3 sets of tax returns
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

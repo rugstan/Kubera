@@ -10,7 +10,7 @@ import { californiaDate, can } from "@/lib/auth/policy";
 import type { StaffPrincipal } from "@/lib/auth/types";
 import { getApprovalService, reauthStore } from "@/lib/approvals/server";
 import { ApprovalNotFoundError } from "@/lib/approvals/service";
-import type { ApprovalRecord } from "@/lib/approvals/types";
+import { SELF_APPROVED_NOTE, type ApprovalRecord } from "@/lib/approvals/types";
 
 // Approve / reject from the queue. Each action re-authenticates the caller,
 // re-checks the capability (a currently licensed broker approves) and lets
@@ -104,7 +104,14 @@ export async function decideApprovalAction(_prev: DecisionState, formData: FormD
   const service = await getApprovalService();
   if (!service) return { ok: false, message: "The approval queue is not configured." };
 
-  const approver = { userId: principal.userId, label: principal.displayName, dreLicense: principal.profile.dreLicenseNumber };
+  const approver = {
+    userId: principal.userId,
+    label: principal.displayName,
+    dreLicense: principal.profile.dreLicenseNumber,
+    // The designated officer (lib/deals/session.ts can(…, "officer"): a broker-officer license on file) may approve their own override.
+    designatedOfficer: principal.profile.dreLicenseType === "broker_officer" && Boolean(principal.profile.dreLicenseNumber),
+    email: principal.email,
+  };
   let reauthMethod: ReauthMethod | null = null;
   if (decision === "approve") {
     const record = await service.get(id);
@@ -131,6 +138,7 @@ export async function decideApprovalAction(_prev: DecisionState, formData: FormD
       invalid_approver: "Your DRE license number is missing from your profile.",
       reason_required: "Add a short reason so the requester knows what to change.",
       reauth_required: "This request sends a sensitive document. Enter the current code from your authenticator app to approve it.",
+      self_approval: "You requested this submission with a reason to send anyway. Another licensed broker, or the designated officer, must approve it.",
     };
     return { ok: false, message: messages[result.reason] };
   }
@@ -144,7 +152,7 @@ export async function decideApprovalAction(_prev: DecisionState, formData: FormD
       action: decision === "approve" ? "approval.approve" : "approval.reject",
       targetType: "approval",
       targetId: id,
-      detail: { kind: result.record.kind, idempotencyKey: result.record.idempotencyKey, dealId: result.record.dealId, reason: reason ?? null, reauth: reauthMethod },
+      detail: { kind: result.record.kind, idempotencyKey: result.record.idempotencyKey, dealId: result.record.dealId, reason: reason ?? null, reauth: reauthMethod, selfApproved: result.record.decisionReason === SELF_APPROVED_NOTE },
       ...(await requestFingerprint()),
     });
   } catch (err) {

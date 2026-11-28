@@ -1,0 +1,64 @@
+Subject: Loan request: $8,400,000 bridge | 42-unit multifamily, Oakland CA | 68% LTV, 0.96x DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Bridge, $500K–$50M, CA and AZ. This request: Bridge, $8.4M, CA.
+
+THE REQUEST
+  Loan:        $8,400,000, acquisition, first lien
+  Structure:   24 months, interest-only, floating, non-recourse (standard carve-outs)
+  Closing:     target January 15, 2027 (Purchase contract closes January 15, 2027)
+
+THE PROPERTY
+  Brindlewood Court Apartments, 4100 Brindlewood Court, Oakland, CA 94611 — 42-unit multifamily, built 1972
+  Occupancy:   88% as of October 31, 2026 (from the rent roll)
+  Purchase price: $12,000,000, closing January 15, 2027   As-is value: $12,350,000 (Corin broker opinion of value, October 20, 2026)
+
+THE NUMBERS
+  NOI in place:      $765,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $734,000 (Corin normalization of the operating statement)
+  NOI stabilized:    $1,020,000 in about 24 months (Corin pro forma from the sponsor's plan)
+  LTV:               68% as-is / 52.5% stabilized (Corin calculation)
+  LTC:               59.6% of $14,088,000 total cost
+  Debt yield:        9.1% in place / 12.1% stabilized
+  DSCR:              0.96x in place / 1.29x stabilized at an assumed 8.75% / 30-year schedule — an assumption, not a quote
+  Loan per unit:     $200,000
+
+THE RENOVATION
+  Budget:      $1,260,000 over about 18 months
+  Scope:       Interior upgrades in 30 units as they turn, new roof, soft-story seismic retrofit, laundry and common areas
+  Reserves requested of the lender: interest $420,000; capex $1,260,000
+
+THE SPONSOR
+  Brindlewood Court Partners LLC, a CA LLC. The sponsor has bought, renovated and held East Bay apartment buildings since 2012, completing nine value-add renovations of 20 to 80 units, and manages its own portfolio through an affiliated company.
+  14 years, 9 similar projects, 11 properties, 612 units in the East Bay
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Brindlewood Residential Management (sponsor affiliate)
+
+THE PLAN AND THE EXIT
+  Buy a 42-unit 1972 garden building below replacement cost and renovate 30 units as they turn over (kitchens, baths, flooring, in-unit laundry hookups). Replace the roof, finish the city-required soft-story seismic retrofit and refresh the common areas. Renovated units lease at about $350 a month above the current average, which takes NOI from $765,000 to about $1,020,000 within two years.
+  Exit: refinance in about 24 months. Refinance into an agency or bank loan on stabilized NOI of about $1,020,000. At a 6.5% rate and 1.25x the take-out loan is about $11,500,000, well above this loan plus the exit fee; it still covers this loan at 150 basis points higher.
+
+SOURCES AND USES
+  Sources: Senior loan $8,400,000; Sponsor equity $4,188,000; Investor equity $1,500,000 = $14,088,000
+  Uses:    Purchase price $12,000,000; Renovation / capital work $1,260,000; Closing costs $240,000; Financing costs $168,000; Interest reserve (lender-held, requested) $420,000 = $14,088,000
+
+KNOWN ISSUES
+  - In-place DSCR is below 1.0x at the assumed bridge rate: A $420,000 interest reserve covers about seven months of interest; renovated units add income from month 4.
+  - Oakland rent control limits increases on occupied units: The plan only raises rents on turnover; 30 of 42 units are expected to turn within 24 months at the building's historical rate.
+
+IN THE PACKAGE (7 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; 2 other borrower documents; 2 sponsor financial statements
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

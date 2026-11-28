@@ -11,7 +11,8 @@ export type NewApproval = Omit<ApprovalRecord, "id" | "createdAt" | "executedAt"
 
 export type Decision = {
   status: Extract<ApprovalStatus, "approved" | "rejected" | "cancelled">;
-  decidedBy: string;
+  /** The deciding broker's profile id; null only when the system closes a request (a superseded or withdrawn submission). */
+  decidedBy: string | null;
   decidedByLabel: string;
   decidedByDre: string | null;
   decisionReason: string | null;

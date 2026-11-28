@@ -7,11 +7,12 @@ import { scanRepository } from "./no-custody-scan";
 const root = path.resolve(import.meta.dirname, "..", "..");
 
 describe("no-custody guard: repository scan", () => {
-  it("finds no funds or draw fields in any migration, API route or validation schema", () => {
+  it("finds no funds or draw fields in any migration, API route, validation schema or the submission module", () => {
     const { files, violations } = scanRepository(root);
     expect(files.some((f) => f.startsWith("supabase/migrations/"))).toBe(true);
     expect(files.some((f) => f.startsWith("app/api/"))).toBe(true);
     expect(files).toContain("lib/validation.ts");
+    expect(files).toContain("lib/deals/submission/types.ts");
     expect(violations).toEqual([]);
   });
 

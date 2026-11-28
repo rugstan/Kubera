@@ -14,6 +14,8 @@ export type StaffSession = {
   name: string;
   role: StaffRole;
   dreLicense: string | null;
+  /** Work phone on the staff profile, when one is on file (the lender email's signature prints it). */
+  phone?: string | null;
   /** The corporation's designated officer (approves gate-H items). */
   designatedOfficer: boolean;
   /** Audit actor string, e.g. "staff:ana@corincommercial.com". */

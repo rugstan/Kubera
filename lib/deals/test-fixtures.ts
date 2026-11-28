@@ -3,13 +3,17 @@
 import { checklistDeps } from "@/lib/checklists/desk";
 import { memoryDesk } from "@/lib/checklists/fakes";
 import { createDealChecklist, moveItem, syncDealPrincipalItems } from "@/lib/checklists/service";
+import { dealSummaryPackageItem } from "@/lib/agents/lenders/package";
 import { FakeApprovalGate } from "@/lib/compliance/approval-gate";
 import { addPrincipal } from "@/lib/principals/service";
 import { screenDeal } from "@/lib/screening/service";
 import type { FakeListEntry } from "@/lib/screening/fake";
 import { EMPTY_LENDER_CONTACT_INFO, deriveLenderContacts } from "./lender-contacts";
+import type { SendPackageInput } from "./packages";
 import { createDeal } from "./service";
 import { MemoryDealDeskStore, type DealDeskStore } from "./store";
+import { emailSha256 } from "./submission/email";
+import type { DealSummaryRecord, SubmissionSendInput, SubmissionStore } from "./submission/types";
 import type { Deal, LenderContact, LenderPanelEntry, LoanBrokerOfRecord, NewDeal, NewLender, PackageItem } from "./types";
 
 export const T0 = new Date("2026-11-03T17:00:00.000Z");
@@ -82,6 +86,60 @@ export const docs = (n: number, salt = "a"): PackageItem[] =>
     storagePath: `leads/x/doc-${i + 1}.pdf`,
     sha256: (salt + String(i)).padEnd(64, "0").replace(/[^0-9a-f]/g, "0"),
   }));
+
+// ---------------------------------------------------------------------------
+// Every send carries the lender-ready submission (lib/deals/submission/send.ts
+// builds it in the app): these stand in for a locked term-sheet summary and a
+// complete submission, for tests about what happens around the send.
+
+/** The PDF hash of the test deal summary. */
+export const TEST_SUMMARY_PDF_SHA = "5".repeat(64);
+export const TEST_EMAIL_TEXT = "Hello,\n\nCorin Commercial, Inc. is the broker on this request, not the lender.\n\nSecure link (expires {{LINK_EXPIRES}}):\n{{SHARE_LINK}}\n";
+
+/** The test deal's locked summary (id "summary-of:<dealId>"). */
+export function testSummaryRecord(dealId: string, over: Partial<DealSummaryRecord> = {}): DealSummaryRecord {
+  return {
+    id: `summary-of:${dealId}`,
+    dealId,
+    asOf: "2026-11-01",
+    playbook: "hud_232",
+    targetStage: "term_sheet",
+    templateVersion: "deal-summary-v1",
+    spec: { templateVersion: "deal-summary-v1", title: "Test deal — loan request summary", subtitle: "Prepared November 1, 2026 by Corin Commercial, Inc. for lender review", asOf: "2026-11-01", headline: [], sections: [], metricNotes: [], openItems: [], footer: "license" },
+    specSha256: "6".repeat(64),
+    pdfSha256: TEST_SUMMARY_PDF_SHA,
+    pdfStoragePath: dealSummaryPackageItem(dealId, TEST_SUMMARY_PDF_SHA).storagePath,
+    profileVersion: 1,
+    sponsorVersion: null,
+    createdBy: "broker:ana",
+    createdAt: "2026-11-01T17:00:00.000Z",
+    ...over,
+  };
+}
+
+/** A deal_summaries reader that knows the test summary of every deal. */
+export const testSummaries: Pick<SubmissionStore, "getSummary"> = {
+  getSummary: async (id) => (id.startsWith("summary-of:") ? testSummaryRecord(id.slice("summary-of:".length)) : null),
+};
+
+/** A complete lender-ready submission for `lenderId` (nothing missing) on the test summary of `dealId`. */
+export function testSubmission(dealId: string, lenderId: string, over: Partial<SubmissionSendInput> = {}): SubmissionSendInput {
+  return {
+    targetStage: "term_sheet",
+    summaryId: `summary-of:${dealId}`,
+    readiness: { missing: [], hardStops: [], score: 100 },
+    fit: { lenderId, matches: [], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 0, reason: null }, score: null },
+    email: { subject: "Loan request | Corin Commercial", text: TEST_EMAIL_TEXT, sha256: emailSha256("Loan request | Corin Commercial", TEST_EMAIL_TEXT) },
+    nameCheck: { names: ["Pat Owner"], allow: ["Sunrise Care LLC"] },
+    neutralCopy: { flags: [], confirmed: false },
+    ...over,
+  };
+}
+
+/** A send input made lender-ready: the test summary's PDF joins the documents and the submission rides along. */
+export function lenderReady(input: Omit<SendPackageInput, "submission">): SendPackageInput {
+  return { ...input, items: [...input.items, dealSummaryPackageItem(input.dealId, TEST_SUMMARY_PDF_SHA)], submission: testSubmission(input.dealId, input.lenderId) };
+}
 
 export function loanRecord(dealId: string, over: Partial<LoanBrokerOfRecord> = {}): LoanBrokerOfRecord {
   return {

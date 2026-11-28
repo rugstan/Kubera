@@ -1,0 +1,68 @@
+Subject: Loan request: $3,100,000 C-PACE | 62,000 SF office, San Diego CA | 67.2% combined LTV | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: C-PACE, $500K–$50M, CA and AZ. This request: C-PACE, $3.1M, CA.
+
+THE REQUEST
+  Loan:        $3,100,000, renovation, property-tax assessment (C-PACE)
+  Structure:   300 months, 25-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target March 19, 2027 (Contractor pricing is held through March 31, 2027)
+
+THE PROPERTY
+  Galeview Corporate Center, 4250 Galeview Drive, San Diego, CA 92121 — 62,000 SF office, built 1991, renovated 2012
+  Occupancy:   84% as of October 31, 2026 (from the rent roll)
+  As-is value: $18,600,000 (Appraisal, August 20, 2026)
+
+THE NUMBERS
+  NOI in place:      $1,450,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $1,392,000 (Corin normalization of the operating statement)
+  NOI stabilized:    $1,560,000 in about 12 months (Corin pro forma from the sponsor's plan)
+  Combined debt yield: 11.6% in place / 12.5% stabilized on the senior loan plus this loan
+  Combined DSCR:     1.54x in place / 1.66x stabilized (senior loan at its 5.2% rate and this loan at an assumed 7.25%, both on a 25-year amortization; an assumption, not a quote)
+  Loan per SF:       $50
+
+THE CAPITAL STACK
+  Senior:      $9,400,000 from Larkfield Savings Bank at 5.2%, matures August 1, 2033; allows subordinate financing: no
+  This loan:   $3,100,000 C-PACE assessment
+  Combined:    67.2% LTV (Corin calculation)
+  Mortgage holder's consent: requested
+  C-PACE:      eligible improvements $3,100,000; County of San Diego program
+
+THE IMPROVEMENTS
+  Hard costs $2,650,000; Soft costs $220,000; Contingency $130,000; Financing $100,000 = $3,100,000
+  about 9 months of work; Stipulated sum; permits: in plan check; contractor Brightline Mechanical Contractors Inc.
+
+THE SPONSOR
+  Galeview Office Partners LLC, a CA LLC. The sponsor has owned and repositioned suburban San Diego office buildings since 2006 and has completed six energy retrofits across its portfolio.
+  20 years, 6 similar projects, 10 office buildings, about 640,000 SF in San Diego County
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Galeview Asset Services
+
+THE PLAN AND THE EXIT
+  Replace the original 1991 rooftop units with high-efficiency heat pumps, add rooftop and carport solar, convert all lighting to LED with controls and reseal the building envelope. The energy study projects about $190,000 a year of utility savings, most of it recovered through the leases, lifting NOI to about $1,560,000.
+  Exit: hold to maturity. The assessment stays with the property and is repaid through the property-tax bill over 25 years; there is no balloon.
+
+SOURCES AND USES
+  Sources: C-PACE $3,100,000 = $3,100,000
+  Uses:    Hard costs $2,650,000; Soft costs $220,000; Contingency $130,000; Financing costs $100,000 = $3,100,000
+
+KNOWN ISSUES
+  - The mortgage holder's consent is still pending: Consent was requested in October; the C-PACE assessment cannot record without it, and the existing loan has seven years to run.
+
+IN THE PACKAGE (8 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; appraisal dated August 20, 2026; 2 other borrower documents; 2 sponsor financial statements
+  Reports on hand: Geotechnical report, Appraisal dated August 20, 2026
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}

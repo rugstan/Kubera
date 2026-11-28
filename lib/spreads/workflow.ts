@@ -7,7 +7,7 @@
 // `jev_resize` spread row for staff. Internal analysis only: nothing is sent.
 //
 // `packageSpreadsFromSaved` turns the latest saved rows into the metrics the
-// lenders desk and the executive-summary PDF start from (staff can override).
+// lenders desk and the deal summary start from (staff can override).
 
 import { z } from "zod";
 import type { DealProgram } from "@/lib/deals/types";

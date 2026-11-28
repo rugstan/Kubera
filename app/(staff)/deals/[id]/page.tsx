@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { FEE_ENTRY_LABELS, DEAL_PROGRAM_LABELS, isSbaProgram, type Deal, type FeeEntry, type LenderPanelEntry } from "@/lib/deals/types";
@@ -11,7 +10,6 @@ import { lenderCategories, type LenderCategory } from "@/lib/compliance/schemas"
 import { computeMldsTimer } from "@/lib/disclosures/timer";
 import type { DisclosureRecord } from "@/lib/disclosures/store";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
-import { panelForDeal } from "@/lib/deals/lenders";
 import { lenderNoticeText } from "@/lib/deals/modifications";
 import { currentStaff, dealDeskRuntime, deskDeps, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { stageContext } from "@/lib/deals/service";
@@ -36,10 +34,12 @@ import {
   revokeLinkAction,
   sendForm159Action,
   sendMldsAction,
-  sendPackageAction,
   submitModificationAction,
 } from "../actions";
 import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, money, when } from "../ui";
+import { pendingShareHandoff } from "../share-once";
+import { OneTimeApprovedEmail } from "./OneTimeApprovedEmail";
+import { SubmissionCard } from "./submission/_components/SubmissionCard";
 
 export const metadata: Metadata = { title: "Deal" };
 
@@ -64,7 +64,10 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
   if (!UUID.test(id)) notFound();
   const deal = await rt.store.getDeal(id);
   if (!deal) notFound();
-  const shareUrl = (await cookies()).get("deal_share_url")?.value;
+  // Approved with email to lenders off: the link and the approved email, shown once (spec 5.1 step 6).
+  // The page only learns that one is waiting; OneTimeApprovedEmail claims it (and deletes it) on first render.
+  const [shareHandoff, outreachRows] = await Promise.all([pendingShareHandoff(deal.id), rt.store.listOutreach(deal.id)]);
+  const approvedOutreachIds = outreachRows.filter((o) => o.status === "approved").map((o) => o.id);
   const write = can(staff, "write");
   const officer = can(staff, "officer");
   const template = stageTemplate(deal.program);
@@ -86,17 +89,12 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
         </div>
       </div>
       <Flash error={sp.error} notice={sp.notice} />
-      {shareUrl ? (
-        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="status">
-          <p className="font-medium">Approved. Send this link to the lender from your mailbox now; it is shown only once.</p>
-          <p className="mt-1 break-all font-mono text-xs">{shareUrl}</p>
-        </div>
-      ) : null}
+      <OneTimeApprovedEmail approvedOutreachIds={approvedOutreachIds} dealId={deal.id} handoff={shareHandoff} />
 
       <StagePanel deal={deal} rt={rt} write={write} />
 
       {write ? (
-        <Section title="Details">
+        <Section id="details" title="Details">
           <form action={editDealAction} className="grid gap-4 sm:grid-cols-2">
             <input name="dealId" type="hidden" value={deal.id} />
             <input name="version" type="hidden" value={deal.recordVersion} />
@@ -141,6 +139,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
 
       {deal.collateralRealProperty !== false || openMlds ? <MldsPanel deal={deal} rt={rt} staff={staff} /> : null}
       <BrokerOfRecordPanel deal={deal} rt={rt} staff={staff} />
+      <SubmissionCard dealId={deal.id} write={write} />
       <OutreachPanel deal={deal} rt={rt} write={write} />
       <LedgerPanel deal={deal} rt={rt} write={write} />
       {isSbaProgram(deal.program) ? <Form159Panel deal={deal} rt={rt} write={write} /> : null}
@@ -266,57 +265,21 @@ async function StagePanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime
 }
 
 async function OutreachPanel({ deal, rt, write }: { deal: Deal; rt: DealDeskRuntime; write: boolean }) {
-  const [lenders, outreach, packages, links, documents] = await Promise.all([
-    rt.store.listLenders({ activeOnly: true }),
-    rt.store.listOutreach(deal.id),
-    rt.store.listPackages(deal.id),
-    rt.store.listShareLinks(deal.id),
-    deal.leadId ? rt.vaultDocuments(deal.leadId) : Promise.resolve([]),
-  ]);
+  const [lenders, outreach, packages, links] = await Promise.all([rt.store.listLenders(), rt.store.listOutreach(deal.id), rt.store.listPackages(deal.id), rt.store.listShareLinks(deal.id)]);
   const now = rt.now();
-  const matches = panelForDeal(lenders, deal, now);
   const lenderName = (id: string) => lenders.find((l: LenderPanelEntry) => l.id === id)?.name ?? "Lender";
   return (
-    <Section description="A send locks the package version; the submission waits for broker approval before any link exists." title="Lender outreach">
-      <p className="mb-4 text-sm">
+    <Section description="Submissions are requested from the lender submission above; each waits for broker approval before any link exists." title="Lender outreach">
+      <p className="mb-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {write ? (
+          <Link className="font-medium text-ink underline underline-offset-2" href={`/deals/${deal.id}/submission/preview`}>
+            Preview and request a submission
+          </Link>
+        ) : null}
         <Link className="font-medium text-ink underline underline-offset-2" prefetch={false} href={`/lenders/deals/${deal.id}`}>
           Match lenders / compare quotes
         </Link>
       </p>
-      {write ? (
-        <form action={sendPackageAction} className="grid gap-4 sm:grid-cols-2">
-          <input name="dealId" type="hidden" value={deal.id} />
-          <Select
-            label="Lender"
-            name="lenderId"
-            options={matches.length ? matches.map((m) => ({ value: m.lender.id, label: `${m.lender.name}${m.staleness.stale ? " (verification stale)" : ""}` })) : [{ value: "", label: "No panel lender matches this deal" }]}
-            required
-          />
-          <Field defaultValue={14} label="Link lifetime (days, max 30)" name="ttlDays" type="number" />
-          <fieldset className="sm:col-span-2">
-            <legend className="field-label">Documents</legend>
-            {documents.length ? (
-              <div className="grid gap-1 sm:grid-cols-2">
-                {documents.map((d) => (
-                  <label className="flex items-center gap-2 text-sm" key={d.id}>
-                    <input defaultChecked name="documentId" type="checkbox" value={d.id} />
-                    {d.fileName} <span className="text-xs text-titanium">({d.kind})</span>
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-titanium">{deal.leadId ? "No vault documents for this lead yet." : "Link the deal to its lead to package vault documents."}</p>
-            )}
-          </fieldset>
-          <Field label="Note for the approving broker" name="note" />
-          <div className="flex flex-col justify-end gap-2">
-            <Check label="I re-checked a stale lender's appetite" name="allowStale" />
-          </div>
-          <div className="sm:col-span-2">
-            <Submit>Lock package and request approval</Submit>
-          </div>
-        </form>
-      ) : null}
 
       <h3 className="mt-6 text-sm font-semibold text-ink">Submissions</h3>
       <Table

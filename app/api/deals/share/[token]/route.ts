@@ -1,6 +1,7 @@
 import { demoDesks } from "@/lib/deals/demo";
 import { SupabaseDealDeskStore } from "@/lib/deals/store-supabase";
 import { handleShareRequest } from "@/lib/deals/share-page";
+import { SupabaseSubmissionStore } from "@/lib/deals/submission/store-supabase";
 import { rateLimit } from "@/lib/ratelimit";
 import { clientIp, hashIp } from "@/lib/security";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
@@ -9,6 +10,10 @@ import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
 // before lookup and every valid open is counted and audited. In fake-auth mode
 // links resolve against the in-memory demo desk, which has no vault, so the
 // package page lists its files without download links.
+//
+// The locked deal summary (deal_summaries, by the PDF's SHA-256) renders above
+// the documents: from the submission store (service role only; RLS has no
+// policies), or the demo desk's in-memory one.
 
 export async function GET(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const demo = demoDesks();
@@ -17,6 +22,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   const { token } = await ctx.params;
   return handleShareRequest(token, hashIp(clientIp(req)), {
     store: demo ? demo.deals : new SupabaseDealDeskStore(db!),
+    summaries: demo ? demo.submission : new SupabaseSubmissionStore(db!),
     now: () => new Date(),
     allow: (key) => rateLimit(key, 30, 60_000),
     signUrl: async (path) => {

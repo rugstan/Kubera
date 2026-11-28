@@ -12,6 +12,7 @@ Operational procedures for Corin Commercial. Owned by the Platform workstream. A
 | [document-vault-backup-restore.md](./document-vault-backup-restore.md) | Backing up the document vault, restoring a deleted or corrupted file, or rehearsing a restore. |
 | [workflows-and-messaging.md](./workflows-and-messaging.md) | Turning on Inngest workflows, inbound Zoho Mail, Langfuse tracing, Telnyx SMS, the construction CSLB lookup, or the Phase 2 crons. |
 | [ai-models.md](./ai-models.md) | Checking or changing which AI model a task uses (Settings → AI models), its default, or undoing a change. |
+| [lender-submission.md](./lender-submission.md) | Preparing a deal for a lender, requesting broker approval (and what the readiness override means), sending the approved email, and why lender email stays off. |
 
 ## Ground rules that apply to every runbook
 

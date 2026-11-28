@@ -1,0 +1,64 @@
+Subject: Loan request: $11,250,000 HUD 232 | 88-bed assisted living, Santa Rosa CA | 75% LTV, 1.33x DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: HUD / FHA, $500K–$50M, CA and AZ. This request: HUD / FHA, $11.25M, CA.
+
+THE REQUEST
+  Loan:        $11,250,000, refinance, first lien
+  Structure:   420 months, 35-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target July 30, 2027 (The bridge loan's extended maturity is September 30, 2027 (extension exercised); HUD processing takes about seven months)
+  Existing debt: $10,400,000 with Pinehollow Bridge Lending, matures September 30, 2027
+
+THE PROPERTY
+  Thornfield Terrace, 1500 Thornfield Lane, Santa Rosa, CA 95404 — 88-bed assisted living, built 2001, renovated 2021
+  Occupancy:   91% as of October 31, 2026 (from the census)
+  As-is value: $15,000,000 (Corin broker opinion of value, October 10, 2026)
+
+HUD DETAILS
+  Program:     232/223(f) healthcare refinance or acquisition; repairs $280,000 from the capital needs assessment
+  Prior HUD participation: yes
+  Operations:  96 licensed beds; operator Thornfield Senior Care Operations LLC
+  Payor mix:   Private pay 82%, long-term care insurance 11%, veterans benefits 7% (census through October 2026)
+  Surveys:     The last three state licensing visits closed with no Type A citations
+
+THE NUMBERS
+  NOI in place:      $1,020,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $975,000 (Corin normalization of the operating statement)
+  LTV:               75% as-is (Corin calculation)
+  Debt yield:        9.1% in place
+  DSCR:              1.33x in place at an assumed 5.95% / 35-year schedule — an assumption, not a quote
+  Loan per bed:      $127,841
+
+THE SPONSOR
+  Thornfield Terrace Propco LLC, a CA LLC. The sponsor has owned and operated assisted living and memory care communities in Northern California since 2009 and has two HUD 232 loans in good standing on other communities.
+  17 years, 7 similar projects, 8 assisted living and memory care communities, 690 beds
+  Key principal net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Thornfield Senior Care Operations LLC (affiliated operator)
+
+THE PLAN AND THE EXIT
+  Refinance an 88-bed assisted living community out of a bridge loan into a 35-year HUD 232/223(f) loan. The sponsor bought it in 2021, renovated common areas and memory care, and raised occupancy from 74% to 91% with a private-pay resident base; the affiliated operator holds the state license.
+  Exit: hold to maturity. Long-term hold on a fully amortizing loan; the bridge loan is repaid at closing.
+
+SOURCES AND USES
+  Sources: Senior loan $11,250,000 = $11,250,000
+  Uses:    Payoff of existing debt $10,400,000; Closing costs $180,000; Financing costs $390,000; Renovation / capital work (Repairs from the capital needs assessment, funded at closing) $280,000 = $11,250,000
+
+KNOWN ISSUES
+  - Staffing costs in Sonoma County: Labor is 48% of revenue today, in line with the operator's other communities, and the underwriting adds a 3% wage increase.
+
+IN THE PACKAGE (7 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; census dated October 31, 2026; 2 other borrower documents; 2 sponsor financial statements
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+{licenseLine()}
