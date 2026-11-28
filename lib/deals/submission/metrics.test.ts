@@ -107,13 +107,29 @@ describe("hard money and fix & flip reuse hmMetrics", () => {
     const hm = ctx.hardMoney!;
     const fresh = hmMetrics(hm, ctx.now);
     expect(fresh).toEqual(hm.metrics);
-    expect(value(ctx, "ltv_as_is")).toBeCloseTo(fresh.asIsLtv * 100, 6);
-    expect(value(ctx, "ltc")).toBeCloseTo(fresh.ltc * 100, 6);
-    expect(value(ctx, "ltarv")).toBeCloseTo(fresh.ltarv * 100, 6);
+    // The fixture's deal loan is the file's requested loan, so the ratios agree with the file's grid (to the percent's two decimals).
+    expect(ctx.deal.loanAmountCents).toBe(Math.round(hm.requestedLoanAmount * 100));
+    expect(value(ctx, "ltv_as_is")).toBeCloseTo(fresh.asIsLtv * 100, 1);
+    expect(value(ctx, "ltc")).toBeCloseTo(fresh.ltc * 100, 1);
+    expect(value(ctx, "ltarv")).toBeCloseTo(fresh.ltarv * 100, 1);
     expect(value(ctx, "rehab_weeks")).toBe(fresh.rehabWeeks);
     expect(value(ctx, "verified_projects_36m")).toBe(fresh.verifiedProjects);
     expect(get(ctx, "verified_projects_36m").note).toContain(fresh.tier.toLowerCase());
-    expect(get(ctx, "ltarv").inputs.every((i) => i.source?.source === "record")).toBe(true);
+    // The loan is the deal's; the value and the cost come from the file.
+    expect(get(ctx, "ltarv").inputs.map((i) => [i.field, i.source?.source ?? null])).toEqual([["deal.loanAmountCents", null], ["hardMoney.arv", "record"]]);
+  });
+
+  // F1: the email prints the deal's loan, so every ratio is the deal's loan over the file's figures.
+  it.each(["hard_money", "fix_flip"] as const)("%s ratios use the deal's loan when the file was sized for another, with a warning", (pb) => {
+    const ctx = submissionFixture(pb);
+    const hm = ctx.hardMoney!;
+    ctx.deal = { ...ctx.deal, loanAmountCents: 95_000_000 };
+    const m = computeSubmissionMetrics(ctx);
+    const v = (k: string) => m.metrics.find((x) => x.key === k)!.value!;
+    expect(v("ltc")).toBeCloseTo((950_000 / hm.metrics.totalCost) * 100, 1);
+    expect(v("ltarv")).toBeCloseTo((950_000 / hm.arv) * 100, 1);
+    expect(v("ltv_as_is")).toBeCloseTo((950_000 / hm.asIsValue) * 100, 1);
+    expect(m.warnings.some((w) => /requested loan .* is not the deal's loan amount \(\$950,000\)/.test(w))).toBe(true);
   });
 
   it("fix & flip margin uses the file's total cost and the grid's selling costs", () => {

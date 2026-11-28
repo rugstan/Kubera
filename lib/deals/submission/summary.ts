@@ -561,8 +561,8 @@ function hardMoneySection(ctx: SubmissionContext, metrics: SubmissionMetrics): D
   const exit = hm.exitPlan;
   return section("Hard money file", {
     rows: [
-      ...row("Purchase price", c(hm.purchasePrice), src),
-      ...row("As-is value", c(hm.asIsValue), src),
+      ...row("Purchase price (hard money file)", c(hm.purchasePrice), src),
+      ...row("As-is value (hard money file)", c(hm.asIsValue), src),
       ...row("After-repair value", `${c(hm.arv)} (${VALUE_SOURCE_LABELS[hm.arvSource]})`, src),
       ...row("Rehab budget", c(hm.metrics.rehabBudget), src),
       ...row("Contingency", `${c(hm.metrics.contingency)} (${fmt.pct(hm.contingencyPct)} of rehab)`, src),

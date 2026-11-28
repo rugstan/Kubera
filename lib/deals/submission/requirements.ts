@@ -495,6 +495,21 @@ export const SUBMISSION_REQUIREMENTS: readonly SubmissionRequirement[] = [
     fix: { target: { kind: "hard_money_file" }, hint: "Open the hard money file on the deal checklist." },
   },
   {
+    id: "hm.values_agree",
+    section: "value",
+    label: "As-is value and purchase price agree with the hard money file",
+    levels: only(["hard_money", "fix_flip"], RR),
+    when: (ctx) => ctx.hardMoney !== null && (prof(ctx)?.asIsValueCents != null || prof(ctx)?.purchasePriceCents != null),
+    met: (ctx) => {
+      const p = prof(ctx);
+      const hm = ctx.hardMoney!;
+      const cents = (d: number) => Math.round(d * 100);
+      return (p?.asIsValueCents == null || p.asIsValueCents === cents(hm.asIsValue)) && (p?.purchasePriceCents == null || p.purchasePriceCents === cents(hm.purchasePrice));
+    },
+    fields: ["asIsValueCents", "purchasePriceCents"],
+    fix: { target: { kind: "editor", section: "value", field: "asIsValueCents" }, hint: "The email shows one as-is value and purchase price, from the hard money file; correct whichever record is wrong." },
+  },
+  {
     id: "hm.scope_lines",
     section: "rehab",
     label: "Scope of work with line costs",

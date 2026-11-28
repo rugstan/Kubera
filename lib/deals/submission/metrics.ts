@@ -184,14 +184,21 @@ export function computeSubmissionMetrics(ctx: SubmissionContext): SubmissionMetr
 
   // Leverage -------------------------------------------------------------------
   if (hmPlaybook && hm) {
+    // The deal's loan (the one the email and summary print) against the file's values and cost, so a
+    // file sized for another loan never puts a ratio for a different loan in front of a lender.
     out.push(
-      metric("ltv_as_is", "LTV (as-is)", "in_place", "requested loan ÷ as-is value (hard money file)", calc([hmIn("requestedLoanAmount", "requested loan", hm.requestedLoanAmount), hmIn("asIsValue", "as-is value", hm.asIsValue)], () => hm.metrics.asIsLtv * 100, [1])),
-      metric("ltarv", "LTARV", "stabilized", "requested loan ÷ after-repair value (hard money file)", calc([hmIn("requestedLoanAmount", "requested loan", hm.requestedLoanAmount), hmIn("arv", "after-repair value", hm.arv)], () => hm.metrics.ltarv * 100, [1])),
-      metric("ltc", "LTC", "cost", "requested loan ÷ (purchase price or as-is value + rehab budget + contingency), hard money file", calc([hmIn("requestedLoanAmount", "requested loan", hm.requestedLoanAmount), hmIn("totalCost", "total project cost", hm.metrics.totalCost)], () => hm.metrics.ltc * 100, [1])),
+      metric("ltv_as_is", "LTV (as-is)", "in_place", "loan ÷ as-is value (hard money file)", calc([loan, hmIn("asIsValue", "as-is value", hm.asIsValue)], (l, v) => (l / v) * 100, [1])),
+      metric("ltarv", "LTARV", "stabilized", "loan ÷ after-repair value (hard money file)", calc([loan, hmIn("arv", "after-repair value", hm.arv)], (l, v) => (l / v) * 100, [1])),
+      metric("ltc", "LTC", "cost", "loan ÷ (purchase price or as-is value + rehab budget + contingency), hard money file", calc([loan, hmIn("totalCost", "total project cost", hm.metrics.totalCost)], (l, c) => (l / c) * 100, [1])),
     );
     if (num(deal.loanAmountCents) !== null && toCents(hm.requestedLoanAmount) !== deal.loanAmountCents) {
-      warnings.push(`The hard money file's requested loan (${money(toCents(hm.requestedLoanAmount)!)}) is not the deal's loan amount (${money(deal.loanAmountCents!)}); its LTC and LTARV use the file's figure.`);
+      warnings.push(`The hard money file's requested loan (${money(toCents(hm.requestedLoanAmount)!)}) is not the deal's loan amount (${money(deal.loanAmountCents!)}). LTV, LTC and LTARV here use the deal's loan against the file's values and cost; update the file so its tier limits are tested on the same loan.`);
     }
+    // One as-is value and purchase price: the profile's must agree with the file's (readiness requires it).
+    const fileAsIs = toCents(hm.asIsValue);
+    const filePrice = toCents(hm.purchasePrice);
+    if (p?.asIsValueCents != null && p.asIsValueCents !== fileAsIs) warnings.push(`The as-is value on the profile (${money(p.asIsValueCents)}) is not the hard money file's (${money(fileAsIs!)}); the email and the ratios use the file's. Make them agree.`);
+    if (p?.purchasePriceCents != null && p.purchasePriceCents !== filePrice) warnings.push(`The purchase price on the profile (${money(p.purchasePriceCents)}) is not the hard money file's (${money(filePrice!)}); the email and the ratios use the file's. Make them agree.`);
   } else if (hmPlaybook) {
     out.push(
       metric("ltv_as_is", "LTV (as-is)", "in_place", "loan ÷ as-is value", calc([loan, asIs], (l, v) => (l / v) * 100, [1])),

@@ -426,7 +426,10 @@ function numbersBlock(f: EmailRenderFacts): string[] {
   } else if (pb === "hard_money" || pb === "fix_flip") {
     const hm = f.hardMoney;
     if (hm) {
-      lines.push(kv("Purchase price", `${fmt.usd(hm.purchasePriceCents)}   As-is value: ${fmt.usd(hm.asIsValueCents)}${p.asIsValueSource ? ` (${VALUE_SOURCE_LABELS[p.asIsValueSource]}${p.asIsValueAsOf ? `, ${fmt.date(p.asIsValueAsOf)}` : ""})` : ""}`, W2));
+      // Value, source and date from one record: the profile's when it holds the same value as the file, else the file's own.
+      const sameAsProfile = p.asIsValueCents === hm.asIsValueCents && Boolean(p.asIsValueSource);
+      const asIsSource = sameAsProfile ? `${VALUE_SOURCE_LABELS[p.asIsValueSource!]}${p.asIsValueAsOf ? `, ${fmt.date(p.asIsValueAsOf)}` : ""}` : "from the hard money file";
+      lines.push(kv("Purchase price", `${fmt.usd(hm.purchasePriceCents)}   As-is value: ${fmt.usd(hm.asIsValueCents)} (${asIsSource})`, W2));
       lines.push(kv("After-repair value", `${fmt.usd(hm.arvCents)} (${VALUE_SOURCE_LABELS[hm.arvSource]})`, W2));
       const contingency = sum(p.uses.filter((u) => u.kind === "contingency"));
       lines.push(kv("Rehab", `${fmt.usd(hm.rehabBudgetCents)} budget${contingency ? ` plus ${fmt.usd(contingency)} contingency` : ""}${hm.rehabWeeks ? `; about ${hm.rehabWeeks} weeks of work` : ""} (from the hard money file)`, W2));
