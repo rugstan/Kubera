@@ -8,7 +8,8 @@ import { californiaDate, can, licenseStatus } from "@/lib/auth/policy";
 import { getApprovalService } from "@/lib/approvals/server";
 import { kindLabel, type ApprovalRecord } from "@/lib/approvals/types";
 import { DecisionForm, SweepButton } from "./DecisionForm";
-import { relativeExpiry, statusLabel } from "./format";
+import { requirementLabel } from "@/app/(staff)/deals/[id]/submission/_lib/data";
+import { lenderSubmissionDetails, relativeExpiry, statusLabel, type SubmissionApprovalDetails } from "./format";
 
 export const metadata: Metadata = { title: "Approvals" };
 
@@ -100,6 +101,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
 
 function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject }: { record: ApprovalRecord; now: Date; pending: boolean; canApprove: boolean; blocked?: string; canReject: boolean }) {
   const payload = JSON.stringify(r.payload, null, 2);
+  const submission = lenderSubmissionDetails(r, requirementLabel);
   return (
     <article className="bento p-6" aria-labelledby={`approval-${r.id}`}>
       <div className="flex flex-wrap items-center gap-2 text-[13px]">
@@ -151,6 +153,7 @@ function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject 
           </div>
         ) : null}
       </dl>
+      {submission ? <SubmissionDetails d={submission} /> : null}
       <details className="mt-3">
         <summary className="cursor-pointer text-[14px] font-medium text-accent">What will be sent</summary>
         <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-canvas p-3 text-[13px] leading-relaxed text-ink">{payload}</pre>
@@ -159,5 +162,54 @@ function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject 
         <DecisionForm id={r.id} summary={r.summary} canApprove={canApprove} approveBlockedReason={blocked} canReject={canReject} stepUp={requiresReauthentication(r)} />
       ) : null}
     </article>
+  );
+}
+
+/** A lender submission's readiness, override reason and fit exceptions, with the exact email and summary one click away. */
+function SubmissionDetails({ d }: { d: SubmissionApprovalDetails }) {
+  return (
+    <div className="mt-3 space-y-2 rounded-xl bg-canvas p-3 text-[14px] text-ink">
+      {d.stageLabel ? (
+        <p>
+          <span className="text-titanium">Asks the lender for </span>
+          {d.stageLabel.toLowerCase()}
+        </p>
+      ) : null}
+      {d.missing.length ? (
+        <div>
+          <p className="font-medium text-danger">Required items missing ({d.missing.length})</p>
+          <ul className="list-disc pl-5">
+            {d.missing.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+        </div>
+      ) : d.readinessChecked ? (
+        <p>Every required item is in hand.</p>
+      ) : null}
+      {d.overrideReason ? (
+        <p>
+          <span className="font-medium">Reason to send anyway: </span>
+          {d.overrideReason}
+        </p>
+      ) : null}
+      {d.fitExceptions.length ? (
+        <div>
+          <p className="font-medium text-warning">Outside the lender&apos;s recorded box</p>
+          <ul className="list-disc pl-5">
+            {d.fitExceptions.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {d.previewHref ? (
+        <p>
+          <Link className="font-medium text-accent underline underline-offset-2" href={d.previewHref}>
+            Preview the email and summary
+          </Link>
+        </p>
+      ) : null}
+    </div>
   );
 }
