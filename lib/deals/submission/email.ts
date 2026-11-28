@@ -720,9 +720,10 @@ function sourcesUsesBlock(f: EmailRenderFacts): string[] {
   return out;
 }
 
+/** Each known issue as an excerpt (the summary behind the link has them in full), so the email stays within its length. */
 function issuesBlock(f: EmailRenderFacts): string[] {
   const risks = f.profile.risks.filter((r) => r.risk.trim());
-  return risks.length ? ["KNOWN ISSUES", ...risks.map((r) => `  - ${r.risk}${r.mitigant.trim() ? `: ${r.mitigant}` : ""}`)] : [];
+  return risks.length ? ["KNOWN ISSUES", ...risks.map((r) => `  - ${excerpt(r.risk, 200)}${r.mitigant.trim() ? `: ${excerpt(r.mitigant, 300)}` : ""}`)] : [];
 }
 
 const DOC_LABELS: Record<string, string> = {

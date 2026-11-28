@@ -30,7 +30,7 @@ import { evaluateReadiness, lenderSafeMissingLabels, notReadyMessage } from "./r
 import { EmailSafetyError, checkNeutralCopy, findRestrictedText, restrictedTextMessage, type NeutralCopyFlag } from "./redaction";
 import { buildDealSummary, staffTypedText, summarySpecSha256 } from "./summary";
 import { lenderFit, tailorDealFrom } from "./tailor";
-import { OVERRIDE_REASON_LENGTH, type DealSummaryRecord, type DealSummarySpec, type EmailAdvisor, type LenderFit, type NeutralCopyRecord, type Readiness, type SubmissionContext, type SubmissionMetrics, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./types";
+import { OVERRIDE_REASON_LENGTH, SUBMISSION_TEXT_LIMITS, type DealSummaryRecord, type DealSummarySpec, type EmailAdvisor, type LenderFit, type NeutralCopyRecord, type Readiness, type SubmissionContext, type SubmissionMetrics, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./types";
 
 /**
  * What the integrator wires (lib/deals/runtime.ts and the lender desk runtime).
@@ -165,6 +165,15 @@ function checkedReason(reason: string, what: string): string {
   return reason;
 }
 
+/** Why lender_outreach could not hold this email (its subject and text limits), or null when it can. */
+export function emailRecordProblem(email: Pick<LenderEmail, "subject" | "text">): string | null {
+  if (!email.subject.trim() || email.subject.length > SUBMISSION_TEXT_LIMITS.emailSubject || /[\u0000-\u001f\u007f]/.test(email.subject)) return `The email subject must be one line of at most ${SUBMISSION_TEXT_LIMITS.emailSubject} characters.`;
+  if (email.text.length > SUBMISSION_TEXT_LIMITS.emailText) {
+    return `The email would be ${email.text.length.toLocaleString("en-US")} characters, over the ${SUBMISSION_TEXT_LIMITS.emailText.toLocaleString("en-US")} a submission holds. Shorten the free text it prints (business plan, known issues, notes); nothing was stored.`;
+  }
+  return null;
+}
+
 /** The deal summary placeholder a preview lists before the PDF exists (the email prints it by kind, so the text matches). */
 const PREVIEW_SUMMARY_ITEM: Pick<PackageItem, "documentId" | "label" | "kind"> = { documentId: "deal-summary-preview", label: "Deal summary (Corin)", kind: "DEAL_SUMMARY" };
 
@@ -264,7 +273,15 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
       continue;
     }
     try {
-      buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: provisionalDocs, notYetInHand: lenderOpenItems, advisor: input.advisor });
+      // The pre-check holds the email to everything the send gate and the database will: the
+      // restricted-text rules (buildLenderEmail, the same patterns as public.submission_text_restricted)
+      // and the record's limits, so nothing is stored or locked for an email that would be refused later.
+      const email = buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: provisionalDocs, notYetInHand: lenderOpenItems, advisor: input.advisor });
+      const problem = emailRecordProblem(email);
+      if (problem) {
+        skipped.push({ lenderId, lenderName: lender.name, error: problem, fit });
+        continue;
+      }
     } catch (err) {
       if (err instanceof EmailSafetyError) {
         skipped.push({ lenderId, lenderName: lender.name, error: err.message, fit });

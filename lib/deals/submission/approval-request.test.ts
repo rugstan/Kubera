@@ -152,3 +152,31 @@ describe("the signing advisor (F14)", () => {
     expect(r.prepared.lenders[0]!.email.text).toContain("Ana Ruiz, Senior Advisor · DRE 01234567");
   });
 });
+
+describe("problems are caught before anything is stored (F15)", () => {
+  it("an email past the record's 20,000 characters is refused in the pre-check: no summary, no package, no request", async () => {
+    const note = "Line item detail ".repeat(15).trim();
+    const w = await sendWorld("bridge", "pending", (ctx) => {
+      ctx.profile!.uses = Array.from({ length: 60 }, (_, i) => ({ kind: "other" as const, amountCents: 1_000_000 + i, note }));
+      ctx.profile!.sources = Array.from({ length: 40 }, (_, i) => ({ kind: "sponsor_equity" as const, amountCents: 1_000_000 + i, note }));
+    });
+    const r = await submitDealToLenders(w.deps, { dealId: w.deal.id, targetStage: "screen", lenderIds: [w.lenders.a.id], items: w.items, advisor: TEST_ADVISOR, actor: "broker:ana", overrideReason: "The lender asked for the capital stack in full detail" });
+    expect(r.outcomes[0]).toMatchObject({ ok: false, error: expect.stringMatching(/^The email would be [\d,]+ characters, over the 20,000 a submission holds/) });
+    expect(r.prepared.locked).toBeNull();
+    expect(w.summaries.rows.size).toBe(0);
+    expect(await w.store.listPackages(w.deal.id)).toEqual([]);
+    expect(w.gate.requests).toHaveLength(0);
+  });
+
+  it("prints each known issue as an excerpt (the summary has it in full)", async () => {
+    const long = `${"The anchor tenant's lease ends inside the term and the renewal is not signed yet ".repeat(8)}FINALWORD`;
+    const w = await sendWorld("bridge", "pending", (ctx) => {
+      ctx.profile!.risks = [{ risk: long, mitigant: long }];
+    });
+    const r = await submitDealToLenders(w.deps, { dealId: w.deal.id, targetStage: "screen", lenderIds: [w.lenders.a.id], items: w.items, advisor: TEST_ADVISOR, actor: "broker:ana" });
+    const line = r.prepared.lenders[0]!.email.text.split("\n").find((l) => l.startsWith("  - The anchor tenant"))!;
+    expect(line.length).toBeLessThan(520);
+    expect(line).toContain("…");
+    expect(line).not.toContain("FINALWORD");
+  });
+});
