@@ -1,4 +1,5 @@
 import { Check, Submit } from "@/app/(staff)/deals/ui";
+import { defaultPackageDocumentIds } from "@/lib/deals/submission/readiness";
 import { OVERRIDE_REASON_LENGTH, TARGET_STAGE_LABELS, targetStages, type TargetStage, type VaultDocumentRef } from "@/lib/deals/submission/types";
 import type { PreviewLender } from "../_lib/data";
 
@@ -9,6 +10,7 @@ export function RequestFields({
   dealId,
   stage,
   documents,
+  checkedDocumentIds,
   lenders,
   checkedLenderId,
   lenderPicker,
@@ -18,12 +20,15 @@ export function RequestFields({
   dealId: string;
   stage: TargetStage;
   documents: VaultDocumentRef[];
+  /** The documents ticked to start with; default: the stage's (no PFS or tax returns at Screen). */
+  checkedDocumentIds?: readonly string[];
   lenders?: PreviewLender[];
   checkedLenderId?: string | null;
   lenderPicker?: React.ReactNode;
   missingCount: number;
   leadLinked: boolean;
 }) {
+  const checkedDocs = new Set(checkedDocumentIds ?? defaultPackageDocumentIds(documents, stage));
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <input name="dealId" type="hidden" value={dealId} />
@@ -64,12 +69,12 @@ export function RequestFields({
         <input className="field" maxLength={300} name="note" type="text" />
       </label>
       <fieldset className="min-w-0 sm:col-span-2">
-        <legend className="field-label">Vault documents (the deal summary is always included)</legend>
+        <legend className="field-label">Vault documents (the deal summary is always included; personal financial statements and tax returns start unticked for a soft quote)</legend>
         {documents.length ? (
           <div className="grid gap-1 sm:grid-cols-2">
             {documents.map((d) => (
               <label className="flex min-h-11 items-center gap-2 text-sm" key={d.id}>
-                <input className="size-4 accent-[var(--color-accent)]" defaultChecked name="documentId" type="checkbox" value={d.id} />
+                <input className="size-4 accent-[var(--color-accent)]" defaultChecked={checkedDocs.has(d.id)} name="documentId" type="checkbox" value={d.id} />
                 <span className="min-w-0 break-words">
                   {d.fileName} <span className="text-xs text-titanium">({d.kind})</span>
                 </span>

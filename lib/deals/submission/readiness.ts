@@ -12,7 +12,7 @@
 import { isTerminalStage } from "../stage-catalog";
 import { submissionFixHref } from "./playbooks";
 import { RECEIVED_STATUSES, SUBMISSION_REQUIREMENTS, playbookOf, requirementLevel, type SubmissionRequirement } from "./requirements";
-import { TARGET_STAGE_LABELS, type FieldSource, type Readiness, type ReadinessItem, type SubmissionContext, type SubmissionMetrics, type TargetStage } from "./types";
+import { TARGET_STAGE_LABELS, type FieldSource, type Readiness, type ReadinessItem, type SubmissionContext, type SubmissionMetrics, type TargetStage, type VaultDocumentRef } from "./types";
 
 /** Prefix of Underwrite items that come from the deal checklist. */
 export const CHECKLIST_REQUIREMENT_PREFIX = "checklist.";
@@ -146,6 +146,18 @@ export function lenderSafeMissingLabels(readiness: Pick<Readiness, "required">, 
     const n = perPrincipal.get(label);
     return n && n > 1 ? `${label} (${n} principals)` : label;
   });
+}
+
+/** Personal documents a lender does not need for a soft quote: not ticked at Screen by default (staff can still add them). */
+export const PERSONAL_DOCUMENT_KINDS: readonly string[] = ["PFS", "TAX_RETURN"];
+
+/**
+ * The vault documents ticked by default for a request at `stage` (spec 5.1):
+ * every clean document, except personal financial statements and tax returns
+ * at Screen.
+ */
+export function defaultPackageDocumentIds(docs: readonly Pick<VaultDocumentRef, "id" | "kind">[], stage: TargetStage): string[] {
+  return docs.filter((d) => stage !== "screen" || !PERSONAL_DOCUMENT_KINDS.includes(d.kind)).map((d) => d.id);
 }
 
 /** The refusal staff see when required items are missing and no reason was given (spec 5.2). */

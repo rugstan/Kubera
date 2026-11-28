@@ -291,7 +291,16 @@ test("a request with missing items and no reason is refused with the list; with 
   await expect(card).toContainText("Asks the lender for screen (soft quote)");
   await expect(card).toContainText(/Required items missing \(\d+\)/);
   await expect(card).toContainText("Stabilized NOI and the months to reach it");
-  await expect(card.getByRole("link", { name: "Preview the email and summary" })).toHaveAttribute("href", new RegExp(`/deals/${DEALS.empty}/submission/preview\\?lender=`));
+  // What is approved is the stored email and the locked summary, each checked against the request's hashes;
+  // the live preview is only linked as the current draft.
+  await expect(card.getByTestId("approval-email-subject")).toHaveText(/^Loan request: \$5,200,000 bridge \| 30-unit multifamily, CA/);
+  await expect(card.getByTestId("approval-email-body")).toContainText("Corin Commercial, Inc. is the broker on this request, not the lender.");
+  await expect(card.getByTestId("approval-email-body")).toContainText("{{SHARE_LINK}}");
+  await expect(card.getByTestId("approval-email-hash")).toHaveText("Matches the SHA-256 in this request.");
+  await card.getByText("The locked deal summary the lender will see").click();
+  await expect(card.getByTestId("approval-summary-hash")).toHaveText("Matches the SHA-256 in this request.");
+  await expect(card.getByRole("heading", { name: "Larkspur Example Terrace (demo) — loan request summary" })).toBeVisible();
+  await expect(card.getByRole("link", { name: "Open the current draft" })).toHaveAttribute("href", new RegExp(`/deals/${DEALS.empty}/submission/preview\\?lender=`));
 
   await page.goto(`${base}/deals/${DEALS.empty}`);
   await expect(section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ })).toContainText("pending approval");

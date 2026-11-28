@@ -13,15 +13,18 @@ import { RequestApprovalForm } from "../_components/RequestApprovalForm";
 import { RequestFields } from "../_components/RequestFields";
 import { SummaryView } from "../_components/SummaryView";
 
-// The exact email (subject and body) and the summary a lender would get, per
-// lender and target stage, built in memory on every view: this page writes
-// nothing, calls no approval gate and sends nothing. The request form below
-// asks for broker approval; email to lenders stays off unless configured.
+// The current draft: the email (subject and body) and the summary a lender
+// would get now, per lender, target stage and chosen documents, built in
+// memory on every view and signed for whoever is viewing. It is not what a
+// broker approves: the approvals queue shows the stored email and the locked
+// summary for that. This page writes nothing, calls no approval gate and
+// sends nothing. The request form below asks for broker approval; email to
+// lenders stays off unless configured.
 
 export const metadata: Metadata = { title: "Submission preview" };
 
 type Params = Promise<{ id: string }>;
-type Search = Promise<{ lender?: string; stage?: string }>;
+type Search = Promise<{ lender?: string; stage?: string; doc?: string | string[]; docs?: string }>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -42,12 +45,14 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
   const stageParam = typeof sp.stage === "string" && isTargetStage(sp.stage) ? sp.stage : null;
   // The same advisor the request signs with, so the approved email matches this preview byte for byte.
   const advisor = advisorFor(staff);
+  // Documents picked on this page (docs=1 marks a submitted pick, so none ticked means none); otherwise the stage's defaults.
+  const picked = sp.docs === "1" ? (Array.isArray(sp.doc) ? sp.doc : typeof sp.doc === "string" ? [sp.doc] : []).filter((d) => UUID.test(d) || /^[A-Za-z0-9_-]{1,100}$/.test(d)) : null;
   // First pass picks the default stage (highest ready, else Screen) and lender (the requested one, else the first on the panel).
-  const first = await getPreview(id, requested, stageParam ?? "screen", advisor);
+  const first = await getPreview(id, requested, stageParam ?? "screen", advisor, picked);
   if (!first) notFound();
   const stage: TargetStage = stageParam ?? defaultTargetStage(first.view.readiness);
   const lenderId = requested && first.lenders.some((l) => l.id === requested) ? requested : (first.lenders[0]?.id ?? null);
-  const preview = stage === (stageParam ?? "screen") && lenderId === requested ? first : ((await getPreview(id, lenderId, stage, advisor)) ?? first);
+  const preview = stage === (stageParam ?? "screen") && lenderId === requested ? first : ((await getPreview(id, lenderId, stage, advisor, picked)) ?? first);
   const { view, fit, email, lender, blocked } = preview;
   const deal = view.ctx.deal;
   const write = can(staff, "write");
@@ -61,6 +66,10 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
           ← Back to the submission
         </Link>
         <h1 className="mt-2 text-3xl font-semibold text-ink">{deal.title}: submission preview</h1>
+      </div>
+      <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="note">
+        <p className="font-medium">Current draft.</p>
+        <p className="mt-1">This is rebuilt from what is saved now and signed for you. It is not what a broker approves: the approvals queue shows the stored email and the locked summary of each request.</p>
       </div>
       {view.lenderEmailEnabled ? (
         <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="note">
@@ -100,6 +109,22 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
               ))}
             </select>
           </label>
+          {preview.documents.length ? (
+            <fieldset className="min-w-0 sm:col-span-3">
+              <input name="docs" type="hidden" value="1" />
+              <legend className="field-label">Documents the email lists (the deal summary is always included)</legend>
+              <div className="grid gap-1 sm:grid-cols-2">
+                {preview.documents.map((d) => (
+                  <label className="flex min-h-11 items-center gap-2 text-sm" key={d.id}>
+                    <input className="size-4 accent-[var(--color-accent)]" defaultChecked={preview.selectedDocumentIds.includes(d.id)} name="doc" type="checkbox" value={d.id} />
+                    <span className="min-w-0 break-words">
+                      {d.fileName} <span className="text-xs text-titanium">({d.kind})</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           <div className="flex items-end">
             <Submit tone="glass">Show preview</Submit>
           </div>
@@ -154,7 +179,7 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
         </Section>
       ) : null}
 
-      <Section description="Exactly what the broker approves. The link and its expiry are filled in only after approval." title="The email">
+      <Section description="The current draft, for the lender and documents picked above. A request stores this exact text and the broker approves that stored copy; the link and its expiry are filled in only after approval." title="The email">
         {email ? (
           <div className="space-y-3">
             <div>
@@ -192,7 +217,7 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
       {write ? (
         <Section description="Locks the package version and asks a broker to approve this submission. Nothing is sent before that." title="Request broker approval">
           <RequestApprovalForm label="Request broker approval">
-            <RequestFields checkedLenderId={lenderId} dealId={deal.id} documents={preview.documents} leadLinked={Boolean(deal.leadId)} lenders={preview.lenders} missingCount={missing} stage={stage} />
+            <RequestFields checkedDocumentIds={preview.selectedDocumentIds} checkedLenderId={lenderId} dealId={deal.id} documents={preview.documents} leadLinked={Boolean(deal.leadId)} lenders={preview.lenders} missingCount={missing} stage={stage} />
           </RequestApprovalForm>
         </Section>
       ) : null}

@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations, createStubbedDb, custodyViolations, listMigrations } from "../../../scripts/test-migrations.ts";
 import { createKeyring } from "@/lib/privacy/crypto";
 import { sealLenderAccountNumber } from "../lender-accounts";
+import { emailSha256 } from "./email";
 import { profileToRow, sponsorToRow, summaryToRow } from "./rows";
 import {
   DIGIT_RUN_DB_RE,
@@ -209,7 +210,7 @@ describe("lender_outreach submission columns", () => {
     const placeholders = cols.map((c, i) => `$${i + 1}${c === "lender_fit" ? "::jsonb" : c === "readiness_missing" ? "::text[]" : ""}`);
     return (await one<{ id: string }>(`insert into public.lender_outreach (${cols.join(", ")}) values (${placeholders.join(", ")}) returning id`, cols.map((c) => (c === "lender_fit" ? JSON.stringify(base[c]) : base[c])))).id;
   }
-  const email = (text: string) => ({ email_subject: "Loan request: $8,400,000 bridge", email_text: text, email_sha256: sha("f") });
+  const email = (text: string, subject = "Loan request: $8,400,000 bridge") => ({ email_subject: subject, email_text: text, email_sha256: emailSha256(subject, text) });
 
   it("accepts a row without any submission column (existing rows), and a complete submission", async () => {
     const id = await outreach();
@@ -230,7 +231,16 @@ describe("lender_outreach submission columns", () => {
     await expect(outreach(email("Wire to 021000021"))).rejects.toThrow(/lender_outreach_email_no_restricted/);
     await expect(outreach({ email_text: "Hello", email_sha256: sha("f") })).rejects.toThrow(/lender_outreach_email_complete/);
     await expect(outreach({ email_subject: "S", email_text: "Hello" })).rejects.toThrow(/lender_outreach_email_complete/);
-    await expect(outreach({ ...email("Hello"), email_subject: "Line\nbreak" })).rejects.toThrow(/email_subject/);
+    await expect(outreach(email("Hello", "Line\nbreak"))).rejects.toThrow(/email_subject/);
+  });
+
+  it("holds the stored hash to the stored subject and text, the same rule as emailSha256", async () => {
+    await expect(outreach(email("Hello,\n{{SHARE_LINK}} ✓"))).resolves.toBeTruthy();
+    await expect(outreach({ ...email("Hello,\n{{SHARE_LINK}}"), email_sha256: sha("f") })).rejects.toThrow(/lender_outreach_email_hash/);
+    // The hash covers the subject too: the same text under another subject does not verify.
+    await expect(outreach({ ...email("Hello,\n{{SHARE_LINK}}"), email_subject: "Another subject" })).rejects.toThrow(/lender_outreach_email_hash/);
+    const id = await outreach(email("Hello,\n{{SHARE_LINK}}"));
+    await expect(db.query(`update public.lender_outreach set email_text = 'Edited after approval {{SHARE_LINK}}' where id = $1`, [id])).rejects.toThrow(/lender_outreach_email_hash/);
   });
 });
 

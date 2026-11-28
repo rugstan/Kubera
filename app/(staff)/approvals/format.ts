@@ -5,8 +5,9 @@ import { TARGET_STAGE_LABELS, isTargetStage } from "@/lib/deals/submission/types
  * What the approving broker needs to see on a lender submission, read from the
  * approval's hashed payload: what the lender is asked for, the required items
  * still missing (by label) and the written reason to send anyway, the facts
- * outside the lender's recorded box, and a link to the exact email and
- * summary. `readinessChecked` is false on submissions requested before the
+ * outside the lender's recorded box, and a link to the current draft (the
+ * live preview, which is not what is being approved: the card shows the
+ * stored email and the locked summary for that). `readinessChecked` is false on submissions requested before the
  * readiness gate (their payload has no readiness fields), so the card does not
  * claim nothing is missing.
  */
@@ -16,7 +17,8 @@ export type SubmissionApprovalDetails = {
   missing: string[];
   overrideReason: string | null;
   fitExceptions: string[];
-  previewHref: string | null;
+  /** The live preview of the deal as it is now ("current draft"); never the approved content. */
+  draftHref: string | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,7 +39,7 @@ export function lenderSubmissionDetails(r: Pick<ApprovalRecord, "kind" | "payloa
     missing: texts(p.readinessMissing).map(labelFor),
     overrideReason: text(p.overrideReason),
     fitExceptions: texts(fit?.exceptions ?? p.fitExceptions),
-    previewHref: dealId && UUID.test(dealId) ? `/deals/${dealId}/submission/preview${query ? `?${query}` : ""}` : null,
+    draftHref: dealId && UUID.test(dealId) ? `/deals/${dealId}/submission/preview${query ? `?${query}` : ""}` : null,
   };
 }
 

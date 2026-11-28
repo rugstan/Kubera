@@ -89,7 +89,7 @@ describe("prepareSubmission", () => {
     expect(p.lenders.map((l) => l.lender.name)).toEqual(["Harborline Capital", "Northgate Bank"]);
     for (const l of p.lenders) {
       expect(l.email.text).toContain(EMAIL_PLACEHOLDERS.shareLink);
-      expect(l.email.sha256).toBe(emailSha256(l.email.text));
+      expect(l.email.sha256).toBe(emailSha256(l.email.subject, l.email.text));
       expect(l.submission).toMatchObject({ targetStage: "term_sheet", summaryId: locked.summary.id, email: { sha256: l.email.sha256 } });
       expect(l.email.text).toContain(`IN THE PACKAGE (${locked.pkg.manifest.length} documents)`);
     }

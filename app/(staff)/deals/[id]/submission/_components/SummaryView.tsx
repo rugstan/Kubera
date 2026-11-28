@@ -4,13 +4,15 @@ import type { DealSummarySpec } from "@/lib/deals/submission/types";
 // same spec the PDF is rendered from): headline tiles, sections with each
 // row's source, tables, how the figures were calculated, and the open items.
 
-export function SummaryView({ spec }: { spec: DealSummarySpec }) {
+export function SummaryView({ spec, idPrefix = "summary", headingLevel = 3 }: { spec: DealSummarySpec; idPrefix?: string; headingLevel?: 3 | 4 }) {
+  const Title = headingLevel === 4 ? "h4" : "h3";
+  const Sub = headingLevel === 4 ? "h5" : "h4";
   return (
-    <article aria-labelledby="summary-title" className="space-y-5">
+    <article aria-labelledby={`${idPrefix}-title`} className="space-y-5">
       <header>
-        <h3 className="text-lg font-semibold text-ink" id="summary-title">
+        <Title className="text-lg font-semibold text-ink" id={`${idPrefix}-title`}>
           {spec.title}
-        </h3>
+        </Title>
         <p className="text-sm text-titanium">{spec.subtitle}</p>
       </header>
       {spec.headline.length ? (
@@ -25,7 +27,7 @@ export function SummaryView({ spec }: { spec: DealSummarySpec }) {
       ) : null}
       {spec.sections.map((s) => (
         <section className="min-w-0" key={s.title}>
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-titanium">{s.title}</h4>
+          <Sub className="text-sm font-semibold uppercase tracking-wide text-titanium">{s.title}</Sub>
           {s.rows?.length ? (
             <dl className="mt-2 divide-y divide-black/5 text-sm">
               {s.rows.map((r) => (
@@ -72,7 +74,7 @@ export function SummaryView({ spec }: { spec: DealSummarySpec }) {
       ))}
       {spec.openItems.length ? (
         <section>
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-titanium">Not yet in hand</h4>
+          <Sub className="text-sm font-semibold uppercase tracking-wide text-titanium">Not yet in hand</Sub>
           <ul className="mt-2 list-disc pl-5 text-sm text-ink">
             {spec.openItems.map((o) => (
               <li key={o}>{o}</li>
@@ -82,7 +84,7 @@ export function SummaryView({ spec }: { spec: DealSummarySpec }) {
       ) : null}
       {spec.metricNotes.length ? (
         <section>
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-titanium">How these figures were calculated</h4>
+          <Sub className="text-sm font-semibold uppercase tracking-wide text-titanium">How these figures were calculated</Sub>
           <ul className="mt-2 space-y-1 text-sm text-ink">
             {spec.metricNotes.map((n) => (
               <li className="break-words" key={n.key}>

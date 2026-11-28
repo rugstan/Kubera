@@ -21,6 +21,8 @@ import "server-only";
 // email to lenders off staff get the approved text and the link instead.
 
 import { OutreachError, submitToLenders } from "@/lib/agents/lenders/outreach";
+import type { ApprovalRecord } from "@/lib/approvals/types";
+export type { ApprovalSubmissionContent } from "@/lib/deals/submission/approval-view";
 import { PackageCopyError } from "@/lib/agents/lenders/package";
 import { lenderRuntime } from "@/lib/agents/lenders/runtime";
 import type { AssetClass } from "@/lib/agents/lenders/types";
@@ -33,7 +35,8 @@ import { loadSubmissionContext } from "@/lib/deals/submission/context";
 import { computeSubmissionMetrics } from "@/lib/deals/submission/metrics";
 import { PLAYBOOK_LABELS, SECTION_LABELS, allowedPlaybooks, defaultPlaybook, visibleSections, type SectionView } from "@/lib/deals/submission/playbooks";
 import { PREFILL_ORIGIN_LABELS, buildPrefill, type PrefillSuggestion, type SubmissionPrefill } from "@/lib/deals/submission/prefill";
-import { evaluateAllStages } from "@/lib/deals/submission/readiness";
+import { defaultPackageDocumentIds, evaluateAllStages } from "@/lib/deals/submission/readiness";
+import { loadApprovalSubmissionContent, type ApprovalSubmissionContent } from "@/lib/deals/submission/approval-view";
 import { EmailSafetyError, type NeutralCopyFlag } from "@/lib/deals/submission/redaction";
 import { requirementLabel as tableRequirementLabel } from "@/lib/deals/submission/requirements";
 import { previewSubmission } from "@/lib/deals/submission/send";
@@ -124,6 +127,8 @@ export type SubmissionPreview = {
   neutralCopy: NeutralCopyFlag[];
   /** Clean vault documents that can go into the package. */
   documents: VaultDocumentRef[];
+  /** The documents this preview's email lists (picked on the page, else the stage's defaults); the request form starts from the same set. */
+  selectedDocumentIds: string[];
 };
 
 export type SubmissionRequestInput = {
@@ -263,8 +268,12 @@ function builderError(err: unknown): string {
   throw err;
 }
 
-/** The email, fit and summary a lender would get at `stage`, built in memory. Writes nothing and calls no gate. */
-export async function getPreview(dealId: string, lenderId: string | null, stage: TargetStage, advisor: EmailAdvisor): Promise<SubmissionPreview | null> {
+/**
+ * The email, fit and summary a lender would get at `stage` with the documents
+ * `documentIds` (null: the stage's defaults), built in memory. Writes nothing
+ * and calls no gate. This is the current draft, never the approved content.
+ */
+export async function getPreview(dealId: string, lenderId: string | null, stage: TargetStage, advisor: EmailAdvisor, documentIds: readonly string[] | null = null): Promise<SubmissionPreview | null> {
   const rt = dealDeskRuntime();
   if (!rt) return null;
   const view = await viewFor(rt, dealId);
@@ -277,10 +286,13 @@ export async function getPreview(dealId: string, lenderId: string | null, stage:
   });
   const chosen = panel.find((l) => l.id === lenderId) ?? null;
   const lender = chosen ? (lenders.find((l) => l.id === chosen.id) ?? null) : null;
-  const base = { view, stage, lenders, lender, documents: view.ctx.vaultDocuments };
+  const docs = view.ctx.vaultDocuments;
+  const wanted = new Set(documentIds ?? defaultPackageDocumentIds(docs, stage));
+  const selected = docs.filter((d) => wanted.has(d.id));
+  const base = { view, stage, lenders, lender, documents: docs, selectedDocumentIds: selected.map((d) => d.id) };
   const boxes = await approvedBoxes();
   try {
-    const p = previewSubmission({ ctx: view.ctx, metrics: view.metrics, stage, lenders: chosen ? [chosen] : [], boxes, documents: previewDocuments(view.ctx.vaultDocuments), advisor });
+    const p = previewSubmission({ ctx: view.ctx, metrics: view.metrics, stage, lenders: chosen ? [chosen] : [], boxes, documents: previewDocuments(selected), advisor });
     const one = p.lenders[0] ?? null;
     return {
       ...base,
@@ -381,6 +393,13 @@ export async function getSummaryPdf(dealId: string, stage: TargetStage, staff: S
     throw new SubmissionDataError(builderError(err));
   }
   return renderDealSummary(summary);
+}
+
+/** What a lender-submission approval approves, read from storage (lib/deals/submission/approval-view.ts); null for other kinds or without the desk. */
+export async function approvalSubmissionContent(r: Pick<ApprovalRecord, "kind" | "idempotencyKey" | "payload">): Promise<ApprovalSubmissionContent | null> {
+  const rt = dealDeskRuntime();
+  if (!rt) return null;
+  return loadApprovalSubmissionContent({ store: rt.store, summaries: rt.submission.store }, r);
 }
 
 /** The visible label of a requirement id (approvals queue); a checklist item's key reads as words. */

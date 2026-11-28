@@ -15,7 +15,7 @@ import type { DealDeskStore } from "./store";
 import { emailSha256, fillEmailPlaceholders } from "./submission/email";
 import { PLAYBOOK_LABELS } from "./submission/playbooks";
 import { notReadyMessage } from "./submission/readiness";
-import { checkNeutralCopy, findRestrictedText, restrictedTextMessage } from "./submission/redaction";
+import { checkNeutralCopy, findRestrictedText, restrictedTextMessage, type EmailSafetyOptions } from "./submission/redaction";
 import { requirementLabel } from "./submission/requirements";
 import { fmt } from "./submission/summary";
 import { EMAIL_PLACEHOLDERS, OVERRIDE_REASON_LENGTH, SUBMISSION_TEXT_LIMITS, type DealSummaryRecord, type SubmissionSendInput, type SubmissionStore, type TargetStage } from "./submission/types";
@@ -168,6 +168,20 @@ function missingLabels(missing: readonly string[], summary: DealSummaryRecord | 
 }
 
 /**
+ * The approved email is still exactly what was approved: subject and text
+ * hash (emailSha256) to `sha256` and to the hash in the approval payload, and
+ * the text holds no restricted identifier. Run when the submission is
+ * requested, when it is re-checked, and again immediately before the email is
+ * mailed or shown to staff; any mismatch is email_unsafe and nothing is sent.
+ */
+export function verifyApprovedEmail(email: { subject: string; text: string; sha256: string | null | undefined }, approvedSha256: string | null | undefined, safety: EmailSafetyOptions = {}): void {
+  const actual = emailSha256(email.subject, email.text);
+  if (!email.sha256 || actual !== email.sha256 || actual !== approvedSha256) throw new PackageError("email_unsafe", "The email no longer matches the text the broker approved (its SHA-256 differs); nothing was sent. Prepare the submission again.");
+  const findings = findRestrictedText(`${email.subject}\n${email.text}`, safety);
+  if (findings.length) throw new PackageError("email_unsafe", restrictedTextMessage(findings));
+}
+
+/**
  * The readiness gate (spec 5.2), checked before anything is locked or any
  * approval is requested. Order: hard stops, then missing items without a
  * reason, then the email, then the summary. Holds and deal status are never
@@ -193,13 +207,11 @@ async function checkSubmission(deps: Pick<OutreachDeps, "summaries">, deal: Deal
     if (reason.length > OVERRIDE_REASON_LENGTH.max) throw new PackageError("not_ready", `The reason to send with items missing must be at most ${OVERRIDE_REASON_LENGTH.max} characters.`);
   }
 
-  const { subject, text, sha256 } = s.email;
+  const { subject, text } = s.email;
   if (!subject.trim() || subject.length > SUBMISSION_TEXT_LIMITS.emailSubject || [...subject].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) throw new PackageError("email_unsafe", "The email subject must be one line of at most 200 characters.");
   if (!text.trim() || text.length > SUBMISSION_TEXT_LIMITS.emailText) throw new PackageError("email_unsafe", "The email text is empty or longer than 20,000 characters.");
-  if (emailSha256(text) !== sha256) throw new PackageError("email_unsafe", "The email text does not match its hash; build the preview again.");
   if (!text.includes(EMAIL_PLACEHOLDERS.shareLink)) throw new PackageError("email_unsafe", "The email has no place for the share link.");
-  const findings = findRestrictedText(`${subject}\n${text}`);
-  if (findings.length) throw new PackageError("email_unsafe", restrictedTextMessage(findings));
+  verifyApprovedEmail(s.email, s.email.sha256);
 
   if (!deps.summaries) throw new PackageError("summary_missing", "Deal summaries cannot be checked because the submission store is not configured; nothing was sent.");
   if (!summary || summary.dealId !== deal.id) throw new PackageError("summary_missing", "The locked deal summary for this submission was not found. Prepare the submission again.");
@@ -261,6 +273,8 @@ async function storedSubmission(deps: Pick<OutreachDeps, "summaries">, outreach:
   if (!deps.summaries || !outreach.summaryId || !outreach.targetStage || !outreach.lenderFit) throw new PackageError("summary_missing", "The submission's deal summary cannot be read; nothing was sent.");
   const summary = await deps.summaries.getSummary(outreach.summaryId);
   if (!summary || summary.dealId !== outreach.dealId) throw new PackageError("summary_missing", "The submission's locked deal summary was not found; nothing was sent.");
+  // The stored text must still hash to what the broker approves (and to the row's own hash) before the gate is asked.
+  verifyApprovedEmail({ subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 }, outreach.emailSha256);
   const missing = outreach.readinessMissing ?? [];
   const reason = outreach.readinessOverrideReason ?? null;
   return {
@@ -362,6 +376,7 @@ async function decideOutreach(
         ? {
             ...v1Payload,
             targetStage: submission.send.targetStage,
+            summaryId: submission.summary.id,
             summarySha256: submission.summary.specSha256,
             emailSha256: submission.send.email.sha256,
             readinessMissing: [...submission.send.readiness.missing],
@@ -423,6 +438,8 @@ async function decideOutreach(
   const current = await store.getDeal(deal.id);
   if (!current) throw new PackageError("deal_not_found", `Deal ${deal.id} not found`);
   await assertDealCanGoToLenders(deps, current);
+  // No link exists for an email that no longer matches what was approved.
+  if (submission) verifyApprovedEmail(outreach?.emailText && outreach.emailSubject ? { subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 } : submission.send.email, submission.send.email.sha256);
   const { token, link } = await createShareLink(store, { pkg, lenderId: lender.id, createdBy: input.actor, ttlDays: input.ttlDays, now });
   const url = shareLinkUrl(deps.baseUrl, token);
   const approved = { status: "approved" as const, approvalId: decision.approvalId, approvedBy: decision.decidedBy, shareLinkId: link.id };
@@ -431,6 +448,8 @@ async function decideOutreach(
     : await store.insertOutreach({ ...base, ...approved, sentAt: null, externalMessageId: null, responseNote: null, termSheetRef: null }, now);
 
   // The approved email (v2) with the link filled in; v1 rows keep the documents-only note.
+  // Re-verified against the approved hash immediately before it is mailed or handed to staff.
+  if (submission && outreach.emailText && outreach.emailSubject) verifyApprovedEmail({ subject: outreach.emailSubject, text: outreach.emailText, sha256: outreach.emailSha256 }, submission.send.email.sha256);
   const approvedEmail =
     outreach.emailText && outreach.emailSubject
       ? { subject: outreach.emailSubject, text: fillEmailPlaceholders(outreach.emailText, { shareUrl: url, expiresAt: link.expiresAt }) }
@@ -472,6 +491,13 @@ export async function approvedEmailForShare(store: Pick<DealDeskStore, "getOutre
   const link = (await store.listShareLinks(dealId)).find((l) => l.id === o.shareLinkId);
   const token = shareUrl.split("/").pop() ?? "";
   if (!link || link.revokedAt || !tokenMatches(token, link.tokenHash)) return null;
+  // Shown only while it still matches the approved hash and passes the restricted-data check.
+  try {
+    verifyApprovedEmail({ subject: o.emailSubject, text: o.emailText, sha256: o.emailSha256 }, o.emailSha256);
+  } catch (err) {
+    console.error("[deals] approved email no longer verifies; not shown", err instanceof PackageError ? err.reason : "error");
+    return null;
+  }
   return { lenderId: o.lenderId, subject: o.emailSubject, text: fillEmailPlaceholders(o.emailText, { shareUrl, expiresAt: link.expiresAt }) };
 }
 

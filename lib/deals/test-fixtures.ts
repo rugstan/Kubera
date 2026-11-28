@@ -129,7 +129,7 @@ export function testSubmission(dealId: string, lenderId: string, over: Partial<S
     summaryId: `summary-of:${dealId}`,
     readiness: { missing: [], hardStops: [], score: 100 },
     fit: { lenderId, matches: [], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 0, reason: null }, score: null },
-    email: { subject: "Loan request | Corin Commercial", text: TEST_EMAIL_TEXT, sha256: emailSha256(TEST_EMAIL_TEXT) },
+    email: { subject: "Loan request | Corin Commercial", text: TEST_EMAIL_TEXT, sha256: emailSha256("Loan request | Corin Commercial", TEST_EMAIL_TEXT) },
     ...over,
   };
 }

@@ -64,9 +64,15 @@ export const EMAIL_TEMPLATE_VERSION = "lender-email-v1";
 
 export type LenderEmail = { subject: string; text: string; sha256: string };
 
-/** SHA-256 (hex) of the UTF-8 bytes of the approved text (with placeholders). */
-export function emailSha256(text: string): string {
-  return createHash("sha256").update(text, "utf8").digest("hex");
+/**
+ * SHA-256 (hex) of the approved subject and text together (with
+ * placeholders): the UTF-8 bytes of `${subject}\n${text}`. The subject is one
+ * line, so the join is unambiguous. The broker approves this hash, the send
+ * gate and the approvals card recompute it, and the lender_outreach
+ * email_hash check holds the database to the same rule.
+ */
+export function emailSha256(subject: string, text: string): string {
+  return createHash("sha256").update(`${subject}\n${text}`, "utf8").digest("hex");
 }
 
 /** The recipient as the email sees it: the primary contact's first name greets; otherwise "Hello". */
@@ -809,7 +815,7 @@ export function renderLenderEmail(f: EmailRenderFacts, safety: EmailSafetyOption
     .join("\n\n")}\n`;
   const subject = subjectLine(f);
   assertEmailSafe(`${subject}\n${text}`, safety);
-  return { subject, text, sha256: emailSha256(text) };
+  return { subject, text, sha256: emailSha256(subject, text) };
 }
 
 /** The principals' names the email must never print, and the borrowing entity's own name it may. */

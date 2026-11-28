@@ -8,7 +8,8 @@ import { californiaDate, can, licenseStatus } from "@/lib/auth/policy";
 import { getApprovalService } from "@/lib/approvals/server";
 import { kindLabel, type ApprovalRecord } from "@/lib/approvals/types";
 import { DecisionForm, SweepButton } from "./DecisionForm";
-import { requirementLabel } from "@/app/(staff)/deals/[id]/submission/_lib/data";
+import { approvalSubmissionContent, requirementLabel, type ApprovalSubmissionContent } from "@/app/(staff)/deals/[id]/submission/_lib/data";
+import { SummaryView } from "@/app/(staff)/deals/[id]/submission/_components/SummaryView";
 import { lenderSubmissionDetails, relativeExpiry, statusLabel, type SubmissionApprovalDetails } from "./format";
 
 export const metadata: Metadata = { title: "Approvals" };
@@ -48,6 +49,8 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
   const reject = can(ctx.principal, "reject", today);
   const lic = licenseStatus(ctx.principal.profile, today);
   const records = await service.list({ status: view === "pending" ? "pending" : ["approved", "rejected", "expired", "cancelled"], limit: 200 });
+  // A lender submission's card shows what is approved, from storage: the stored email and the locked summary.
+  const contents = new Map<string, ApprovalSubmissionContent | null>(await Promise.all(records.filter((r) => r.kind === "lender_submission").map(async (r) => [r.id, await approvalSubmissionContent(r)] as const)));
   const decidedId = z.uuid().safeParse(sp.decided).data;
   const justDecided = decidedId ? await service.get(decidedId) : null;
 
@@ -90,7 +93,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
         <ul className="grid gap-4" aria-label={view === "pending" ? "Requests waiting for a decision" : "Decided requests"}>
           {records.map((r) => (
             <li key={r.id}>
-              <ApprovalCard record={r} now={now} pending={view === "pending"} canApprove={approve.ok} blocked={approve.ok ? undefined : approve.reason} canReject={reject.ok} />
+              <ApprovalCard record={r} now={now} pending={view === "pending"} canApprove={approve.ok} blocked={approve.ok ? undefined : approve.reason} canReject={reject.ok} content={contents.get(r.id) ?? null} />
             </li>
           ))}
         </ul>
@@ -99,7 +102,7 @@ async function Queue({ searchParams }: { searchParams: SearchParams }) {
   );
 }
 
-function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject }: { record: ApprovalRecord; now: Date; pending: boolean; canApprove: boolean; blocked?: string; canReject: boolean }) {
+function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject, content }: { record: ApprovalRecord; now: Date; pending: boolean; canApprove: boolean; blocked?: string; canReject: boolean; content: ApprovalSubmissionContent | null }) {
   const payload = JSON.stringify(r.payload, null, 2);
   const submission = lenderSubmissionDetails(r, requirementLabel);
   return (
@@ -153,7 +156,7 @@ function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject 
           </div>
         ) : null}
       </dl>
-      {submission ? <SubmissionDetails d={submission} /> : null}
+      {submission ? <SubmissionDetails d={submission} content={content} id={r.id} pending={pending} /> : null}
       <details className="mt-3">
         <summary className="cursor-pointer text-[14px] font-medium text-accent">What will be sent</summary>
         <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-canvas p-3 text-[13px] leading-relaxed text-ink">{payload}</pre>
@@ -165,14 +168,25 @@ function ApprovalCard({ record: r, now, pending, canApprove, blocked, canReject 
   );
 }
 
-/** A lender submission's readiness, override reason and fit exceptions, with the exact email and summary one click away. */
-function SubmissionDetails({ d }: { d: SubmissionApprovalDetails }) {
+/**
+ * A lender submission's readiness, override reason and fit exceptions, and
+ * what the broker approves: the stored email subject and text and the locked
+ * summary, each with whether it matches the hash in the request. The live
+ * preview is linked only as the current draft.
+ */
+function SubmissionDetails({ d, content, id, pending }: { d: SubmissionApprovalDetails; content: ApprovalSubmissionContent | null; id: string; pending: boolean }) {
+  const inactive = content?.outreachStatus && content.outreachStatus !== "pending_approval" && pending ? content.outreachStatus.replace(/_/g, " ") : null;
   return (
     <div className="mt-3 space-y-2 rounded-xl bg-canvas p-3 text-[14px] text-ink">
       {d.stageLabel ? (
         <p>
           <span className="text-titanium">Asks the lender for </span>
           {d.stageLabel.toLowerCase()}
+        </p>
+      ) : null}
+      {inactive ? (
+        <p className="font-medium text-danger" role="note">
+          This submission is {inactive}; approving it sends nothing.
         </p>
       ) : null}
       {d.missing.length ? (
@@ -203,11 +217,43 @@ function SubmissionDetails({ d }: { d: SubmissionApprovalDetails }) {
           </ul>
         </div>
       ) : null}
-      {d.previewHref ? (
+      {content?.email ? (
+        <details className="rounded-lg bg-white/70 p-2" open>
+          <summary className="cursor-pointer font-medium">The email you are approving (stored, exactly as it will be sent)</summary>
+          <p className={`mt-2 text-[13px] font-medium ${content.emailVerified ? "text-success" : "text-danger"}`} data-testid="approval-email-hash">
+            {content.emailVerified ? "Matches the SHA-256 in this request." : content.emailProblem}
+          </p>
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-titanium">Subject</p>
+          <p className="break-words font-medium" data-testid="approval-email-subject">
+            {content.email.subject}
+          </p>
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-titanium">Body (the link and its expiry are filled in only after approval)</p>
+          <pre className="mt-1 max-h-96 max-w-full overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-black/[0.03] p-3 font-mono text-[12px] leading-relaxed" data-testid="approval-email-body" tabIndex={0}>
+            {content.email.text}
+          </pre>
+        </details>
+      ) : content?.emailProblem ? (
+        <p className="font-medium text-danger">{content.emailProblem}</p>
+      ) : null}
+      {content?.summary ? (
+        <details className="rounded-lg bg-white/70 p-2">
+          <summary className="cursor-pointer font-medium">The locked deal summary the lender will see</summary>
+          <p className={`mt-2 text-[13px] font-medium ${content.summaryVerified ? "text-success" : "text-danger"}`} data-testid="approval-summary-hash">
+            {content.summaryVerified ? "Matches the SHA-256 in this request." : "This summary does not match the SHA-256 in the request. Reject it and ask for the submission to be prepared again."}
+          </p>
+          <div className="mt-2">
+            <SummaryView headingLevel={4} idPrefix={`approval-summary-${id}`} spec={content.summary} />
+          </div>
+        </details>
+      ) : content && content.summaryId ? (
+        <p className="font-medium text-danger">The locked summary for this request was not found. Reject it and ask for the submission to be prepared again.</p>
+      ) : null}
+      {d.draftHref ? (
         <p>
-          <Link className="font-medium text-accent underline underline-offset-2" href={d.previewHref}>
-            Preview the email and summary
-          </Link>
+          <Link className="font-medium text-accent underline underline-offset-2" href={d.draftHref}>
+            Open the current draft
+          </Link>{" "}
+          <span className="text-titanium">(rebuilt from what is saved now; not what you are approving)</span>
         </p>
       ) : null}
     </div>

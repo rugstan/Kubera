@@ -231,7 +231,8 @@ alter table public.lender_outreach
   add column lender_fit jsonb
     check (lender_fit is null or jsonb_typeof(lender_fit) = 'object'),
   -- The text the broker approved, with {{SHARE_LINK}} and {{LINK_EXPIRES}} placeholders
-  -- (the link exists only after approval). email_sha256 is in the approval payload.
+  -- (the link exists only after approval). email_sha256 is in the approval payload:
+  -- the SHA-256 of the subject and text together (lib/deals/submission/email.ts emailSha256).
   add column email_subject text
     check (email_subject is null or (length(email_subject) between 1 and 200 and email_subject !~ '[[:cntrl:]]')),
   add column email_text text
@@ -243,6 +244,10 @@ alter table public.lender_outreach
     check (cardinality(readiness_missing) = 0 or readiness_override_reason is not null),
   add constraint lender_outreach_email_complete
     check ((email_text is null) = (email_sha256 is null) and (email_text is null) = (email_subject is null)),
+  -- The stored hash is the hash of the stored subject and text (UTF-8 of subject || LF || text),
+  -- so the row cannot hold text other than what the hash in the approval names.
+  add constraint lender_outreach_email_hash
+    check (email_sha256 is null or email_sha256 = encode(sha256(convert_to(email_subject || chr(10) || email_text, 'UTF8')), 'hex')),
   -- No SSN-shaped value and no run of nine or more digits (account, routing, tax id) in an email body.
   add constraint lender_outreach_email_no_restricted
     check (email_text is null or (email_text !~ '[0-9]{3}-[0-9]{2}-[0-9]{4}' and email_text !~ '[0-9]{9,}'));

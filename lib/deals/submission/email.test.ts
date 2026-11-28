@@ -55,7 +55,7 @@ describe("lender email golden files", () => {
       writeFileSync(file, rendered);
     }
     expect(rendered).toBe(readFileSync(file, "utf8"));
-    expect(email.sha256).toBe(emailSha256(email.text));
+    expect(email.sha256).toBe(emailSha256(email.subject, email.text));
   });
 
   it("pins the template version", () => {

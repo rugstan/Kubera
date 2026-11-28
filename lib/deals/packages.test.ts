@@ -102,7 +102,7 @@ function submission(lenderId: string, over: Partial<SubmissionSendInput> = {}): 
     summaryId: "summary-1",
     readiness: { missing: [], hardStops: [], score: 100 },
     fit: { lenderId, matches: ["HUD / FHA"], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 33, reason: null }, score: null },
-    email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256(EMAIL_TEXT) },
+    email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT) },
     ...over,
   };
 }
@@ -587,10 +587,10 @@ describe("submission gate (v2)", () => {
     expect(req.summary).toBe(
       `Send "Sunrise Assisted Living refi" (HUD 232 senior housing, term-sheet request) package v1 to Cambridge Realty Capital: $12,500,000, LTV 75%, DSCR 1.33x. Missing: T-12 operating statement; Rent roll, census or STR report — reason: ${reason}. Lender fit exceptions: LTV 75% vs 70% maximum. Note: Rush`,
     );
-    expect(req.payload).toMatchObject({ targetStage: "term_sheet", summarySha256: "a".repeat(64), emailSha256: emailSha256(EMAIL_TEXT), readinessMissing: missing, overrideReason: reason, manifestSha256: r.pkg.manifestSha256 });
+    expect(req.payload).toMatchObject({ targetStage: "term_sheet", summarySha256: "a".repeat(64), emailSha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT), readinessMissing: missing, overrideReason: reason, manifestSha256: r.pkg.manifestSha256 });
     // The submission record is on the row.
     const row = (await store.getOutreach(r.outreach.id))!;
-    expect(row).toMatchObject({ targetStage: "term_sheet", summaryId: "summary-1", readinessMissing: missing, readinessOverrideReason: reason, emailText: EMAIL_TEXT, emailSha256: emailSha256(EMAIL_TEXT), emailSubject: "Loan request: $12,500,000 HUD 232 | Corin Commercial" });
+    expect(row).toMatchObject({ targetStage: "term_sheet", summaryId: "summary-1", readinessMissing: missing, readinessOverrideReason: reason, emailText: EMAIL_TEXT, emailSha256: emailSha256("Loan request: $12,500,000 HUD 232 | Corin Commercial", EMAIL_TEXT), emailSubject: "Loan request: $12,500,000 HUD 232 | Corin Commercial" });
     expect(row.lenderFit?.exceptions).toEqual(["LTV 75% vs 70% maximum"]);
   });
 
@@ -611,11 +611,11 @@ describe("submission gate (v2)", () => {
     const { gate, deal, lender, items, deps } = await gated();
     const send = (email: SubmissionSendInput["email"]) => sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { email }) });
     const bad = `${EMAIL_TEXT}Guarantor SSN 123-45-6789\n`;
-    await expect(send({ subject: "Loan request", text: bad, sha256: emailSha256(bad) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    await expect(send({ subject: "Loan request", text: bad, sha256: emailSha256("Loan request", bad) })).rejects.toMatchObject({ reason: "email_unsafe" });
     await expect(send({ subject: "Loan request", text: EMAIL_TEXT, sha256: "0".repeat(64) })).rejects.toMatchObject({ reason: "email_unsafe" });
     const noLink = "Hello, no link here.";
-    await expect(send({ subject: "Loan request", text: noLink, sha256: emailSha256(noLink) })).rejects.toMatchObject({ reason: "email_unsafe" });
-    await expect(send({ subject: "Line one\nline two", text: EMAIL_TEXT, sha256: emailSha256(EMAIL_TEXT) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    await expect(send({ subject: "Loan request", text: noLink, sha256: emailSha256("Loan request", noLink) })).rejects.toMatchObject({ reason: "email_unsafe" });
+    await expect(send({ subject: "Line one\nline two", text: EMAIL_TEXT, sha256: emailSha256("Line one\nline two", EMAIL_TEXT) })).rejects.toMatchObject({ reason: "email_unsafe" });
     expect(gate.requests).toHaveLength(0);
   });
 
@@ -688,7 +688,7 @@ describe("submission gate (v2)", () => {
     // The email changed after the request (a new contact name, an edited plan): conflict, reworded.
     const changed = `${EMAIL_TEXT}P.S. updated\n`;
     await expect(
-      sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id, { email: { subject: "Loan request", text: changed, sha256: emailSha256(changed) } }) }),
+      sendPackageToLender(deps, { dealId: w.deal.id, lenderId: w.lender.id, items, actor: "broker:ana", submission: submission(w.lender.id, { email: { subject: "Loan request", text: changed, sha256: emailSha256("Loan request", changed) } }) }),
     ).rejects.toThrow("The submission to Cambridge Realty Capital changed after approval was requested (recipient, summary or email text). Withdraw it and request approval again.");
     // The broker approves (with step-up); the re-check mints the link and hands over the approved text.
     const approval = (await service.getByKey(first.outreach.approvalKey))!;
@@ -730,7 +730,7 @@ describe("submission gate (v2)", () => {
   it("shows the approving broker any fair-lending copy flag in the email", async () => {
     const { gate, deal, lender, items, deps } = await gated("pending");
     const text = EMAIL_TEXT.replace("not the lender.", "not the lender. The owner and his wife run the business.");
-    await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { email: { subject: "Loan request", text, sha256: emailSha256(text) } }) });
+    await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: submission(lender.id, { email: { subject: "Loan request", text, sha256: emailSha256("Loan request", text) } }) });
     expect(gate.requests[0]!.summary).toContain('Fair-lending copy flags: "wife" (sex or gender).');
     expect(gate.requests[0]!.summary.length).toBeLessThanOrEqual(500);
   });
