@@ -320,7 +320,8 @@ test("after a broker approves, the link and the approved email show once, Mark s
   await expect(notice(page, /approved; the share link and the approved email are shown below once/)).toBeVisible();
   const shown = page.locator("#approved-email");
   await expect(shown).toContainText("send this exact email from your mailbox now");
-  await expect(page.getByTestId("approved-email-subject")).toHaveText(/^Loan request: \$5,200,000 bridge \| 30-unit multifamily, San Jose CA/);
+  // Started from the lead intake, which gives no city: the subject names what is entered and nothing else.
+  await expect(page.getByTestId("approved-email-subject")).toHaveText(/^Loan request: \$5,200,000 bridge \| 30-unit multifamily, CA \| 0\.96x DSCR \| Corin Commercial$/);
   const shareUrl = ((await page.getByTestId("share-url").textContent()) ?? "").trim();
   expect(shareUrl).toMatch(/\/api\/deals\/share\/[A-Za-z0-9_-]{43}$/);
   const emailBody = page.getByTestId("approved-email-body");
@@ -333,7 +334,8 @@ test("after a broker approves, the link and the approved email show once, Mark s
   await section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ }).getByRole("button", { name: "Mark sent" }).click();
   await expect(notice(page, "Marked sent.")).toBeVisible();
   await expect(page.locator("#approved-email")).toHaveCount(0);
-  await expect(section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ })).toContainText("sent");
+  // The submission row now reads sent (the share-links table has its own row for the live link).
+  await expect(section(page, "Lender outreach").getByRole("row", { name: /^Sample Private Fund \(demo\) v1 sent / })).toBeVisible();
 
   // The lender's page: the locked summary above the documents (the demo has no vault, so no download links).
   await page.goto(`${base}${new URL(shareUrl).pathname}`);
