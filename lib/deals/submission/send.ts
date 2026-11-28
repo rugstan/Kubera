@@ -68,18 +68,26 @@ export type PreparedLender = {
   submission: SubmissionSendInput;
 };
 
-export type PreparedSubmission = {
-  ctx: SubmissionContext;
-  metrics: SubmissionMetrics;
-  readiness: Readiness;
+/** The summary as stored and the package version it was locked into. */
+export type LockedSubmission = {
   summary: DealSummaryRecord;
   summaryItem: PackageItem;
   /** The vault documents plus the deal summary: the locked manifest. */
   items: PackageItem[];
   pkg: DealPackage;
+};
+
+export type SkippedLender = { lenderId: string; lenderName: string; error: string; fit: LenderFit | null };
+
+export type PreparedSubmission = {
+  ctx: SubmissionContext;
+  metrics: SubmissionMetrics;
+  readiness: Readiness;
+  /** Null when no lender was admitted: then nothing was stored or locked. */
+  locked: LockedSubmission | null;
   lenders: PreparedLender[];
-  /** Lenders that could not be prepared (not on the panel, or their email failed a check). */
-  skipped: { lenderId: string; lenderName: string; error: string }[];
+  /** Lenders not prepared: not on the panel, refused by `admit`, or their email failed a check. */
+  skipped: SkippedLender[];
 };
 
 export type PrepareInput = {
@@ -92,6 +100,8 @@ export type PrepareInput = {
   actor: string;
   /** Why to send with required items missing (20–1000 characters); shown to the approving broker. */
   overrideReason?: string | null;
+  /** Decides, before anything is stored, whether a lender may be submitted to; returns the refusal, or null to admit. */
+  admit?: (lender: LenderPanelEntry, fit: LenderFit) => string | null;
 };
 
 function uniqueLenderIds(ids: readonly string[]): string[] {
@@ -182,8 +192,41 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
   if (!ctx.profile) throw new PackageError("not_ready", "Start the deal's submission profile before sending it to lenders.");
 
   const openItems = missingLabels(readiness);
-  const now = deps.now();
+  // Pure, so overclaiming or unsafe staff text stops the batch before anything is stored.
   const spec = buildDealSummary(ctx, metrics, input.targetStage, { openItems, advisor: { name: input.advisor.name, email: input.advisor.email, dreLicense: input.advisor.dreLicense } });
+
+  // Each lender's fit, admission and email are decided before anything is stored.
+  const [panel, boxes] = await Promise.all([deps.desk.listLenders(), deps.boxes ? deps.boxes.listBoxes({ status: "approved" }) : Promise.resolve([] as CreditBox[])]);
+  const tailorDeal = tailorDealFrom(ctx);
+  const provisionalDocs = [PREVIEW_SUMMARY_ITEM, ...input.items.filter((i) => i.kind !== "DEAL_SUMMARY")];
+  const admitted: { lender: LenderPanelEntry; fit: LenderFit }[] = [];
+  const skipped: SkippedLender[] = [];
+  for (const lenderId of lenderIds) {
+    const lender = panel.find((l) => l.id === lenderId);
+    if (!lender) {
+      skipped.push({ lenderId, lenderName: lenderId, error: "Lender not found on the panel", fit: null });
+      continue;
+    }
+    const fit = lenderFit(lender, boxes, tailorDeal, metrics.metrics);
+    const refusal = input.admit?.(lender, fit) ?? null;
+    if (refusal) {
+      skipped.push({ lenderId, lenderName: lender.name, error: refusal, fit });
+      continue;
+    }
+    try {
+      buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: provisionalDocs, notYetInHand: openItems, advisor: input.advisor });
+    } catch (err) {
+      if (err instanceof EmailSafetyError) {
+        skipped.push({ lenderId, lenderName: lender.name, error: err.message, fit });
+        continue;
+      }
+      throw err;
+    }
+    admitted.push({ lender, fit });
+  }
+  if (!admitted.length) return { ctx, metrics, readiness, locked: null, lenders: [], skipped };
+
+  const now = deps.now();
   const pdf = await deps.renderPdf(spec);
   const pdfSha256 = sha256Hex(pdf);
   const summaryItem = dealSummaryPackageItem(deal.id, pdfSha256);
@@ -209,28 +252,10 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
   const items = [...input.items.filter((i) => i.kind !== "DEAL_SUMMARY" && i.documentId !== summaryItem.documentId), summaryItem];
   const { pkg } = await lockPackageVersion(deps.desk, deal.id, items, input.actor, now);
 
-  const [panel, boxes] = await Promise.all([deps.desk.listLenders(), deps.boxes ? deps.boxes.listBoxes({ status: "approved" }) : Promise.resolve([] as CreditBox[])]);
-  const tailorDeal = tailorDealFrom(ctx);
-  const lenders: PreparedLender[] = [];
-  const skipped: PreparedSubmission["skipped"] = [];
-  for (const lenderId of lenderIds) {
-    const lender = panel.find((l) => l.id === lenderId);
-    if (!lender) {
-      skipped.push({ lenderId, lenderName: lenderId, error: "Lender not found on the panel" });
-      continue;
-    }
-    const fit = lenderFit(lender, boxes, tailorDeal, metrics.metrics);
-    let email: LenderEmail;
-    try {
-      email = buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: pkg.manifest, notYetInHand: openItems, advisor: input.advisor });
-    } catch (err) {
-      if (err instanceof EmailSafetyError) {
-        skipped.push({ lenderId, lenderName: lender.name, error: err.message });
-        continue;
-      }
-      throw err;
-    }
-    lenders.push({
+  // The emails list the locked manifest (the same text the pre-check built: documents print by kind and label).
+  const lenders: PreparedLender[] = admitted.map(({ lender, fit }) => {
+    const email: LenderEmail = buildLenderEmail({ ctx, metrics, stage: input.targetStage, lender: emailLenderFrom(lender), fit, documents: pkg.manifest, notYetInHand: openItems, advisor: input.advisor });
+    return {
       lender,
       fit,
       email,
@@ -242,9 +267,9 @@ export async function prepareSubmission(deps: SubmissionSendDeps, input: Prepare
         fit,
         email: { subject: email.subject, text: email.text, sha256: email.sha256 },
       },
-    });
-  }
-  return { ctx, metrics, readiness, summary, summaryItem, items, pkg, lenders, skipped };
+    };
+  });
+  return { ctx, metrics, readiness, locked: { summary, summaryItem, items, pkg }, lenders, skipped };
 }
 
 export type SubmitDealInput = PrepareInput & {
@@ -264,34 +289,38 @@ export type SubmitDealResult = { prepared: PreparedSubmission; outcomes: SubmitD
 /** Sends one prepared lender through the approval gate (lib/deals/packages.ts sendPackageToLender). */
 export async function sendPreparedToLender(
   deps: Omit<SubmissionSendDeps, "storage" | "renderPdf" | "loadContext" | "computeMetrics" | "boxes">,
-  prepared: Pick<PreparedSubmission, "items" | "ctx">,
+  locked: Pick<LockedSubmission, "items">,
   lender: PreparedLender,
-  opts: { actor: string; allowStaleLender?: boolean; note?: string | null; ttlDays?: number },
+  opts: { dealId: string; actor: string; allowStaleLender?: boolean; note?: string | null; ttlDays?: number },
 ): Promise<SendPackageResult> {
   return sendPackageToLender(
     { store: deps.desk, gate: deps.gate, now: deps.now, baseUrl: deps.baseUrl, mailer: deps.mailer, holds: deps.holds, summaries: deps.summaries },
-    { dealId: prepared.ctx.deal.id, lenderId: lender.lender.id, items: prepared.items, actor: opts.actor, ttlDays: opts.ttlDays, allowStaleLender: opts.allowStaleLender, note: opts.note ?? undefined, submission: lender.submission },
+    { dealId: opts.dealId, lenderId: lender.lender.id, items: locked.items, actor: opts.actor, ttlDays: opts.ttlDays, allowStaleLender: opts.allowStaleLender, note: opts.note ?? undefined, submission: lender.submission },
   );
+}
+
+/** The refusal for a lender the request falls outside of, when no reason was given (spec 5.6). */
+export function fitRefusal(lender: Pick<LenderPanelEntry, "name">, fit: LenderFit, reason: string | null): string | null {
+  return fit.exceptions.length && !reason ? `Outside ${lender.name}'s recorded box: ${fit.exceptions.join("; ")}. Add a reason to submit anyway.` : null;
 }
 
 /**
  * The send action (spec 5.1 steps 3–6): prepare once, then one approval
  * request per lender. A lender whose fit has exceptions needs
- * `lenderOverrideReason`. With no mailer the result carries the share URL and
- * the approved email for staff to send by hand; nothing is emailed.
+ * `lenderOverrideReason`; when no lender is admitted nothing is stored or
+ * locked. With no mailer the result carries the share URL and the approved
+ * email for staff to send by hand; nothing is emailed.
  */
 export async function submitDealToLenders(deps: SubmissionSendDeps, input: SubmitDealInput): Promise<SubmitDealResult> {
-  const prepared = await prepareSubmission(deps, input);
-  const outcomes: SubmitDealOutcome[] = prepared.skipped.map((s) => ({ ...s, ok: false as const, fit: null }));
   const lenderOverride = input.lenderOverrideReason?.trim() || null;
+  const prepared = await prepareSubmission(deps, { ...input, admit: (lender, fit) => input.admit?.(lender, fit) ?? fitRefusal(lender, fit, lenderOverride) });
+  const outcomes: SubmitDealOutcome[] = prepared.skipped.map((s) => ({ lenderId: s.lenderId, lenderName: s.lenderName, ok: false as const, error: s.error, fit: s.fit }));
+  const locked = prepared.locked;
+  if (!locked) return { prepared, outcomes };
   for (const p of prepared.lenders) {
-    if (p.fit.exceptions.length && !lenderOverride) {
-      outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: false, fit: p.fit, error: `Outside ${p.lender.name}'s recorded box: ${p.fit.exceptions.join("; ")}. Add a reason to submit anyway.` });
-      continue;
-    }
     const note = [p.fit.exceptions.length && lenderOverride ? `lender fit override: ${lenderOverride}` : null, input.note?.trim() || null].filter(Boolean).join(" — ") || null;
     try {
-      const result = await sendPreparedToLender(deps, prepared, p, { actor: input.actor, allowStaleLender: input.allowStaleLender, note, ttlDays: input.ttlDays });
+      const result = await sendPreparedToLender(deps, locked, p, { dealId: prepared.ctx.deal.id, actor: input.actor, allowStaleLender: input.allowStaleLender, note, ttlDays: input.ttlDays });
       outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: true, result, message: outreachMessage(result), fit: p.fit });
     } catch (err) {
       if (err instanceof PackageError) outcomes.push({ lenderId: p.lender.id, lenderName: p.lender.name, ok: false, error: err.message, fit: p.fit });

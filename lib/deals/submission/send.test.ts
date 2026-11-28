@@ -78,19 +78,20 @@ describe("prepareSubmission", () => {
     const w = await world();
     const p = await prepareSubmission(w.deps, { dealId: w.deal.id, targetStage: "term_sheet", lenderIds: [w.lenders.a.id, w.lenders.b.id, w.lenders.a.id], items: w.items, advisor: ADVISOR, actor: "broker:ana" });
     expect(p.readiness).toMatchObject({ stage: "term_sheet", ready: true, missing: [] });
+    const locked = p.locked!;
     expect(w.summaries.rows.size).toBe(1);
-    expect(p.summary).toMatchObject({ dealId: w.deal.id, targetStage: "term_sheet", playbook: "bridge", profileVersion: 7, sponsorVersion: 3, createdBy: "broker:ana" });
-    expect(p.summary.specSha256).toBe(summarySpecSha256(p.summary.spec));
-    expect([...w.storage.objects.keys()]).toEqual([p.summaryItem.storagePath]);
-    expect(p.pkg).toMatchObject({ status: "locked", version: 1 });
-    expect(p.pkg.manifest.map((i) => i.kind)).toContain("DEAL_SUMMARY");
-    expect(p.pkg.manifest).toHaveLength(w.items.length + 1);
+    expect(locked.summary).toMatchObject({ dealId: w.deal.id, targetStage: "term_sheet", playbook: "bridge", profileVersion: 7, sponsorVersion: 3, createdBy: "broker:ana" });
+    expect(locked.summary.specSha256).toBe(summarySpecSha256(locked.summary.spec));
+    expect([...w.storage.objects.keys()]).toEqual([locked.summaryItem.storagePath]);
+    expect(locked.pkg).toMatchObject({ status: "locked", version: 1 });
+    expect(locked.pkg.manifest.map((i) => i.kind)).toContain("DEAL_SUMMARY");
+    expect(locked.pkg.manifest).toHaveLength(w.items.length + 1);
     expect(p.lenders.map((l) => l.lender.name)).toEqual(["Harborline Capital", "Northgate Bank"]);
     for (const l of p.lenders) {
       expect(l.email.text).toContain(EMAIL_PLACEHOLDERS.shareLink);
       expect(l.email.sha256).toBe(emailSha256(l.email.text));
-      expect(l.submission).toMatchObject({ targetStage: "term_sheet", summaryId: p.summary.id, email: { sha256: l.email.sha256 } });
-      expect(l.email.text).toContain(`IN THE PACKAGE (${p.pkg.manifest.length} documents)`);
+      expect(l.submission).toMatchObject({ targetStage: "term_sheet", summaryId: locked.summary.id, email: { sha256: l.email.sha256 } });
+      expect(l.email.text).toContain(`IN THE PACKAGE (${locked.pkg.manifest.length} documents)`);
     }
     // Only the greeting, the fit lines and the lender's name differ.
     expect(p.lenders[0]!.email.text.split("Harborline Capital").join("X")).toBe(p.lenders[1]!.email.text.split("Northgate Bank").join("X"));
@@ -98,9 +99,20 @@ describe("prepareSubmission", () => {
 
     // Preparing the same facts again reuses the summary row and the locked version.
     const again = await prepareSubmission(w.deps, { dealId: w.deal.id, targetStage: "term_sheet", lenderIds: [w.lenders.b.id], items: w.items, advisor: ADVISOR, actor: "broker:ana" });
-    expect(again.summary.id).toBe(p.summary.id);
-    expect(again.pkg.id).toBe(p.pkg.id);
+    expect(again.locked!.summary.id).toBe(locked.summary.id);
+    expect(again.locked!.pkg.id).toBe(locked.pkg.id);
     expect(await w.store.listPackages(w.deal.id)).toHaveLength(1);
+  });
+
+  it("stores and locks nothing when no lender is admitted", async () => {
+    const w = await world();
+    const p = await prepareSubmission(w.deps, { dealId: w.deal.id, targetStage: "screen", lenderIds: [w.lenders.a.id, "missing-lender"], items: w.items, advisor: ADVISOR, actor: "a", admit: (l) => `${l.name} is paused` });
+    expect(p.locked).toBeNull();
+    expect(p.lenders).toEqual([]);
+    expect(p.skipped.map((s) => s.error)).toEqual(["Harborline Capital is paused", "Lender not found on the panel"]);
+    expect(w.summaries.rows.size).toBe(0);
+    expect(w.storage.objects.size).toBe(0);
+    expect(await w.store.listPackages(w.deal.id)).toEqual([]);
   });
 
   it("refuses when required items are missing and no reason is given: nothing stored, nothing locked", async () => {
@@ -190,7 +202,7 @@ describe("submitDealToLenders", () => {
     expect(req.payload).toMatchObject({ targetStage: "underwrite", overrideReason: reason, readinessMissing: r.prepared.readiness.missing });
     expect(r.prepared.readiness.missing.length).toBeGreaterThan(0);
     expect(req.summary).toContain(`— reason: ${reason}`);
-    expect(r.prepared.summary.spec.openItems.length).toBe(r.prepared.readiness.missing.length);
+    expect(r.prepared.locked!.summary.spec.openItems.length).toBe(r.prepared.readiness.missing.length);
     expect(r.prepared.lenders[0]!.email.text).toContain("Not yet in hand: ");
   });
 });
@@ -211,7 +223,7 @@ describe("previewSubmission", () => {
       if (!l.ok) throw new Error(l.error);
       expect(l.email.sha256).toBe(prepared.lenders[i]!.email.sha256);
     }
-    expect(summarySpecSha256(preview.summary)).toBe(prepared.summary.specSha256);
+    expect(summarySpecSha256(preview.summary)).toBe(prepared.locked!.summary.specSha256);
   });
 
   it("reports a lender whose email fails a check, and refuses identifiers typed into free text outright", async () => {
