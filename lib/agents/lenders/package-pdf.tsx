@@ -9,25 +9,27 @@ import type { DealSummarySpec } from "@/lib/deals/submission/types";
 // with a source column, and tables. Fixed document dates from the spec's
 // as-of date and built-in fonts only.
 
+// Spacing is tight on purpose: the summary targets two pages for the longest
+// playbooks (construction, hotel PIP bridge, C-PACE) without dropping a fact.
 const deal = StyleSheet.create({
-  page: { paddingTop: 30, paddingBottom: 40, paddingHorizontal: 34, fontFamily: "Helvetica", fontSize: 7.5, color: "#1d1d1f", lineHeight: 1.22 },
-  title: { fontFamily: "Helvetica-Bold", fontSize: 13, lineHeight: 1.35, marginBottom: 3 },
-  subtitle: { fontSize: 7.5, color: "#424245", marginBottom: 6 },
-  tiles: { flexDirection: "row", flexWrap: "wrap", marginBottom: 2 },
-  tile: { width: "16.66%", paddingVertical: 3, paddingHorizontal: 5, borderWidth: 0.5, borderColor: "#d2d2d7" },
+  page: { paddingTop: 26, paddingBottom: 34, paddingHorizontal: 32, fontFamily: "Helvetica", fontSize: 7.5, color: "#1d1d1f", lineHeight: 1.15 },
+  title: { fontFamily: "Helvetica-Bold", fontSize: 12.5, lineHeight: 1.3, marginBottom: 2 },
+  subtitle: { fontSize: 7.5, color: "#424245", marginBottom: 4 },
+  tiles: { flexDirection: "row", flexWrap: "wrap", marginBottom: 1 },
+  tile: { width: "16.66%", paddingVertical: 2, paddingHorizontal: 5, borderWidth: 0.5, borderColor: "#d2d2d7" },
   tileLabel: { fontSize: 6.5, color: "#424245" },
   tileValue: { fontFamily: "Helvetica-Bold", fontSize: 10 },
-  h2: { fontFamily: "Helvetica-Bold", fontSize: 8.5, marginTop: 6, marginBottom: 2, paddingBottom: 1, borderBottomWidth: 0.75, borderBottomColor: "#d2d2d7" },
-  row: { flexDirection: "row", paddingVertical: 0.75, borderBottomWidth: 0.5, borderBottomColor: "#f0f0f2" },
-  label: { width: "30%", paddingRight: 6, color: "#424245" },
-  value: { width: "48%", paddingRight: 6, fontFamily: "Helvetica-Bold" },
-  source: { width: "22%", fontSize: 6.5, color: "#6e6e73" },
-  para: { marginTop: 2 },
-  tableRow: { flexDirection: "row", paddingVertical: 0.75, borderBottomWidth: 0.5, borderBottomColor: "#f0f0f2" },
-  tableHead: { flexDirection: "row", paddingVertical: 0.75, borderBottomWidth: 0.75, borderBottomColor: "#d2d2d7" },
+  h2: { fontFamily: "Helvetica-Bold", fontSize: 8.5, marginTop: 4.5, marginBottom: 1.5, paddingBottom: 1, borderBottomWidth: 0.75, borderBottomColor: "#d2d2d7" },
+  row: { flexDirection: "row", paddingVertical: 0.4, borderBottomWidth: 0.5, borderBottomColor: "#f0f0f2" },
+  label: { width: "27%", paddingRight: 6, color: "#424245" },
+  value: { width: "54%", paddingRight: 6, fontFamily: "Helvetica-Bold" },
+  source: { width: "19%", fontSize: 6.5, color: "#6e6e73" },
+  para: { marginTop: 1.5 },
+  tableRow: { flexDirection: "row", paddingVertical: 0.4, borderBottomWidth: 0.5, borderBottomColor: "#f0f0f2" },
+  tableHead: { flexDirection: "row", paddingVertical: 0.4, borderBottomWidth: 0.75, borderBottomColor: "#d2d2d7" },
   cell: { flex: 1, paddingRight: 6 },
   headCell: { flex: 1, paddingRight: 6, fontFamily: "Helvetica-Bold" },
-  footer: { position: "absolute", bottom: 20, left: 38, right: 38, fontSize: 7, color: "#424245", flexDirection: "row", justifyContent: "space-between" },
+  footer: { position: "absolute", bottom: 16, left: 32, right: 32, fontSize: 7, color: "#424245", flexDirection: "row", justifyContent: "space-between" },
   footerText: { width: "88%" },
 });
 

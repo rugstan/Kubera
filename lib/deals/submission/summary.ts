@@ -408,7 +408,7 @@ function programSection(key: ProgramDetailKey, ctx: SubmissionContext, metrics: 
           ...row("Sponsor equity in to date", money(c.equityInToDateCents), src("equityInToDateCents")),
           ...row("Completion guaranty offered", c.completionGuaranty === undefined ? null : fmt.yesNo(c.completionGuaranty), src("completionGuaranty")),
           ...row("Ground-up projects completed by the sponsor", c.groundUpProjectsCompleted !== undefined ? group(c.groundUpProjectsCompleted) : null, src("groundUpProjectsCompleted")),
-          ...metricRow(metricOf(metrics, "yield_on_cost")),
+          // Yield on cost is already a row under Value and financials.
         ],
         table: lines.length ? { head: ["Budget line", `Amount (${budgetSrc})`], rows: [...lines.map(([l, v]) => [l, fmt.usd(v)]), ["Total", fmt.usd(lines.reduce((s, [, v]) => s + v, 0))]] } : undefined,
       });
@@ -474,11 +474,10 @@ function programSection(key: ProgramDetailKey, ctx: SubmissionContext, metrics: 
       if (!x) return [];
       const pip = x.pip;
       return section("Hotel", {
+        // Keys are in Property ("Type and size") and the management company under Sponsor ("Management").
         rows: [
-          ...row("Keys", p.sizeUnit === "keys" && p.sizeCount !== null ? group(p.sizeCount) : null, sourceLabel(fieldSource(ctx, "sizeCount"), ctx)),
           ...row("Brand", x.brand, src("brand")),
           ...row("Franchise expires", date(x.franchiseExpiry), src("franchiseExpiry")),
-          ...row("Management company", ctx.sponsor?.managementCompany, SOURCE_SPONSOR),
           ...metricRow(metricOf(metrics, "hotel_occupancy")),
           ...metricRow(metricOf(metrics, "hotel_adr")),
           ...metricRow(metricOf(metrics, "hotel_revpar")),
@@ -794,8 +793,7 @@ export function buildDealSummary(ctx: SubmissionContext, metrics: SubmissionMetr
     title: "About this request",
     paragraphs: [
       `${site.legalName} is the broker on this request, not the lender. Figures come from the borrower's documents and Corin's calculations as labeled; the lender performs its own underwriting and makes every credit decision. This summary is a request for terms, not a commitment by any party.`,
-      ...(opts.advisor ? [`Advisor: ${opts.advisor.name} (${opts.advisor.email}${opts.advisor.dreLicense ? `, DRE ${opts.advisor.dreLicense}` : ""}).`] : []),
-      "Confidential: for the addressed institution's credit review only. Please do not forward.",
+      `${opts.advisor ? `Advisor: ${opts.advisor.name} (${opts.advisor.email}${opts.advisor.dreLicense ? `, DRE ${opts.advisor.dreLicense}` : ""}). ` : ""}Confidential: for the addressed institution's credit review only. Please do not forward.`,
     ],
   });
 

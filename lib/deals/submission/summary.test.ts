@@ -5,6 +5,7 @@ import { renderDealSummaryPdf } from "@/lib/agents/lenders/package-pdf";
 import { EmailSafetyError } from "./redaction";
 import { buildDealSummary, fmt, sizePhrase, summaryAsOf, summarySpecSha256, summaryText } from "./summary";
 import { computeSubmissionMetrics } from "./metrics";
+import { evaluateReadiness } from "./readiness";
 import { allSubmissionFixtures, emptyProfileContext, submissionFixture } from "./test-fixtures";
 import { submissionPlaybooks, type DealSummarySpec, type SubmissionContext } from "./types";
 
@@ -185,17 +186,22 @@ describe("deal summary PDF", () => {
     const text = drawnText(a);
     for (const s of ["Brindlewood Court Apartments acquisition", "$8,400,000", "From T-12", "Total uses", "not the lender", "How these figures were calculated"]) expect(text).toContain(s);
     const pages = Buffer.from(a).toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? [];
-    expect(pages.length).toBeLessThanOrEqual(3);
+    expect(pages.length).toBeLessThanOrEqual(2);
     const item = dealSummaryPackageItem("d1", sha256Hex(a));
     expect(item).toMatchObject({ kind: "DEAL_SUMMARY", label: "Deal summary (Corin)", storagePath: `packages/d1/deal-summary-${sha256Hex(a).slice(0, 16)}.pdf` });
     expect(item.documentId.length).toBeLessThanOrEqual(100);
   });
 
-  it("renders every playbook's summary in at most three pages", async () => {
+  it("renders every playbook's summary in at most two pages (spec 5.5), at every stage, with the open items listed", async () => {
     for (const [playbook, ctx] of allSubmissionFixtures()) {
-      const bytes = await renderDealSummaryPdf(build(ctx));
-      const pages = Buffer.from(bytes).toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? [];
-      expect(pages.length, playbook).toBeLessThanOrEqual(3);
+      for (const stage of ["screen", "term_sheet", "underwrite"] as const) {
+        const metrics = computeSubmissionMetrics(ctx);
+        const r = evaluateReadiness(ctx, metrics, stage);
+        const spec = buildDealSummary(ctx, metrics, stage, { openItems: r.required.filter((i) => !i.met).map((i) => i.label), advisor: { name: "Ana Ruiz", email: "ana@corincommercial.com", dreLicense: "01234567" } });
+        const bytes = await renderDealSummaryPdf(spec);
+        const pages = Buffer.from(bytes).toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? [];
+        expect(pages.length, `${playbook} ${stage}`).toBeLessThanOrEqual(2);
+      }
     }
-  });
+  }, 60_000);
 });
