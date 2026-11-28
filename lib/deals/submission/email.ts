@@ -375,15 +375,30 @@ function ltcLine(f: EmailRenderFacts): string | null {
   return kv("LTC", `${val(ltc)}${cost ? ` of ${fmt.usd(cost)} total cost` : ""}`, W2);
 }
 
+const stackPlaybook = (f: EmailRenderFacts) => f.playbook === "mezz_pref" || f.playbook === "c_pace";
+
+/** Debt yield; on mezz and C-PACE it is the combined one (senior plus this loan) and says so. */
 function debtYieldLine(f: EmailRenderFacts): string | null {
   const parts = [m(f, "debt_yield_in_place") ? `${val(m(f, "debt_yield_in_place"))} in place` : null, m(f, "debt_yield_stabilized") ? `${val(m(f, "debt_yield_stabilized"))} stabilized` : null].filter(has);
-  return parts.length ? kv("Debt yield", parts.join(" / "), W2) : null;
+  return parts.length ? kv(stackPlaybook(f) ? "Combined debt yield" : "Debt yield", `${parts.join(" / ")}${stackPlaybook(f) ? " on the senior loan plus this loan" : ""}`, W2) : null;
 }
 
+/**
+ * DSCR at the assumed terms. On mezz and C-PACE it is the combined DSCR, and
+ * the assumption is the metric's own note (the senior loan at its rate, this
+ * loan at the assumed one), not this loan's rate alone.
+ */
 function dscrLine(f: EmailRenderFacts): string | null {
-  const parts = [m(f, "dscr_in_place") ? `${val(m(f, "dscr_in_place"))} in place` : null, m(f, "dscr_stabilized") ? `${val(m(f, "dscr_stabilized"))} stabilized` : null].filter(has);
+  const ip = m(f, "dscr_in_place");
+  const st = m(f, "dscr_stabilized");
+  const parts = [ip ? `${val(ip)} in place` : null, st ? `${val(st)} stabilized` : null].filter(has);
+  if (!parts.length) return null;
+  if (stackPlaybook(f)) {
+    const note = (ip ?? st)?.note;
+    return kv("Combined DSCR", `${parts.join(" / ")}${note ? ` (${lower(note).replace(/\.$/, "")})` : ""}`, W2);
+  }
   const at = assumption(f);
-  return parts.length ? kv("DSCR", `${parts.join(" / ")}${at ? ` ${at}` : ""}`, W2) : null;
+  return kv("DSCR", `${parts.join(" / ")}${at ? ` ${at}` : ""}`, W2);
 }
 
 function perUnitLine(f: EmailRenderFacts): string | null {

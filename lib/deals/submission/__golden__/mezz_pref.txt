@@ -20,8 +20,8 @@ THE NUMBERS
   NOI in place:      $1,890,000 (trailing 12 months through September 30, 2026; from the T-12)
   Underwritten NOI:  $1,812,000 (Corin normalization of the operating statement)
   NOI stabilized:    $2,520,000 in about 24 months (Corin pro forma from the sponsor's plan)
-  Debt yield:        6.6% in place / 8.8% stabilized
-  DSCR:              0.69x in place / 0.92x stabilized at an assumed 12.5% / 30-year schedule — an assumption, not a quote
+  Combined debt yield: 6.6% in place / 8.8% stabilized on the senior loan plus this loan
+  Combined DSCR:     0.69x in place / 0.92x stabilized (senior loan at its 8.25% rate and this loan at an assumed 12.5%, both on a 30-year amortization; an assumption, not a quote)
   Loan per unit:     $20,000
 
 THE CAPITAL STACK

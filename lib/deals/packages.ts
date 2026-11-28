@@ -412,7 +412,7 @@ function submissionApprovalSummary(deal: Deal, lender: LenderPanelEntry, pkg: De
   const tiles = s.summary.spec.headline;
   const tile = (labels: readonly string[]) => tiles.find((t) => labels.includes(t.label));
   const ltv = tile(["LTV", "Loan to price", "Combined LTV", "LTC", "Combined LTC"]);
-  const dscr = tile(["DSCR", "Global DSCR"]);
+  const dscr = tile(["DSCR", "Global DSCR", "Combined DSCR"]);
   const figures = [deal.loanAmountCents ? fmt.usd(deal.loanAmountCents) : null, ltv ? `${ltv.label} ${ltv.value}` : null, dscr ? `${dscr.label} ${dscr.value}` : null].filter(Boolean).join(", ");
   const missing = s.send.readiness.missing;
   const labels = missing.length ? missingLabels(missing, s.summary) : [];

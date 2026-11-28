@@ -313,7 +313,9 @@ export function headlineLabel(m: Metric): string {
     yield_on_cost: "Yield on cost",
     cap_rate: "Cap rate",
   };
-  return labels[m.key] ?? m.label;
+  // On mezz and C-PACE the coverage metrics are the combined ones (senior plus this loan); the tile says so.
+  const label = labels[m.key] ?? m.label;
+  return m.label.startsWith("Combined") && !label.startsWith("Combined") ? `Combined ${lower(label)}` : label;
 }
 
 function pickHeadline(playbook: ReturnType<typeof playbookOf>, metrics: SubmissionMetrics, loanCents: number | null, occupancy: number | null): { label: string; value: string }[] {

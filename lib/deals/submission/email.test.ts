@@ -10,6 +10,7 @@ import { evaluateReadiness } from "./readiness";
 import { EmailSafetyError } from "./redaction";
 import { lenderFit, tailorDealFrom } from "./tailor";
 import { computeSubmissionMetrics } from "./metrics";
+import { buildDealSummary } from "./summary";
 import { emptyProfileContext, submissionFixture } from "./test-fixtures";
 import { EMAIL_PLACEHOLDERS, submissionPlaybooks, type SubmissionContext, type SubmissionPlaybook, type TargetStage } from "./types";
 
@@ -194,5 +195,21 @@ describe("buildLenderEmail", () => {
     expect(json).not.toMatch(/"(netWorthCents|liquidityCents)":\d|legalName|principals|guarantorTotals|statedNetWorth/);
     expect(facts.sponsor!.covenants!.rounded).toBeNull();
     expect(renderLenderEmail(facts).text).toContain("Key principal net worth at or above the loan amount: yes.");
+  });
+});
+
+// F6: on mezz and C-PACE the coverage figures are the combined ones, and the assumption names both rates.
+describe("mezz and C-PACE coverage lines", () => {
+  it.each(["mezz_pref", "c_pace"] as const)("%s prints combined debt yield and DSCR with the metric's own note", (pb) => {
+    const ctx = submissionFixture(pb);
+    const { text } = buildLenderEmail(input(ctx));
+    const lines = text.split("\n");
+    expect(lines.some((l) => /^ {2}Combined debt yield: .* on the senior loan plus this loan$/.test(l))).toBe(true);
+    const dscr = lines.find((l) => l.startsWith("  Combined DSCR:"))!;
+    expect(dscr).toMatch(/\(senior loan at its [\d.]+% rate and this loan at an assumed [\d.]+%, both on a \d+-year amortization; an assumption, not a quote\)$/);
+    expect(lines.some((l) => /^ {2}(Debt yield|DSCR):/.test(l))).toBe(false);
+    const summary = buildDealSummary(ctx, computeSubmissionMetrics(ctx), "term_sheet");
+    expect(summary.headline.map((t) => t.label)).not.toContain("DSCR");
+    expect(summary.headline.map((t) => t.label)).toEqual(expect.arrayContaining(["Combined DSCR"]));
   });
 });

@@ -92,11 +92,23 @@ const listJoin = (items: readonly string[]) => (items.length <= 1 ? (items[0] ??
 const assetLabel = (a: SubmissionAssetType) => SUBMISSION_ASSET_TYPE_LABELS[a];
 const DAY = 86_400_000;
 
-/** The DSCR the playbook leads with (rental and SBA have their own). */
+/** The DSCR the playbook leads with (rental and SBA have their own; on mezz and C-PACE it is the combined one). */
 function dscrMetric(playbook: SubmissionPlaybook, metrics: readonly Metric[]): Metric | null {
   if (playbook === "dscr_rental") return metricOf(metrics, "dscr_rental");
   if (playbook === "sba_7a" || playbook === "sba_504") return metricOf(metrics, "global_dscr");
   return metricOf(metrics, "dscr_in_place");
+}
+
+const isStack = (playbook: SubmissionPlaybook) => playbook === "mezz_pref" || playbook === "c_pace";
+
+/**
+ * The leverage a lender's limits are tested on: this loan's LTV and LTC, or on
+ * mezz and C-PACE the combined (senior plus this loan) LTV and LTC, the last
+ * dollar a subordinate lender is exposed to.
+ */
+function leverage(playbook: SubmissionPlaybook, metrics: readonly Metric[]): { ltv: Metric | null; ltc: Metric | null; ltvLabel: string; ltcLabel: string; prefix: string } {
+  if (isStack(playbook)) return { ltv: metricOf(metrics, "combined_ltv"), ltc: metricOf(metrics, "combined_ltc"), ltvLabel: "Combined LTV", ltcLabel: "Combined LTC", prefix: "Combined " };
+  return { ltv: metricOf(metrics, "ltv_as_is"), ltc: metricOf(metrics, "ltc"), ltvLabel: "LTV", ltcLabel: "LTC", prefix: "" };
 }
 
 const lienFor = (l: SubmissionLienPosition | null): LienPosition | null => (l === "first" || l === "second" ? l : null);
@@ -110,8 +122,9 @@ export function submissionDealProfile(deal: TailorDeal, metrics: readonly Metric
     loanAmountCents: deal.loanAmountCents,
     propertyState: deal.propertyState,
     assetClass: assetClassFor(deal.playbook, deal.assetType),
-    ltvPct: metricOf(metrics, "ltv_as_is")?.value ?? null,
-    ltcPct: metricOf(metrics, "ltc")?.value ?? null,
+    // Mezz and C-PACE: the combined figures (the matcher tests the last dollar).
+    ltvPct: leverage(deal.playbook, metrics).ltv?.value ?? null,
+    ltcPct: leverage(deal.playbook, metrics).ltc?.value ?? null,
     dscr: dscrMetric(deal.playbook, metrics)?.value ?? null,
     debtYieldPct: metricOf(metrics, "debt_yield_in_place")?.value ?? null,
     lienPosition: lienFor(deal.lienPosition) ?? (deal.lienPosition ? "second" : "first"),
@@ -129,20 +142,26 @@ function checkBox(box: CreditBox, deal: TailorDeal, metrics: readonly Metric[]):
   if (box.assetClasses.length && assetClass && !box.assetClasses.includes(assetClass)) {
     out.exceptions.push(`${ASSET_CLASS_LABELS[assetClass]} is outside this credit box's asset classes (${listJoin(box.assetClasses.map((a) => ASSET_CLASS_LABELS[a]))})`);
   }
-  const limit = (label: string, m: Metric | null, max: number | null, kind: "max" | "min", unit: (n: number) => string) => {
+  const limit = (label: string, m: Metric | null, max: number | null, kind: "max" | "min", unit: (n: number) => string, untested = false) => {
     if (max === null) {
       out.unknown.push(`${kind === "max" ? "maximum" : "minimum"} ${label}`);
       return;
     }
-    if (!m || m.value === null) return;
+    if (!m || m.value === null) {
+      // A limit the lender recorded but this request cannot be tested on yet is listed, never silently passed.
+      if (untested) out.unknown.push(`${label} against your ${unit(max)} ${kind === "max" ? "maximum" : "minimum"} (not computed yet)`);
+      return;
+    }
     const bad = kind === "max" ? m.value > max : m.value < max;
     if (bad) out.exceptions.push(`${label} ${unit(m.value)} vs ${unit(max)} ${kind === "max" ? "maximum" : "minimum"}`);
     else out.matches.push(kind === "max" ? `${label} ${unit(m.value)} within your ${unit(max)} maximum` : `${label} ${unit(m.value)} meets your ${unit(max)} minimum`);
   };
-  limit("LTV", metricOf(metrics, "ltv_as_is"), box.maxLtvPct, "max", fmt.pct);
-  if (box.maxLtcPct !== null) limit("LTC", metricOf(metrics, "ltc"), box.maxLtcPct, "max", fmt.pct);
-  limit("DSCR", dscrMetric(deal.playbook, metrics), box.minDscr, "min", fmt.x);
-  if (box.minDebtYieldPct !== null) limit("Debt yield", metricOf(metrics, "debt_yield_in_place"), box.minDebtYieldPct, "min", fmt.pct);
+  const lev = leverage(deal.playbook, metrics);
+  const stack = isStack(deal.playbook);
+  limit(lev.ltvLabel, lev.ltv, box.maxLtvPct, "max", fmt.pct, stack);
+  if (box.maxLtcPct !== null) limit(lev.ltcLabel, lev.ltc, box.maxLtcPct, "max", fmt.pct, stack);
+  limit(`${lev.prefix}DSCR`, dscrMetric(deal.playbook, metrics), box.minDscr, "min", fmt.x, stack);
+  if (box.minDebtYieldPct !== null) limit(`${lev.prefix}${stack ? "debt yield" : "Debt yield"}`, metricOf(metrics, "debt_yield_in_place"), box.minDebtYieldPct, "min", fmt.pct, stack);
 
   if (deal.recourse && box.recourse) {
     const needsLess = (deal.recourse === "non_recourse" && box.recourse !== "non_recourse" && box.recourse !== "negotiable") || (deal.recourse === "partial" && box.recourse === "full");

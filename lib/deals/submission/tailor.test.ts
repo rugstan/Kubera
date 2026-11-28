@@ -125,3 +125,40 @@ describe("lenderFit", () => {
     expect(assetClassFor("hotel_cmbs", "HOTEL_FLAGGED")).toBe("HOSPITALITY");
   });
 });
+
+// F8: a subordinate lender's limits are tested on the last dollar (senior plus this loan).
+describe("mezz and C-PACE fit on the combined figures", () => {
+  const stack = (pb: "mezz_pref" | "c_pace") => {
+    const ctx = submissionFixture(pb);
+    const metrics = computeSubmissionMetrics(ctx).metrics;
+    const panel = toPanelEntry(lenderInput({ name: "Mezz Co", programs: [ctx.deal.program], loanTypes: [pb], minLoanCents: 1, maxLoanCents: 9e12, states: [], assetTypes: [] }), "lender-1", []);
+    const v = (k: string) => metrics.find((m) => m.key === k)?.value ?? null;
+    return { ctx, metrics, panel, v, b: box({ programs: [ctx.deal.program], assetClasses: [], maxLtvPct: 70, maxLtcPct: 60, minDscr: 1.2, minDebtYieldPct: null, lienPositions: [], recourse: null }) };
+  };
+
+  it("compares combined LTV and LTC with the box's maximums (a mezz above the senior's box raises exceptions)", () => {
+    const { ctx, metrics, panel, v, b } = stack("mezz_pref");
+    const fit = lenderFit(panel, [b], tailorDealFrom(ctx), metrics);
+    expect(v("combined_ltv")).toBe(80);
+    expect(v("combined_ltc")).toBeCloseTo(68.57, 2);
+    expect(fit.exceptions).toEqual(expect.arrayContaining(["Combined LTV 80% vs 70% maximum", "Combined LTC 68.6% vs 60% maximum"]));
+    expect(fit.exceptions.some((e) => e.startsWith("Combined DSCR"))).toBe(true);
+  });
+
+  it("lists a recorded limit it cannot test yet as unknown, never as passed", () => {
+    const { ctx, panel, b } = stack("c_pace");
+    ctx.profile!.programDetails = { ...ctx.profile!.programDetails, capitalStack: { ...ctx.profile!.programDetails.capitalStack, seniorAmountCents: undefined } };
+    const metrics = computeSubmissionMetrics(ctx).metrics;
+    const fit = lenderFit(panel, [b], tailorDealFrom(ctx), metrics);
+    expect(fit.unknown).toEqual(expect.arrayContaining(["Combined LTV against your 70% maximum (not computed yet)"]));
+    expect(fit.matches.some((m) => m.startsWith("Combined LTV"))).toBe(false);
+  });
+
+  it("sends the matcher the combined values", () => {
+    const { ctx, metrics, v } = stack("mezz_pref");
+    const profile = submissionDealProfile(tailorDealFrom(ctx), metrics);
+    expect(profile.ltvPct).toBe(v("combined_ltv"));
+    expect(profile.ltcPct).toBe(v("combined_ltc"));
+    expect(profile.dscr).toBe(v("dscr_in_place"));
+  });
+});
