@@ -5,6 +5,7 @@ import type { NewLender } from "../types";
 import { assetClassFor, lenderFit, submissionDealProfile, tailorDealFrom, type TailorDeal } from "./tailor";
 import { computeSubmissionMetrics } from "./metrics";
 import { submissionFixture } from "./test-fixtures";
+import { submissionPlaybooks } from "./types";
 
 const bridge = () => {
   const ctx = submissionFixture("bridge");
@@ -160,5 +161,47 @@ describe("mezz and C-PACE fit on the combined figures", () => {
     expect(profile.ltvPct).toBe(v("combined_ltv"));
     expect(profile.ltcPct).toBe(v("combined_ltc"));
     expect(profile.dscr).toBe(v("dscr_in_place"));
+  });
+});
+
+// N2: every playbook tests each recorded limit, on the figures its lenders size on, or lists it as unknown.
+describe("credit-box limits on every playbook", () => {
+  const tight = (program: string) => box({ programs: [program as CreditBox["programs"][number]], assetClasses: [], maxLtvPct: 10, maxLtcPct: 10, minDscr: 5, minDebtYieldPct: 50, lienPositions: [], recourse: null, maxTermMonths: null, typicalCloseDays: null });
+  const fitOf = (pb: Parameters<typeof submissionFixture>[0]) => {
+    const ctx = submissionFixture(pb);
+    const metrics = computeSubmissionMetrics(ctx).metrics;
+    const panel = toPanelEntry(lenderInput({ name: "Tight Co", programs: [ctx.deal.program], loanTypes: [], minLoanCents: 1, maxLoanCents: 9e12, states: [], assetTypes: [] }), "lender-1", []);
+    return { ctx, metrics, fit: lenderFit(panel, [tight(ctx.deal.program)], tailorDealFrom(ctx), metrics), v: (k: string) => metrics.find((m) => m.key === k)?.value ?? null };
+  };
+
+  it("never passes a limit silently: each is an exception or listed as not computed yet", () => {
+    for (const pb of submissionPlaybooks) {
+      const { fit } = fitOf(pb);
+      for (const [name, re] of [["LTV", /LTV/], ["LTC", /LTC/], ["DSCR", /DSCR/], ["debt yield", /debt yield/i]] as const) {
+        const seen = fit.exceptions.some((e) => re.test(e)) || fit.unknown.some((u) => re.test(u) && /not computed yet/.test(u));
+        expect(seen, `${pb} ${name}: ${JSON.stringify(fit)}`).toBe(true);
+        expect(fit.matches.some((m) => re.test(m)), `${pb} ${name}`).toBe(false);
+      }
+    }
+  });
+
+  it("tests construction on LTC, the stabilized LTV and the stabilized DSCR and debt yield", () => {
+    const { ctx, metrics, fit, v } = fitOf("construction");
+    expect(fit.exceptions).toEqual(expect.arrayContaining([expect.stringMatching(/^Stabilized LTV /), expect.stringMatching(/^LTC /), expect.stringMatching(/^Stabilized DSCR /), expect.stringMatching(/^Stabilized debt yield /)]));
+    const profile = submissionDealProfile(tailorDealFrom(ctx), metrics);
+    expect(profile).toMatchObject({ ltvPct: v("ltv_stabilized"), ltcPct: v("ltc"), dscr: v("dscr_stabilized"), debtYieldPct: v("debt_yield_stabilized") });
+    expect(profile.ltvPct).not.toBeNull();
+    expect(profile.dscr).not.toBeNull();
+  });
+
+  it("tests every other playbook on the in-place LTV, LTC, DSCR and debt yield, and sends the matcher the same values", () => {
+    for (const pb of ["bridge", "bank", "agency", "cmbs", "hotel_pip_bridge", "dscr_rental", "sba_7a", "hard_money"] as const) {
+      const { ctx, metrics, fit, v } = fitOf(pb);
+      const dscrKey = pb === "dscr_rental" ? "dscr_rental" : pb === "sba_7a" ? "global_dscr" : "dscr_in_place";
+      const profile = submissionDealProfile(tailorDealFrom(ctx), metrics);
+      expect(profile, pb).toMatchObject({ ltvPct: v("ltv_as_is"), ltcPct: v("ltc"), dscr: v(dscrKey), debtYieldPct: v("debt_yield_in_place") });
+      if (v("ltv_as_is") !== null) expect(fit.exceptions.some((e) => e.startsWith("LTV ")), pb).toBe(true);
+      if (v("debt_yield_in_place") === null) expect(fit.unknown, pb).toContain("Debt yield against your 50% minimum (not computed yet)");
+    }
   });
 });
