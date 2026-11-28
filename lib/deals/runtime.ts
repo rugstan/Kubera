@@ -17,6 +17,7 @@ import { supabaseIdempotencyStore, type IdempotencyStore } from "@/lib/workflows
 import { piiKeyring, type PiiKeyring } from "@/lib/privacy/crypto";
 import { site } from "@/lib/site";
 import { DOCUMENT_BUCKET, supabaseAdmin } from "@/lib/supabase/server";
+import { supabaseSpreadStore } from "@/lib/spreads/store";
 import { demoDesks, type DemoDesks } from "./demo";
 import type { BrokerIdentity } from "./dre";
 import type { Form159Data } from "./form159";
@@ -27,6 +28,8 @@ import { notifierStageSink, type DealStageEventSink } from "./stage-events";
 import type { StaffSession } from "./session";
 import type { DealDeskStore } from "./store";
 import { SupabaseDealDeskStore } from "./store-supabase";
+import { constructionSourceFromStore, staticLeadIntakeSource, type SubmissionSources } from "./submission/context";
+import { SupabaseSubmissionStore, supabaseConstructionSource, supabaseLeadIntakeSource, supabasePropertyFactsSource } from "./submission/store-supabase";
 import type { PackageItem } from "./types";
 
 // Production wiring for the deal desk. Everything is env-gated (Global rule 3):
@@ -67,6 +70,12 @@ export type DealDeskRuntime = {
   stageEvents: DealStageEventSink | null;
   vaultItems(leadId: string, documentIds: string[]): Promise<PackageItem[]>;
   vaultDocuments(leadId: string): Promise<{ id: string; kind: string; fileName: string; createdAt: string }[]>;
+  /**
+   * The lender-ready deal submission: the profile / sponsor / summary store and
+   * the readers loadSubmissionContext gathers from (lib/deals/submission/context.ts).
+   * A reader is null when its desk is not configured (demo: no property facts).
+   */
+  submission: SubmissionSources;
 };
 
 let warned = false;
@@ -101,6 +110,13 @@ export function dealDeskRuntime(): DealDeskRuntime | null {
     keyring: piiKeyring(),
     checklist: checklistFromDesk(),
     stageEvents: stageEventSink(),
+    submission: {
+      store: new SupabaseSubmissionStore(db),
+      leads: supabaseLeadIntakeSource(db),
+      spreads: supabaseSpreadStore(db),
+      construction: supabaseConstructionSource(db),
+      propertyFacts: supabasePropertyFactsSource(db),
+    },
     async vaultDocuments(leadId) {
       // Only files with a clean malware scan (WS-K vault) can go into a lender package;
       // another lender's term sheet (filed from lenders@) never does.
@@ -143,6 +159,13 @@ function demoRuntime(demo: DemoDesks): DealDeskRuntime {
     keyring: demo.keyring,
     checklist: checklistFromDesk(),
     stageEvents: null,
+    submission: {
+      store: demo.submission,
+      leads: staticLeadIntakeSource(demo.leadIntakes),
+      spreads: demo.spreads,
+      construction: constructionSourceFromStore(demo.construction),
+      propertyFacts: null,
+    },
     async vaultDocuments() {
       return [];
     },

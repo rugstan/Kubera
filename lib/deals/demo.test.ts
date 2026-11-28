@@ -5,12 +5,15 @@ import { addPrincipal } from "@/lib/principals/service";
 import { DEMO_PORTAL_SESSION_SECRET, portalSessionSecret } from "@/lib/principals/portal";
 import { screenDeal } from "@/lib/screening/service";
 import { dealStatusHoldSink } from "./holds";
-import { DEMO_LENDER_ACCOUNT, DEMO_LENDER_IDS, DEMO_SANCTIONED_NAME, demoDesks, resetDemoDesks } from "./demo";
+import { DEMO_LEAD_IDS, DEMO_LENDER_ACCOUNT, DEMO_LENDER_IDS, DEMO_SANCTIONED_NAME, DEMO_SUBMISSION_DEAL_IDS, demoDesks, resetDemoDesks, type DemoDesks } from "./demo";
 import { openLenderAccountNumber } from "./lender-accounts";
 import { panelForDeal } from "./lenders";
 import { deriveLenderLoanTypes } from "./loan-types";
 import { advanceDeal } from "./service";
 import { availableEvents, stageTemplate } from "./stages";
+import { constructionSourceFromStore, loadSubmissionContext, staticLeadIntakeSource, type SubmissionContextDeps } from "./submission/context";
+import { computeSubmissionMetrics, metricOf } from "./submission/metrics";
+import { buildPrefill } from "./submission/prefill";
 
 const FAKE = { AUTH_PROVIDER: "fake" };
 
@@ -103,5 +106,53 @@ describe("portal session secret", () => {
     for (const deal of await d.deals.listDeals()) {
       expect(panelForDeal(lenders, deal, now).map((m) => m.lender.id), deal.title).not.toContain(DEMO_LENDER_IDS.dscrFund);
     }
+  });
+});
+
+describe("lender-ready submission demo", () => {
+  const NOW = new Date("2026-11-20T17:00:00.000Z");
+  // The same wiring as lib/deals/runtime.ts demoRuntime().
+  const deps = (d: DemoDesks): SubmissionContextDeps => ({
+    store: d.deals,
+    checklist: { checklists: d.checklists, principals: d.principals, holds: d.holds },
+    keyring: d.keyring,
+    now: () => NOW,
+    vaultDocuments: async () => [],
+    submission: { store: d.submission, leads: staticLeadIntakeSource(d.leadIntakes), spreads: d.spreads, construction: constructionSourceFromStore(d.construction), propertyFacts: null },
+  });
+
+  it("seeds a deal ready at Screen: profile, sponsor, guarantors with PFS totals, and computed metrics", async () => {
+    const d = demoDesks(FAKE)!;
+    const ctx = (await loadSubmissionContext(deps(d), DEMO_SUBMISSION_DEAL_IDS.ready))!;
+    expect(ctx.deal).toMatchObject({ leadId: DEMO_LEAD_IDS.ready, program: "PRIVATE_BRIDGE", loanAmountCents: 840_000_000, propertyState: "CA" });
+    expect(ctx.profile).toMatchObject({ playbook: "bridge", purpose: "acquisition", sizeCount: 42 });
+    expect(ctx.sponsor!.creditEvents).toMatchObject({ bankruptcy: { occurred: false }, litigation: { occurred: false } });
+    expect(ctx.intake).toMatchObject({ assetType: "MULTIFAMILY", noi: 750_000 });
+    expect(ctx.principals.map((p) => p.kind)).toEqual(["entity", "individual", "individual"]);
+    expect(ctx.guarantorTotals).toMatchObject({ pfsCount: 2, guarantorCount: 2, oldestPfsAsOf: "2026-10-15" });
+    expect(ctx.reoSummary).toMatchObject({ properties: 3 });
+    expect(ctx.openHolds).toEqual([]);
+    const m = computeSubmissionMetrics(ctx);
+    expect(metricOf(m, "ltv_as_is")!.value).toBeCloseTo(68.02, 2);
+    expect(metricOf(m, "sources_minus_uses")!.value).toBe(0);
+    expect(m.sponsorStrength).toMatchObject({ basis: "pfs", covenants: { netWorthOk: true, liquidityOk: true } });
+    expect(m.warnings).toEqual([]);
+  });
+
+  it("seeds an empty deal whose intake gives prefill per-borrower suggestions", async () => {
+    const d = demoDesks(FAKE)!;
+    const ctx = (await loadSubmissionContext(deps(d), DEMO_SUBMISSION_DEAL_IDS.empty))!;
+    expect(ctx.profile).toBeNull();
+    expect(ctx.sponsor).toBeNull();
+    const p = buildPrefill(ctx, { actor: "staff:broker@corin.test" });
+    expect(p.profile).toMatchObject({ playbook: "bridge", purpose: "refinance", asIsValueCents: 740_000_000, noiInPlaceCents: 41_000_000, sizeCount: 30, occupancyPct: 92 });
+    expect(p.suggestions.filter((s) => s.origin === "intake").every((s) => s.source === null || s.source.source === "borrower")).toBe(true);
+    const saved = await d.submission.upsertProfile(DEMO_SUBMISSION_DEAL_IDS.empty, null, p.profile, "staff:broker@corin.test", NOW);
+    expect(saved.fieldSources.noiInPlaceCents).toMatchObject({ source: "borrower", ref: DEMO_LEAD_IDS.empty });
+  });
+
+  it("keeps the submission store's rows to deals the desk has", async () => {
+    const d = demoDesks(FAKE)!;
+    await expect(d.submission.upsertProfile("10000000-0000-4000-8000-000000000999", null, { playbook: "bridge" }, "staff:broker@corin.test", NOW)).rejects.toThrow(/not found/);
   });
 });
