@@ -32,14 +32,14 @@ function Stage({ stage, r, limit, H, samePage }: { stage: TargetStage; r: Readin
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <H className="text-sm font-semibold text-ink">{TARGET_STAGE_LABELS[stage]}</H>
         <span className="text-sm tabular-nums text-ink">
-          {met} / {r.required.length}
-          {docs ? " documents" : " required"}
+          {met} / {r.required.length} required
         </span>
       </div>
       <div aria-hidden="true" className="mt-1.5 h-2 overflow-hidden rounded-full bg-black/10">
         <div className={`h-2 rounded-full ${r.ready ? "bg-success" : "bg-warning"}`} style={{ width: `${r.score}%` }} />
       </div>
-      <p className={`mt-1 text-xs ${r.ready ? "text-success" : "text-titanium"}`}>{r.ready ? READY_LABEL[stage] : `${missing.length} required ${docs ? (missing.length === 1 ? "document" : "documents") : missing.length === 1 ? "item" : "items"} missing`}</p>
+      <p className={`mt-1 text-xs ${r.ready ? "text-success" : "text-titanium"}`}>{r.ready ? READY_LABEL[stage] : `${missing.length} required ${missing.length === 1 ? "item" : "items"} missing`}</p>
+      {docs ? <p className="mt-1 text-xs text-titanium">Everything a term sheet needs, plus the deal checklist&apos;s required application and underwriting documents.</p> : null}
       {shown.length ? (
         <ul aria-label={`Missing for ${TARGET_STAGE_LABELS[stage]}`} className="mt-2 space-y-1 text-sm">
           {shown.map((i) => (

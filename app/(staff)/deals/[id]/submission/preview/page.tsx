@@ -5,8 +5,9 @@ import { Suspense } from "react";
 import { Badge, Loading, NotConfigured, Section, SignInRequired, Submit } from "@/app/(staff)/deals/ui";
 import { currentStaff, dealDeskRuntime } from "@/lib/deals/runtime";
 import { can } from "@/lib/deals/session";
+import { defaultTargetStage } from "@/lib/deals/submission/readiness";
 import { TARGET_STAGE_LABELS, isTargetStage, targetStages, type TargetStage } from "@/lib/deals/submission/types";
-import { getPreview } from "../_lib/data";
+import { advisorFor, getPreview } from "../_lib/data";
 import { ReadinessMeter } from "../_components/ReadinessMeter";
 import { RequestApprovalForm } from "../_components/RequestApprovalForm";
 import { RequestFields } from "../_components/RequestFields";
@@ -39,14 +40,15 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
   if (!UUID.test(id)) notFound();
   const requested = typeof sp.lender === "string" && UUID.test(sp.lender) ? sp.lender : null;
   const stageParam = typeof sp.stage === "string" && isTargetStage(sp.stage) ? sp.stage : null;
-  const advisor = { name: staff.name, title: null, dreLicense: staff.dreLicense, email: staff.email, phone: null };
+  // The same advisor the request signs with, so the approved email matches this preview byte for byte.
+  const advisor = advisorFor(staff);
   // First pass picks the default stage (highest ready, else Screen) and lender (the requested one, else the first on the panel).
   const first = await getPreview(id, requested, stageParam ?? "screen", advisor);
   if (!first) notFound();
-  const stage: TargetStage = stageParam ?? (first.view.readiness.term_sheet.ready ? "term_sheet" : "screen");
+  const stage: TargetStage = stageParam ?? defaultTargetStage(first.view.readiness);
   const lenderId = requested && first.lenders.some((l) => l.id === requested) ? requested : (first.lenders[0]?.id ?? null);
   const preview = stage === (stageParam ?? "screen") && lenderId === requested ? first : ((await getPreview(id, lenderId, stage, advisor)) ?? first);
-  const { view, fit, email, lender } = preview;
+  const { view, fit, email, lender, blocked } = preview;
   const deal = view.ctx.deal;
   const write = can(staff, "write");
   const readiness = view.readiness[stage];
@@ -104,6 +106,26 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
         </form>
       </Section>
 
+      {blocked ? (
+        <div className="notice-danger rounded-2xl px-4 py-3 text-sm" role="alert">
+          <p className="font-medium">The summary and the email cannot be built from what is saved.</p>
+          <p className="mt-1">{blocked} Edit the text in the editor, then preview again.</p>
+        </div>
+      ) : null}
+      {preview.neutralCopy.length ? (
+        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" role="note">
+          <p className="font-medium">Fair-lending check on staff-typed text</p>
+          <p className="mt-1">These words touch a protected characteristic. Edit the text unless it is needed; the approving broker sees them with the request.</p>
+          <ul className="mt-1 list-disc pl-5">
+            {preview.neutralCopy.map((f) => (
+              <li key={`${f.topic}-${f.term}-${f.textIndex}`}>
+                &ldquo;{f.term}&rdquo; ({f.label})
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <Section title={`Readiness: ${TARGET_STAGE_LABELS[stage]}`}>
         <ReadinessMeter headingLevel={3} readiness={view.readiness} stages={[stage]} />
       </Section>
@@ -149,8 +171,12 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
             </div>
             <p className="break-all text-xs text-titanium">Email SHA-256 {email.sha256}</p>
           </div>
+        ) : preview.emailError ? (
+          <p className="text-sm text-danger" role="alert">
+            The email to this lender cannot be built: {preview.emailError}
+          </p>
         ) : (
-          <p className="text-sm text-titanium">Pick a lender to see the email.</p>
+          <p className="text-sm text-titanium">{blocked ? "Fix the text above to see the email." : "Pick a lender to see the email."}</p>
         )}
       </Section>
 
@@ -160,7 +186,7 @@ async function PreviewData({ params, searchParams }: { params: Params; searchPar
             Open the summary PDF
           </Link>
         </p>
-        <SummaryView spec={preview.summary} />
+        {preview.summary ? <SummaryView spec={preview.summary} /> : <p className="text-sm text-titanium">Fix the text above to see the summary.</p>}
       </Section>
 
       {write ? (

@@ -3,22 +3,22 @@ import { dealSummaryPackageItem } from "@/lib/agents/lenders/package";
 import { sendPackageToLender } from "./packages";
 import { handleShareRequest } from "./share-page";
 import type { DealSummaryRecord, DealSummarySpec } from "./submission/types";
-import { docs, lenderInput, newDeal, noHolds, setup } from "./test-fixtures";
+import { docs, lenderInput, lenderReady, newDeal, noHolds, setup, testSubmission, testSummaries, TEST_SUMMARY_PDF_SHA } from "./test-fixtures";
 
 async function world() {
   const ctx = setup();
   const deal = await newDeal(ctx.store, ctx.now, { title: "Sunrise <Assisted> Living" });
   const lender = await ctx.store.insertLender(lenderInput(), "a", ctx.now());
-  const r = await sendPackageToLender({ store: ctx.store, gate: ctx.gate, now: ctx.now, baseUrl: "https://k.test", holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "a" });
+  const r = await sendPackageToLender({ store: ctx.store, gate: ctx.gate, now: ctx.now, baseUrl: "https://k.test", holds: noHolds, summaries: testSummaries }, lenderReady({ dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "a" }));
   const token = r.shareUrl!.split("/").pop()!;
   const signed: string[] = [];
-  const deps = { store: ctx.store, now: ctx.now, allow: async () => true, signUrl: async (p: string) => (signed.push(p), `https://storage.test/${p}?sig=1`) };
-  return { ...ctx, token, deps, signed, r };
+  const deps = { store: ctx.store, now: ctx.now, allow: async () => true, signUrl: async (p: string) => (signed.push(p), `https://storage.test/${p}?sig=1`), summaries: null };
+  return { ...ctx, deal, token, deps, signed, r };
 }
 
 describe("lender share page", () => {
   it("lists the locked version's documents with signed links, escaped and unindexed", async () => {
-    const { token, deps, signed } = await world();
+    const { deal, token, deps, signed } = await world();
     const res = await handleShareRequest(token, "ip1", deps);
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toContain("no-store");
@@ -28,7 +28,8 @@ describe("lender share page", () => {
     expect(html).toContain("Package version 1");
     expect(html).toContain("broker, not the lender");
     expect(html).toContain("Real estate broker, California Department of Real Estate");
-    expect(signed).toEqual(["leads/x/doc-1.pdf", "leads/x/doc-2.pdf"]);
+    // The deal summary PDF is in every locked package, first in canonical order.
+    expect(signed).toEqual([`packages/${deal.id}/deal-summary-${TEST_SUMMARY_PDF_SHA.slice(0, 16)}.pdf`, "leads/x/doc-1.pdf", "leads/x/doc-2.pdf"]);
   });
 
   it("answers unknown, expired and revoked links the same way and rate-limits", async () => {
@@ -69,9 +70,12 @@ describe("lender share page with the locked deal summary", () => {
     const deal = await newDeal(ctx.store, ctx.now, { title: "Sunrise <Assisted> Living" });
     const lender = await ctx.store.insertLender(lenderInput(), "a", ctx.now());
     const items = [...docs(2), dealSummaryPackageItem(deal.id, PDF_SHA)];
-    const r = await sendPackageToLender({ store: ctx.store, gate: ctx.gate, now: ctx.now, baseUrl: "https://k.test", holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items, actor: "a" });
-    const token = r.shareUrl!.split("/").pop()!;
     const record: DealSummaryRecord = { id: "s1", dealId: deal.id, asOf: "2026-11-01", playbook: "hud_232", targetStage: "term_sheet", templateVersion: "deal-summary-v1", spec, specSha256: "e".repeat(64), pdfSha256: PDF_SHA, pdfStoragePath: items[2]!.storagePath, profileVersion: 1, sponsorVersion: null, createdBy: "a", createdAt: "2026-11-01T00:00:00.000Z" };
+    const r = await sendPackageToLender(
+      { store: ctx.store, gate: ctx.gate, now: ctx.now, baseUrl: "https://k.test", holds: noHolds, summaries: { getSummary: async (id) => (id === record.id ? record : null) } },
+      { dealId: deal.id, lenderId: lender.id, items, actor: "a", submission: testSubmission(deal.id, lender.id, { summaryId: record.id }) },
+    );
+    const token = r.shareUrl!.split("/").pop()!;
     const lookups: [string, string][] = [];
     const summaries = { getSummaryByPdfSha: async (dealId: string, sha: string) => (lookups.push([dealId, sha]), dealId === record.dealId && sha === record.pdfSha256 ? record : null) };
     const deps = { store: ctx.store, now: ctx.now, allow: async () => true, signUrl: async (p: string) => `https://storage.test/${p}?sig=1`, summaries };
@@ -105,7 +109,7 @@ describe("lender share page with the locked deal summary", () => {
 
   it("renders as before when no summary is found, the lookup fails, or no summary store is wired", async () => {
     const { token, deps } = await withSummary();
-    const plain = await (await handleShareRequest(token, "ip", { ...deps, summaries: undefined })).text();
+    const plain = await (await handleShareRequest(token, "ip", { ...deps, summaries: null })).text();
     expect(plain).not.toContain("loan request summary");
     expect(plain).not.toContain("<h2>Documents</h2>");
     expect(plain).not.toContain("section.summary");

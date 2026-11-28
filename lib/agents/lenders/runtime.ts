@@ -4,13 +4,12 @@ import { supabaseExtractionStore } from "@/lib/agents/documents/store";
 import { modelGateway } from "@/lib/ai/gateway";
 import { supabaseDocumentStore } from "@/lib/documents/store";
 import { demoDesks } from "@/lib/deals/demo";
-import { dealDeskRuntime, type DealDeskRuntime } from "@/lib/deals/runtime";
+import { dealDeskRuntime, submissionSendDeps, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { supabaseSpreadStore, type SpreadStore } from "@/lib/spreads/store";
 import { packageSpreadsFromSaved, type SavedPackageSpreads } from "@/lib/spreads/workflow";
 import { vaultTermSheetAttachments, type TermSheetAttachmentSource } from "./attachments";
 import type { OutreachDeps } from "./outreach";
-import type { ExecutiveSummarySpec } from "./package";
 import type { LenderMatchStore, PartnerSource, TermSheetMailSource } from "./store";
 import { SupabaseLenderMatchStore, SupabasePartnerSource, SupabaseTermSheetMailSource } from "./store-supabase";
 
@@ -19,7 +18,8 @@ import { SupabaseLenderMatchStore, SupabasePartnerSource, SupabaseTermSheetMailS
 // (lib/deals/demo.ts); otherwise, without Supabase the lenders desk renders
 // "not configured"; without an Anthropic
 // key term sheets are parsed by rules and all land in the review queue; the
-// approval gate and mailer come from the deal desk runtime (its lenderMailer,
+// lender-ready submission deps (summary store, summary PDF, context loader,
+// metrics), the approval gate and mailer come from the deal desk runtime (its lenderMailer,
 // null unless LENDER_EMAIL_ENABLED=true), so with no approvals queue every
 // submission stays pending and nothing is sent, and while email to lenders is
 // off an approved submission's link goes to staff to send by hand.
@@ -44,11 +44,6 @@ export async function savedSpreadsFor(rt: Pick<LenderRuntime, "spreads">, deal: 
     console.warn("[lenders] saved spreads unavailable", err instanceof Error ? err.message : err);
     return null;
   }
-}
-
-export async function renderSummaryPdf(spec: ExecutiveSummarySpec): Promise<Uint8Array> {
-  const { renderExecutiveSummaryPdf } = await import("./package-pdf");
-  return renderExecutiveSummaryPdf(spec);
 }
 
 /** Index levels for floating-rate term sheets that quote only a spread (VERIFY daily; optional). */
@@ -76,7 +71,7 @@ export function lenderRuntime(): LenderRuntime | null {
       mail: demo.termSheetMail,
       attachments: null,
       spreads: demo.spreads,
-      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.lenderMailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
+      outreach: { desk: desk.store, boxes: demo.lenderStore, gate: desk.gate, mailer: desk.lenderMailer, storage: desk.storage, submission: submissionSendDeps(desk), baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
     };
   }
   const db = supabaseAdmin();
@@ -88,7 +83,7 @@ export function lenderRuntime(): LenderRuntime | null {
     mail: new SupabaseTermSheetMailSource(db),
     attachments: vaultTermSheetAttachments({ documents: supabaseDocumentStore(db), extractions: supabaseExtractionStore(db) }),
     spreads: supabaseSpreadStore(db),
-    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.lenderMailer, storage: desk.storage, renderPdf: renderSummaryPdf, baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
+    outreach: { desk: desk.store, boxes: new SupabaseLenderMatchStore(db), gate: desk.gate, mailer: desk.lenderMailer, storage: desk.storage, submission: submissionSendDeps(desk), baseUrl: desk.baseUrl, now: desk.now, holds: desk.checklist?.holds ?? null, events: agentSafety().events },
   };
 }
 

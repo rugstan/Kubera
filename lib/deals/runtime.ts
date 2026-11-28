@@ -28,8 +28,11 @@ import { notifierStageSink, type DealStageEventSink } from "./stage-events";
 import type { StaffSession } from "./session";
 import type { DealDeskStore } from "./store";
 import { SupabaseDealDeskStore } from "./store-supabase";
-import { constructionSourceFromStore, staticLeadIntakeSource, type SubmissionSources } from "./submission/context";
+import { constructionSourceFromStore, loadSubmissionContext, staticLeadIntakeSource, type SubmissionSources } from "./submission/context";
+import { computeSubmissionMetrics } from "./submission/metrics";
+import type { SubmissionSendDeps } from "./submission/send";
 import { SupabaseSubmissionStore, supabaseConstructionSource, supabaseLeadIntakeSource, supabasePropertyFactsSource } from "./submission/store-supabase";
+import type { DealSummarySpec } from "./submission/types";
 import type { PackageItem } from "./types";
 
 // Production wiring for the deal desk. Everything is env-gated (Global rule 3):
@@ -253,6 +256,22 @@ export function form159TemplateId(provider: EsignProvider | null): string | null
   if (provider.name === "fake") return "fake_sba159_template";
   const id = provider.name === "zoho_sign" ? process.env.ZOHO_SIGN_SBA159_TEMPLATE_ID : process.env.BOLDSIGN_SBA159_TEMPLATE_ID;
   return id || null;
+}
+
+/** The lender-ready deal summary PDF (lib/agents/lenders/package-pdf.tsx), loaded on first use. */
+export async function renderDealSummary(spec: DealSummarySpec): Promise<Uint8Array> {
+  const { renderDealSummaryPdf } = await import("@/lib/agents/lenders/package-pdf");
+  return renderDealSummaryPdf(spec);
+}
+
+/**
+ * What the lender-ready send path (lib/deals/submission/send.ts) reads from
+ * the deal desk: the summary store, the summary PDF, the context loader bound
+ * to this runtime and the metrics. The lender desk's outreach and the
+ * submission UI both take it from here, so every send builds the same summary.
+ */
+export function submissionSendDeps(rt: DealDeskRuntime): Pick<SubmissionSendDeps, "summaries" | "renderPdf" | "loadContext" | "computeMetrics"> {
+  return { summaries: rt.submission.store, renderPdf: renderDealSummary, loadContext: (dealId) => loadSubmissionContext(rt, dealId), computeMetrics: computeSubmissionMetrics };
 }
 
 export async function renderPdf(doc: Parameters<typeof import("@/lib/disclosures/pdf").renderDisclosurePdf>[0]): Promise<Uint8Array> {

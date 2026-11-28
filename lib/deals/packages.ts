@@ -117,12 +117,12 @@ export type SendPackageInput = {
   note?: string;
   /**
    * The lender-ready submission (spec 5.2): target stage, the locked summary,
-   * readiness, the override reason, the lender fit and the exact email. Every
-   * new send passes it (lib/deals/submission/send.ts). Optional only so the
-   * legacy deal-page form keeps compiling until it is removed; without it the
-   * v1 documents-only approval is requested.
+   * readiness, the override reason, the lender fit and the exact email, built
+   * by lib/deals/submission/send.ts prepareSubmission. Required: no send skips
+   * the readiness gate. (Rows requested under the v1 documents-only template
+   * before the lender-ready flow are only re-checked, by checkOutreachApproval.)
    */
-  submission?: SubmissionSendInput;
+  submission: SubmissionSendInput;
 };
 
 export type SendPackageResult = {
@@ -152,8 +152,8 @@ export type OutreachDeps = {
    * screening desk is not configured, which fails closed: nothing is sent.
    */
   holds: DealHoldReader | null;
-  /** Locked deal summaries (deal_summaries). A submission without it fails closed with summary_missing. */
-  summaries?: Pick<SubmissionStore, "getSummary"> | null;
+  /** Locked deal summaries (deal_summaries): every send and every v2 re-check reads it; null fails closed with summary_missing. */
+  summaries: Pick<SubmissionStore, "getSummary"> | null;
 };
 
 /** A submission that passed the gate: what is hashed into the approval and stored on lender_outreach. */
@@ -233,6 +233,8 @@ export async function assertDealCanGoToLenders(deps: Pick<OutreachDeps, "holds">
 
 export async function sendPackageToLender(deps: OutreachDeps, input: SendPackageInput): Promise<SendPackageResult> {
   const { store } = deps;
+  // The type requires the submission; this keeps an untyped caller from skipping the readiness gate.
+  if (!input.submission) throw new PackageError("not_ready", "Prepare the lender submission first: every send carries the readiness check, the locked deal summary and the approved email.");
   const deal = await store.getDeal(input.dealId);
   if (!deal) throw new PackageError("deal_not_found", `Deal ${input.dealId} not found`);
   await assertDealCanGoToLenders(deps, deal);
@@ -244,7 +246,7 @@ export async function sendPackageToLender(deps: OutreachDeps, input: SendPackage
   const staleness = lenderStaleness(lender, now);
   if (staleness.stale && !input.allowStaleLender) throw new PackageError("stale_lender", `${lender.name}: ${staleness.reason} Re-verify or acknowledge before sending.`);
   // The readiness gate runs before anything is locked or requested.
-  const submission = input.submission ? await checkSubmission(deps, deal, lender, input.items, input.submission) : null;
+  const submission = await checkSubmission(deps, deal, lender, input.items, input.submission);
 
   const { pkg } = await lockPackageVersion(store, deal.id, input.items, input.actor, now);
   const approvalKey = outreachApprovalKey(deal.id, lender.id, pkg.version);

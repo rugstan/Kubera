@@ -22,8 +22,8 @@ export type ShareDeps = {
   now: () => Date;
   /** True when this client may make another request. */
   allow: (key: string) => Promise<boolean>;
-  /** Locked deal summaries (deal_summaries). Absent or null: the page lists documents only. */
-  summaries?: Pick<SubmissionStore, "getSummaryByPdfSha"> | null;
+  /** Locked deal summaries (deal_summaries). Null: the page lists documents only. */
+  summaries: Pick<SubmissionStore, "getSummaryByPdfSha"> | null;
 };
 
 const HEADERS = {

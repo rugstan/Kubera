@@ -187,7 +187,7 @@ describe("deal summary PDF", () => {
     const pages = Buffer.from(a).toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? [];
     expect(pages.length).toBeLessThanOrEqual(3);
     const item = dealSummaryPackageItem("d1", sha256Hex(a));
-    expect(item).toMatchObject({ kind: "DEAL_SUMMARY", label: "Deal summary (Corin)", storagePath: `packages/d1/executive-summary-${sha256Hex(a).slice(0, 16)}.pdf` });
+    expect(item).toMatchObject({ kind: "DEAL_SUMMARY", label: "Deal summary (Corin)", storagePath: `packages/d1/deal-summary-${sha256Hex(a).slice(0, 16)}.pdf` });
     expect(item.documentId.length).toBeLessThanOrEqual(100);
   });
 

@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 import { MemoryExtractionStore } from "@/lib/agents/documents/store";
 import { mergeSavedSpreads, metricsFromSource, withSavedSpreadDefaults } from "@/app/(staff)/lenders/_lib/forms";
-import { buildExecutiveSummary } from "@/lib/agents/lenders/package";
 import { createWorkflowFunctions } from "@/lib/workflows/functions";
 import type { AgentWorkflowHooks, WorkflowDeps } from "@/lib/workflows/deps";
 import { EVENTS } from "@/lib/workflows/events";
@@ -72,9 +71,6 @@ describe("document.extracted → spreads → Jev → lenders desk", () => {
     const typed = metricsFromSource(withSavedSpreadDefaults(new URLSearchParams({ noi: "450000", occupancy: "91" }), saved), 700_000_000);
     expect(mergeSavedSpreads(typed.spreads, saved)).toMatchObject({ noiCents: 45_000_000, occupancyPct: 91, units: 10 });
 
-    // The executive summary is built from deal + spreads.
-    const spec = buildExecutiveSummary({ deal: { id: DEAL, title: "Oak Terrace", program: "AGENCY", borrowerName: "Oak LLC", propertyAddress: "1 Oak St", propertyState: "CA", loanAmountCents: 700_000_000 }, spreads, asOf: "2026-11-04" });
-    expect(JSON.stringify(spec)).toContain("10");
   });
 
   it("waits for a reviewer when the extraction is in the review queue", async () => {

@@ -299,7 +299,7 @@ export async function outreachAction(f: FormData): Promise<never> {
     const outreachId = str(f, "outreachId");
     switch (str(f, "op")) {
       case "check": {
-        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
+        const r = await checkOutreachApproval({ store: rt.store, gate: rt.gate, now: rt.now, baseUrl: rt.baseUrl, mailer: rt.lenderMailer, holds: rt.checklist?.holds ?? null, summaries: rt.submission.store }, outreachId, staff.actor, { ttlDays: num(f, "ttlDays") });
         await rememberShareUrl(id, r);
         return outreachMessage(r);
       }

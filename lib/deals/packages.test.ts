@@ -21,6 +21,7 @@ import {
   sendPackageToLender,
   withdrawOutreach,
   type LenderMailer,
+  type SendPackageInput,
 } from "./packages";
 import { hashShareToken, resolveShareLink, tokenMatches } from "./share-links";
 import { MemoryDealHoldStore } from "@/lib/screening/store";
@@ -46,6 +47,73 @@ async function world(gateDefault: "approved" | "pending" | "rejected" | "expired
   return { ...ctx, deal, lender, other };
 }
 
+// ---------------------------------------------------------------------------
+// Every send carries the lender-ready submission (lib/deals/submission/send.ts
+// builds it): a locked deal summary, its PDF in the manifest, readiness, the
+// lender fit and the exact email.
+
+const PDF_SHA = "b".repeat(64);
+/** A minimal deal_summaries store (the real one is lib/deals/submission/store.ts). */
+function summaryStore(records: DealSummaryRecord[] = []) {
+  const rows = new Map(records.map((r) => [r.id, r]));
+  return { rows, getSummary: async (id: string) => rows.get(id) ?? null };
+}
+
+function summaryRecord(dealId: string, over: Partial<DealSummaryRecord> = {}): DealSummaryRecord {
+  return {
+    id: "summary-1",
+    dealId,
+    asOf: "2026-11-01",
+    playbook: "hud_232",
+    targetStage: "term_sheet",
+    templateVersion: "deal-summary-v1",
+    spec: {
+      templateVersion: "deal-summary-v1",
+      title: "Sunrise Assisted Living refi — loan request summary",
+      subtitle: "Prepared November 1, 2026 by Corin Commercial, Inc. for lender review",
+      asOf: "2026-11-01",
+      headline: [
+        { label: "Loan request", value: "$12,500,000" },
+        { label: "LTV", value: "75%" },
+        { label: "DSCR", value: "1.33x" },
+      ],
+      sections: [],
+      metricNotes: [],
+      openItems: ["T-12 operating statement", "Rent roll, census or STR report"],
+      footer: "license",
+    },
+    specSha256: "a".repeat(64),
+    pdfSha256: PDF_SHA,
+    pdfStoragePath: `packages/${dealId}/deal-summary-${PDF_SHA.slice(0, 16)}.pdf`,
+    profileVersion: 3,
+    sponsorVersion: 2,
+    createdBy: "broker:ana",
+    createdAt: "2026-11-01T17:00:00.000Z",
+    ...over,
+  };
+}
+
+const EMAIL_TEXT = "Hello,\n\nCorin Commercial, Inc. is the broker on this request, not the lender.\n\nSecure link (expires {{LINK_EXPIRES}}):\n{{SHARE_LINK}}\n";
+
+function submission(lenderId: string, over: Partial<SubmissionSendInput> = {}): SubmissionSendInput {
+  return {
+    targetStage: "term_sheet",
+    summaryId: "summary-1",
+    readiness: { missing: [], hardStops: [], score: 100 },
+    fit: { lenderId, matches: ["HUD / FHA"], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 33, reason: null }, score: null },
+    email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256(EMAIL_TEXT) },
+    ...over,
+  };
+}
+
+/** Answers for any deal: summary "summary-of:<dealId>" is that deal's locked term-sheet summary. */
+const anySummary = { getSummary: async (id: string) => (id.startsWith("summary-of:") ? summaryRecord(id.slice("summary-of:".length), { id }) : null) };
+
+/** A send input made lender-ready: the deal summary PDF joins the documents and the submission is complete (nothing missing). */
+function v2(input: Omit<SendPackageInput, "submission">, over: Partial<SubmissionSendInput> = {}): SendPackageInput {
+  return { ...input, items: [...input.items, dealSummaryPackageItem(input.dealId, PDF_SHA)], submission: submission(input.lenderId, { summaryId: `summary-of:${input.dealId}`, ...over }) };
+}
+
 describe("package manifests", () => {
   it("canonicalizes order so the digest does not depend on upload order", () => {
     const a = docs(3);
@@ -66,20 +134,21 @@ describe("package lock and version on send", () => {
   it("locks version 1 on the first send, reuses it for the same documents, and versions a changed set", async () => {
     const { store, gate, now, deal, lender, other } = await world();
     const m = mailer();
-    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(3), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(3), actor: "broker:ana" }));
     expect(first.pkg).toMatchObject({ version: 1, status: "locked", lockedBy: "broker:ana" });
     expect(first.outreach.status).toBe("sent");
     expect(first.outreach.packageVersion).toBe(1);
 
     // Same documents to another lender: same locked version, new share link.
-    const second = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: other.id, items: [...docs(3)].reverse(), actor: "broker:ana" });
+    const second = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: other.id, items: [...docs(3)].reverse(), actor: "broker:ana" }));
     expect(second.pkg.id).toBe(first.pkg.id);
 
     // A new rent roll: version 2; version 1 stays exactly as the first lender saw it.
-    const changed = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(4), actor: "broker:ana" });
+    const changed = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(4), actor: "broker:ana" }));
     expect(changed.pkg.version).toBe(2);
     const v1 = await store.getPackage(first.pkg.id);
-    expect(v1!.manifest).toHaveLength(3);
+    // Three documents and the deal summary.
+    expect(v1!.manifest).toHaveLength(4);
     expect(v1!.manifestSha256).toBe(first.pkg.manifestSha256);
     await expect(store.lockPackage(first.pkg.id, "x", now())).rejects.toBeInstanceOf(GuardError);
     expect((await store.listPackages(deal.id)).map((p) => p.version)).toEqual([1, 2]);
@@ -89,20 +158,20 @@ describe("package lock and version on send", () => {
     const { store, gate, now, deal, lender } = await world();
     const m = mailer();
     const input = { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana" };
-    await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, input);
-    await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, input);
+    await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2(input));
+    await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2(input));
     expect(gate.requests).toHaveLength(1);
-    expect(gate.requests[0]).toMatchObject({ kind: "lender_submission", idempotencyKey: outreachApprovalKey(deal.id, lender.id, 1), templateId: "lender_package_submission_v1" });
+    expect(gate.requests[0]).toMatchObject({ kind: "lender_submission", idempotencyKey: outreachApprovalKey(deal.id, lender.id, 1), templateId: "lender_package_submission_v2" });
     expect(m.sent).toHaveLength(1);
     expect(m.sent[0]!.to).toBe("dana@lender.example");
-    expect(m.sent[0]!.text).toMatch(/broker, not the lender/);
+    expect(m.sent[0]!.text).toMatch(/is the broker on this request, not the lender/);
   });
 
   it("sends nothing and mints no link while approval is pending, rejected or expired", async () => {
     for (const status of ["pending", "rejected", "expired"] as const) {
       const { store, gate, now, deal, lender } = await world(status);
       const m = mailer();
-      const r = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana" });
+      const r = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana" }));
       expect(r.outreach.status).toBe(status === "pending" ? "pending_approval" : status);
       expect(r.outreach.shareLinkId).toBeNull();
       expect(r.shareUrl).toBeUndefined();
@@ -117,9 +186,9 @@ describe("package lock and version on send", () => {
     const { store, gate, now, deal, lender } = await world("pending");
     const m = mailer();
     const input = { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana" };
-    await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, input);
+    await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2(input));
     gate.decide(outreachApprovalKey(deal.id, lender.id, 1), { status: "approved", approvalId: "appr_1", decidedBy: "broker:lee", decidedAt: now() });
-    const r = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, input);
+    const r = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2(input));
     expect(r.outreach).toMatchObject({ status: "sent", approvedBy: "broker:lee" });
     expect(m.sent).toHaveLength(1);
     expect(store.outreach.size).toBe(1);
@@ -127,7 +196,7 @@ describe("package lock and version on send", () => {
 
   it("without a mailer returns the share URL once and waits for the broker to mark it sent", async () => {
     const { store, gate, now, deal, lender } = await world();
-    const r = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    const r = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" }));
     expect(r.outreach.status).toBe("approved");
     expect(r.shareUrl).toMatch(/^https:\/\/corincommercial\.com\/api\/deals\/share\/[A-Za-z0-9_-]{43}$/);
     const token = r.shareUrl!.split("/").pop()!;
@@ -143,14 +212,14 @@ describe("package lock and version on send", () => {
   it("blocks a stale lender unless staff acknowledge it, and lenders without appetite for the program", async () => {
     const { store, gate, now, deal } = await world();
     const stale = await store.insertLender(lenderInput({ name: "Old Bank", verifiedAt: "2025-01-01T00:00:00.000Z" }), "a", now());
-    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: stale.id, items: docs(1), actor: "a" })).rejects.toMatchObject({ reason: "stale_lender" });
+    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: stale.id, items: docs(1), actor: "a" }))).rejects.toMatchObject({ reason: "stale_lender" });
     expect(gate.requests).toHaveLength(0);
-    const ok = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: stale.id, items: docs(1), actor: "a", allowStaleLender: true });
+    const ok = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: stale.id, items: docs(1), actor: "a", allowStaleLender: true }));
     expect(ok.outreach.staleLenderOverride).toBe(true);
     expect(gate.requests[0]!.payload.staleLenderOverride).toBe(true);
 
     const cmbs = await store.insertLender(lenderInput({ name: "CMBS only", programs: ["HOTEL_CMBS"] }), "a", now());
-    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: cmbs.id, items: docs(1), actor: "a" })).rejects.toMatchObject({ reason: "lender_program" });
+    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: cmbs.id, items: docs(1), actor: "a" }))).rejects.toMatchObject({ reason: "lender_program" });
   });
 });
 
@@ -174,12 +243,12 @@ describe("checking a pending submission", () => {
   it("refuses to approve a lender submission without the broker's step-up, and never sends it", async () => {
     const { store, gate, service, now, deal, lender } = await queued();
     const m = mailer();
-    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" }));
     const approval = (await service.getByKey(first.outreach.approvalKey))!;
     expect(approval.kind).toBe("lender_submission");
     const denied = await service.approve(approval.id, broker);
     expect(denied).toMatchObject({ ok: false, reason: "reauth_required" });
-    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, first.outreach.id, "a");
     expect(r.outreach.status).toBe("pending_approval");
     expect(r.shareUrl).toBeUndefined();
     expect(m.sent).toHaveLength(0);
@@ -194,12 +263,12 @@ describe("checking a pending submission", () => {
     const service = new ApprovalService(approvals, w.now, {}, new MemoryReauthStore());
     const gate = queueApprovalGate(service);
     const m = mailer();
-    const first = await sendPackageToLender({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" }));
     const pending = (await service.getByKey(first.outreach.approvalKey))!;
     await approvals.decide(pending.id, { status: "approved", decidedBy: broker.userId, decidedByLabel: broker.label, decidedByDre: broker.dreLicense, decisionReason: null }, w.now());
     expect((await service.get(pending.id))!.status).toBe("approved");
 
-    const r = await checkOutreachApproval({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    const r = await checkOutreachApproval({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, first.outreach.id, "a");
     expect(r.outreach.status).toBe("pending_approval");
     expect(m.sent).toHaveLength(0);
     expect(w.store.links.size).toBe(0);
@@ -213,29 +282,29 @@ describe("checking a pending submission", () => {
 
   it("mints the share link once a broker approves, without re-submitting the package", async () => {
     const { store, gate, service, approve, now, deal, lender } = await queued();
-    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Rush, please" });
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Rush, please" }));
     expect(first.outreach.status).toBe("pending_approval");
     expect(outreachMessage(first)).toMatch(/Check approval/);
     const approval = (await service.getByKey(first.outreach.approvalKey))!;
-    expect(approval.summary).toContain("note: Rush, please");
+    expect(approval.summary).toContain("Note: Rush, please");
     expect(approval.payload).not.toHaveProperty("note");
 
     // Still pending: nothing changes.
-    expect((await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, first.outreach.id, "a")).outreach.status).toBe("pending_approval");
+    expect((await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, first.outreach.id, "a")).outreach.status).toBe("pending_approval");
 
     // A re-send with another note reuses the same approval instead of conflicting.
-    const again = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Different note" });
+    const again = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana", note: "Different note" }));
     expect(again.outreach.id).toBe(first.outreach.id);
 
     expect(await approve(approval.id)).toMatchObject({ ok: true });
     const packagesBefore = (await store.listPackages(deal.id)).length;
-    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, first.outreach.id, "broker:ana");
+    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, first.outreach.id, "broker:ana");
     expect(r.outreach).toMatchObject({ status: "approved", approvalId: approval.id });
     expect(r.shareUrl).toMatch(/\/api\/deals\/share\//);
     expect((await store.listPackages(deal.id)).length).toBe(packagesBefore);
     expect(store.links.size).toBe(1);
     // Checking again does nothing more (the approval was used by the link).
-    const later = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, first.outreach.id, "broker:ana");
+    const later = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, first.outreach.id, "broker:ana");
     expect(later.shareUrl).toBeUndefined();
     expect(store.links.size).toBe(1);
   });
@@ -243,71 +312,71 @@ describe("checking a pending submission", () => {
   it("emails the lender on approval when a mailer is configured", async () => {
     const { store, gate, service, approve, now, deal, lender } = await queued();
     const m = mailer();
-    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" }));
     expect(await approve((await service.getByKey(first.outreach.approvalKey))!.id)).toMatchObject({ ok: true });
-    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    const r = await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, first.outreach.id, "a");
     expect(r.outreach.status).toBe("sent");
     expect(m.sent).toHaveLength(1);
   });
 
   it("shows a rejected or expired approval on the submission", async () => {
     const { store, gate, service, now, clock, deal, lender, other } = await queued();
-    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" }));
     await service.reject((await service.getByKey(a.outreach.approvalKey))!.id, broker, "Not this lender");
-    const rejected = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, a.outreach.id, "a");
+    const rejected = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a");
     expect(rejected.outreach).toMatchObject({ status: "rejected", responseNote: "Not this lender" });
     expect(outreachMessage(rejected)).toMatch(/rejected/);
 
-    const b = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: other.id, items: docs(1), actor: "a" });
+    const b = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: other.id, items: docs(1), actor: "a" }));
     clock.advance(25 * 60 * 60 * 1000);
-    const expired = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, b.outreach.id, "a");
+    const expired = await checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, b.outreach.id, "a");
     expect(expired.outreach.status).toBe("expired");
     expect(store.links.size).toBe(0);
   });
 
   it("explains a changed lender contact instead of failing generically", async () => {
     const { store, gate, now, deal, lender } = await queued();
-    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" }));
     await store.updateLender(lender.id, { submissionEmail: "new@cambridge.example" }, "a", now());
-    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, a.outreach.id, "a")).rejects.toThrow(/contact email changed/);
+    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a")).rejects.toThrow(/changed after approval was requested \(recipient, summary or email text\)/);
   });
 
   it("explains a changed primary contact email the same way", async () => {
     const { store, gate, now, deal, lender } = await queued();
     const dana = await addPrimaryContact(store, lender.id, { fullName: "Dana Lee", email: "dana.lee@cambridge.example" });
-    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+    const a = await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" }));
     await store.updateLenderContact(lender.id, dana.id, dana.recordVersion, { email: "dana@new-cambridge.example" }, "a", now());
-    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds }, a.outreach.id, "a")).rejects.toThrow(/contact email changed/);
+    await expect(checkOutreachApproval({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, a.outreach.id, "a")).rejects.toThrow(/changed after approval was requested \(recipient, summary or email text\)/);
   });
 
-  it("mails the primary contact and greets by name", async () => {
+  it("mails the primary contact the approved text (the greeting is the email builder's)", async () => {
     const { store, gate, service, approve, now, deal, lender } = await queued();
     await addPrimaryContact(store, lender.id, { fullName: "Dana Lee", email: "dana.lee@cambridge.example" });
     const m = mailer();
-    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" }));
     expect((await service.getByKey(first.outreach.approvalKey))!.payload).toMatchObject({ to: "dana.lee@cambridge.example" });
     await approve((await service.getByKey(first.outreach.approvalKey))!.id);
-    await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, first.outreach.id, "a");
     expect(m.sent).toHaveLength(1);
     expect(m.sent[0]!.to).toBe("dana.lee@cambridge.example");
-    expect(m.sent[0]!.text.startsWith("Dana Lee,")).toBe(true);
+    expect(m.sent[0]!.text.startsWith(EMAIL_TEXT.split("{{")[0]!)).toBe(true);
+    expect(m.sent[0]!.text).not.toContain("{{");
   });
 
-  it("falls back to the submission inbox with Hello,", async () => {
+  it("falls back to the submission inbox without a primary contact", async () => {
     const { store, gate, service, approve, now, deal, lender } = await queued();
     const m = mailer();
-    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" }));
     await approve((await service.getByKey(first.outreach.approvalKey))!.id);
-    await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds }, first.outreach.id, "a");
+    await checkOutreachApproval({ store, gate, now, baseUrl: base, mailer: m, holds: noHolds, summaries: anySummary }, first.outreach.id, "a");
     expect(m.sent[0]!.to).toBe("dana@lender.example");
-    expect(m.sent[0]!.text.startsWith("Hello,")).toBe(true);
   });
 });
 
 describe("share links", () => {
   async function linked() {
     const w = await world();
-    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: noHolds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(2), actor: "broker:ana", ttlDays: 7 });
+    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(2), actor: "broker:ana", ttlDays: 7 }));
     return { ...w, r, token: r.shareUrl!.split("/").pop()! };
   }
 
@@ -320,7 +389,7 @@ describe("share links", () => {
     expect(ok.link.accessCount).toBe(1);
     expect(ok.newerVersionAvailable).toBe(false);
 
-    await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds }, { dealId: deal.id, lenderId: lender.id, items: docs(3), actor: "broker:ana" });
+    await sendPackageToLender({ store, gate, now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(3), actor: "broker:ana" }));
     const again = await resolveShareLink(store, token, now());
     expect(again).toMatchObject({ status: "ok", newerVersionAvailable: true, pkg: { version: 1 } });
 
@@ -339,7 +408,7 @@ describe("share links", () => {
 
   it("caps the lifetime at 30 days", async () => {
     const w = await world();
-    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: noHolds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "a", ttlDays: 365 });
+    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: noHolds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "a", ttlDays: 365 }));
     const link = w.store.links.get(r.outreach.shareLinkId!)!;
     expect(Date.parse(link.expiresAt) - w.now().getTime()).toBe(30 * 86_400_000);
   });
@@ -385,7 +454,7 @@ describe("sanctions holds and settled deals", () => {
       const { store, gate, now, deal, lender, holds, placeHold } = await held();
       expect(await placeHold(reason)).toBe(reason === "sanctions_potential_match" ? "on_hold" : "held_for_counsel");
       const m = mailer();
-      await expect(sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds }, { dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana" })).rejects.toMatchObject({ reason: "deal_held" });
+      await expect(sendPackageToLender({ store, gate, now, baseUrl: base, mailer: m, holds, summaries: anySummary }, v2({ dealId: deal.id, lenderId: lender.id, items: docs(2), actor: "broker:ana" }))).rejects.toMatchObject({ reason: "deal_held" });
       expect(await store.listPackages(deal.id)).toHaveLength(0);
       expect(gate.requests).toHaveLength(0);
       expect(store.links.size).toBe(0);
@@ -398,10 +467,10 @@ describe("sanctions holds and settled deals", () => {
     await holds.open({ dealId: deal.id, reason: "sanctions_potential_match", sourceKind: "screening", sourceId: "scr-1", detail: "Possible OFAC match", createdBy: "system:screening" }, now());
     expect((await store.getDeal(deal.id))!.status).toBe("active");
     const input = { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "broker:ana" };
-    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds }, input)).rejects.toThrow(/Possible OFAC match/);
-    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: null }, input)).rejects.toMatchObject({ reason: "deal_held" });
+    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds, summaries: anySummary }, v2(input))).rejects.toThrow(/Possible OFAC match/);
+    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: null, summaries: anySummary }, v2(input))).rejects.toMatchObject({ reason: "deal_held" });
     const broken = { active: async () => Promise.reject(new Error("db down")) };
-    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: broken }, input)).rejects.toMatchObject({ reason: "deal_held" });
+    await expect(sendPackageToLender({ store, gate, now, baseUrl: base, holds: broken, summaries: anySummary }, v2(input))).rejects.toMatchObject({ reason: "deal_held" });
     expect(gate.requests).toHaveLength(0);
     expect(store.links.size).toBe(0);
   });
@@ -411,11 +480,11 @@ describe("sanctions holds and settled deals", () => {
     const key = outreachApprovalKey(w.deal.id, w.lender.id, 1);
     w.gate.decide(key, { status: "pending", approvalId: "appr_1" });
     const m = mailer();
-    const first = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, mailer: m, holds: w.holds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
+    const first = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, mailer: m, holds: w.holds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" }));
     expect(first.outreach.status).toBe("pending_approval");
     await w.placeHold();
     w.gate.decide(key, { status: "approved", approvalId: "appr_1", decidedBy: "broker@test", decidedAt: w.now() });
-    await expect(checkOutreachApproval({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, mailer: m, holds: w.holds }, first.outreach.id, "broker:ana")).rejects.toMatchObject({ reason: "deal_held" });
+    await expect(checkOutreachApproval({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, mailer: m, holds: w.holds, summaries: anySummary }, first.outreach.id, "broker:ana")).rejects.toMatchObject({ reason: "deal_held" });
     expect(w.store.links.size).toBe(0);
     expect(m.sent).toHaveLength(0);
   });
@@ -430,14 +499,14 @@ describe("sanctions holds and settled deals", () => {
       },
     };
     const m = mailer();
-    await expect(sendPackageToLender({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m, holds: w.holds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" })).rejects.toMatchObject({ reason: "deal_held" });
+    await expect(sendPackageToLender({ store: w.store, gate, now: w.now, baseUrl: base, mailer: m, holds: w.holds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" }))).rejects.toMatchObject({ reason: "deal_held" });
     expect(w.store.links.size).toBe(0);
     expect(m.sent).toHaveLength(0);
   });
 
   it("an existing share link stops resolving once a hold is placed", async () => {
     const w = await held();
-    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(2), actor: "broker:ana" });
+    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(2), actor: "broker:ana" }));
     const token = r.shareUrl!.split("/").pop()!;
     expect((await resolveShareLink(w.store, token, w.now())).status).toBe("ok");
     await w.placeHold();
@@ -450,7 +519,7 @@ describe("sanctions holds and settled deals", () => {
 
   it("a live link on a deal that is not active serves nothing even before it is revoked", async () => {
     const w = await held();
-    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
+    const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" }));
     const token = r.shareUrl!.split("/").pop()!;
     const deal = (await w.store.getDeal(w.deal.id))!;
     await w.store.updateDeal(deal.id, deal.recordVersion, { status: "held_for_counsel" }, "system:screening", w.now());
@@ -461,13 +530,13 @@ describe("sanctions holds and settled deals", () => {
   it("withdrawing or losing the deal revokes its live share links", async () => {
     for (const event of ["withdraw", "mark_lost"]) {
       const w = await held();
-      const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds }, { dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" });
+      const r = await sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.lender.id, items: docs(1), actor: "broker:ana" }));
       const token = r.shareUrl!.split("/").pop()!;
       const adv = await advanceDeal({ store: w.store, disclosures: null, now: w.now, checklist: null }, { dealId: w.deal.id, event, actor: "broker:ana" });
       expect(adv.ok).toBe(true);
       expect(w.store.links.get(r.outreach.shareLinkId!)!.revokedAt).not.toBeNull();
       expect((await resolveShareLink(w.store, token, w.now())).status).toBe("revoked");
-      await expect(sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds }, { dealId: w.deal.id, lenderId: w.other.id, items: docs(1), actor: "broker:ana" })).rejects.toMatchObject({ reason: "deal_closed" });
+      await expect(sendPackageToLender({ store: w.store, gate: w.gate, now: w.now, baseUrl: base, holds: w.holds, summaries: anySummary }, v2({ dealId: w.deal.id, lenderId: w.other.id, items: docs(1), actor: "broker:ana" }))).rejects.toMatchObject({ reason: "deal_closed" });
     }
   });
 });
@@ -476,61 +545,7 @@ describe("sanctions holds and settled deals", () => {
 // The lender-ready submission gate (spec 5.2 and 7.1)
 
 describe("submission gate (v2)", () => {
-  const PDF_SHA = "b".repeat(64);
   const broker = { userId: "00000000-0000-4000-8000-0000000000b1", label: "Pat Broker", dreLicense: "01234567" };
-
-  /** A minimal deal_summaries store (the real one is lib/deals/submission/store.ts). */
-  function summaryStore(records: DealSummaryRecord[] = []) {
-    const rows = new Map(records.map((r) => [r.id, r]));
-    return { rows, getSummary: async (id: string) => rows.get(id) ?? null };
-  }
-
-  function summaryRecord(dealId: string, over: Partial<DealSummaryRecord> = {}): DealSummaryRecord {
-    return {
-      id: "summary-1",
-      dealId,
-      asOf: "2026-11-01",
-      playbook: "hud_232",
-      targetStage: "term_sheet",
-      templateVersion: "deal-summary-v1",
-      spec: {
-        templateVersion: "deal-summary-v1",
-        title: "Sunrise Assisted Living refi — loan request summary",
-        subtitle: "Prepared November 1, 2026 by Corin Commercial, Inc. for lender review",
-        asOf: "2026-11-01",
-        headline: [
-          { label: "Loan request", value: "$12,500,000" },
-          { label: "LTV", value: "75%" },
-          { label: "DSCR", value: "1.33x" },
-        ],
-        sections: [],
-        metricNotes: [],
-        openItems: ["T-12 operating statement", "Rent roll, census or STR report"],
-        footer: "license",
-      },
-      specSha256: "a".repeat(64),
-      pdfSha256: PDF_SHA,
-      pdfStoragePath: `packages/${dealId}/executive-summary-${PDF_SHA.slice(0, 16)}.pdf`,
-      profileVersion: 3,
-      sponsorVersion: 2,
-      createdBy: "broker:ana",
-      createdAt: "2026-11-01T17:00:00.000Z",
-      ...over,
-    };
-  }
-
-  const EMAIL_TEXT = "Hello,\n\nCorin Commercial, Inc. is the broker on this request, not the lender.\n\nSecure link (expires {{LINK_EXPIRES}}):\n{{SHARE_LINK}}\n";
-
-  function submission(lenderId: string, over: Partial<SubmissionSendInput> = {}): SubmissionSendInput {
-    return {
-      targetStage: "term_sheet",
-      summaryId: "summary-1",
-      readiness: { missing: [], hardStops: [], score: 100 },
-      fit: { lenderId, matches: ["HUD / FHA"], exceptions: [], unknown: [], staleness: { stale: false, ageDays: 33, reason: null }, score: null },
-      email: { subject: "Loan request: $12,500,000 HUD 232 | Corin Commercial", text: EMAIL_TEXT, sha256: emailSha256(EMAIL_TEXT) },
-      ...over,
-    };
-  }
 
   async function gated(gateDefault: "approved" | "pending" = "approved") {
     const w = await world(gateDefault);
@@ -673,14 +688,28 @@ describe("submission gate (v2)", () => {
     await expect(checkOutreachApproval({ ...deps, summaries: null }, pending.outreach.id, "a")).rejects.toMatchObject({ reason: "summary_missing" });
   });
 
-  it("keeps v1 rows (no email hash) on the v1 payload", async () => {
-    const { store, gate, deal, lender, deps } = await gated("pending");
-    const r = await sendPackageToLender(deps(), { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" });
+  it("re-checks a v1 row (requested before the lender-ready flow, no email hash) on the v1 payload", async () => {
+    const { store, gate, now, deal, lender, deps } = await gated("pending");
+    // Only rows already pending under the v1 template can exist without a submission: seed one.
+    const { pkg } = await lockPackageVersion(store, deal.id, docs(1), "a", now());
+    const key = outreachApprovalKey(deal.id, lender.id, pkg.version);
+    const row = await store.insertOutreach(
+      { dealId: deal.id, lenderId: lender.id, packageId: pkg.id, packageVersion: pkg.version, approvalKey: key, requestedBy: "a", staleLenderOverride: false, status: "pending_approval", approvalId: null, approvedBy: null, shareLinkId: null, sentAt: null, externalMessageId: null, responseNote: null, termSheetRef: null },
+      now(),
+    );
+    await checkOutreachApproval(deps(), row.id, "a");
     expect(gate.requests[0]!.templateId).toBe(LENDER_SUBMISSION_TEMPLATE_ID);
     expect(gate.requests[0]!.payload).not.toHaveProperty("emailSha256");
-    await checkOutreachApproval(deps(), r.outreach.id, "a");
-    expect(gate.requests[1]!.payload).toEqual(gate.requests[0]!.payload);
-    expect((await store.getOutreach(r.outreach.id))!.emailText).toBeUndefined();
+    expect(gate.requests[0]!.payload).toMatchObject({ dealId: deal.id, lenderId: lender.id, packageVersion: pkg.version, manifestSha256: pkg.manifestSha256 });
+    expect((await store.getOutreach(row.id))!.emailText).toBeUndefined();
+  });
+
+  it("a send without a submission is refused before anything is locked (no send skips the readiness gate)", async () => {
+    const { store, gate, deal, lender, deps } = await gated();
+    const bare = { dealId: deal.id, lenderId: lender.id, items: docs(1), actor: "a" } as unknown as SendPackageInput;
+    await expect(sendPackageToLender(deps(), bare)).rejects.toMatchObject({ reason: "not_ready" });
+    expect(await store.listPackages(deal.id)).toEqual([]);
+    expect(gate.requests).toHaveLength(0);
   });
 
   it("shows the approving broker any fair-lending copy flag in the email", async () => {
