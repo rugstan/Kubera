@@ -23,6 +23,12 @@ const str = (f: FormData, k: string) => {
   return typeof v === "string" ? v.trim() : "";
 };
 const ids = (f: FormData, k: string) => f.getAll(k).filter((v): v is string => typeof v === "string" && v.length > 0);
+/** Every posted id must be a UUID; anything else is refused, never passed on. */
+function uuids(f: FormData, k: string, what: string): string[] {
+  const out = ids(f, k).map((v) => v.trim());
+  if (out.some((v) => !UUID.test(v))) throw new SubmissionDataError(`Unknown ${what}`);
+  return out;
+}
 
 const editorPath = (id: string) => `/deals/${id}/submission`;
 
@@ -116,9 +122,9 @@ export async function requestSubmissionAction(_prev: RequestFormState, f: FormDa
     const r = await requestSubmission(
       {
         dealId: id,
-        lenderIds: ids(f, "lenderId"),
+        lenderIds: uuids(f, "lenderId", "lender"),
         stage,
-        documentIds: ids(f, "documentId"),
+        documentIds: uuids(f, "documentId", "document"),
         overrideReason: str(f, "overrideReason") || null,
         lenderOverrideReason: str(f, "lenderOverrideReason") || null,
         neutralCopyConfirmed: f.get("neutralCopyConfirmed") === "on",

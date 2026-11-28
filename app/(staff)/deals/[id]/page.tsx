@@ -10,7 +10,6 @@ import { lenderCategories, type LenderCategory } from "@/lib/compliance/schemas"
 import { computeMldsTimer } from "@/lib/disclosures/timer";
 import type { DisclosureRecord } from "@/lib/disclosures/store";
 import { canTransitionFee, summarizeLedger } from "@/lib/deals/ledger";
-import { approvedEmailForShare } from "@/lib/deals/packages";
 import { lenderNoticeText } from "@/lib/deals/modifications";
 import { currentStaff, dealDeskRuntime, deskDeps, type DealDeskRuntime } from "@/lib/deals/runtime";
 import { stageContext } from "@/lib/deals/service";
@@ -38,8 +37,8 @@ import {
   submitModificationAction,
 } from "../actions";
 import { Badge, Check, Field, Flash, Loading, NotConfigured, Section, Select, SignInRequired, Submit, Table, money, when } from "../ui";
-import { pendingShareLink } from "../share-once";
-import { CopyText } from "./submission/_components/CopyText";
+import { hasPendingShareLink } from "../share-once";
+import { OneTimeApprovedEmail } from "./OneTimeApprovedEmail";
 import { SubmissionCard } from "./submission/_components/SubmissionCard";
 
 export const metadata: Metadata = { title: "Deal" };
@@ -66,9 +65,9 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
   const deal = await rt.store.getDeal(id);
   if (!deal) notFound();
   // Approved with email to lenders off: the link and the approved email, shown once (spec 5.1 step 6).
-  const shared = await pendingShareLink();
-  const shareUrl = shared?.shareUrl;
-  const approvedEmail = shared ? await approvedEmailForShare(rt.store, deal.id, shared.outreachId, shared.shareUrl) : null;
+  // The page only learns that one is waiting; OneTimeApprovedEmail claims it (and deletes it) on first render.
+  const [sharePending, outreachRows] = await Promise.all([hasPendingShareLink(), rt.store.listOutreach(deal.id)]);
+  const approvedOutreachIds = outreachRows.filter((o) => o.status === "approved").map((o) => o.id);
   const write = can(staff, "write");
   const officer = can(staff, "officer");
   const template = stageTemplate(deal.program);
@@ -90,34 +89,7 @@ async function DealData({ params, searchParams }: { params: Params; searchParams
         </div>
       </div>
       <Flash error={sp.error} notice={sp.notice} />
-      {shareUrl ? (
-        <div className="notice-warning rounded-2xl px-4 py-3 text-sm" id="approved-email" role="status">
-          <p className="font-medium">
-            {approvedEmail
-              ? "Approved. Email to lenders is off: send this exact email from your mailbox now, then press Mark sent. The link is shown only once."
-              : "Approved. Send this link to the lender from your mailbox now; it is shown only once."}
-          </p>
-          <p className="mt-1 break-all font-mono text-xs" data-testid="share-url">
-            {shareUrl}
-          </p>
-          {approvedEmail ? (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-titanium">Subject</p>
-              <p className="break-words font-medium text-ink" data-testid="approved-email-subject">
-                {approvedEmail.subject}
-              </p>
-              <p className="text-xs font-medium uppercase tracking-wide text-titanium">Body (the text the broker approved, with the link filled in)</p>
-              <pre className="max-h-96 max-w-full overflow-y-auto whitespace-pre-wrap break-words rounded-2xl bg-white/70 p-3 font-mono text-[12px] leading-relaxed text-ink" data-testid="approved-email-body" tabIndex={0}>
-                {approvedEmail.text}
-              </pre>
-              <div className="flex flex-wrap gap-3">
-                <CopyText label="Copy subject" text={approvedEmail.subject} />
-                <CopyText label="Copy email" text={approvedEmail.text} />
-              </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <OneTimeApprovedEmail approvedOutreachIds={approvedOutreachIds} dealId={deal.id} pending={sharePending} />
 
       <StagePanel deal={deal} rt={rt} write={write} />
 

@@ -347,6 +347,11 @@ test("after a broker approves, the link and the approved email show once, Mark s
   await expect(emailBody).not.toContainText("{{");
   await expect(shown.getByRole("button", { name: "Copy email" })).toBeVisible();
   await expectAccessibleAndReflows(page, "deal page with the approved email");
+  // Shown once: the first render claimed it, so a refresh shows nothing.
+  await page.reload();
+  await expect(section(page, "Lender outreach")).toBeVisible();
+  await expect(page.locator("#approved-email")).toHaveCount(0);
+  await expect(page.getByTestId("share-url")).toHaveCount(0);
 
   await section(page, "Lender outreach").getByRole("row", { name: /Sample Private Fund \(demo\)/ }).getByRole("button", { name: "Mark sent" }).click();
   await expect(notice(page, "Marked sent.")).toBeVisible();
