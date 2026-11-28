@@ -12,9 +12,10 @@
 // are computed (lib/deals/submission/metrics.ts) and shown read-only.
 // Labels never say "approved" (checkSummaryCopy refuses it).
 //
-// PHASE2: wire to lib/deals/submission/schema.ts (Builder A's zod schemas) and
-// redaction.ts (Builder B's restricted patterns) once they land; the checks
-// below mirror the migration's constraints until then.
+// The store validates every merged row with lib/deals/submission/schema.ts;
+// the checks here name the offending field first, so a refused save keeps
+// what was typed and says which field to fix. Free text is checked with the
+// store's own restricted-text rule (restrictedTextReason).
 
 import {
   CONSENT_STATUS_LABELS,
@@ -67,6 +68,7 @@ import {
   type UseLine,
 } from "@/lib/deals/submission/types";
 import { PLAYBOOK_LABELS } from "@/lib/deals/submission/playbooks";
+import { restrictedTextReason } from "@/lib/deals/submission/schema";
 
 // ---------------------------------------------------------------------------
 // Definitions
@@ -420,14 +422,14 @@ export type ParseContext = {
   at: string;
 };
 
-/** SSN-shaped values and runs of nine or more digits (account, routing, tax id) never belong in free text (spec 5.4). */
-const SSN = /\b\d{3}-\d{2}-\d{4}\b/;
-const LONG_DIGITS = /\d{9,}/;
-
+/**
+ * Identifiers never belong in free text (spec 5.4): the same check the store
+ * applies (schema.ts restrictedTextReason, on redaction.ts's patterns), so a
+ * refusal names the field here instead of failing the whole save.
+ */
 export function restrictedTextProblem(s: string): string | null {
-  if (SSN.test(s)) return "remove the Social Security number shaped value; personal identifiers stay in the vault";
-  if (LONG_DIGITS.test(s)) return "remove the run of nine or more digits (account, routing or tax id numbers stay in the vault); write amounts with commas";
-  return null;
+  const what = restrictedTextReason(s);
+  return what ? `remove ${what}; personal identifiers stay in the vault and reach a lender only as documents behind the share link` : null;
 }
 
 const raw = (f: FormLike, name: string): string => {

@@ -15,6 +15,7 @@
 
 import { z } from "zod";
 import { detectSensitiveValues } from "@/lib/privacy/classification";
+import { findRestrictedText } from "./redaction";
 import {
   asIsValueSources,
   consentStatuses,
@@ -60,9 +61,11 @@ import {
 // ---------------------------------------------------------------------------
 // Restricted text
 //
-// TODO(phase2): use redaction.ts patterns. Builder B's assertEmailSafe owns the
-// full list; until it lands, saved text is checked against the database's own
-// patterns plus the restricted detectors of lib/privacy/classification.ts.
+// Saved free text is refused on the same shapes the lender email is
+// (redaction.ts RESTRICTED_TEXT_PATTERNS: SSN / ITIN, EIN, nine-digit runs,
+// date-of-birth and account wording), on the database's own check patterns
+// (so nothing the migration would refuse is accepted here), and on the
+// restricted detectors of lib/privacy/classification.ts (card numbers).
 
 /** Twin of the migration's *_no_ssn checks: `!~ '[0-9]{3}-[0-9]{2}-[0-9]{4}'` (unanchored). */
 export const SSN_DB_RE = /[0-9]{3}-[0-9]{2}-[0-9]{4}/;
@@ -73,17 +76,14 @@ export const POSTAL_CODE_DB_RE = /^[0-9]{5}(-[0-9]{4})?$/;
 /** Twin of deal_submission_profiles.asset_type (the enum is stricter). */
 export const ASSET_TYPE_DB_RE = /^[A-Z0-9_]{2,40}$/;
 
-const SSN_SPACED_RE = /\b\d{3}[ .]\d{2}[ .]\d{4}\b/;
-/** "account # 4412 0098", "routing: 1210-0035", "acct no 55-1234": wording followed by a number. */
-const ACCOUNT_WORDING_RE = /\b(?:account|acct|a\/c|routing|aba|iban)\s*(?:#|no\.?|number|num\.?)?\s*[:=]?\s*\d[\d -]{3,}\d/i;
-
 export const RESTRICTED_TEXT_MESSAGE = "Remove the SSN, account or routing number, card number or date of birth: it belongs in the document vault, not in this field.";
 
-/** Why `text` may not be saved, or null when it may. */
+/** What `text` holds that may not be saved (the kind of data, never the value), or null when it may be saved. */
 export function restrictedTextReason(text: string): string | null {
-  if (SSN_DB_RE.test(text) || SSN_SPACED_RE.test(text)) return "an SSN-shaped number";
-  if (DIGIT_RUN_DB_RE.test(text)) return "nine or more digits in a row (an account, routing or tax id number)";
-  if (ACCOUNT_WORDING_RE.test(text)) return "an account or routing number";
+  if (SSN_DB_RE.test(text)) return "a Social Security number or ITIN";
+  if (DIGIT_RUN_DB_RE.test(text)) return "a run of nine or more digits (an account, routing or tax id)";
+  const finding = findRestrictedText(text)[0];
+  if (finding) return finding.label;
   const hit = detectSensitiveValues(text).find((f) => f.level === "restricted");
   return hit ? hit.detector.replace(/_/g, " ") : null;
 }

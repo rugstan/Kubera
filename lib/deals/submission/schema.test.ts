@@ -193,7 +193,7 @@ describe("program sections", () => {
   });
 });
 
-describe("restricted text", () => {
+describe("restricted text (redaction.ts patterns plus the database's own checks)", () => {
   const ssn = "Guarantor SSN 123-45-6789 is on file";
   it.each([
     ssn,
@@ -206,6 +206,10 @@ describe("restricted text", () => {
     "Card 4111 1111 1111 1111 on file",
     "DOB: 04/12/1971",
     "Sponsor born on March 3, 1980",
+    // redaction.ts patterns the email gate uses, applied to saved text too.
+    "Borrower EIN 12-3456789",
+    "The guarantor's ITIN is in the vault",
+    "Date of birth on the PFS",
   ])("refuses %j", (text) => {
     expect(restrictedTextReason(text)).not.toBeNull();
     expect(SECTION_SCHEMAS.plan_exit.safeParse({ businessPlan: text }).success).toBe(false);
