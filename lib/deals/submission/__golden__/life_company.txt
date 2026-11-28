@@ -1,0 +1,65 @@
+Subject: Loan request: $11,000,000 life company | 140,000 SF industrial, Fontana CA | 50% LTV, 12% debt yield | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Life company, $500K–$50M, CA and AZ. This request: Life company, $11M, CA.
+
+THE REQUEST
+  Loan:        $11,000,000, cash-out refinance, first lien
+  Structure:   120 months, 25-year amortization, fixed, non-recourse (standard carve-outs)
+  Closing:     target December 18, 2026 (The existing loan matures January 1, 2027)
+  Existing debt: $7,800,000 with Stonegate Mutual Life, matures January 1, 2027
+  Cash out:    $2,950,000 (Buy out a minority partner's interest in the property)
+
+THE PROPERTY
+  Ironvale Logistics Center, 11200 Ironvale Avenue, Fontana, CA 92337 — 140,000 SF industrial, built 2007
+  Occupancy:   100% as of October 31, 2026 (from the rent roll)
+  As-is value: $22,000,000 (Appraisal, September 12, 2026)
+
+THE NUMBERS
+  NOI in place:      $1,320,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $1,268,000 (Corin normalization of the operating statement)
+  Debt yield:        12% in place
+  LTV:               50% as-is (Corin calculation)
+  LTC:               100% of $11,000,000 total cost
+  DSCR:              1.57x in place at an assumed 5.9% / 25-year schedule — an assumption, not a quote
+  Loan per SF:       $78.57
+
+THE TENANCY
+  Ironvale Distribution Co.: 64% of rent, lease ends June 30, 2038
+  Coastline Parts Supply: 36% of rent, lease ends January 31, 2033
+  Rollover:    36% of rent ends inside the requested term; weighted average lease term 108 months
+
+THE SPONSOR
+  Ironvale Industrial Partners LLC, a CA LLC. The sponsor has developed and owned Inland Empire industrial buildings since 2005 and holds thirteen of them, financed mostly with life company loans.
+  21 years, 9 similar projects, 13 industrial buildings, about 2.1 million SF
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Ironvale Property Services
+
+THE PLAN AND THE EXIT
+  Refinance a fully leased 140,000 SF distribution building with 32-foot clear height into a low-leverage 10-year fixed-rate life company loan at about 50% LTV. Two tenants on triple-net leases occupy the building; the larger lease runs through 2038, and the loan funds the buyout of a minority partner.
+  Exit: hold to maturity. Long-term hold; the larger lease runs past the loan term.
+
+SOURCES AND USES
+  Sources: Senior loan $11,000,000 = $11,000,000
+  Uses:    Payoff of existing debt $7,800,000; Closing costs $140,000; Financing costs $110,000; Cash out to borrower $2,950,000 = $11,000,000
+
+KNOWN ISSUES
+  - The 36% tenant's lease ends in 2033, inside the term: That tenant has expanded twice since 2015, and the space is a standard rear-load bay that re-leases in this submarket.
+
+IN THE PACKAGE (8 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; appraisal dated September 12, 2026; Ironvale Logistics existing loan statement; Ironvale Logistics leases; 2 sponsor financial statements
+  Reports on hand: Appraisal dated September 12, 2026
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna

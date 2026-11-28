@@ -1,0 +1,63 @@
+Subject: Loan request: $4,550,000 bank | 24,000 SF office, Walnut Creek CA | 70% loan-to-price, 1.24x DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Bank / credit union, $500K–$50M, CA and AZ. This request: Bank / credit union, $4.55M, CA.
+
+THE REQUEST
+  Loan:        $4,550,000, acquisition, first lien
+  Structure:   120 months, 25-year amortization, fixed, full recourse
+  Closing:     target January 22, 2027 (Purchase contract close)
+
+THE PROPERTY
+  Oakhurst Professional Center, 1650 Oakhurst Commons Drive, Walnut Creek, CA 94596 — 24,000 SF office, built 1985, renovated 2015
+  Occupancy:   90% as of October 31, 2026 (from the rent roll)
+  Purchase price: $6,500,000, closing January 22, 2027
+
+THE NUMBERS
+  NOI in place:      $468,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $446,000 (Corin normalization of the operating statement)
+  Debt yield:        10.3% in place
+  Loan to price:     70% of the purchase price (Corin calculation)
+  LTC:               67.3% of $6,760,500 total cost
+  DSCR:              1.24x in place at an assumed 6.75% / 25-year schedule — an assumption, not a quote
+  Loan per SF:       $189.58
+
+THE TENANCY
+  Larchfield Dental Group: 18% of rent, lease ends June 30, 2029
+  Brookside Physical Therapy: 14% of rent, lease ends September 30, 2028
+  Halden & Pryce CPAs: 11% of rent, lease ends March 31, 2030
+  Rollover:    48% of rent ends inside the requested term; weighted average lease term 41 months
+
+THE SPONSOR
+  Oakhurst Professional Center LLC, a CA LLC. The sponsor has owned and managed suburban office and medical-office buildings in Contra Costa County since 2013 and holds nine of them with local bank financing.
+  13 years, 7 similar projects, 9 office and medical-office buildings, about 210,000 SF
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Oakhurst Property Services
+
+THE PLAN AND THE EXIT
+  Buy a 24,000 SF two-story professional office building leased to nine dental, therapy and accounting tenants, keep the existing tenants and lease the one vacant suite. The building was renovated in 2015 and the price is about $271 per SF, below recent sales of similar suburban medical-office buildings.
+  Exit: hold to maturity. Long-term hold; refinance at the 10-year maturity.
+
+SOURCES AND USES
+  Sources: Senior loan $4,550,000; Sponsor equity $2,210,500 = $6,760,500
+  Uses:    Purchase price $6,500,000; Closing costs $95,000; Financing costs $45,500; Operating reserve (lender-held, requested) (Tenant improvement and leasing reserve the lender may hold) $120,000 = $6,760,500
+
+KNOWN ISSUES
+  - 48% of rent rolls during the loan term: Tenants have occupied the building an average of nine years, and a $120,000 leasing reserve is offered.
+
+IN THE PACKAGE (6 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; rent roll dated October 31, 2026; Oakhurst Professional Center lease abstracts; Oakhurst Professional Center purchase contract; 1 sponsor financial statement
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna

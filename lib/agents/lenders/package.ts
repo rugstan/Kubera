@@ -95,6 +95,11 @@ const x = (n: number | null | undefined) => (n === null || n === undefined ? nul
 const rows = (pairs: [string, string | null | undefined][]) => pairs.filter((p): p is [string, string] => typeof p[1] === "string" && p[1].length > 0).map(([label, value]) => ({ label, value }));
 const clean = (list: readonly string[] | undefined) => (list ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 12).map((s) => s.slice(0, 400));
 
+/**
+ * Legacy executive summary. Lender submissions now lock the deal summary
+ * (lib/deals/submission/summary.ts buildDealSummary); this stays exported
+ * until its last callers (the package preview route) are migrated.
+ */
 export function buildExecutiveSummary(input: ExecutiveSummaryInput): ExecutiveSummarySpec {
   const { deal } = input;
   const s = input.spreads ?? {};
@@ -175,6 +180,18 @@ export function summaryStoragePath(dealId: string, sha256: string): string {
 /** The manifest entry for a stored summary. */
 export function summaryPackageItem(dealId: string, sha256: string): PackageItem {
   return { documentId: `summary-${sha256.slice(0, 24)}`, label: "Executive summary (Corin)", kind: "EXECUTIVE_SUMMARY", storagePath: summaryStoragePath(dealId, sha256), sha256 };
+}
+
+/** Manifest kind of the lender-ready deal summary PDF (lib/deals/submission/summary.ts). */
+export const DEAL_SUMMARY_KIND = "DEAL_SUMMARY";
+
+/**
+ * The manifest entry for a stored deal summary. Same content-addressed
+ * storage path as the executive summary, so the same bytes land once; the
+ * share page finds the summary by this kind and the PDF's SHA-256.
+ */
+export function dealSummaryPackageItem(dealId: string, sha256: string): PackageItem {
+  return { documentId: `deal-summary-${sha256.slice(0, 24)}`, label: "Deal summary (Corin)", kind: DEAL_SUMMARY_KIND, storagePath: summaryStoragePath(dealId, sha256), sha256 };
 }
 
 /** The asset class implied by an approved box set or a program, when the deal does not say. */

@@ -9,7 +9,10 @@ import { MemoryAgentEventStore } from "@/lib/agents/core/events";
 import { logLenderMatch, matchDecisionCandidates } from "./decision-log";
 import { matchLenders } from "./matcher";
 import { submitToLenders, type OutreachDeps } from "./outreach";
-import { renderExecutiveSummaryPdf } from "./package-pdf";
+import { renderDealSummaryPdf, renderExecutiveSummaryPdf } from "./package-pdf";
+import { stubSubmissionMetrics } from "@/lib/deals/submission/test-metrics";
+import { submissionFixture } from "@/lib/deals/submission/test-fixtures";
+import type { DealSummaryRecord } from "@/lib/deals/submission/types";
 import { dealProfile } from "./service";
 import { MemoryLenderMatchStore } from "./store";
 import type { NewCreditBox } from "./types";
@@ -154,6 +157,73 @@ describe("submitToLenders", () => {
     await expect(submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [], items: docs(1), summary: null, actor: "a" })).rejects.toThrow(/at least one lender/);
     await expect(submitToLenders(w.deps, { dealId: "missing", profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: null, actor: "a" })).rejects.toThrow(/not found/);
     await expect(submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: [], summary: null, actor: "a" })).rejects.toThrow(/at least one document/);
+  });
+});
+
+describe("submitToLenders with the lender-ready submission wired", () => {
+  async function wired(gateDefault: "approved" | "pending") {
+    const w = await world(gateDefault);
+    const ctx = submissionFixture("hud_232");
+    // The desk deal takes the fixture's address and loan so the profile's facts line up.
+    ctx.deal = await w.store.updateDeal(w.deal.id, w.deal.recordVersion, { propertyAddress: ctx.deal.propertyAddress, loanAmountCents: ctx.deal.loanAmountCents }, "broker:ana", new Date());
+    ctx.profile!.dealId = w.deal.id;
+    const rows = new Map<string, DealSummaryRecord>();
+    const summaries = {
+      async insertSummary(s: Omit<DealSummaryRecord, "id" | "createdAt">, now: Date) {
+        const found = [...rows.values()].find((r) => r.dealId === s.dealId && r.pdfSha256 === s.pdfSha256);
+        if (found) return found;
+        const row = { ...s, id: `summary-${rows.size + 1}`, createdAt: now.toISOString() };
+        rows.set(row.id, row);
+        return row;
+      },
+      getSummary: async (id: string) => rows.get(id) ?? null,
+    };
+    const deps: OutreachDeps = { ...w.deps, submission: { summaries, renderPdf: renderDealSummaryPdf, loadContext: async (id) => (id === w.deal.id ? ctx : null), computeMetrics: stubSubmissionMetrics } };
+    const advisor = { name: "Ana Ruiz", title: "Senior Advisor", dreLicense: "01234567", email: "ana@corincommercial.com", phone: "415-555-0100" };
+    return { ...w, ctx, deps, rows, advisor };
+  }
+
+  it("locks the deal summary (not the executive summary) and sends each lender its approved email", async () => {
+    const w = await wired("approved");
+    const input = { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id, w.lenders.b.id], items: docs(2), summary: w.summary, actor: "broker:ana", targetStage: "term_sheet" as const, advisor: w.advisor };
+    // The typed profile matched, but the computed DSCR (1.33x) sits below the boxes' 1.45x: the fit needs a reason.
+    const refused = await submitToLenders(w.deps, input);
+    expect(refused.outcomes.map((o) => !o.ok && o.error)).toEqual([
+      "Outside Cambridge Realty Capital's recorded box: DSCR 1.33x vs 1.45x minimum. Add an override reason to submit anyway.",
+      "Outside Greystone's recorded box: DSCR 1.33x vs 1.45x minimum. Add an override reason to submit anyway.",
+    ]);
+    expect(w.gate.requests).toEqual([]);
+    // Nobody was admitted, so nothing was stored or locked.
+    expect(w.rows.size).toBe(0);
+    expect(await w.store.listPackages(w.deal.id)).toEqual([]);
+    const r = await submitToLenders(w.deps, { ...input, overrideReason: "Both lenders size HUD 232 on their own DSCR" });
+    expect(r.outcomes.map((o) => o.ok && o.result.outreach.status)).toEqual(["sent", "sent"]);
+    expect(w.gate.requests[0]!.summary).toContain("fit override: Both lenders size HUD 232 on their own DSCR");
+    expect(r.summaryItem).toMatchObject({ kind: "DEAL_SUMMARY", label: "Deal summary (Corin)" });
+    const [pkg] = await w.store.listPackages(w.deal.id);
+    expect(pkg!.manifest.map((i) => i.kind)).toContain("DEAL_SUMMARY");
+    expect(pkg!.manifest.map((i) => i.kind)).not.toContain("EXECUTIVE_SUMMARY");
+    expect(w.rows.size).toBe(1);
+    expect(w.gate.requests.every((q) => q.templateId === "lender_package_submission_v2")).toBe(true);
+    expect(w.gate.requests[0]!.summary).toMatch(/match \d+(\.\d)?\/100/);
+    expect(w.mailer.sent.map((m) => m.to)).toEqual(["dana@lender.example", "kim@greystone.example"]);
+    expect(w.mailer.sent[0]!.subject).toMatch(/^Loan request: \$11,250,000 HUD 232 \| 88-bed assisted living, Santa Rosa CA/);
+    expect(w.mailer.sent[0]!.text).toMatch(/\nhttps:\/\/corincommercial\.com\/api\/deals\/share\/[A-Za-z0-9_-]{43}\n/);
+    for (const p of w.ctx.principals.filter((x) => x.kind === "individual")) expect(w.mailer.sent[0]!.text).not.toContain(p.legalName);
+  });
+
+  it("keeps the matcher's override rule and the readiness gate", async () => {
+    const w = await wired("pending");
+    const refused = await submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.c.id], items: docs(1), summary: null, actor: "broker:ana", advisor: w.advisor });
+    expect(refused.outcomes[0]).toMatchObject({ ok: false });
+    expect(w.rows.size).toBe(0);
+    w.ctx.profile!.purpose = null;
+    await expect(submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: null, actor: "broker:ana", advisor: w.advisor })).rejects.toThrow(/required item is missing for a soft-quote request: Loan purpose/);
+    expect(w.gate.requests).toEqual([]);
+    const sent = await submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: null, actor: "broker:ana", advisor: w.advisor, overrideReason: "Lender sizes HUD 232 on its own DSCR", readinessOverrideReason: "Purpose is confirmed by phone; the profile is being updated" });
+    expect(sent.outcomes[0]).toMatchObject({ ok: true });
+    expect(w.gate.requests[0]!.payload).toMatchObject({ readinessMissing: ["request.purpose"], overrideReason: "Purpose is confirmed by phone; the profile is being updated" });
+    await expect(submitToLenders(w.deps, { dealId: w.deal.id, profile: w.profile, lenderIds: [w.lenders.a.id], items: docs(1), summary: null, actor: "broker:ana" })).rejects.toThrow(/advisor/);
   });
 });
 

@@ -1,0 +1,70 @@
+Subject: Loan request: $8,600,000 hotel PIP bridge | 98-key hotel (flagged), Bakersfield CA | 87.8% loan-to-price, 7.4% debt yield | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: Bridge and Hotel / PIP, $500K–$50M, CA and AZ. This request: Bridge, $8.6M, CA.
+
+THE REQUEST
+  Loan:        $8,600,000, acquisition, first lien
+  Structure:   36 months, interest-only, floating, partial recourse
+  Closing:     target January 29, 2027 (Purchase contract close; the brand's change-of-ownership application is filed)
+
+THE PROPERTY
+  Riverbend Inn & Suites, 5101 Riverbend Plaza Drive, Bakersfield, CA 93309 — 98-key hotel (flagged), built 1999
+  Occupancy:   61.2% as of October 31, 2026 (from the STR report)
+  Purchase price: $9,800,000, closing January 29, 2027
+
+THE HOTEL
+  Brand:       Larkstone Inn & Suites; franchise expires December 31, 2042
+  Performance: 61.2% occupancy, $118.50 ADR, $72.52 RevPAR, RevPAR index 82 (Corin spread)
+  FF&E reserve: 4% of revenue
+  PIP:         $2,450,000 ($25,000 a key); due December 31, 2027; brand sign-off on the scope: yes
+
+THE NUMBERS
+  NOI in place:      $640,000 (trailing 12 months through September 30, 2026; from the T-12)
+  Underwritten NOI:  $598,000 (Corin normalization of the operating statement)
+  NOI stabilized:    $1,330,000 in about 30 months (Corin pro forma from the sponsor's plan)
+  Loan to price:     87.8% of the purchase price / LTV 56.6% stabilized (Corin calculation)
+  LTC:               65.3% of $13,169,000 total cost
+  Debt yield:        7.4% in place / 15.5% stabilized
+  DSCR:              0.74x in place / 1.54x stabilized at an assumed 9% / 25-year schedule — an assumption, not a quote
+  Loan per key:      $87,755
+
+THE RENOVATION
+  Budget:      $2,450,000 over about 14 months
+  Scope:       Brand PIP: guest rooms and bathrooms, corridors, lobby and breakfast area, pool, exterior paint and signage
+  Reserves requested of the lender: interest $520,000; capex $2,450,000
+
+THE SPONSOR
+  Riverbend Hospitality Group LLC, a CA LLC. The sponsor buys underperforming limited-service hotels in the Central Valley, completes brand improvement plans and operates them through its own management company; five such repositionings since 2014.
+  12 years, 5 similar projects, 6 hotels, 590 keys
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 700–739 (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+  Management: Riverbend Hotel Services LLC
+
+THE PLAN AND THE EXIT
+  Buy a 98-key hotel that lost its franchise momentum, complete the brand's $2.45 million property improvement plan within 14 months (guest rooms and baths, corridors, lobby, breakfast area, pool and exterior), and relaunch it under a new 15-year franchise. The sponsor has done five PIP repositionings and runs the hotel through its own management company.
+  Exit: refinance in about 33 months. Refinance into a hotel CMBS or bank loan once the PIP is complete and trailing RevPAR reflects the new flag, around month 30, on NOI of about $1,330,000.
+
+SOURCES AND USES
+  Sources: Senior loan $8,600,000; Sponsor equity $4,569,000 = $13,169,000
+  Uses:    Purchase price $9,800,000; Renovation / capital work (Brand PIP) $2,450,000; Closing costs $210,000; Financing costs $189,000; Interest reserve (lender-held, requested) $520,000 = $13,169,000
+
+KNOWN ISSUES
+  - Hotel performance dips during renovation: Rooms are renovated one floor at a time and a $520,000 interest reserve covers carry through the work.
+  - PIP cost overruns: Fixed-price bids for 85% of the scope and a 10% contingency inside the budget.
+
+IN THE PACKAGE (8 documents)
+  Deal summary (PDF); T-12 operating statement through September 2026; STR report dated October 31, 2026; franchise agreement; PIP budget; Riverbend Inn purchase contract; 2 sponsor financial statements
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna

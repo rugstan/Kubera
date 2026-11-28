@@ -1,0 +1,59 @@
+Subject: Loan request: $650,000 DSCR rental | 4-unit residential, Fresno CA | 62.5% LTV, 1.03x DSCR | Corin Commercial
+
+Dana,
+
+Corin Commercial, Inc. is the broker on this request, not the lender. We are asking Harborline Capital for a term sheet on the loan below. Please reply with yes, no, or what else you need.
+
+Your recorded box: DSCR (investor rental), $500K–$50M, CA and AZ. This request: DSCR (investor rental), $650K, CA.
+
+THE REQUEST
+  Loan:        $650,000, cash-out refinance, first lien
+  Structure:   360 months, 30-year amortization, fixed, full recourse
+  Closing:     target January 8, 2027 (Rate-lock window; current loan is not maturing)
+  Existing debt: $410,000 with Saltmeadow Savings Bank, matures July 1, 2049
+  Cash out:    $217,200 (Down payment on a second fourplex in the same Fresno submarket)
+
+THE PROPERTY
+  1840 Larch Row, Fresno, CA 93704 — 4-unit residential, built 1964, renovated 2019
+  Occupancy:   100% as of October 31, 2026 (from the rent roll)
+  As-is value: $1,040,000 (Appraisal, October 8, 2026)
+
+THE NUMBERS
+  Rent:              $6,100 a month under leases (per borrower); market rent $6,400 (Appraisal rent schedule (Form 1007 / 1025))
+  Monthly costs:     taxes $1,083, insurance $310
+  PITIA:             $5,938 a month at an assumed 7.5% / 30-year schedule — an assumption, not a quote
+  DSCR:              1.03x (lower of lease and market rent ÷ PITIA)
+  LTV:               62.5% as-is (Corin calculation)
+  Leases:            leased; earliest lease ends March 31, 2027
+  Reserves:          9 months of PITIA after closing
+
+THE SPONSOR
+  Larch Row Rentals LLC, a CA LLC. The sponsor has owned and self-managed small Fresno rental buildings since 2015 and holds six two-to-four unit properties free of any late payments.
+  11 years, 6 similar projects, 6 two-to-four unit rentals, 19 units in Fresno
+  Guarantor net worth at or above the loan amount: yes. Liquidity at or above 10% of the loan: yes.
+    (from personal financial statements dated October 15, 2026; figures are in the summary)
+  Credit: 740 or higher (self-reported band); no bankruptcies, foreclosures, judgments or open litigation reported
+
+THE PLAN AND THE EXIT
+  Keep holding a fully leased, renovated 1964 fourplex near Fig Garden and take some equity out at a long-term fixed rate. The four two-bedroom units were renovated in 2019, rents are about 5% below the appraiser's market rent, and the leases turn over gradually through 2027.
+  Exit: hold to maturity. Long-term hold; no sale is planned. Rents below market leave room to absorb higher taxes or insurance.
+
+SOURCES AND USES
+  Sources: Senior loan $650,000 = $650,000
+  Uses:    Payoff of existing debt $410,000; Closing costs $9,800; Financing costs $13,000; Cash out to borrower $217,200 = $650,000
+
+KNOWN ISSUES
+  - DSCR near 1.0x at the assumed rate: Nine months of reserves after closing, and in-place rents are about $300 a month below market in total.
+
+IN THE PACKAGE (5 documents)
+  Deal summary (PDF); rent roll dated October 31, 2026; appraisal dated October 8, 2026; Larch Row existing loan statement Oct 2026; 1 sponsor financial statement
+  Reports on hand: Appraisal dated October 8, 2026
+
+Secure link for Harborline Capital only (expires {{LINK_EXPIRES}}):
+{{SHARE_LINK}}
+
+Ana Ruiz, Senior Advisor · DRE 01234567
+ana@corincommercial.com · 415-555-0100
+
+Corin Commercial, Inc. arranges loans as a broker and does not lend. Figures come from the borrower's documents and Corin's calculations as labeled; your institution performs its own underwriting and makes every credit decision. This is a request for terms, not a commitment by any party. Confidential: for Harborline Capital's credit review only. Please do not forward the link.
+Corin Commercial, Inc. · Real estate broker, California Department of Real Estate · CA DRE Corp. License #01522444 · Designated Officer: Neeli Khanna
